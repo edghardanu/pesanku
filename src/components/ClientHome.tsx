@@ -65,12 +65,13 @@ export default function ClientHome({ initialProducts, totalSold }: { initialProd
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 hover:scale-105 transition-transform">
             <motion.div
+              className="flex items-center gap-2"
               animate={{ y: [0, -3, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
             >
               <ShoppingBag className="w-8 h-8 text-brand-primary" />
+              <span className="text-h2 text-brand-primary font-bold tracking-tight">pesanku</span>
             </motion.div>
-            <span className="text-h2 text-brand-primary font-bold tracking-tight">pesanku</span>
           </Link>
           
           <div className="hidden md:flex flex-1 max-w-md mx-8">
@@ -124,8 +125,16 @@ export default function ClientHome({ initialProducts, totalSold }: { initialProd
               {/* Text Content */}
               <motion.div 
                 initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
+                animate={{ 
+                  opacity: 1, 
+                  x: 0,
+                  y: [0, -10, 0]
+                }}
+                transition={{ 
+                  opacity: { duration: 0.6, ease: "easeOut" },
+                  x: { duration: 0.6, ease: "easeOut" },
+                  y: { repeat: Infinity, duration: 4, ease: "easeInOut", delay: 0.5 }
+                }}
                 className="text-left"
               >
                 <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 bg-brand-secondary/20 text-brand-secondary-dark rounded-full text-sm font-semibold tracking-wide">
@@ -192,13 +201,19 @@ export default function ClientHome({ initialProducts, totalSold }: { initialProd
                   {/* Floating Badge */}
                   <motion.div 
                     initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.8, duration: 0.5 }}
-                    className="absolute -bottom-6 -left-6 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-4"
+                    animate={{ 
+                      y: [0, 8, 0], 
+                      opacity: 1 
+                    }}
+                    transition={{ 
+                      opacity: { delay: 0.8, duration: 0.5 },
+                      y: { repeat: Infinity, duration: 3, ease: "easeInOut", delay: 1.2 }
+                    }}
+                    className="absolute -bottom-6 -left-6 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-4 z-20"
                   >
                     <div className="w-12 h-12 bg-status-success/20 text-status-success rounded-full flex items-center justify-center">
                       <motion.div
-                        animate={{ y: [-2, 2, -2] }}
+                        animate={{ y: [-3, 3, -3], scale: [1, 1.1, 1] }}
                         transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                       >
                         <ShoppingBag className="w-6 h-6" />
@@ -356,12 +371,13 @@ export default function ClientHome({ initialProducts, totalSold }: { initialProd
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center items-center gap-2 mb-6">
             <motion.div
+              className="flex items-center gap-2"
               animate={{ y: [0, -4, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
             >
               <ShoppingBag className="w-8 h-8 text-brand-primary" />
+              <span className="text-h2 text-brand-primary font-bold tracking-tight">pesanku</span>
             </motion.div>
-            <span className="text-h2 text-brand-primary font-bold tracking-tight">pesanku</span>
           </div>
           <p className="text-body-base text-text-secondary mb-8 max-w-md mx-auto">
             Platform preorder makanan dan minuman dari UMKM lokal terpercaya. Pesan langsung dari ahlinya.
