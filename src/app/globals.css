@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #E05638;
+  --color-brand-primary-hover: #C84327;
+  --color-brand-secondary: #F4A261;
+  --color-brand-accent: #2A9D8F;
+  --color-base: #FAFAF9;
+  --color-surface: #FFFFFF;
+  --color-text-primary: #1E293B;
+  --color-text-secondary: #64748B;
+  --color-border: #E2E8F0;
+  --color-status-success: #10B981;
+  --color-status-warning: #F59E0B;
+  --color-status-error: #EF4444;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  :root {
+    --background: #FAFAF9;
+    --foreground: #1E293B;
+  }
+}
+
+body {
+  background-color: var(--color-base);
+  color: var(--color-text-primary);
+}
+
+/* Typography styles based on design system */
+@layer components {
+  .text-display-1 {
+    @apply text-4xl font-bold leading-tight;
+  }
+  .text-h1 {
+    @apply text-3xl font-bold leading-tight;
+  }
+  .text-h2 {
+    @apply text-2xl font-semibold leading-snug;
+  }
+  .text-h3 {
+    @apply text-xl font-semibold leading-relaxed;
+  }
+  .text-body-large {
+    @apply text-lg font-medium leading-relaxed;
+  }
+  .text-body-base {
+    @apply text-base font-normal leading-relaxed;
+  }
+  .text-body-small {
+    @apply text-sm font-normal leading-relaxed;
+  }
+  .text-caption {
+    @apply text-xs font-medium leading-relaxed;
+  }
+  
+  .btn-primary {
+    @apply bg-brand-primary hover:bg-brand-primary-hover text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm active:scale-95;
+  }
+  .btn-secondary {
+    @apply bg-brand-secondary text-text-primary px-4 py-2 rounded-lg font-medium transition-colors shadow-sm active:scale-95;
+  }
+  .btn-outline {
+    @apply border border-border bg-surface hover:bg-gray-50 text-text-primary px-4 py-2 rounded-lg font-medium transition-colors shadow-sm active:scale-95;
+  }
+  
+  .card {
+    @apply bg-surface rounded-xl border border-border shadow-sm overflow-hidden;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-2 border border-border rounded-lg bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all;
+  }
+}
