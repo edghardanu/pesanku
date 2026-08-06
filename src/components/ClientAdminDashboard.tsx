@@ -15,8 +15,15 @@ import {
   Search,
   QrCode,
   Menu,
-  X
+  X,
+  BarChart3,
+  Calendar,
+  TrendingUp,
+  Filter,
+  Sun,
+  Moon
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Swal from 'sweetalert2';
 
@@ -29,9 +36,10 @@ type ClientAdminDashboardProps = {
   };
   userName: string;
   umkmList: any[];
+  ordersList?: any[];
 };
 
-export default function ClientAdminDashboard({ stats, userName, umkmList }: ClientAdminDashboardProps) {
+export default function ClientAdminDashboard({ stats, userName, umkmList, ordersList = [] }: ClientAdminDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'qris'>('overview');
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -39,6 +47,119 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
   const [localUmkmList, setLocalUmkmList] = useState(umkmList);
   const [searchQueryUmkm, setSearchQueryUmkm] = useState('');
   const [searchQueryPayout, setSearchQueryPayout] = useState('');
+
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      setIsDarkMode(true);
+    } else {
+      document.documentElement.classList.remove('dark');
+      setIsDarkMode(false);
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      localStorage.theme = 'light';
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.theme = 'dark';
+      setIsDarkMode(true);
+    }
+  };
+
+  const [selectedMonth, setSelectedMonth] = useState<string>('8'); // Default Agustus
+  const [selectedYear, setSelectedYear] = useState<string>('2026'); // Default 2026
+  const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
+
+  // Live DB orders state for real-time calculation
+  const [liveOrders, setLiveOrders] = useState<any[]>(ordersList);
+
+  // 100% Real-time async polling from SQLite DB every 3 seconds
+  useEffect(() => {
+    const fetchLiveStats = async () => {
+      try {
+        const res = await fetch('/api/admin/chart-stats');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ordersList) {
+            setLiveOrders(data.ordersList);
+          }
+        }
+      } catch (err) {
+        console.error('Error polling chart stats:', err);
+      }
+    };
+
+    fetchLiveStats();
+    const interval = setInterval(fetchLiveStats, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getChartData = () => {
+    const yearNum = parseInt(selectedYear, 10);
+
+    // Filter 100% real SQLite orders by selected year
+    const ordersInYear = liveOrders.filter(o => {
+      if (!o.createdAt) return false;
+      const d = new Date(o.createdAt);
+      return d.getFullYear() === yearNum;
+    });
+
+    if (selectedMonth === 'all') {
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      
+      return monthNames.map((month, i) => {
+        const monthOrders = ordersInYear.filter(o => new Date(o.createdAt).getMonth() === i);
+        const count = monthOrders.length;
+        const amount = monthOrders.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
+
+        return { label: month, count, amount };
+      });
+    } else {
+      const monthIndex = parseInt(selectedMonth, 10);
+      const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][monthIndex - 1] || 30;
+      
+      const periodLabels = [
+        `Tgl 1-4`,
+        `Tgl 5-8`,
+        `Tgl 9-12`,
+        `Tgl 13-16`,
+        `Tgl 17-20`,
+        `Tgl 21-24`,
+        `Tgl 25-${daysInMonth}`
+      ];
+
+      const ordersInMonth = ordersInYear.filter(o => new Date(o.createdAt).getMonth() + 1 === monthIndex);
+      
+      const periodRanges = [
+        [1, 4],
+        [5, 8],
+        [9, 12],
+        [13, 16],
+        [17, 20],
+        [21, 24],
+        [25, daysInMonth]
+      ];
+
+      return periodLabels.map((label, i) => {
+        const [startDay, endDay] = periodRanges[i];
+        const periodOrders = ordersInMonth.filter(o => {
+          const day = new Date(o.createdAt).getDate();
+          return day >= startDay && day <= endDay;
+        });
+
+        const count = periodOrders.length;
+        const amount = periodOrders.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
+
+        return { label, count, amount };
+      });
+    }
+  };
 
   const [mockPayouts, setMockPayouts] = useState<any[]>([]);
   const [mockVerifications, setMockVerifications] = useState<any[]>([]);
@@ -251,10 +372,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           <button 
             onClick={() => handleTabChange('overview')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
               activeTab === 'overview' 
                 ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
-                : 'text-text-secondary hover:bg-gray-50 hover:text-text-primary'
+                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
             }`}
           >
             <Settings className="w-5 h-5" />
@@ -263,10 +384,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
 
           <button 
             onClick={() => handleTabChange('umkm')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
               activeTab === 'umkm' 
                 ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
-                : 'text-text-secondary hover:bg-gray-50 hover:text-text-primary'
+                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
             }`}
           >
             <Store className="w-5 h-5" />
@@ -275,10 +396,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
           
           <button 
             onClick={() => handleTabChange('verifikasi')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
               activeTab === 'verifikasi' 
                 ? 'bg-status-warning/10 text-status-warning font-semibold' 
-                : 'text-text-secondary hover:bg-gray-50 hover:text-text-primary'
+                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
             }`}
           >
             <CheckCircle className="w-5 h-5" />
@@ -290,10 +411,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
 
           <button 
             onClick={() => handleTabChange('pencairan')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
               activeTab === 'pencairan' 
-                ? 'bg-brand-secondary/10 text-brand-secondary-dark font-semibold' 
-                : 'text-text-secondary hover:bg-gray-50 hover:text-text-primary'
+                ? 'bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary font-semibold' 
+                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
             }`}
           >
             <ArrowRightLeft className="w-5 h-5" />
@@ -305,10 +426,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
           
           <button 
             onClick={() => handleTabChange('qris')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
               activeTab === 'qris' 
                 ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
-                : 'text-text-secondary hover:bg-gray-50 hover:text-text-primary'
+                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
             }`}
           >
             <QrCode className="w-5 h-5" />
@@ -319,7 +440,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
         <div className="p-4 border-t border-border">
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-status-error hover:bg-status-error/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-status-error hover:bg-status-error/10 hover-btn transition-colors"
           >
             <LogOut className="w-5 h-5" />
             <span className="font-semibold">Keluar</span>
@@ -335,16 +456,49 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
             <ShoppingBag className="w-6 h-6 text-brand-primary" />
             <span className="text-h3 text-brand-primary font-bold tracking-tight">pesanku admin</span>
           </div>
-          <button onClick={() => setIsMobileSidebarOpen(true)} className="p-2 text-text-primary">
-            <Menu className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={toggleDarkMode}
+              className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors relative overflow-hidden flex items-center justify-center w-9 h-9 border border-border hover-btn cursor-pointer"
+              aria-label="Toggle Dark Mode"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {isDarkMode ? (
+                  <motion.div
+                    key="moon"
+                    initial={{ y: -20, opacity: 0, rotate: -90 }}
+                    animate={{ y: 0, opacity: 1, rotate: 0 }}
+                    exit={{ y: 20, opacity: 0, rotate: 90 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute"
+                  >
+                    <Moon className="w-4 h-4 text-brand-secondary" />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="sun"
+                    initial={{ y: 20, opacity: 0, rotate: 90 }}
+                    animate={{ y: 0, opacity: 1, rotate: 0 }}
+                    exit={{ y: -20, opacity: 0, rotate: -90 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute"
+                  >
+                    <Sun className="w-4 h-4 text-brand-secondary" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </button>
+            <button onClick={() => setIsMobileSidebarOpen(true)} className="p-2 text-text-primary">
+              <Menu className="w-6 h-6" />
+            </button>
+          </div>
         </header>
 
         <div className="p-4 md:p-8 flex-1 relative">
           {/* Loading Overlay */}
         {isTransitioning && (
           <div className="absolute inset-0 bg-base/60 backdrop-blur-sm z-50 flex items-center justify-center transition-all duration-300">
-            <div className="bg-white p-4 rounded-full shadow-lg flex items-center justify-center">
+            <div className="bg-surface p-4 rounded-full shadow-lg flex items-center justify-center border border-border">
               <div className="w-8 h-8 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin"></div>
             </div>
           </div>
@@ -356,15 +510,49 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
               <h1 className="text-display-2 text-text-primary mb-1">Dashboard Admin</h1>
               <p className="text-body-base text-text-secondary">Pantau aktivitas platform, verifikasi pembayaran, dan kelola pencairan dana UMKM.</p>
             </div>
-            <div className="hidden sm:block text-right">
-              <p className="text-caption text-text-secondary">Login sebagai</p>
-              <p className="font-semibold text-text-primary">{userName}</p>
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={toggleDarkMode}
+                className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border border-border hover-btn cursor-pointer shadow-sm"
+                aria-label="Toggle Dark Mode"
+                title={isDarkMode ? "Ganti ke Light Mode" : "Ganti ke Dark Mode"}
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {isDarkMode ? (
+                    <motion.div
+                      key="moon"
+                      initial={{ y: -30, opacity: 0, rotate: -90 }}
+                      animate={{ y: 0, opacity: 1, rotate: 0 }}
+                      exit={{ y: 30, opacity: 0, rotate: 90 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute"
+                    >
+                      <Moon className="w-5 h-5 text-brand-secondary" />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="sun"
+                      initial={{ y: 30, opacity: 0, rotate: 90 }}
+                      animate={{ y: 0, opacity: 1, rotate: 0 }}
+                      exit={{ y: -30, opacity: 0, rotate: -90 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute"
+                    >
+                      <Sun className="w-5 h-5 text-brand-secondary" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </button>
+              <div className="hidden sm:block text-right">
+                <p className="text-caption text-text-secondary">Login sebagai</p>
+                <p className="font-semibold text-text-primary">{userName}</p>
+              </div>
             </div>
           </header>
 
           {activeTab === 'umkm' && (
             <div className="card p-0 border border-border overflow-hidden">
-              <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-gray-50">
+              <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
                 <h2 className="text-h3 w-full sm:w-auto">Daftar UMKM Terdaftar</h2>
                 <div className="flex gap-3 w-full sm:w-auto">
                   <div className="relative w-full sm:w-64">
@@ -408,7 +596,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
                       localUmkmList
                         .filter(u => (u.storeName || '').toLowerCase().includes(searchQueryUmkm.toLowerCase()))
                         .map((umkm) => (
-                        <tr key={umkm.id} className="border-b border-border hover:bg-gray-50">
+                        <tr key={umkm.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
                           <td className="p-4 font-semibold text-text-primary">
                             {umkm.storeName || "Belum diatur"}
                           </td>
@@ -567,23 +755,180 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
                 </div>
               </div>
 
+              {/* Grafik Aktivitas & Transaksi Terbaru */}
               <div className="card p-6 border border-border">
-                <h2 className="text-h3 mb-4">Aktivitas Terbaru</h2>
-                <div className="space-y-4">
-                  <p className="text-text-secondary text-center py-8">Belum ada aktivitas hari ini.</p>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-border">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <BarChart3 className="w-5 h-5 text-brand-primary" />
+                      <h2 className="text-h3 text-text-primary">Aktivitas & Grafik Transaksi</h2>
+                      <span className="flex items-center gap-1.5 text-xs text-status-success font-semibold px-2.5 py-0.5 bg-status-success/10 rounded-full border border-status-success/20 ml-1">
+                        <span className="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
+                        Real-time Live
+                      </span>
+                    </div>
+                    <p className="text-body-small text-text-secondary">
+                      Statistik volume transaksi dan aktivitas platform terfilter secara otomatis.
+                    </p>
+                  </div>
+
+                  {/* Filter Dropdowns */}
+                  <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                    <div className="flex items-center gap-1.5 bg-base px-3 py-2 rounded-xl border border-border">
+                      <Filter className="w-4 h-4 text-brand-primary" />
+                      <select 
+                        value={selectedMonth} 
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        className="bg-transparent text-text-primary text-sm font-semibold outline-none cursor-pointer"
+                      >
+                        <option value="all">Semua Bulan (1 Tahun)</option>
+                        <option value="1">Januari</option>
+                        <option value="2">Februari</option>
+                        <option value="3">Maret</option>
+                        <option value="4">April</option>
+                        <option value="5">Mei</option>
+                        <option value="6">Juni</option>
+                        <option value="7">Juli</option>
+                        <option value="8">Agustus</option>
+                        <option value="9">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 bg-base px-3 py-2 rounded-xl border border-border">
+                      <Calendar className="w-4 h-4 text-brand-secondary-dark dark:text-brand-secondary" />
+                      <select 
+                        value={selectedYear} 
+                        onChange={(e) => setSelectedYear(e.target.value)}
+                        className="bg-transparent text-text-primary text-sm font-semibold outline-none cursor-pointer"
+                      >
+                        <option value="2026">Tahun 2026</option>
+                        <option value="2025">Tahun 2025</option>
+                        <option value="2024">Tahun 2024</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Metric Summaries for the selected filter */}
+                {(() => {
+                  const chartData = getChartData();
+                  const totalCount = chartData.reduce((acc, curr) => acc + curr.count, 0);
+                  const totalAmount = chartData.reduce((acc, curr) => acc + curr.amount, 0);
+                  const maxCount = Math.max(...chartData.map(d => d.count), 1);
+
+                  const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                  const filterLabel = selectedMonth === 'all' 
+                    ? `Tahun ${selectedYear}` 
+                    : `${monthNames[parseInt(selectedMonth)-1]} ${selectedYear}`;
+
+                  return (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-base p-4 rounded-xl border border-border flex items-center justify-between">
+                          <div>
+                            <p className="text-caption text-text-secondary">Total Transaksi ({filterLabel})</p>
+                            <p className="text-h2 font-bold text-brand-primary">{totalCount} <span className="text-sm font-normal text-text-secondary">Order</span></p>
+                          </div>
+                          <TrendingUp className="w-8 h-8 text-brand-primary/40" />
+                        </div>
+                        <div className="bg-base p-4 rounded-xl border border-border flex items-center justify-between">
+                          <div>
+                            <p className="text-caption text-text-secondary">Estimasi Perputaran Dana</p>
+                            <p className="text-h2 font-bold text-status-success">Rp {totalAmount.toLocaleString('id-ID')}</p>
+                          </div>
+                          <CreditCard className="w-8 h-8 text-status-success/40" />
+                        </div>
+                        <div className="bg-base p-4 rounded-xl border border-border flex items-center justify-between">
+                          <div>
+                            <p className="text-caption text-text-secondary">Filter Aktif Terpilih</p>
+                            <p className="text-body-base font-bold text-text-primary">{filterLabel}</p>
+                          </div>
+                          <Filter className="w-8 h-8 text-brand-secondary/40" />
+                        </div>
+                      </div>
+
+                      {/* Bar Chart Visual Graphics */}
+                      <div className="relative pt-8 pb-3 px-3 bg-base/60 rounded-2xl border border-border/80">
+                        {/* Background Grid Lines */}
+                        <div className="absolute inset-x-4 top-10 bottom-12 flex flex-col justify-between pointer-events-none opacity-20">
+                          <div className="border-b border-dashed border-text-secondary w-full"></div>
+                          <div className="border-b border-dashed border-text-secondary w-full"></div>
+                          <div className="border-b border-dashed border-text-secondary w-full"></div>
+                          <div className="border-b border-dashed border-text-secondary w-full"></div>
+                        </div>
+
+                        {/* Bars Container */}
+                        <div className="relative z-10 flex items-end justify-between gap-2 sm:gap-4 h-64 pt-8 px-2">
+                          {chartData.map((item, index) => {
+                            const barHeightPercent = item.count === 0 ? 4 : Math.max((item.count / maxCount) * 100, 15);
+                            const isHovered = hoveredBarIndex === index;
+                            const hasOrders = item.count > 0;
+
+                            return (
+                              <div 
+                                key={index} 
+                                className="flex-1 flex flex-col items-center h-full justify-end group relative"
+                                onMouseEnter={() => setHoveredBarIndex(index)}
+                                onMouseLeave={() => setHoveredBarIndex(null)}
+                              >
+                                {/* Tooltip on Hover */}
+                                {isHovered && (
+                                  <div className="absolute -top-14 z-30 bg-slate-900 text-white text-xs py-2 px-3.5 rounded-xl shadow-2xl font-medium whitespace-nowrap border border-slate-700 animate-in fade-in zoom-in-95">
+                                    <div className="font-bold text-brand-secondary text-sm">{item.label}</div>
+                                    <div className="text-slate-300">{item.count} Transaksi (Rp {item.amount.toLocaleString('id-ID')})</div>
+                                  </div>
+                                )}
+
+                                {/* Bar Element */}
+                                <div className="w-full flex items-end justify-center h-full pt-6">
+                                  <div 
+                                    className={`w-full max-w-[44px] rounded-t-xl transition-all duration-300 relative cursor-pointer ${
+                                      isHovered 
+                                        ? 'bg-gradient-to-t from-brand-primary via-brand-primary to-brand-secondary shadow-lg shadow-brand-primary/40 scale-105 ring-2 ring-brand-primary/40' 
+                                        : hasOrders
+                                        ? 'bg-gradient-to-t from-brand-primary/80 to-brand-primary shadow-sm'
+                                        : 'bg-border/60 dark:bg-slate-700/50 hover:bg-border'
+                                    }`}
+                                    style={{ height: `${barHeightPercent}%` }}
+                                  >
+                                    {/* Value label on top of bar */}
+                                    <div className={`absolute -top-6 inset-x-0 text-center text-xs font-bold transition-colors ${
+                                      isHovered ? 'text-brand-primary scale-110' : hasOrders ? 'text-text-primary font-bold' : 'text-text-secondary/60 font-normal'
+                                    }`}>
+                                      {item.count}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* X-axis Label */}
+                                <span className={`text-xs mt-3 font-medium transition-colors truncate max-w-full ${
+                                  isHovered ? 'text-brand-primary font-bold' : 'text-text-secondary'
+                                }`}>
+                                  {item.label}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
 
           {activeTab === 'qris' && (
             <div className="card p-0 border border-border overflow-hidden max-w-2xl mx-auto">
-              <div className="p-6 border-b border-border bg-gray-50">
+              <div className="p-6 border-b border-border bg-surface/50">
                 <h2 className="text-h3 mb-1">Pengaturan QRIS Admin</h2>
                 <p className="text-body-small text-text-secondary">Foto barcode QRIS ini akan ditampilkan kepada pembeli pada saat *checkout* pembayaran.</p>
               </div>
               <div className="p-8 flex flex-col items-center text-center">
-                <div className="w-64 h-64 border-4 border-gray-100 rounded-3xl overflow-hidden mb-6 relative shadow-inner bg-gray-50 flex items-center justify-center">
+                <div className="w-64 h-64 border-4 border-border rounded-3xl overflow-hidden mb-6 relative shadow-inner bg-base flex items-center justify-center">
                   {adminQrisUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={adminQrisUrl} alt="QRIS Admin" className="w-full h-full object-cover" />
@@ -670,113 +1015,44 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
 
           {activeTab === 'verifikasi' && (
             <div className="card p-0 border border-border overflow-hidden">
-              <div className="p-6 border-b border-border flex justify-between items-center bg-gray-50">
-                <h2 className="text-h3">Verifikasi Pembayaran Masuk</h2>
+              <div className="p-6 border-b border-border flex justify-between items-center bg-surface/50">
+                <h2 className="text-h3">Status Pembayaran Masuk</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-surface text-caption text-text-secondary border-b border-border">
                       <th className="p-4 font-medium">Order ID</th>
-                      <th className="p-4 font-medium">Pembeli</th>
                       <th className="p-4 font-medium">Total Bayar</th>
-                      <th className="p-4 font-medium">Bukti Bayar</th>
-                      <th className="p-4 font-medium">Waktu</th>
-                      <th className="p-4 font-medium">Aksi</th>
+                      <th className="p-4 font-medium">Status</th>
+                      <th className="p-4 font-medium">Waktu Pemesanan</th>
                     </tr>
                   </thead>
                   <tbody className="text-body-small">
-                    {mockVerifications.length === 0 ? (
+                    {liveOrders.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-text-secondary">Tidak ada pembayaran yang menunggu verifikasi.</td>
+                        <td colSpan={4} className="p-8 text-center text-text-secondary">Tidak ada data transaksi saat ini.</td>
                       </tr>
                     ) : (
-                      mockVerifications.map((verif) => (
-                        <tr key={verif.id} className="border-b border-border hover:bg-gray-50">
-                          <td className="p-4 font-mono font-medium">{verif.id}</td>
-                          <td className="p-4">{verif.pembeli}</td>
-                          <td className="p-4 font-semibold text-brand-primary">{verif.totalBayar}</td>
+                      liveOrders.map((order) => (
+                        <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                          <td className="p-4 font-mono font-medium">{order.id}</td>
+                          <td className="p-4 font-semibold text-brand-primary">Rp {(order.totalPrice || 0).toLocaleString('id-ID')}</td>
                           <td className="p-4">
-                            <button 
-                              onClick={() => {
-                                Swal.fire({
-                                  title: `Bukti Pembayaran - ${verif.id}`,
-                                  imageUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&h=600&fit=crop',
-                                  imageWidth: 400,
-                                  imageHeight: 600,
-                                  imageAlt: 'Bukti Pembayaran',
-                                  text: `Dari: ${verif.pembeli} | Nominal: ${verif.totalBayar}`,
-                                  confirmButtonText: 'Tutup',
-                                  confirmButtonColor: '#ff5c35'
-                                });
-                              }}
-                              className="text-brand-secondary-dark font-medium underline hover:text-brand-primary transition-colors"
-                            >
-                              Lihat Bukti
-                            </button>
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                              order.status === 'verified' || order.status === 'completed' 
+                                ? 'bg-status-success/10 text-status-success' 
+                                : order.status === 'waiting_verification'
+                                ? 'bg-status-warning/10 text-status-warning'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {order.status === 'verified' ? 'Dibayar' : 
+                               order.status === 'completed' ? 'Selesai' :
+                               order.status === 'waiting_verification' ? 'Pending' : 'Batal'}
+                            </span>
                           </td>
-                          <td className="p-4 text-text-secondary">{verif.waktu}</td>
-                          <td className="p-4">
-                            <div className="flex gap-2">
-                              <button 
-                                onClick={() => {
-                                  Swal.fire({
-                                    title: 'Verifikasi Pembayaran',
-                                    text: `Terima pembayaran ${verif.totalBayar} dari ${verif.pembeli}?`,
-                                    icon: 'question',
-                                    showCancelButton: true,
-                                    confirmButtonColor: '#ff5c35',
-                                    cancelButtonColor: '#94a3b8',
-                                    confirmButtonText: 'Ya, Verifikasi',
-                                    cancelButtonText: 'Batal'
-                                  }).then((result) => {
-                                    if (result.isConfirmed) {
-                                      updateMockVerifications(mockVerifications.filter(v => v.id !== verif.id));
-                                      Swal.fire({
-                                        toast: true,
-                                        position: 'top-end',
-                                        icon: 'success',
-                                        title: 'Pembayaran berhasil diverifikasi',
-                                        showConfirmButton: false,
-                                        timer: 3000
-                                      });
-                                    }
-                                  });
-                                }}
-                                className="btn-primary py-1.5 px-3 text-sm"
-                              >
-                                Verifikasi
-                              </button>
-                              <button 
-                                onClick={() => {
-                                  Swal.fire({
-                                    title: 'Tolak Pembayaran',
-                                    text: `Tolak pembayaran dari ${verif.pembeli}?`,
-                                    icon: 'warning',
-                                    showCancelButton: true,
-                                    confirmButtonColor: '#ef4444', // status-error
-                                    cancelButtonColor: '#94a3b8',
-                                    confirmButtonText: 'Ya, Tolak',
-                                    cancelButtonText: 'Batal'
-                                  }).then((result) => {
-                                    if (result.isConfirmed) {
-                                      updateMockVerifications(mockVerifications.filter(v => v.id !== verif.id));
-                                      Swal.fire({
-                                        toast: true,
-                                        position: 'top-end',
-                                        icon: 'success',
-                                        title: 'Pembayaran ditolak',
-                                        showConfirmButton: false,
-                                        timer: 3000
-                                      });
-                                    }
-                                  });
-                                }}
-                                className="btn-outline py-1.5 px-3 text-sm text-status-error border-status-error hover:bg-status-error/10"
-                              >
-                                Tolak
-                              </button>
-                            </div>
+                          <td className="p-4 text-text-secondary">
+                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
                           </td>
                         </tr>
                       ))
@@ -789,7 +1065,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
 
           {activeTab === 'pencairan' && (
             <div className="card p-0 border border-border overflow-hidden">
-              <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-gray-50">
+              <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
                 <h2 className="text-h3">Permintaan Pencairan Dana (Payout)</h2>
                 <div className="relative w-full sm:w-64">
                   <input
@@ -825,7 +1101,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
                       mockPayouts
                         .filter(p => p.storeName.toLowerCase().includes(searchQueryPayout.toLowerCase()))
                         .map((payout) => (
-                        <tr key={payout.id} className="border-b border-border hover:bg-gray-50">
+                        <tr key={payout.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
                           <td className="p-4">
                             <p className="font-semibold text-text-primary">{payout.storeName}</p>
                           </td>

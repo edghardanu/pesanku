@@ -66,17 +66,29 @@ body {
   }
   
   .btn-primary {
-    @apply bg-brand-primary hover:bg-brand-primary-hover text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm active:scale-95;
+    @apply bg-brand-primary hover:bg-brand-primary-hover text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm active:scale-95 hover:shadow-lg hover:shadow-brand-primary/25 hover:-translate-y-0.5 cursor-pointer;
   }
   .btn-secondary {
-    @apply bg-brand-secondary text-text-primary px-4 py-2 rounded-lg font-medium transition-colors shadow-sm active:scale-95;
+    @apply bg-brand-secondary text-slate-900 px-4 py-2 rounded-lg font-semibold transition-all duration-200 shadow-sm active:scale-95 hover:bg-brand-secondary/90 hover:shadow-lg hover:shadow-brand-secondary/20 hover:-translate-y-0.5 cursor-pointer;
   }
   .btn-outline {
-    @apply border border-border bg-surface hover:bg-border/40 text-text-primary px-4 py-2 rounded-lg font-medium transition-colors shadow-sm active:scale-95;
+    @apply border border-border bg-surface hover:bg-border/60 text-text-primary px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm active:scale-95 hover:shadow-md hover:-translate-y-0.5 cursor-pointer;
+  }
+
+  .hover-btn {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95 cursor-pointer;
+  }
+  
+  .dark .btn-outline {
+    @apply dark:hover:bg-slate-800/90 dark:hover:border-slate-600 dark:hover:shadow-slate-900/60 dark:hover:text-white;
+  }
+
+  .dark .hover-btn {
+    @apply dark:hover:bg-slate-800/80 dark:hover:border-slate-600 dark:hover:shadow-slate-900/50;
   }
   
   .card {
-    @apply bg-surface rounded-xl border border-border shadow-sm overflow-hidden;
+    @apply bg-surface rounded-xl border border-border shadow-sm overflow-hidden transition-all duration-200;
   }
   
   .input-field {

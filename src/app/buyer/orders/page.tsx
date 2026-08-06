@@ -27,6 +27,7 @@ export default async function BuyerOrdersPage() {
       storeName: sellerProfiles.storeName,
       paymentId: payments.id,
       paymentStatus: payments.verificationStatus,
+      deliveryProofUrl: orders.deliveryProofUrl,
     })
     .from(orders)
     .innerJoin(products, eq(orders.productId, products.id))

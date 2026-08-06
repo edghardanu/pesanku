@@ -44,11 +44,23 @@ export default async function AdminDashboard() {
   .where(eq(users.role, 'penjual'))
   .orderBy(desc(users.createdAt));
 
+  // Fetch Real Orders for Chart & Realtime analytics
+  const ordersList = await db.select({
+    id: orders.id,
+    qty: orders.qty,
+    totalPrice: orders.totalPrice,
+    status: orders.status,
+    createdAt: orders.createdAt,
+  })
+  .from(orders)
+  .orderBy(desc(orders.createdAt));
+
   return (
     <ClientAdminDashboard 
       stats={stats}
       userName={user.name}
       umkmList={umkmList}
+      ordersList={ordersList}
     />
   );
 }

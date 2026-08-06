@@ -48,6 +48,7 @@ export const orders = sqliteTable('orders', {
   qty: integer('qty').notNull(),
   totalPrice: integer('total_price').notNull(),
   status: text('status', { enum: ['waiting_verification', 'verified', 'preorder_running', 'failed', 'processing', 'completed'] }).default('waiting_verification'),
+  deliveryProofUrl: text('delivery_proof_url'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 
