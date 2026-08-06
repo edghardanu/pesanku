@@ -10,7 +10,7 @@ import Swal from "sweetalert2";
 export default function ClientProductDetail({ product, user }: { product: any, user: any }) {
   const router = useRouter();
   const [qty, setQty] = useState(product.minQty || 1);
-  const [qrisUrl, setQrisUrl] = useState('https://images.unsplash.com/photo-1607523179298-2eb75b0577fc?w=400&h=400&fit=crop');
+  const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
 
   // Load the active QRIS from localStorage to simulate Admin's setting
   useEffect(() => {

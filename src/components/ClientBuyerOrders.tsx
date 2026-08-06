@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 
 export default function ClientBuyerOrders({ orders }: { orders: any[] }) {
   const router = useRouter();
-  const [qrisUrl, setQrisUrl] = useState('https://images.unsplash.com/photo-1607523179298-2eb75b0577fc?w=400&h=400&fit=crop');
+  const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
 
   // Load the active QRIS from localStorage
   useEffect(() => {

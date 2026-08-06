@@ -3,8 +3,10 @@ import { products, sellerProfiles, orders } from "@/lib/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import ClientHome from "@/components/ClientHome";
 import { dummyProducts } from "@/lib/dummyData";
+import { getUserFromSession } from "@/lib/auth";
 
 export default async function Home() {
+  const user = await getUserFromSession();
   // Fetch total products sold
   const totalSoldResult = await db.select({ total: sql<number>`SUM(${orders.qty})` }).from(orders).get();
   const totalSold = totalSoldResult?.total || 0;
@@ -35,5 +37,5 @@ export default async function Home() {
 
   const allProducts = [...dbProducts, ...dummyProducts];
 
-  return <ClientHome initialProducts={allProducts} totalSold={totalSold} />;
+  return <ClientHome initialProducts={allProducts} totalSold={totalSold} user={user} />;
 }

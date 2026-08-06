@@ -4,7 +4,7 @@ export const dummyProducts = [
     name: "Nasi Padang Rendang Spesial",
     description: "Nasi Padang autentik dengan rendang daging sapi empuk, gulai nangka, daun singkong, sambal hijau, dan bumbu rendang ekstra.",
     price: 35000,
-    imageUrl: "https://images.unsplash.com/photo-1574484284002-952d92456975?w=800&h=600&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
     minQty: 30,
     currentQty: 15,
     deadlineDate: new Date(Date.now() + 2 * 86400000),
@@ -21,7 +21,7 @@ export const dummyProducts = [
     name: "Sate Ayam Madura Bumbu Kacang",
     description: "10 tusuk sate ayam Madura asli dengan bumbu kacang kental, kecap manis, irisan bawang merah, dan cabai rawit.",
     price: 25000,
-    imageUrl: "https://images.unsplash.com/photo-1628294895950-9805252327bc?w=800&h=600&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
     minQty: 50,
     currentQty: 45,
     deadlineDate: new Date(Date.now() + 1 * 86400000),
@@ -38,7 +38,7 @@ export const dummyProducts = [
     name: "Bakso Urat Wonogiri",
     description: "Bakso sapi asli dengan tambahan urat kenyal, dilengkapi dengan mie kuning, bihun, sawi, dan kuah kaldu sapi yang gurih.",
     price: 20000,
-    imageUrl: "https://images.unsplash.com/photo-1555126634-323283e090fa?w=800&h=600&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
     minQty: 40,
     currentQty: 40,
     deadlineDate: new Date(Date.now() + 3 * 86400000),
@@ -55,7 +55,7 @@ export const dummyProducts = [
     name: "Mie Ayam Pangsit Mangkuk Pangsit",
     description: "Mie ayam lezat disajikan di dalam mangkuk pangsit goreng renyah, lengkap dengan potongan ayam cincang, sayur, dan kuah terpisah.",
     price: 22000,
-    imageUrl: "https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?w=800&h=600&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
     minQty: 25,
     currentQty: 10,
     deadlineDate: new Date(Date.now() + 4 * 86400000),
@@ -65,14 +65,14 @@ export const dummyProducts = [
     storeName: "Mie Ayam Berkah",
     storeAddress: "Tangerang",
     sellerAddress: "Tangerang",
-    sellerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop"
+    sellerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop"
   },
   {
     id: "dummy-5",
     name: "Ayam Geprek Sambal Bawang Ekstra Pedas",
     description: "Ayam goreng tepung krispi digeprek hancur dengan ulekan sambal bawang segar yang pedasnya nendang. Sudah termasuk nasi.",
     price: 18000,
-    imageUrl: "https://images.unsplash.com/photo-1614398751058-eb2e0bf63e53?w=800&h=600&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
     minQty: 60,
     currentQty: 55,
     deadlineDate: new Date(Date.now() + 2 * 86400000),
@@ -82,14 +82,14 @@ export const dummyProducts = [
     storeName: "Geprek Jontor",
     storeAddress: "Jakarta Barat",
     sellerAddress: "Jakarta Barat",
-    sellerAvatar: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=100&h=100&fit=crop"
+    sellerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop"
   },
   {
     id: "dummy-6",
     name: "Nasi Goreng Spesial Telur Dadar",
     description: "Nasi goreng kecap bumbu rempah dengan suwiran ayam, bakso sapi, sosis, dan telur dadar lebar menutupi nasi.",
     price: 25000,
-    imageUrl: "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=800&h=600&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
     minQty: 30,
     currentQty: 5,
     deadlineDate: new Date(Date.now() + 5 * 86400000),
@@ -99,14 +99,14 @@ export const dummyProducts = [
     storeName: "Nasgor Gila 88",
     storeAddress: "Bogor",
     sellerAddress: "Bogor",
-    sellerAvatar: "https://images.unsplash.com/photo-1528763380143-65b3ac89a3ff?w=100&h=100&fit=crop"
+    sellerAvatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop"
   },
   {
     id: "dummy-7",
     name: "Es Campur Sinar Garut",
     description: "Minuman segar berisi alpukat, kelapa muda, nangka, kolang-kaling, cincau hitam, disiram sirup merah muda dan susu kental manis.",
     price: 15000,
-    imageUrl: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=800&h=600&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
     minQty: 50,
     currentQty: 20,
     deadlineDate: new Date(Date.now() + 2 * 86400000),
@@ -123,7 +123,7 @@ export const dummyProducts = [
     name: "Martabak Manis Coklat Keju",
     description: "Martabak manis (terang bulan) tebal dan empuk, dengan isian melimpah meses coklat ceres dan parutan keju kraft.",
     price: 45000,
-    imageUrl: "https://images.unsplash.com/photo-1554520735-0a6b8b6ce8b7?w=800&h=600&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
     minQty: 20,
     currentQty: 18,
     deadlineDate: new Date(Date.now() + 1 * 86400000),
@@ -133,14 +133,14 @@ export const dummyProducts = [
     storeName: "Martabak Boss",
     storeAddress: "Bekasi",
     sellerAddress: "Bekasi",
-    sellerAvatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop"
+    sellerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop"
   },
   {
     id: "dummy-9",
     name: "Pempek Kapal Selam Palembang Asli",
     description: "Pempek ukuran besar berisi telur bebek utuh, digoreng garing di luar dan lembut di dalam. Disajikan dengan cuko kental pedas manis.",
     price: 25000,
-    imageUrl: "https://images.unsplash.com/photo-1534352956036-cd81e27dd615?w=800&h=600&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
     minQty: 40,
     currentQty: 12,
     deadlineDate: new Date(Date.now() + 3 * 86400000),
@@ -150,14 +150,14 @@ export const dummyProducts = [
     storeName: "Pempek Wong Kito",
     storeAddress: "Tangerang Selatan",
     sellerAddress: "Tangerang Selatan",
-    sellerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop"
+    sellerAvatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop"
   },
   {
     id: "dummy-10",
     name: "Gado-gado Siram Bumbu Kacang",
     description: "Salad sayuran rebus khas Indonesia (bayam, kacang panjang, tauge, labu siam) dengan tahu, tempe, telur, disiram bumbu kacang legit.",
     price: 20000,
-    imageUrl: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=600&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
     minQty: 35,
     currentQty: 30,
     deadlineDate: new Date(Date.now() + 2 * 86400000),
@@ -167,6 +167,6 @@ export const dummyProducts = [
     storeName: "Gado-gado Boplo",
     storeAddress: "Jakarta Pusat",
     sellerAddress: "Jakarta Pusat",
-    sellerAvatar: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=100&h=100&fit=crop"
+    sellerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop"
   }
 ];

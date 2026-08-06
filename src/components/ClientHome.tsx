@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp } from "lucide-react";
+import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon } from "lucide-react";
 import { motion, Variants, AnimatePresence } from "framer-motion";
 
 const containerVariants: Variants = {
@@ -28,12 +28,54 @@ const itemVariants: Variants = {
   }
 };
 
-export default function ClientHome({ initialProducts, totalSold }: { initialProducts: any[], totalSold: number }) {
+export default function ClientHome({ initialProducts, totalSold, user }: { initialProducts: any[], totalSold: number, user?: any }) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [greeting, setGreeting] = useState("");
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    // Check initial mode
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      setIsDarkMode(true);
+      document.documentElement.classList.add('dark');
+    } else {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      localStorage.theme = 'light';
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.theme = 'dark';
+      setIsDarkMode(true);
+    }
+  };
+
+  useEffect(() => {
+    const now = new Date();
+    const utcHours = now.getUTCHours();
+    const wibHours = (utcHours + 7) % 24;
+    
+    let text = "Selamat malam";
+    if (wibHours >= 5 && wibHours < 11) {
+      text = "Selamat pagi";
+    } else if (wibHours >= 11 && wibHours < 15) {
+      text = "Selamat siang";
+    } else if (wibHours >= 15 && wibHours < 18) {
+      text = "Selamat sore";
+    }
+    
+    setGreeting(`${text}, ${user?.name || 'Pengunjung'}`);
+  }, [user?.name]);
 
   useEffect(() => {
     // Hide loading screen after 1.5s
@@ -141,15 +183,64 @@ export default function ClientHome({ initialProducts, totalSold }: { initialProd
           </div>
 
           <div className="hidden md:flex items-center gap-4">
+            <button 
+              onClick={toggleDarkMode}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-border transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border border-border"
+              aria-label="Toggle Dark Mode"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {isDarkMode ? (
+                  <motion.div
+                    key="moon"
+                    initial={{ y: -30, opacity: 0, rotate: -90 }}
+                    animate={{ y: 0, opacity: 1, rotate: 0 }}
+                    exit={{ y: 30, opacity: 0, rotate: 90 }}
+                    transition={{ duration: 0.3 }}
+                    className="absolute"
+                  >
+                    <Moon className="w-5 h-5 text-brand-secondary" />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="sun"
+                    initial={{ y: 30, opacity: 0, rotate: 90 }}
+                    animate={{ y: 0, opacity: 1, rotate: 0 }}
+                    exit={{ y: -30, opacity: 0, rotate: -90 }}
+                    transition={{ duration: 0.3 }}
+                    className="absolute"
+                  >
+                    <Sun className="w-5 h-5 text-brand-secondary" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </button>
+
+            {greeting && (
+              <span className="text-body-small font-semibold text-brand-primary mr-2 hidden lg:inline-block">
+                {greeting}
+              </span>
+            )}
             <Link href="/seller" className="text-body-small font-medium text-text-secondary hover:text-brand-primary transition-colors">
               Mulai Berjualan
             </Link>
-            <Link href="/login" className="btn-outline hover:bg-brand-primary/5">
-              Masuk
-            </Link>
-            <Link href="/register" className="btn-primary shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40">
-              Daftar
-            </Link>
+            
+            {user ? (
+              <Link 
+                href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'} 
+                className="btn-primary shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40"
+              >
+                {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard' : 'Lihat Pesanan Saya'}
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="btn-outline hover:bg-brand-primary/5">
+                  Masuk
+                </Link>
+                <Link href="/register" className="btn-primary shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40">
+                  Daftar
+                </Link>
+              </>
+            )}
           </div>
           
           <button 
@@ -187,15 +278,66 @@ export default function ClientHome({ initialProducts, totalSold }: { initialProd
                   </button>
                 )}
               </div>
+              <div className="flex justify-center mb-2">
+                <button 
+                  onClick={toggleDarkMode}
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-border transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border border-border"
+                  aria-label="Toggle Dark Mode"
+                >
+                  <AnimatePresence mode="wait" initial={false}>
+                    {isDarkMode ? (
+                      <motion.div
+                        key="moon"
+                        initial={{ y: -30, opacity: 0, rotate: -90 }}
+                        animate={{ y: 0, opacity: 1, rotate: 0 }}
+                        exit={{ y: 30, opacity: 0, rotate: 90 }}
+                        transition={{ duration: 0.3 }}
+                        className="absolute"
+                      >
+                        <Moon className="w-5 h-5 text-brand-secondary" />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="sun"
+                        initial={{ y: 30, opacity: 0, rotate: 90 }}
+                        animate={{ y: 0, opacity: 1, rotate: 0 }}
+                        exit={{ y: -30, opacity: 0, rotate: -90 }}
+                        transition={{ duration: 0.3 }}
+                        className="absolute"
+                      >
+                        <Sun className="w-5 h-5 text-brand-secondary" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </button>
+              </div>
+              {greeting && (
+                <div className="text-center font-semibold text-brand-primary pb-2 border-b border-border">
+                  {greeting}
+                </div>
+              )}
               <Link href="/seller" onClick={() => setIsMobileMenuOpen(false)} className="block py-2 text-center font-medium text-text-secondary hover:text-brand-primary">
                 Mulai Berjualan
               </Link>
-              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="btn-outline w-full text-center">
-                Masuk
-              </Link>
-              <Link href="/register" onClick={() => setIsMobileMenuOpen(false)} className="btn-primary w-full text-center">
-                Daftar
-              </Link>
+              
+              {user ? (
+                <Link 
+                  href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'} 
+                  onClick={() => setIsMobileMenuOpen(false)} 
+                  className="btn-primary w-full text-center"
+                >
+                  {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard Saya' : 'Lihat Pesanan Saya'}
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="btn-outline w-full text-center">
+                    Masuk
+                  </Link>
+                  <Link href="/register" onClick={() => setIsMobileMenuOpen(false)} className="btn-primary w-full text-center">
+                    Daftar
+                  </Link>
+                </>
+              )}
             </div>
           </motion.div>
         )}

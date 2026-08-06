@@ -13,7 +13,9 @@ import {
   Settings,
   LogOut,
   Search,
-  QrCode
+  QrCode,
+  Menu,
+  X
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Swal from 'sweetalert2';
@@ -40,7 +42,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
 
   const [mockPayouts, setMockPayouts] = useState<any[]>([]);
   const [mockVerifications, setMockVerifications] = useState<any[]>([]);
-  const [adminQrisUrl, setAdminQrisUrl] = useState('https://images.unsplash.com/photo-1607523179298-2eb75b0577fc?w=400&h=400&fit=crop'); // Mock initial QRIS
+  const [adminQrisUrl, setAdminQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS'); // Mock initial QRIS
 
   useEffect(() => {
     const savedPayouts = localStorage.getItem('mockPayouts');
