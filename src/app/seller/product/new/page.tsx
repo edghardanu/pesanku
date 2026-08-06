@@ -1,15 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Upload, Info } from "lucide-react";
+import { ArrowLeft, Upload, Info, X } from "lucide-react";
+import Image from "next/image";
 
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hasMinQty, setHasMinQty] = useState(false);
+  
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.type.startsWith("image/")) {
+      setError("File harus berupa gambar");
+      return;
+    }
+
+    // Check file size (max 2MB for base64 safety)
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Ukuran gambar maksimal 2MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setImagePreview(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -33,6 +69,7 @@ export default function NewProductPage() {
       price: formData.get("price"),
       minQty: minQty,
       deadline: deadline,
+      imageUrl: imagePreview || "",
     };
 
     try {
@@ -118,10 +155,44 @@ export default function NewProductPage() {
                 <label className="block text-body-small font-medium text-text-primary mb-1">
                   Foto Produk
                 </label>
-                <div className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center justify-center text-text-secondary cursor-pointer hover:border-brand-primary hover:bg-brand-primary/5 transition-colors">
-                  <Upload className="w-6 h-6 mb-2" />
-                  <span className="text-caption">Klik untuk upload foto</span>
-                </div>
+                
+                {imagePreview ? (
+                  <div className="relative border border-border rounded-xl p-2 h-40">
+                    <div className="relative w-full h-full rounded-lg overflow-hidden">
+                      <Image 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        fill 
+                        className="object-cover"
+                      />
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={removeImage}
+                      className="absolute -top-2 -right-2 bg-white text-status-error rounded-full p-1 shadow-md hover:bg-status-error hover:text-white transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      id="product-image"
+                      className="hidden"
+                      ref={fileInputRef}
+                      onChange={handleImageChange}
+                    />
+                    <label 
+                      htmlFor="product-image"
+                      className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center justify-center h-40 text-text-secondary cursor-pointer hover:border-brand-primary hover:bg-brand-primary/5 transition-colors"
+                    >
+                      <Upload className="w-6 h-6 mb-2" />
+                      <span className="text-caption">Klik untuk upload foto</span>
+                    </label>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -134,7 +205,7 @@ export default function NewProductPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-body-small font-medium text-text-primary mb-1">
-                    Kuota Minimal (Pcs) <span className="text-status-error">*</span>
+                    Minimal Pembelian (Porsi) <span className="text-status-error">*</span>
                   </label>
                   <input 
                     type="number" 
@@ -174,3 +245,4 @@ export default function NewProductPage() {
     </div>
   );
 }
+

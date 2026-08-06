@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { products, sellerProfiles, orders } from "@/lib/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import ClientHome from "@/components/ClientHome";
+import { dummyProducts } from "@/lib/dummyData";
 
 export default async function Home() {
   // Fetch total products sold
@@ -32,5 +33,7 @@ export default async function Home() {
     sellerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop"
   }));
 
-  return <ClientHome initialProducts={dbProducts} totalSold={totalSold} />;
+  const allProducts = [...dbProducts, ...dummyProducts];
+
+  return <ClientHome initialProducts={allProducts} totalSold={totalSold} />;
 }

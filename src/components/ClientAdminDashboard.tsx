@@ -33,6 +33,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'qris'>('overview');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [localUmkmList, setLocalUmkmList] = useState(umkmList);
   const [searchQueryUmkm, setSearchQueryUmkm] = useState('');
   const [searchQueryPayout, setSearchQueryPayout] = useState('');
@@ -194,6 +195,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
     setTimeout(() => {
       setActiveTab(tab);
       setIsTransitioning(false);
+      setIsMobileSidebarOpen(false);
     }, 400); // Simulate lazy loading delay
   };
 
@@ -221,13 +223,27 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
 
   return (
     <div className="min-h-screen bg-base flex flex-col md:flex-row">
+      {/* Mobile Sidebar Overlay */}
+      {isMobileSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-surface border-r border-border md:h-screen sticky top-0 flex flex-col">
-        <div className="p-4 border-b border-border">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-surface border-r border-border transform ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 flex flex-col h-screen`}>
+        <div className="p-4 border-b border-border flex justify-between items-center relative">
           <Link href="/" className="flex items-center gap-2">
             <ShoppingBag className="w-8 h-8 text-brand-primary" />
             <span className="text-h3 text-brand-primary font-bold tracking-tight">pesanku admin</span>
           </Link>
+          <button 
+            className="md:hidden text-text-secondary"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          >
+            <X className="w-6 h-6" />
+          </button>
         </div>
         
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
@@ -310,8 +326,20 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto relative">
-        {/* Loading Overlay */}
+      <main className="flex-1 flex flex-col min-h-screen md:h-screen overflow-y-auto relative">
+        {/* Topbar Mobile */}
+        <header className="md:hidden bg-surface border-b border-border p-4 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center gap-2">
+            <ShoppingBag className="w-6 h-6 text-brand-primary" />
+            <span className="text-h3 text-brand-primary font-bold tracking-tight">pesanku admin</span>
+          </div>
+          <button onClick={() => setIsMobileSidebarOpen(true)} className="p-2 text-text-primary">
+            <Menu className="w-6 h-6" />
+          </button>
+        </header>
+
+        <div className="p-4 md:p-8 flex-1 relative">
+          {/* Loading Overlay */}
         {isTransitioning && (
           <div className="absolute inset-0 bg-base/60 backdrop-blur-sm z-50 flex items-center justify-center transition-all duration-300">
             <div className="bg-white p-4 rounded-full shadow-lg flex items-center justify-center">
@@ -874,6 +902,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList }: Clie
               </div>
             </div>
           )}
+        </div>
         </div>
       </main>
     </div>

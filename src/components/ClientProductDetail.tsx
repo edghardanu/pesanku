@@ -9,7 +9,7 @@ import Swal from "sweetalert2";
 
 export default function ClientProductDetail({ product, user }: { product: any, user: any }) {
   const router = useRouter();
-  const [qty, setQty] = useState(1);
+  const [qty, setQty] = useState(product.minQty || 1);
   const [qrisUrl, setQrisUrl] = useState('https://images.unsplash.com/photo-1607523179298-2eb75b0577fc?w=400&h=400&fit=crop');
 
   // Load the active QRIS from localStorage to simulate Admin's setting
@@ -139,6 +139,7 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                 src={product.imageUrl || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop'} 
                 alt={product.name}
                 fill
+                sizes="(max-width: 1024px) 100vw, 66vw"
                 className="object-cover"
                 priority
               />
@@ -214,7 +215,7 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                   <label className="text-sm font-semibold text-text-primary block mb-2">Jumlah Porsi</label>
                   <div className="flex items-center border border-border rounded-xl overflow-hidden w-full max-w-[200px]">
                     <button 
-                      onClick={() => setQty(Math.max(1, qty - 1))}
+                      onClick={() => setQty(Math.max(product.minQty || 1, qty - 1))}
                       className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-text-primary font-bold transition-colors border-r border-border"
                     >-</button>
                     <input 
@@ -228,6 +229,7 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                       className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-text-primary font-bold transition-colors border-l border-border"
                     >+</button>
                   </div>
+                  <p className="text-xs text-text-secondary mt-2 font-medium">Minimal pemesanan: {product.minQty || 1} Porsi</p>
                 </div>
 
                 {/* Ringkasan */}

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp } from "lucide-react";
-import { motion, Variants } from "framer-motion";
+import { motion, Variants, AnimatePresence } from "framer-motion";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -32,6 +32,16 @@ export default function ClientHome({ initialProducts, totalSold }: { initialProd
   const [searchQuery, setSearchQuery] = useState("");
 
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Hide loading screen after 1.5s
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -61,6 +71,40 @@ export default function ClientHome({ initialProducts, totalSold }: { initialProd
 
   return (
     <>
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div 
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="fixed inset-0 z-[100] bg-base flex flex-col items-center justify-center"
+          >
+            <motion.div
+              animate={{ 
+                scale: [0.9, 1.1, 1],
+              }}
+              transition={{ 
+                duration: 1.2,
+                ease: "easeInOut",
+                repeat: Infinity,
+                repeatType: "reverse"
+              }}
+              className="flex flex-col items-center gap-4"
+            >
+              <div className="w-24 h-24 bg-brand-primary/10 rounded-full flex items-center justify-center relative">
+                <motion.div 
+                  className="absolute inset-0 border-4 border-brand-primary/20 rounded-full"
+                  animate={{ scale: [1, 1.5], opacity: [1, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
+                />
+                <ShoppingBag className="w-12 h-12 text-brand-primary" />
+              </div>
+              <span className="text-display-2 text-brand-primary font-bold tracking-tight">pesanku</span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <header className="bg-surface/80 backdrop-blur-md border-b border-border sticky top-0 z-50 transition-all">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 hover:scale-105 transition-transform">
@@ -108,10 +152,53 @@ export default function ClientHome({ initialProducts, totalSold }: { initialProd
             </Link>
           </div>
           
-          <button className="md:hidden text-text-primary p-2">
-            <Menu className="w-6 h-6" />
+          <button 
+            className="md:hidden text-text-primary p-2 z-50 relative"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute top-16 left-0 right-0 bg-surface border-b border-border shadow-lg md:hidden z-40 p-4"
+          >
+            <div className="flex flex-col gap-4">
+              <div className="relative w-full mb-4">
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari makanan atau minuman..." 
+                  className="input-field pl-10 pr-10 rounded-full w-full"
+                />
+                <Search className="w-5 h-5 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <Link href="/seller" onClick={() => setIsMobileMenuOpen(false)} className="block py-2 text-center font-medium text-text-secondary hover:text-brand-primary">
+                Mulai Berjualan
+              </Link>
+              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="btn-outline w-full text-center">
+                Masuk
+              </Link>
+              <Link href="/register" onClick={() => setIsMobileMenuOpen(false)} className="btn-primary w-full text-center">
+                Daftar
+              </Link>
+            </div>
+          </motion.div>
+        )}
       </header>
 
       <main className="flex-1">
@@ -193,6 +280,7 @@ export default function ClientHome({ initialProducts, totalSold }: { initialProd
                       src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop" 
                       alt="Berbagai hidangan kuliner nusantara yang lezat"
                       fill
+                      sizes="(max-width: 1024px) 100vw, 50vw"
                       className="object-cover"
                       priority
                     />
@@ -319,17 +407,24 @@ export default function ClientHome({ initialProducts, totalSold }: { initialProd
                                 src={product.sellerAvatar} 
                                 alt={product.sellerName}
                                 fill
+                                sizes="40px"
                                 className="object-cover"
                               />
                             )}
                           </div>
                           <div>
                             <p className="text-body-small font-semibold text-text-primary leading-tight line-clamp-1">{product.sellerName}</p>
-                            <p className="text-caption text-text-secondary line-clamp-1">{product.sellerAddress}</p>
+                            <p className="text-caption text-text-secondary mt-0.5 leading-snug">{product.sellerAddress}</p>
                           </div>
                         </div>
 
-                        <h3 className="text-h3 mb-3 line-clamp-2 leading-tight group-hover:text-brand-primary transition-colors">{product.name}</h3>
+                        <h3 className="text-h3 mb-2 line-clamp-2 leading-tight group-hover:text-brand-primary transition-colors">{product.name}</h3>
+                        
+                        {product.description && (
+                          <p className="text-body-small text-text-secondary line-clamp-2 mb-3 leading-relaxed">
+                            {product.description}
+                          </p>
+                        )}
                         <p className="text-h2 text-brand-primary mb-5 font-bold tracking-tight">
                           Rp {product.price.toLocaleString('id-ID')}
                         </p>

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Plus, Package, DollarSign, Settings, LogOut, Info } from "lucide-react";
+import { ShoppingBag, Plus, Package, DollarSign, Settings, LogOut, Info, Menu, X, Upload, Store } from "lucide-react";
 
 import Swal from 'sweetalert2';
 
@@ -39,15 +39,43 @@ export default function ClientSellerDashboard({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'produk' | 'keuangan' | 'pengaturan'>('produk');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  
+  const [localProducts, setLocalProducts] = useState(myProducts);
 
   const [formData, setFormData] = useState({
     storeName: profile?.storeName || '',
     address: profile?.address || '',
     category: profile?.category || '',
-    bankAccount: profile?.bankAccount || ''
+    bankAccount: profile?.bankAccount || '',
+    logoUrl: profile?.logoUrl || ''
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      Swal.fire('Error', 'File harus berupa gambar', 'error');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      Swal.fire('Error', 'Ukuran gambar maksimal 2MB', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setFormData({ ...formData, logoUrl: event.target.result as string });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleTabChange = (tab: 'produk' | 'keuangan' | 'pengaturan') => {
     if (tab === activeTab) return;
@@ -55,6 +83,7 @@ export default function ClientSellerDashboard({
     setTimeout(() => {
       setActiveTab(tab);
       setIsTransitioning(false);
+      setIsMobileSidebarOpen(false); // Close mobile sidebar on tab change
     }, 400); // Simulate lazy loading delay
   };
 
@@ -103,15 +132,70 @@ export default function ClientSellerDashboard({
     }
   };
 
+  const handleDeleteProduct = async (id: string, name: string) => {
+    const result = await Swal.fire({
+      title: 'Hapus Produk?',
+      text: `Apakah Anda yakin ingin menghapus produk "${name}"? Tindakan ini tidak dapat dibatalkan.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444', // status-error
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch(`/api/products?id=${id}`, {
+          method: 'DELETE'
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.message || 'Gagal menghapus produk');
+        }
+
+        // Update local state for immediate feedback
+        setLocalProducts(localProducts.filter(p => p.id !== id));
+        router.refresh();
+
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Produk berhasil dihapus',
+          showConfirmButton: false,
+          timer: 3000
+        });
+      } catch (error: any) {
+        Swal.fire('Error', error.message, 'error');
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-base flex flex-col md:flex-row">
+      {/* Mobile Sidebar Overlay */}
+      {isMobileSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-surface border-r border-border md:h-screen sticky top-0 flex flex-col">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-surface border-r border-border transform ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 flex flex-col h-screen`}>
         <div className="p-6 border-b border-border">
           <Link href="/" className="flex items-center gap-2">
             <ShoppingBag className="w-8 h-8 text-brand-primary" />
             <span className="text-h2 text-brand-primary font-bold">pesanku</span>
           </Link>
+          <button 
+            className="md:hidden text-text-secondary absolute top-4 right-4"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          >
+            <X className="w-6 h-6" />
+          </button>
           <div className="mt-4 p-3 bg-brand-primary/10 rounded-lg">
             <p className="text-caption text-text-secondary">Toko Aktif</p>
             <p className="text-body-base font-semibold text-brand-primary truncate">{profile?.storeName || 'Toko Saya'}</p>
@@ -173,6 +257,9 @@ export default function ClientSellerDashboard({
             <ShoppingBag className="w-6 h-6 text-brand-primary" />
             <span className="text-h3 text-brand-primary font-bold">pesanku</span>
           </div>
+          <button onClick={() => setIsMobileSidebarOpen(true)} className="p-2 text-text-primary">
+            <Menu className="w-6 h-6" />
+          </button>
         </header>
 
         <div className="p-6 md:p-10 flex-1 relative">
@@ -222,7 +309,7 @@ export default function ClientSellerDashboard({
                 </div>
                 
                 <div className="overflow-x-auto">
-                  {myProducts.length === 0 ? (
+                  {localProducts.length === 0 ? (
                     <div className="p-10 text-center text-text-secondary">
                       Belum ada produk. Silakan tambah produk preorder pertama Anda!
                     </div>
@@ -238,7 +325,7 @@ export default function ClientSellerDashboard({
                         </tr>
                       </thead>
                       <tbody className="text-body-base">
-                        {myProducts.map(product => {
+                        {localProducts.map(product => {
                           const current = product.currentQty || 0;
                           const min = product.preorderMinQty || 1;
                           const pct = Math.min((current / min) * 100, 100);
@@ -279,7 +366,15 @@ export default function ClientSellerDashboard({
                                 <p className="text-caption text-text-secondary">s/d {deadlineText}</p>
                               </td>
                               <td className="p-4 text-right">
-                                <button className="text-brand-primary font-medium hover:underline text-sm">Edit</button>
+                                <div className="flex justify-end gap-3 items-center">
+                                  <button className="text-brand-primary font-medium hover:underline text-sm">Edit</button>
+                                  <button 
+                                    onClick={() => handleDeleteProduct(product.id, product.name)}
+                                    className="text-status-error font-medium hover:underline text-sm"
+                                  >
+                                    Hapus
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -318,6 +413,36 @@ export default function ClientSellerDashboard({
                 )}
                 
                 <div className="space-y-4">
+                  <div>
+                    <label className="block text-body-small font-medium text-text-secondary mb-1">Foto Profil Toko</label>
+                    <div className="flex items-center gap-4">
+                      <div className="w-20 h-20 relative bg-gray-200 rounded-full overflow-hidden shrink-0 border border-border">
+                        {formData.logoUrl ? (
+                          <Image src={formData.logoUrl} alt="Logo Toko" fill className="object-cover" sizes="80px" />
+                        ) : (
+                          <Store className="w-8 h-8 text-text-secondary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                        )}
+                      </div>
+                      <div>
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          id="store-logo"
+                          className="hidden"
+                          ref={fileInputRef}
+                          onChange={handleImageChange}
+                        />
+                        <label 
+                          htmlFor="store-logo"
+                          className="btn-outline px-4 py-2 flex items-center gap-2 cursor-pointer text-sm"
+                        >
+                          <Upload className="w-4 h-4" /> Ubah Foto
+                        </label>
+                        <p className="text-caption text-text-secondary mt-2">Format: JPG/PNG. Maks 2MB.</p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-body-small font-medium text-text-secondary mb-1">Nama Toko *</label>
                     <input 
