@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Clock, Store, MapPin, CheckCircle, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Clock, Store, MapPin, CheckCircle, ShieldCheck, LogOut } from "lucide-react";
 import Swal from "sweetalert2";
 
 export default function ClientProductDetail({ product, user }: { product: any, user: any }) {
@@ -19,6 +19,28 @@ export default function ClientProductDetail({ product, user }: { product: any, u
       setQrisUrl(savedQris);
     }
   }, []);
+
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: 'Konfirmasi Keluar',
+      text: `Apakah Anda ${user?.name || ''} ingin keluar dari akun Pesanku?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ff5c35',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Keluar',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login';
+      } catch (error) {
+        console.error('Logout failed:', error);
+      }
+    }
+  };
 
   const progressPercentage = Math.min(((product.currentQty || 0) / product.minQty) * 100, 100);
   const isFull = (product.currentQty || 0) >= product.minQty;
@@ -122,11 +144,23 @@ export default function ClientProductDetail({ product, user }: { product: any, u
     <div className="min-h-screen bg-base pb-24">
       {/* Navbar Simple */}
       <header className="bg-surface border-b border-border sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center gap-4">
-          <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <ArrowLeft className="w-5 h-5 text-text-primary" />
-          </Link>
-          <span className="font-semibold text-lg text-text-primary">Detail Produk</span>
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Kembali ke Beranda">
+              <ArrowLeft className="w-5 h-5 text-text-primary" />
+            </Link>
+            <span className="font-semibold text-lg text-text-primary">Detail Produk</span>
+          </div>
+          {user && (
+            <button 
+              onClick={handleLogout}
+              className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error flex items-center gap-1.5 py-1.5 px-3 text-sm font-semibold rounded-xl transition-all"
+              title="Keluar / Logout"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Keluar</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -134,7 +168,7 @@ export default function ClientProductDetail({ product, user }: { product: any, u
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Kiri: Foto Produk & Deskripsi */}
           <div className="lg:col-span-8 space-y-6">
-            <div className="relative aspect-video lg:aspect-[4/3] w-full rounded-2xl overflow-hidden shadow-sm bg-gray-100">
+            <div className="relative aspect-video lg:aspect-[4/3] w-full rounded-2xl overflow-hidden shadow-sm bg-surface dark:bg-border">
               <Image 
                 src={product.imageUrl || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop'} 
                 alt={product.name}
@@ -144,10 +178,10 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                 priority
               />
               <div className="absolute top-4 left-4">
-                <span className={`px-4 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2 shadow-md ${
+                <span className={`px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-md ${
                   isFull 
                     ? 'bg-brand-accent text-white' 
-                    : 'bg-brand-secondary text-brand-secondary-dark'
+                    : 'bg-brand-secondary text-slate-900'
                 }`}>
                   {isFull ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                   {isFull ? "Kuota Terpenuhi" : "Preorder Terbuka"}
@@ -178,7 +212,7 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                   </div>
                 </div>
               </div>
-              <div className="bg-green-50 text-green-700 px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1">
+              <div className="bg-status-success/15 text-status-success px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1">
                 <ShieldCheck className="w-4 h-4" /> UMKM Terverifikasi
               </div>
             </div>
@@ -186,19 +220,19 @@ export default function ClientProductDetail({ product, user }: { product: any, u
 
           {/* Kanan: Panel Pemesanan (Sticky) */}
           <div className="lg:col-span-4">
-            <div className="card p-6 border border-border sticky top-24 shadow-xl shadow-gray-100/50">
+            <div className="card p-6 border border-border sticky top-24 shadow-xl">
               <h3 className="font-bold text-lg mb-4 border-b border-border pb-4">Atur Pesanan</h3>
               
               <div className="space-y-6">
                 {/* Progress Preorder */}
-                <div className="bg-gray-50 p-4 rounded-xl border border-border">
+                <div className="bg-base p-4 rounded-xl border border-border">
                   <div className="flex justify-between text-sm mb-2 font-medium">
                     <span className="text-text-secondary">Progress Terkumpul</span>
-                    <span className={isFull ? 'text-brand-accent font-bold' : 'text-brand-secondary-dark font-bold'}>
+                    <span className={isFull ? 'text-brand-accent font-bold' : 'text-brand-secondary-dark dark:text-brand-secondary font-bold'}>
                       {product.currentQty || 0} / {product.minQty} Porsi
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden mb-3">
+                  <div className="w-full bg-border h-2.5 rounded-full overflow-hidden mb-3">
                     <div 
                       className={`h-full rounded-full transition-all duration-1000 ${isFull ? 'bg-brand-accent' : 'bg-brand-secondary'}`}
                       style={{ width: `${progressPercentage}%` }}
@@ -216,17 +250,17 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                   <div className="flex items-center border border-border rounded-xl overflow-hidden w-full max-w-[200px]">
                     <button 
                       onClick={() => setQty(Math.max(product.minQty || 1, qty - 1))}
-                      className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-text-primary font-bold transition-colors border-r border-border"
+                      className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-r border-border"
                     >-</button>
                     <input 
                       type="number" 
                       value={qty} 
                       readOnly
-                      className="w-full text-center py-2 font-semibold bg-white outline-none"
+                      className="w-full text-center py-2 font-semibold bg-surface text-text-primary outline-none"
                     />
                     <button 
                       onClick={() => setQty(qty + 1)}
-                      className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-text-primary font-bold transition-colors border-l border-border"
+                      className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-l border-border"
                     >+</button>
                   </div>
                   <p className="text-xs text-text-secondary mt-2 font-medium">Minimal pemesanan: {product.minQty || 1} Porsi</p>

@@ -90,7 +90,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-center items-center p-4 bg-base relative">
-      <Link href="/" className="absolute top-6 left-6 flex items-center gap-2 text-text-secondary hover:text-brand-primary transition-colors font-medium bg-white px-4 py-2 rounded-full shadow-sm">
+      <Link href="/" className="absolute top-6 left-6 flex items-center gap-2 text-text-secondary hover:text-brand-primary transition-colors font-medium bg-surface border border-border px-4 py-2 rounded-full shadow-sm">
         <ArrowLeft className="w-5 h-5" />
         <span className="inline">Kembali ke Beranda</span>
       </Link>

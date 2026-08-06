@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon } from "lucide-react";
+import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut } from "lucide-react";
 import { motion, Variants, AnimatePresence } from "framer-motion";
+import Swal from "sweetalert2";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -100,6 +101,28 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: 'Konfirmasi Keluar',
+      text: `Apakah Anda ${user?.name || ''} ingin keluar dari akun Pesanku?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ff5c35',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Keluar',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login';
+      } catch (error) {
+        console.error('Logout failed:', error);
+      }
+    }
   };
 
   const filteredProducts = initialProducts.filter(product => {
@@ -225,12 +248,22 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
             </Link>
             
             {user ? (
-              <Link 
-                href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'} 
-                className="btn-primary shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40"
-              >
-                {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard' : 'Lihat Pesanan Saya'}
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link 
+                  href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'} 
+                  className="btn-primary shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40"
+                >
+                  {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard' : 'Lihat Pesanan Saya'}
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error flex items-center gap-1.5 py-2 px-3 text-sm font-semibold rounded-xl transition-all"
+                  title="Keluar / Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden lg:inline">Keluar</span>
+                </button>
+              </div>
             ) : (
               <>
                 <Link href="/login" className="btn-outline hover:bg-brand-primary/5">
@@ -321,13 +354,25 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
               </Link>
               
               {user ? (
-                <Link 
-                  href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'} 
-                  onClick={() => setIsMobileMenuOpen(false)} 
-                  className="btn-primary w-full text-center"
-                >
-                  {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard Saya' : 'Lihat Pesanan Saya'}
-                </Link>
+                <div className="flex flex-col gap-2 w-full">
+                  <Link 
+                    href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'} 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="btn-primary w-full text-center"
+                  >
+                    {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard Saya' : 'Lihat Pesanan Saya'}
+                  </Link>
+                  <button 
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 w-full flex items-center justify-center gap-2 py-2.5 font-semibold rounded-xl transition-all"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Keluar</span>
+                  </button>
+                </div>
               ) : (
                 <>
                   <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="btn-outline w-full text-center">
@@ -366,7 +411,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                 }}
                 className="text-left"
               >
-                <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 bg-brand-secondary/20 text-brand-secondary-dark rounded-full text-sm font-semibold tracking-wide">
+                <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary rounded-full text-sm font-semibold tracking-wide">
                   100% Dukung UMKM Lokal Nusantara
                   <motion.svg 
                     animate={{ 
@@ -417,7 +462,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                 <div className="relative aspect-[4/3] w-full max-w-lg mx-auto">
                   <div className="absolute inset-0 bg-brand-primary/20 rounded-3xl -rotate-6 scale-105 transition-transform duration-500" />
                   <div className="absolute inset-0 bg-brand-secondary/30 rounded-3xl rotate-3 scale-105 transition-transform duration-500" />
-                  <div className="relative h-full w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
+                  <div className="relative h-full w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-surface dark:border-border">
                     <Image 
                       src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop" 
                       alt="Berbagai hidangan kuliner nusantara yang lezat"
@@ -439,7 +484,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                       opacity: { delay: 0.8, duration: 0.5 },
                       y: { repeat: Infinity, duration: 3, ease: "easeInOut", delay: 1.2 }
                     }}
-                    className="absolute -bottom-6 -left-6 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-4 z-20"
+                    className="absolute -bottom-6 -left-6 bg-surface border border-border p-4 rounded-2xl shadow-xl flex items-center gap-4 z-20"
                   >
                     <div className="w-12 h-12 bg-status-success/20 text-status-success rounded-full flex items-center justify-center">
                       <motion.div
@@ -521,7 +566,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                 return (
                   <motion.div variants={itemVariants} key={product.id}>
                     <Link href={`/product/${product.id}`} className="card block group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 rounded-t-2xl">
+                      <div className="relative aspect-[4/3] overflow-hidden bg-surface dark:bg-border rounded-t-2xl">
                         <Image 
                           src={product.imageUrl} 
                           alt={product.name}
@@ -531,10 +576,10 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         <div className="absolute top-3 left-3">
-                          <span className={`px-3 py-1.5 rounded-full text-caption font-semibold flex items-center gap-1 backdrop-blur-sm shadow-sm ${
+                          <span className={`px-3 py-1.5 rounded-full text-caption font-bold flex items-center gap-1 backdrop-blur-sm shadow-sm ${
                             isFull 
                               ? 'bg-brand-accent/90 text-white' 
-                              : 'bg-brand-secondary/90 text-brand-secondary-dark border border-brand-secondary/20'
+                              : 'bg-brand-secondary/90 text-slate-900 border border-brand-secondary/20'
                           }`}>
                             {isFull ? "Kuota Tercapai" : "Terbuka"}
                           </span>
@@ -543,7 +588,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                       
                       <div className="p-5">
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="relative w-10 h-10 rounded-full overflow-hidden border border-border shrink-0 bg-gray-200">
+                          <div className="relative w-10 h-10 rounded-full overflow-hidden border border-border shrink-0 bg-surface dark:bg-border">
                             {product.sellerAvatar && (
                               <Image 
                                 src={product.sellerAvatar} 

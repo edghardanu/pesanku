@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 
-export default function ClientBuyerOrders({ orders }: { orders: any[] }) {
+export default function ClientBuyerOrders({ orders, user }: { orders: any[], user?: any }) {
   const router = useRouter();
   const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
 
@@ -18,6 +18,28 @@ export default function ClientBuyerOrders({ orders }: { orders: any[] }) {
       setQrisUrl(savedQris);
     }
   }, []);
+
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: 'Konfirmasi Keluar',
+      text: `Apakah Anda ${user?.name || ''} ingin keluar dari akun Pesanku?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ff5c35',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Keluar',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login';
+      } catch (error) {
+        console.error('Logout failed:', error);
+      }
+    }
+  };
 
   const handlePayment = async (orderId: string, totalHarga: number) => {
     const { value: file } = await Swal.fire({
@@ -96,17 +118,27 @@ export default function ClientBuyerOrders({ orders }: { orders: any[] }) {
   return (
     <div className="min-h-screen bg-base pb-24">
       <header className="bg-surface border-b border-border sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center gap-4">
-          <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <ArrowLeft className="w-5 h-5 text-text-primary" />
-          </Link>
-          <span className="font-semibold text-lg text-text-primary">Daftar Pesanan Saya</span>
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Kembali ke Beranda">
+              <ArrowLeft className="w-5 h-5 text-text-primary" />
+            </Link>
+            <span className="font-semibold text-lg text-text-primary">Daftar Pesanan Saya</span>
+          </div>
+          <button 
+            onClick={handleLogout}
+            className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error flex items-center gap-1.5 py-1.5 px-3 text-sm font-semibold rounded-xl transition-all"
+            title="Keluar / Logout"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Keluar</span>
+          </button>
         </div>
       </header>
 
       <main className="container mx-auto px-4 pt-6 max-w-4xl">
         {orders.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl border border-border mt-8">
+          <div className="text-center py-20 bg-surface rounded-2xl border border-border mt-8">
             <FileImage className="w-16 h-16 text-text-secondary/50 mx-auto mb-4" />
             <h3 className="text-h3 text-text-primary mb-2">Belum ada pesanan</h3>
             <p className="text-text-secondary mb-6">Anda belum pernah melakukan pemesanan produk apapun.</p>
@@ -122,8 +154,8 @@ export default function ClientBuyerOrders({ orders }: { orders: any[] }) {
               const isVerified = order.paymentId && order.paymentStatus === 'approved';
               
               return (
-                <div key={order.orderId} className="card p-0 border border-border overflow-hidden bg-white">
-                  <div className="p-4 border-b border-border bg-gray-50 flex justify-between items-center">
+                <div key={order.orderId} className="card p-0 border border-border overflow-hidden bg-surface">
+                  <div className="p-4 border-b border-border bg-base flex justify-between items-center">
                     <span className="text-xs font-mono text-text-secondary">{order.orderId}</span>
                     <span className="text-xs text-text-secondary">
                       {new Date(order.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -131,13 +163,13 @@ export default function ClientBuyerOrders({ orders }: { orders: any[] }) {
                   </div>
                   <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                     <div className="flex gap-4 items-center">
-                      <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden relative shrink-0">
+                      <div className="w-16 h-16 rounded-xl bg-base dark:bg-border overflow-hidden relative shrink-0">
                         {order.productImageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={order.productImageUrl} alt={order.productName} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                            <FileImage className="w-6 h-6 text-gray-400" />
+                          <div className="w-full h-full flex items-center justify-center bg-base dark:bg-border">
+                            <FileImage className="w-6 h-6 text-text-secondary" />
                           </div>
                         )}
                       </div>

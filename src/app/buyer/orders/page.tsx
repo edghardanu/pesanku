@@ -36,5 +36,6 @@ export default async function BuyerOrdersPage() {
     .where(eq(orders.buyerId, user.id))
     .orderBy(desc(orders.createdAt));
 
-  return <ClientBuyerOrders orders={userOrders} />;
+  return <ClientBuyerOrders orders={userOrders} user={{ id: user.id, name: user.name, role: user.role }} />;
 }
+

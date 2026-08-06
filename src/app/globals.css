@@ -72,7 +72,7 @@ body {
     @apply bg-brand-secondary text-text-primary px-4 py-2 rounded-lg font-medium transition-colors shadow-sm active:scale-95;
   }
   .btn-outline {
-    @apply border border-border bg-surface hover:bg-gray-50 text-text-primary px-4 py-2 rounded-lg font-medium transition-colors shadow-sm active:scale-95;
+    @apply border border-border bg-surface hover:bg-border/40 text-text-primary px-4 py-2 rounded-lg font-medium transition-colors shadow-sm active:scale-95;
   }
   
   .card {
@@ -83,3 +83,36 @@ body {
     @apply w-full px-4 py-2 border border-border rounded-lg bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all;
   }
 }
+
+/* SweetAlert2 Dark Mode Enhancements */
+.dark .swal2-popup {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .swal2-title,
+.dark .swal2-html-container,
+.dark .swal2-content {
+  color: var(--color-text-primary) !important;
+}
+
+.dark .swal2-input,
+.dark .swal2-textarea,
+.dark .swal2-select {
+  background-color: var(--color-base) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark .swal2-validation-message {
+  background-color: var(--color-base) !important;
+  color: var(--color-status-error) !important;
+}
+
+.dark .swal2-cancel {
+  background-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
