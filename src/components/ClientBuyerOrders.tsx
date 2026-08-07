@@ -590,7 +590,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
               </div>
               
               <h3 className="text-h2 text-text-primary mb-3 font-bold">Anda belum masuk!</h3>
-              <p className="text-body-base text-black mb-8 max-w-sm">Tampaknya Anda belum login ke dalam akun, silakan masuk untuk melihat dan membuat pesanan baru.</p>
+              <p className="text-body-base text-black dark:text-white mb-8 max-w-sm">Tampaknya Anda belum login ke dalam akun, silakan masuk untuk melihat dan membuat pesanan baru.</p>
               
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto z-10 relative">
                 <Link href="/login" className="btn-primary py-3 px-8 text-base text-white shadow-lg hover:shadow-brand-primary/30 transition-shadow w-full sm:w-auto text-center rounded-xl">
