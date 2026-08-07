@@ -100,7 +100,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           }
         }
       } catch (err) {
-        // silently ignore network drops
+        console.error('Error polling chart stats:', err);
       }
     };
 
@@ -175,8 +175,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   const [adminQrisUrl, setAdminQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS'); // Mock initial QRIS
 
   useEffect(() => {
-    localStorage.removeItem('mockPayouts'); // force reset for new columns
-    const savedPayouts = null;
+    const savedPayouts = localStorage.getItem('mockPayouts');
     if (savedPayouts) {
       setMockPayouts(JSON.parse(savedPayouts));
     } else {
@@ -186,10 +185,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           storeName: 'Toko Roti Ibu Ana',
           rekening: 'BCA - 8921831923 (Ana)',
           diajukan: 'Rp 500.000',
-          biayaAplikasi: '-Rp 2.000',
-          biayaJasa: '-Rp 3.000',
           potongan: '-Rp 9.000',
-          total: 'Rp 486.000'
+          total: 'Rp 491.000'
         }
       ]);
     }
@@ -1109,8 +1106,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                       <th className="p-4 font-medium">Toko / UMKM</th>
                       <th className="p-4 font-medium">Rekening Tujuan</th>
                       <th className="p-4 font-medium">Dana Diajukan</th>
-                      <th className="p-4 font-medium">Biaya Aplikasi</th>
-                      <th className="p-4 font-medium">Biaya Jasa</th>
                       <th className="p-4 font-medium">Biaya (Admin)</th>
                       <th className="p-4 font-medium">Total Ditransfer</th>
                       <th className="p-4 font-medium">Aksi</th>
@@ -1133,67 +1128,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                           </td>
                           <td className="p-4 text-text-secondary">{payout.rekening}</td>
                           <td className="p-4 text-text-primary">{payout.diajukan}</td>
-                          <td className="p-4 text-status-error">{payout.biayaAplikasi || 'Rp 0'}</td>
-                          <td className="p-4 text-status-error">{payout.biayaJasa || 'Rp 0'}</td>
                           <td className="p-4 text-status-error">{payout.potongan}</td>
                           <td className="p-4 font-bold text-status-success">{payout.total}</td>
                           <td className="p-4">
                             <div className="flex gap-2 items-center">
-                              <button 
-                                onClick={async () => {
-                                  const { value: formValues } = await Swal.fire({
-                                    title: 'Edit Pencairan Dana',
-                                    html: `
-                                      <div class="flex flex-col gap-3 text-left">
-                                        <label class="text-sm font-semibold">Dana Diajukan:</label>
-                                        <input id="swal-input1" class="swal2-input border-border" style="margin-top:0" value="${payout.diajukan}">
-                                        <label class="text-sm font-semibold">Biaya Aplikasi:</label>
-                                        <input id="swal-input2" class="swal2-input border-border" style="margin-top:0" value="${payout.biayaAplikasi || 'Rp 0'}">
-                                        <label class="text-sm font-semibold">Biaya Jasa:</label>
-                                        <input id="swal-input3" class="swal2-input border-border" style="margin-top:0" value="${payout.biayaJasa || 'Rp 0'}">
-                                        <label class="text-sm font-semibold">Biaya (Admin):</label>
-                                        <input id="swal-input4" class="swal2-input border-border" style="margin-top:0" value="${payout.potongan}">
-                                        <label class="text-sm font-semibold">Total Ditransfer:</label>
-                                        <input id="swal-input5" class="swal2-input border-border" style="margin-top:0" value="${payout.total}">
-                                      </div>
-                                    `,
-                                    focusConfirm: false,
-                                    showCancelButton: true,
-                                    confirmButtonText: 'Simpan',
-                                    customClass: { popup: 'dark:bg-slate-900 rounded-2xl w-[90%] max-w-md' },
-                                    preConfirm: () => {
-                                      return [
-                                        (document.getElementById('swal-input1') as HTMLInputElement)?.value || '',
-                                        (document.getElementById('swal-input2') as HTMLInputElement)?.value || '',
-                                        (document.getElementById('swal-input3') as HTMLInputElement)?.value || '',
-                                        (document.getElementById('swal-input4') as HTMLInputElement)?.value || '',
-                                        (document.getElementById('swal-input5') as HTMLInputElement)?.value || ''
-                                      ]
-                                    }
-                                  });
-                                  
-                                  if (formValues) {
-                                    const newData = mockPayouts.map(p => {
-                                      if (p.id === payout.id) {
-                                        const parseRp = (str: string) => parseInt(str.replace(/[^0-9]/g, '')) || 0;
-                                        const diajukan = parseRp(formValues[0]);
-                                        const app = parseRp(formValues[1]);
-                                        const jasa = parseRp(formValues[2]);
-                                        const admin = parseRp(formValues[3]);
-                                        const totalNum = diajukan - app - jasa - admin;
-                                        const totalStr = 'Rp ' + totalNum.toLocaleString('id-ID');
-                                        return { ...p, diajukan: formValues[0], biayaAplikasi: formValues[1], biayaJasa: formValues[2], potongan: formValues[3], total: totalStr };
-                                      }
-                                      return p;
-                                    });
-                                    updateMockPayouts(newData);
-                                  }
-                                }}
-                                className="btn-outline py-1.5 px-3 text-sm flex items-center justify-center font-semibold text-brand-primary border-brand-primary hover:bg-brand-primary/10"
-                              >
-                                Edit
-                              </button>
-
                               <button 
                                 onClick={() => {
                                   Swal.fire({
