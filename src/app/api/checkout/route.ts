@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { productId, qty, totalPrice } = body;
+    const { productId, qty, totalPrice, notes } = body;
 
     if (!productId || !qty || !totalPrice) {
       return NextResponse.json({ error: 'Data pesanan tidak lengkap' }, { status: 400 });
@@ -28,13 +28,13 @@ export async function POST(req: Request) {
     const orderId = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
 
     // Simpan Pesanan (Order)
-    // Status awal: waiting_verification, tapi kita asumsikan jika tidak ada payment record = belum dibayar
     await db.insert(orders).values({
       id: orderId,
       productId: productId,
       buyerId: user.id,
       qty: qty,
       totalPrice: totalPrice,
+      notes: notes || '',
       status: 'waiting_verification',
     });
 

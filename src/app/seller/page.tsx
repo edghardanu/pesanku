@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { products, sellerProfiles, orders, users, payments } from "@/lib/schema";
+import { products, sellerProfiles, orders, users, payments, settings } from "@/lib/schema";
 import { eq, desc } from "drizzle-orm";
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -26,6 +26,7 @@ export default async function SellerDashboard() {
     qty: orders.qty,
     totalPrice: orders.totalPrice,
     status: orders.status,
+    notes: orders.notes,
     createdAt: orders.createdAt,
     productName: products.name,
     buyerName: users.name,
@@ -43,6 +44,12 @@ export default async function SellerDashboard() {
   const waitingCount = myProducts.filter(p => p.status === 'draft' && (p.currentQty || 0) < (p.preorderMinQty || 1)).length;
   const completedCount = myProducts.filter(p => p.status === 'completed').length;
 
+  const feeSettings = await db.select().from(settings).all();
+  let feeAdmin = 0;
+  feeSettings.forEach(f => {
+    if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
+  });
+
   return (
     <ClientSellerDashboard 
       profile={profile}
@@ -52,6 +59,7 @@ export default async function SellerDashboard() {
       completedCount={completedCount}
       userName={user.name}
       sellerOrders={sellerOrders}
+      feeAdmin={feeAdmin}
     />
   );
 }

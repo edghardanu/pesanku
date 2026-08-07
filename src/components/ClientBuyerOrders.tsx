@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,6 +24,11 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
     if (savedQris) {
       setQrisUrl(savedQris);
     }
+  }, []);
+
+  // Mark all orders as read when viewing this page
+  useEffect(() => {
+    fetch('/api/orders', { method: 'PATCH' }).catch(err => console.error(err));
   }, []);
 
   // Check initial mode for dark mode
@@ -227,6 +232,8 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
     }
   };
 
+  const escapeQuotes = (str: string) => str ? str.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
+
   const handleOpenChat = async (orderId: string, storeName: string, productName: string) => {
     // Show loading state first
     Swal.fire({
@@ -243,6 +250,19 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
       
       let chatHistory = messages || [];
 
+      // Virtual fallback: Ensure the seller always has an opening message on the frontend!
+      const hasSellerOpening = chatHistory.some((m: any) => m.role === 'penjual' || m.role === 'admin');
+      if (!hasSellerOpening) {
+        chatHistory.unshift({
+          role: 'penjual',
+          text: `Halo kak! Tadi kakak melakukan pemesanan untuk <b>${productName}</b> ya?`,
+          createdAt: chatHistory[0]?.createdAt 
+            ? new Date(new Date(chatHistory[0].createdAt).getTime() - 60000).toISOString() 
+            : new Date().toISOString(),
+          isRead: true
+        });
+      }
+
       const renderMsgs = () => chatHistory.map((c: any) => {
         const isMe = c.role === 'pembeli';
         const time = new Date(c.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
@@ -250,9 +270,17 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
           const tickClass = c.isRead ? "text-blue-200" : "text-black/60";
           const tickStyle = c.isRead ? "color: #60a5fa;" : "";
           return `
-            <div class="flex justify-end mt-3">
+            <div class="flex justify-end mt-3 group" id="msg-bubble-${c.id}">
+              <div class="flex flex-col items-end justify-center mr-2 gap-1.5 opacity-80">
+                <button class="chat-edit-btn text-[10px] text-brand-primary flex items-center gap-1 hover:text-brand-primary-hover transition-colors bg-brand-primary/5 px-2 py-0.5 rounded-full" data-id="${c.id}" data-text="${escapeQuotes(c.text)}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> Edit
+                </button>
+                <button class="chat-del-btn text-[10px] text-status-error flex items-center gap-1 hover:text-red-700 transition-colors bg-status-error/5 px-2 py-0.5 rounded-full" data-id="${c.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Hapus
+                </button>
+              </div>
               <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm">
-                ${c.text}
+                <span id="msg-text-${c.id}">${c.text}</span>
                 <div class="flex items-center justify-end gap-1 mt-1">
                   <span class="text-[10px] text-white/80">${time}</span>
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${tickClass}" style="${tickStyle}"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
@@ -302,11 +330,53 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
         const chatBox = document.getElementById('chat-box');
         const chatMessages = document.getElementById('chat-messages');
         
+        let editingId: string | null = null;
+
         if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+        
+        chatBox?.addEventListener('click', async (e) => {
+          const target = e.target as HTMLElement;
+          if (target.classList.contains('chat-del-btn')) {
+            const id = target.getAttribute('data-id');
+            const bubble = document.getElementById(`msg-bubble-${id}`);
+            if (bubble) bubble.style.display = 'none';
+            await fetch('/api/chat', {
+              method: 'DELETE',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ id })
+            });
+          }
+          if (target.classList.contains('chat-edit-btn')) {
+            const id = target.getAttribute('data-id');
+            const text = target.getAttribute('data-text');
+            if (id && text && input) {
+              editingId = id;
+              input.value = text;
+              input.focus();
+            }
+          }
+        });
         
         const sendMessage = async () => {
           if (!input.value.trim()) return;
           const msg = input.value;
+          
+          if (editingId) {
+            const id = editingId;
+            editingId = null;
+            input.value = '';
+            const textSpan = document.getElementById(`msg-text-${id}`);
+            const editBtn = document.querySelector(`.chat-edit-btn[data-id="${id}"]`);
+            if (textSpan) textSpan.innerText = msg;
+            if (editBtn) editBtn.setAttribute('data-text', escapeQuotes(msg));
+            await fetch('/api/chat', {
+              method: 'PUT',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ id, text: msg })
+            });
+            return;
+          }
+
           const now = new Date();
           const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} WIB`;
           const msgId = 'msg-' + Date.now();
@@ -314,9 +384,17 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
           input.value = '';
           
           chatMessages?.insertAdjacentHTML('beforeend', `
-            <div class="flex justify-end mt-3">
+            <div class="flex justify-end mt-3 group" id="msg-bubble-${msgId}">
+              <div class="flex flex-col items-end justify-center mr-2 gap-1.5 opacity-80" id="${msgId}-actions" style="display:none;">
+                <button class="chat-edit-btn text-[10px] text-brand-primary flex items-center gap-1 hover:text-brand-primary-hover transition-colors bg-brand-primary/5 px-2 py-0.5 rounded-full" data-id="${msgId}" data-text="${escapeQuotes(msg)}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> Edit
+                </button>
+                <button class="chat-del-btn text-[10px] text-status-error flex items-center gap-1 hover:text-red-700 transition-colors bg-status-error/5 px-2 py-0.5 rounded-full" data-id="${msgId}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Hapus
+                </button>
+              </div>
               <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm opacity-50" id="${msgId}-container">
-                ${msg}
+                <span id="msg-text-${msgId}">${msg}</span>
                 <div class="flex items-center justify-end gap-1 mt-1">
                   <span class="text-[10px] text-white/80">${time}</span>
                   <svg id="${msgId}-ticks" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-black/60"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
@@ -327,11 +405,22 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
           if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
 
           try {
-            await fetch('/api/chat', {
+            const sendRes = await fetch('/api/chat', {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({ orderId, text: msg })
             });
+            const { id: realId } = await sendRes.json();
+            
+            // Set REAL ID to buttons so they can be clicked
+            document.querySelector(`.chat-edit-btn[data-id="${msgId}"]`)?.setAttribute('data-id', realId);
+            document.querySelector(`.chat-del-btn[data-id="${msgId}"]`)?.setAttribute('data-id', realId);
+            document.getElementById(`msg-bubble-${msgId}`)!.id = `msg-bubble-${realId}`;
+            document.getElementById(`msg-text-${msgId}`)!.id = `msg-text-${realId}`;
+            
+            const actionsBlock = document.getElementById(`${msgId}-actions`);
+            if (actionsBlock) actionsBlock.style.display = 'flex';
+
             const c = document.getElementById(`${msgId}-container`);
             if (c) c.classList.remove('opacity-50');
             const ticks = document.getElementById(`${msgId}-ticks`);
@@ -543,22 +632,30 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                         <p className="text-sm text-text-secondary mb-1">Toko: {order.storeName || 'Toko UMKM'}</p>
                         <div className="flex items-center gap-3 mt-1.5">
                           <p className="text-sm font-medium">Jumlah:</p>
-                          <div className="flex items-center border border-border rounded-lg bg-base overflow-hidden">
+                          <div className={`flex items-center border border-border rounded-lg bg-base overflow-hidden ${order.status === 'completed' || order.status === 'cancelled' || order.paymentId ? 'opacity-50 pointer-events-none bg-gray-100 dark:bg-gray-800' : ''}`}>
                             <button 
                               onClick={() => updateQty(-1)}
-                              className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                              disabled={order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId}
+                              className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
                             >
                               -
                             </button>
                             <span className="text-sm font-semibold w-8 text-center">{order.qty}</span>
                             <button 
                               onClick={() => updateQty(1)}
-                              className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                              disabled={order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId}
+                              className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
                             >
                               +
                             </button>
                           </div>
                         </div>
+                        {order.notes && (
+                          <div className="mt-2 text-xs text-text-secondary bg-base p-2 rounded-lg border border-border flex items-start gap-1.5 w-max max-w-[200px] sm:max-w-[300px]">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="shrink-0 mt-0.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                             <span className="leading-tight italic line-clamp-2">"{order.notes}"</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     
@@ -605,6 +702,13 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                               >
                                 <MessageCircle className="w-3.5 h-3.5" /> Chat
                               </button>
+                              
+                              <Link 
+                                href={`/invoice/${order.orderId}`}
+                                className="btn-outline border-gray-300 text-gray-700 hover:bg-gray-50 py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
+                              >
+                                <Receipt className="w-3.5 h-3.5" /> Detail Pembayaran
+                              </Link>
                               
                               {order.deliveryProofUrl && (
                                 <button 

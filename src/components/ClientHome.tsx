@@ -50,6 +50,21 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
     }
   }, []);
 
+  const [orderCount, setOrderCount] = useState(0);
+
+  useEffect(() => {
+    if (user && user.role === 'pembeli') {
+      fetch('/api/orders')
+        .then(res => res.json())
+        .then(data => {
+          if (typeof data.count === 'number') {
+            setOrderCount(data.count);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [user]);
+
   const toggleDarkMode = () => {
     if (isDarkMode) {
       document.documentElement.classList.remove('dark');
@@ -62,24 +77,202 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
     }
   };
 
-  const handleCheckout = (e: React.MouseEvent, productName: string) => {
+  const handleCheckout = async (e: React.MouseEvent, product: any) => {
     e.preventDefault();
     e.stopPropagation();
-    Swal.fire({
-      icon: 'success',
-      title: 'Berhasil ditambahkan!',
-      text: `${productName} telah dimasukkan ke keranjang.`,
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 2000,
+
+    if (!user) {
+      Swal.fire({
+        title: 'Anda Belum Login',
+        text: 'Silakan login terlebih dahulu untuk melakukan pemesanan.',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'Ke Halaman Login',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#ff5c35'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.location.href = '/login';
+        }
+      });
+      return;
+    }
+
+    if (user.role === 'penjual' || user.role === 'admin') {
+      Swal.fire('Akses Ditolak', 'Hanya akun pembeli yang dapat melakukan pemesanan.', 'warning');
+      return;
+    }
+    
+    const minQty = product.minQty || product.preorderMinQty || 1;
+    const currentQty = product.currentQty || 0;
+    const isFull = currentQty >= minQty;
+
+    const confirmResult = await Swal.fire({
+      title: 'Checkout Cepat',
+      html: `
+        <div class="text-left font-sans mt-2 max-h-[70vh] overflow-y-auto px-1 pb-4">
+          
+          <!-- Image -->
+          <div class="w-full h-48 rounded-2xl bg-base dark:bg-border overflow-hidden relative mb-4">
+            ${product.imageUrl ? `<img src="${product.imageUrl}" class="w-full h-full object-contain" />` : `<div class="w-full h-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary/50"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>`}
+            ${product.status === 'active' ? `<div class="absolute top-3 left-3 bg-brand-primary text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Preorder Terbuka</div>` : ''}
+          </div>
+
+          <!-- Product Details -->
+          <div class="bg-base p-4 rounded-xl border border-border mb-4">
+            <h2 class="text-lg font-bold text-text-primary mb-1">${product.name}</h2>
+            <p class="text-xl font-bold text-brand-primary mb-4">Rp ${product.price.toLocaleString('id-ID')}</p>
+            <div>
+              <p class="text-sm font-semibold text-text-primary mb-1">Deskripsi Makanan</p>
+              <p class="text-sm text-text-secondary whitespace-pre-wrap">${product.description || 'Tidak ada deskripsi.'}</p>
+            </div>
+          </div>
+
+          <!-- Seller Info -->
+          <div class="flex items-center gap-3 mb-6 bg-base p-4 rounded-xl border border-border">
+            <div class="w-10 h-10 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
+            </div>
+            <div>
+              <h3 class="font-bold text-text-primary text-sm line-clamp-1">${product.sellerName || 'Toko UMKM'}</h3>
+              <span class="px-2 py-0.5 bg-status-success/10 text-status-success text-[10px] rounded-full font-medium inline-block mt-1">UMKM Terverifikasi</span>
+            </div>
+          </div>
+
+          <!-- Progress -->
+          <h3 class="font-bold text-lg mb-4">Atur Pesanan</h3>
+          <div class="bg-base p-4 rounded-xl border border-border mb-6">
+            <div class="flex justify-between text-sm mb-2 font-medium">
+              <span class="text-text-secondary">Progress Terkumpul</span>
+              <span class="${isFull ? 'text-brand-accent' : 'text-brand-secondary-dark dark:text-brand-secondary'} font-bold">
+                ${currentQty} / ${minQty} Porsi
+              </span>
+            </div>
+            <div class="w-full bg-border h-2.5 rounded-full overflow-hidden mb-3">
+              <div 
+                class="h-full rounded-full ${isFull ? 'bg-brand-accent' : 'bg-brand-secondary'}"
+                style="width: ${Math.min((currentQty / minQty) * 100, 100)}%"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Qty -->
+          <label class="text-sm font-semibold text-text-primary block mb-2">Jumlah Porsi</label>
+          <div class="flex items-center border border-border rounded-lg bg-base w-max mb-1 overflow-hidden">
+            <button type="button" id="swal-btn-minus" class="px-4 py-2 hover:bg-border/50 border-r border-border font-bold transition-colors w-12 flex justify-center items-center">-</button>
+            <input id="swal-input-qty" type="number" readonly value="${minQty}" class="w-16 text-center bg-transparent font-bold outline-none m-0 p-0" />
+            <button type="button" id="swal-btn-plus" class="px-4 py-2 hover:bg-border/50 border-l border-border font-bold transition-colors w-12 flex justify-center items-center">+</button>
+          </div>
+          <p class="text-xs text-text-secondary mb-5 font-medium">Minimal pemesanan: ${minQty} Porsi</p>
+
+          <!-- Notes -->
+          <label class="text-sm font-semibold text-text-primary block mb-2">Catatan Tambahan <span class="text-text-secondary font-normal">(Opsional)</span></label>
+          <textarea id="swal-input-notes" placeholder="Contoh: Jangan terlalu pedas ya kak..." class="w-full text-sm bg-base border border-border rounded-xl px-4 py-3 outline-none focus:border-brand-primary placeholder:text-text-secondary/50 min-h-[80px] resize-y mb-2"></textarea>
+
+          <!-- Total -->
+          <div class="flex justify-between items-center mt-6 border-t border-border pt-4">
+            <span class="text-text-secondary font-medium">Total Harga</span>
+            <span id="swal-total-price" class="text-xl font-bold text-brand-primary tracking-tight">Rp ${(minQty * product.price).toLocaleString('id-ID')}</span>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Pesan Sekarang',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#ff5c35',
+      cancelButtonColor: '#94a3b8',
       customClass: {
-        popup: 'dark:bg-slate-800 dark:text-white',
-        title: 'dark:text-white',
+        popup: 'dark:bg-slate-900 rounded-3xl w-full max-w-md',
+        title: 'text-left text-xl font-bold border-b border-border pb-4 w-full m-0 p-0',
+        htmlContainer: 'm-0 p-0 overflow-hidden',
+        actions: 'w-full grid border-t border-border mt-0 pt-4 px-4 pb-4',
+        confirmButton: 'w-full py-3.5 text-lg rounded-xl shadow-lg order-1',
+        cancelButton: 'w-full bg-transparent hover:underline text-text-secondary shadow-none order-2 mt-2'
+      },
+      didOpen: () => {
+        const btnMinus = document.getElementById('swal-btn-minus');
+        const btnPlus = document.getElementById('swal-btn-plus');
+        const inputQty = document.getElementById('swal-input-qty') as HTMLInputElement;
+        const totalPriceEl = document.getElementById('swal-total-price');
+
+        if (btnMinus && btnPlus && inputQty && totalPriceEl) {
+          const updateDisplay = (newQty: number) => {
+            inputQty.value = newQty.toString();
+            totalPriceEl.innerHTML = `Rp ${(newQty * product.price).toLocaleString('id-ID')}`;
+          };
+
+          btnMinus.onclick = () => {
+            let current = parseInt(inputQty.value);
+            if (current > minQty) {
+              updateDisplay(current - 1);
+            }
+          };
+
+          btnPlus.onclick = () => {
+            let current = parseInt(inputQty.value);
+            updateDisplay(current + 1);
+          };
+        }
+      },
+      preConfirm: () => {
+        const inputQty = document.getElementById('swal-input-qty') as HTMLInputElement;
+        const inputNotes = document.getElementById('swal-input-notes') as HTMLTextAreaElement;
+        
+        return {
+          qty: inputQty ? parseInt(inputQty.value) : minQty,
+          notes: inputNotes ? inputNotes.value : ''
+        };
       }
-    }).then(() => {
-      window.location.href = '/buyer/orders';
     });
+
+    if (!confirmResult.isConfirmed || !confirmResult.value) return;
+
+    const finalQty = confirmResult.value.qty;
+    const finalNotes = confirmResult.value.notes;
+    const finalTotalPrice = finalQty * product.price;
+
+    Swal.fire({
+      title: 'Memproses Pesanan...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          productId: product.id,
+          qty: finalQty,
+          totalPrice: finalTotalPrice,
+          notes: finalNotes
+        })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        setOrderCount(prev => prev + 1);
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil ditambahkan!',
+          text: `${product.name} ditaruh di keranjang pesanan.`,
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 2500,
+          customClass: {
+            popup: 'dark:bg-slate-800 dark:text-white',
+            title: 'dark:text-white',
+          }
+        });
+      } else {
+        Swal.fire('Gagal', data.error || 'Terjadi kesalahan.', 'error');
+      }
+    } catch (err) {
+      Swal.fire('Gagal', 'Gangguan jaringan.', 'error');
+    }
   };
 
   useEffect(() => {
@@ -272,9 +465,14 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
               <div className="flex items-center gap-2">
                 <Link 
                   href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'} 
-                  className="btn-primary shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40"
+                  className="btn-primary flex items-center gap-2 shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40 relative"
                 >
                   {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard' : 'Lihat Pesanan Saya'}
+                  {user.role === 'pembeli' && orderCount > 0 && (
+                    <span className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center absolute -top-2 -right-2 border-2 border-white shadow-sm">
+                      {orderCount}
+                    </span>
+                  )}
                 </Link>
                 <button 
                   onClick={handleLogout}
@@ -454,9 +652,14 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                   <Link 
                     href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'} 
                     onClick={() => setIsMobileMenuOpen(false)} 
-                    className="btn-primary w-full text-center"
+                    className="btn-primary w-full text-center flex items-center justify-center gap-2 relative"
                   >
                     {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard Saya' : 'Lihat Pesanan Saya'}
+                    {user.role === 'pembeli' && orderCount > 0 && (
+                      <span className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
+                        {orderCount}
+                      </span>
+                    )}
                   </Link>
                   <button 
                     onClick={() => {
@@ -508,7 +711,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                 className="text-left"
               >
                 <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary rounded-full text-sm font-semibold tracking-wide">
-                  100% Dukung UMKM Lokal Nusantara
+                  100% Dukung UMKM Lokal Indonesia
                   <motion.svg 
                     animate={{ 
                       skewY: [-3, 3, -3],
@@ -667,7 +870,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                           src={product.imageUrl} 
                           alt={product.name}
                           fill
-                          className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                          className="object-contain group-hover:scale-110 transition-transform duration-500 ease-out"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -736,9 +939,9 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                           )}
 
                           {user && user.role === 'pembeli' && (
-                            <div className="mt-4 md:hidden">
+                            <div className="mt-4 w-full">
                               <button 
-                                onClick={(e) => handleCheckout(e, product.name)}
+                                onClick={(e) => handleCheckout(e, product)}
                                 className="w-full btn-primary py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 hover:bg-brand-primary-hover transition-colors shadow-sm"
                               >
                                 <ShoppingCart className="w-4 h-4" />
@@ -802,16 +1005,32 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
       )}
 
       {/* Mobile Bottom Navigation Bar (Landing Page) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-4 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
-        <button 
-          onClick={scrollToTop} 
-          className="flex flex-col items-center gap-1.5 w-1/4 text-brand-primary font-semibold pb-2"
-        >
-          <Home className="w-6 h-6 stroke-[1.5] fill-brand-primary/10 stroke-brand-primary" />
-          <span>Beranda</span>
-        </button>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-2 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
+        <div className="flex w-[40%] justify-around">
+          <button 
+            onClick={scrollToTop} 
+            className="flex flex-col items-center gap-1.5 text-brand-primary font-semibold pb-2 w-1/2"
+          >
+            <Home className="w-6 h-6 stroke-[1.5] fill-brand-primary/10 stroke-brand-primary" />
+            <span>Beranda</span>
+          </button>
+          
+          <button 
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              setTimeout(() => {
+                setIsMobileSearchOpen(true);
+                setTimeout(() => document.querySelector<HTMLInputElement>('#mobile-search')?.focus(), 100);
+              }, 300);
+            }} 
+            className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 w-1/2"
+          >
+            <Search className="w-6 h-6 stroke-[1.5]" />
+            <span>Cari</span>
+          </button>
+        </div>
         
-        <div className="w-1/4 flex flex-col justify-end items-center relative pb-2 h-full">
+        <div className="w-[20%] flex flex-col justify-end items-center relative pb-2 h-full">
           <div className="absolute bottom-6 flex justify-center w-full">
             <button 
               onClick={() => {
@@ -830,31 +1049,40 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
           <span className="text-text-secondary mt-1">Belanja</span>
         </div>
         
-        <Link 
-          href={user ? (user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders') : '/buyer/orders'}
-          className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
-        >
-          <FileText className="w-6 h-6 stroke-[1.5]" />
-          <span>Pesanan</span>
-        </Link>
-        
-        {user ? (
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-            className={`flex flex-col items-center gap-1.5 w-1/4 transition-colors pb-2 ${isMobileMenuOpen ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
-          >
-            <User className={`w-6 h-6 stroke-[1.5] ${isMobileMenuOpen ? 'stroke-brand-primary fill-brand-primary/10' : ''}`} />
-            <span>Akun</span>
-          </button>
-        ) : (
+        <div className="flex w-[40%] justify-around">
           <Link 
-            href="/login"
-            className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
+            href={user ? (user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders') : '/buyer/orders'}
+            className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 relative w-1/2"
           >
-            <User className="w-6 h-6 stroke-[1.5]" />
-            <span>Masuk</span>
+            <div className="relative">
+              <FileText className="w-6 h-6 stroke-[1.5]" />
+              {user && user.role === 'pembeli' && orderCount > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">
+                  {orderCount}
+                </span>
+              )}
+            </div>
+            <span>Pesanan</span>
           </Link>
-        )}
+          
+          {user ? (
+            <Link 
+              href="/profile"
+              className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 w-1/2"
+            >
+              <User className="w-6 h-6 stroke-[1.5]" />
+              <span>Akun</span>
+            </Link>
+          ) : (
+            <Link 
+              href="/login"
+              className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 w-1/2"
+            >
+              <User className="w-6 h-6 stroke-[1.5]" />
+              <span>Masuk</span>
+            </Link>
+          )}
+        </div>
       </nav>
     </>
   );

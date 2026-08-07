@@ -41,6 +41,8 @@ export async function POST(req: Request) {
       passwordHash,
       role: role === 'seller' ? 'penjual' : 'pembeli',
       status: 'active',
+      address: address, // Save address for both buyer and seller
+      profileImageUrl: body.logoUrl || null, // Save photo for everyone
     });
 
     // Jika penjual, insert ke sellerProfiles
@@ -50,6 +52,7 @@ export async function POST(req: Request) {
         userId: userId,
         storeName: storeName,
         address: address,
+        logoUrl: body.logoUrl || null,
         approvalStatus: 'pending', // Perlu approval admin sesuai PRD
       });
     }

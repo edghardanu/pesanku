@@ -96,3 +96,43 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
+
+export async function PUT(request: Request) {
+  try {
+    const user = await getUserFromSession();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id, text } = await request.json();
+    if (!id || !text) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+
+    const existingMsg = await db.select().from(chatMessages).where(eq(chatMessages.id, id)).get();
+    if (!existingMsg || existingMsg.senderId !== user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    await db.update(chatMessages).set({ text }).where(eq(chatMessages.id, id));
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const user = await getUserFromSession();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id } = await request.json();
+    if (!id) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+
+    const existingMsg = await db.select().from(chatMessages).where(eq(chatMessages.id, id)).get();
+    if (!existingMsg || (existingMsg.senderId !== user.id && user.role !== 'admin')) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    await db.delete(chatMessages).where(eq(chatMessages.id, id));
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
+}

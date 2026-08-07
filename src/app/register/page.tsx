@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string>('');
 
   useEffect(() => {
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -37,6 +38,21 @@ export default function RegisterPage() {
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setError('Ukuran minimum file 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setLogoUrl(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -51,6 +67,7 @@ export default function RegisterPage() {
       role: role,
       storeName: formData.get("storeName"),
       address: formData.get("address"),
+      logoUrl: logoUrl
     };
 
     try {
@@ -81,10 +98,9 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-center items-center p-4 bg-base pt-12 pb-24 md:pb-12 relative">
-      <Link href="/" className="absolute top-6 left-4 md:left-6 flex items-center gap-2 text-text-secondary hover:text-brand-primary transition-colors font-medium bg-surface border border-border px-4 py-2 rounded-full shadow-sm z-10">
+      <Link href="/" className="hidden lg:flex absolute top-6 left-4 md:left-6 items-center gap-2 text-text-secondary hover:text-brand-primary transition-colors font-medium bg-surface border border-border px-4 py-2 rounded-full shadow-sm z-10">
         <ArrowLeft className="w-5 h-5" />
-        <span className="hidden sm:inline">Kembali ke Beranda</span>
-        <span className="inline sm:hidden">Kembali</span>
+        <span>Kembali ke Beranda</span>
       </Link>
       
       <button 
@@ -173,6 +189,35 @@ export default function RegisterPage() {
             )}
 
             <form className="space-y-5" onSubmit={handleSubmit}>
+              <div className="flex flex-col items-center mb-6">
+                <span className="block text-body-small font-medium text-text-primary mb-3">
+                  {role === 'seller' ? 'Foto/Logo UMKM' : 'Foto Profil Pengguna'}
+                </span>
+                <div className="flex flex-col items-center gap-3">
+                   {logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={logoUrl} alt="Logo" className="w-24 h-24 rounded-2xl object-cover border-2 border-border shadow-sm" />
+                   ) : (
+                      <div className="w-24 h-24 rounded-2xl bg-base border-2 border-dashed border-border flex items-center justify-center text-text-secondary">
+                        <span className="text-xs font-semibold">Square</span>
+                      </div>
+                   )}
+                   <div className="text-center">
+                     <input 
+                       type="file" 
+                       accept="image/*" 
+                       id="upload-logo"
+                       className="hidden"
+                       onChange={handleImageChange}
+                     />
+                     <label htmlFor="upload-logo" className="cursor-pointer text-sm font-semibold text-brand-primary border border-brand-primary px-4 py-1.5 rounded-lg hover:bg-brand-primary hover:text-white transition-colors block mb-1">
+                       Pilih Foto
+                     </label>
+                     <p className="text-[10px] text-text-secondary">Maks 2MB (JPG/PNG)</p>
+                   </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-body-small font-medium text-text-primary mb-1">
                   Nama Lengkap
@@ -200,19 +245,20 @@ export default function RegisterPage() {
                       required
                     />
                   </div>
-                  <div>
-                    <label className="block text-body-small font-medium text-text-primary mb-1">
-                      Alamat Lengkap Toko
-                    </label>
-                    <textarea 
-                      name="address"
-                      placeholder="Masukkan alamat lengkap toko Anda"
-                      className="input-field min-h-[80px] resize-none"
-                      required
-                    />
-                  </div>
                 </>
               )}
+
+              <div>
+                <label className="block text-body-small font-medium text-text-primary mb-1">
+                  {role === 'seller' ? 'Alamat Lengkap Toko' : 'Alamat Lengkap Pengiriman'}
+                </label>
+                <textarea 
+                  name="address"
+                  placeholder={role === 'seller' ? "Masukkan alamat lengkap toko Anda" : "Masukkan alamat lengkap rumah Anda"}
+                  className="input-field min-h-[80px] resize-none"
+                  required
+                />
+              </div>
 
               <div>
                 <label className="block text-body-small font-medium text-text-primary mb-1">

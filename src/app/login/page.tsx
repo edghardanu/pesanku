@@ -113,10 +113,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-center items-center p-4 pb-24 md:pb-4 bg-base relative">
-      <Link href="/" className="absolute top-6 left-4 md:left-6 flex items-center gap-2 text-text-secondary hover:text-brand-primary transition-colors font-medium bg-surface border border-border px-4 py-2 rounded-full shadow-sm z-10">
+      <Link href="/" className="hidden lg:flex absolute top-6 left-4 md:left-6 items-center gap-2 text-text-secondary hover:text-brand-primary transition-colors font-medium bg-surface border border-border px-4 py-2 rounded-full shadow-sm z-10">
         <ArrowLeft className="w-5 h-5" />
-        <span className="hidden sm:inline">Kembali ke Beranda</span>
-        <span className="inline sm:hidden">Kembali</span>
+        <span>Kembali ke Beranda</span>
       </Link>
       
       <button 

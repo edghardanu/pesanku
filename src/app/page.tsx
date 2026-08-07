@@ -17,6 +17,7 @@ export default async function Home() {
       id: products.id,
       name: products.name,
       price: products.price,
+      description: products.description,
       imageUrl: products.imageUrl,
       minQty: products.preorderMinQty,
       currentQty: products.currentQty,

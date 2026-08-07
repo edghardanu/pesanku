@@ -20,6 +20,7 @@ export default async function BuyerOrdersPage() {
         qty: orders.qty,
         totalPrice: orders.totalPrice,
         status: orders.status,
+        notes: orders.notes,
         createdAt: orders.createdAt,
         productName: products.name,
         productImageUrl: products.imageUrl,
