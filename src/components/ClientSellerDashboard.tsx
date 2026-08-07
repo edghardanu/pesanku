@@ -301,7 +301,7 @@ export default function ClientSellerDashboard({
     const renderMsgs = () => chatHistory.map((c: any) => {
       const isMe = c.sender === 'seller';
       if (isMe) {
-        const tickClass = c.isRead ? "text-blue-200" : "text-black/60";
+        const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
         const tickStyle = c.isRead ? "color: #60a5fa;" : "";
         return `
           <div class="flex justify-end mt-3">
@@ -450,7 +450,7 @@ export default function ClientSellerDashboard({
             if (c) c.classList.remove('opacity-50');
             const ticks = document.getElementById(`${msgId}-ticks`);
             if (ticks) {
-               ticks.classList.remove('text-black/60');
+               ticks.classList.remove('text-text-primary/60');
                ticks.classList.add('text-blue-200');
             }
           } catch (e) {
@@ -698,7 +698,7 @@ export default function ClientSellerDashboard({
                           <th className="p-4 font-medium text-right">Aksi</th>
                         </tr>
                       </thead>
-                      <tbody className="text-body-base">
+                      <tbody className="text-body-base text-text-primary">
                         {localProducts.map(product => {
                           const current = product.currentQty || 0;
                           const min = product.preorderMinQty || 1;
@@ -879,7 +879,7 @@ export default function ClientSellerDashboard({
                           <th className="p-4 font-medium text-right">Aksi Status</th>
                         </tr>
                       </thead>
-                      <tbody className="text-body-base">
+                      <tbody className="text-body-base text-text-primary">
                         {sellerOrders.map(order => (
                           <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
                             <td className="p-4 font-mono font-medium text-sm text-text-secondary">{order.id}</td>

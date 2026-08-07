@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, ShoppingCart } from "lucide-react";
+import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, ShoppingCart, LayoutDashboard } from "lucide-react";
 import { motion, Variants, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
 
@@ -182,9 +182,9 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
       confirmButtonColor: '#ff5c35',
       cancelButtonColor: '#94a3b8',
       customClass: {
-        popup: 'dark:bg-slate-900 rounded-3xl w-full max-w-md',
-        title: 'text-left text-xl font-bold border-b border-border pb-4 w-full m-0 p-0',
-        htmlContainer: 'm-0 p-0 overflow-hidden',
+        popup: 'bg-surface text-text-primary rounded-3xl w-full max-w-md border border-border',
+        title: 'text-left text-xl font-bold border-b border-border pb-4 w-full m-0 p-0 text-text-primary',
+        htmlContainer: 'm-0 p-0 overflow-hidden text-text-primary',
         actions: 'w-full grid border-t border-border mt-0 pt-4 px-4 pb-4',
         confirmButton: 'w-full py-3.5 text-lg rounded-xl shadow-lg order-1',
         cancelButton: 'w-full bg-transparent hover:underline text-text-secondary shadow-none order-2 mt-2'
@@ -263,8 +263,8 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
           showConfirmButton: false,
           timer: 2500,
           customClass: {
-            popup: 'dark:bg-slate-800 dark:text-white',
-            title: 'dark:text-white',
+            popup: 'bg-surface text-text-primary border border-border',
+            title: 'text-text-primary',
           }
         });
       } else {
@@ -496,6 +496,17 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
           </div>
           
           <div className="md:hidden flex items-center gap-1 relative right-2">
+            {user && (user.role === 'admin' || user.role === 'penjual') && (
+              <Link
+                href={user.role === 'admin' ? '/admin' : '/seller'}
+                className="p-2 rounded-full hover:bg-brand-primary/10 transition-colors relative flex items-center justify-center w-10 h-10 group"
+                aria-label="Dashboard"
+                title="Buka Dashboard"
+              >
+                <LayoutDashboard className="w-5 h-5 text-text-primary group-hover:text-brand-primary transition-colors" />
+              </Link>
+            )}
+            
             {/* Mobile Search Toggle */}
             <button 
               onClick={() => {

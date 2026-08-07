@@ -606,7 +606,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                       <th className="p-4 font-medium">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="text-body-small">
+                  <tbody className="text-body-small text-text-primary">
                     {localUmkmList.filter(u => (u.storeName || '').toLowerCase().includes(searchQueryUmkm.toLowerCase())).length === 0 ? (
                       <tr>
                         <td colSpan={6} className="p-8 text-center text-text-secondary">
@@ -1049,7 +1049,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                       <th className="p-4 font-medium">Waktu Pemesanan</th>
                     </tr>
                   </thead>
-                  <tbody className="text-body-small">
+                  <tbody className="text-body-small text-text-primary">
                     {liveOrders.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="p-8 text-center text-text-secondary">Tidak ada data transaksi saat ini.</td>
@@ -1111,7 +1111,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                       <th className="p-4 font-medium">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="text-body-small">
+                  <tbody className="text-body-small text-text-primary">
                     {mockPayouts.filter(p => p.storeName.toLowerCase().includes(searchQueryPayout.toLowerCase())).length === 0 ? (
                       <tr>
                         <td colSpan={6} className="p-8 text-center text-text-secondary">

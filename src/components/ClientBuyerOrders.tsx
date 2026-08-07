@@ -28,8 +28,10 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
 
   // Mark all orders as read when viewing this page
   useEffect(() => {
-    fetch('/api/orders', { method: 'PATCH' }).catch(err => console.error(err));
-  }, []);
+    if (user?.role === 'pembeli') {
+      fetch('/api/orders', { method: 'PATCH' }).catch(err => console.error(err));
+    }
+  }, [user]);
 
   // Check initial mode for dark mode
   useEffect(() => {
@@ -266,7 +268,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
     const renderMsgs = () => chatHistory.map((c: any) => {
       const isMe = c.sender === 'buyer';
       if (isMe) {
-        const tickClass = c.isRead ? "text-blue-200" : "text-black/60";
+        const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
         const tickStyle = c.isRead ? "color: #60a5fa;" : "";
         return `
           <div class="flex justify-end mt-3">
@@ -417,7 +419,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
             const ticks = document.getElementById(`${msgId}-ticks`);
             // Add blue checks since server received it successfully
             if (ticks) {
-               ticks.classList.remove('text-black/60');
+               ticks.classList.remove('text-text-primary/60');
                ticks.classList.add('text-blue-200');
             }
           } catch (e) {
@@ -546,7 +548,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                 </motion.div>
               </div>
               
-              <h3 className="text-h2 text-text-primary dark:text-white mb-3 font-bold">Anda belum masuk!</h3>
+              <h3 className="text-h2 text-text-primary mb-3 font-bold">Anda belum masuk!</h3>
               <p className="text-body-base text-text-secondary dark:text-gray-100 mb-8 max-w-sm">Tampaknya Anda belum login ke dalam akun, silakan masuk untuk melihat dan membuat pesanan baru.</p>
               
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto z-10 relative">
