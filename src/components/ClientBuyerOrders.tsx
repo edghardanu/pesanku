@@ -223,7 +223,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
     const renderMsgs = () => chatHistory.map((c: any) => {
       const isMe = c.sender === 'buyer';
       if (isMe) {
-        const tickClass = c.isRead ? "text-blue-200" : "text-black/60";
+        const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
         const tickStyle = c.isRead ? "color: #60a5fa;" : "";
         return `
           <div class="flex justify-end mt-3">
@@ -267,8 +267,8 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
       showConfirmButton: false,
       showCloseButton: true,
       customClass: {
-        popup: 'dark:bg-slate-900 dark:text-white rounded-2xl w-[90%] max-w-md border border-border shadow-2xl',
-        title: 'text-lg font-bold border-b border-border pb-3 mb-0 text-left w-full',
+        popup: 'bg-surface text-text-primary rounded-2xl w-[90%] max-w-md border border-border shadow-2xl',
+        title: 'text-lg font-bold border-b border-border pb-3 mb-0 text-left w-full text-text-primary',
         htmlContainer: 'mt-4',
         closeButton: 'focus:outline-none'
       },
@@ -298,7 +298,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                 ${msg}
                 <div class="flex items-center justify-end gap-1 mt-1">
                   <span class="text-[10px] text-white/80">${time}</span>
-                  <svg id="${msgId}-ticks" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-black/60"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
+                  <svg id="${msgId}-ticks" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-primary/60"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
                 </div>
               </div>
             </div>
@@ -436,8 +436,8 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                                       confirmButtonText: 'Tutup',
                                       confirmButtonColor: '#ff5c35',
                                       customClass: {
-                                        popup: 'dark:bg-slate-900 dark:text-white',
-                                        title: 'dark:text-white'
+                                        popup: 'bg-surface text-text-primary',
+                                        title: 'text-text-primary'
                                       }
                                     });
                                   }}

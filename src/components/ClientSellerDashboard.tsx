@@ -293,7 +293,7 @@ export default function ClientSellerDashboard({
     const renderMsgs = () => chatHistory.map((c: any) => {
       const isMe = c.sender === 'seller';
       if (isMe) {
-        const tickClass = c.isRead ? "text-blue-200" : "text-black/60";
+        const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
         const tickStyle = c.isRead ? "color: #60a5fa;" : "";
         return `
           <div class="flex justify-end mt-3">
@@ -337,8 +337,8 @@ export default function ClientSellerDashboard({
       showConfirmButton: false,
       showCloseButton: true,
       customClass: {
-        popup: 'dark:bg-slate-900 dark:text-white rounded-2xl w-[90%] max-w-md border border-border shadow-2xl',
-        title: 'text-lg font-bold border-b border-border pb-3 mb-0 text-left w-full',
+        popup: 'bg-surface text-text-primary rounded-2xl w-[90%] max-w-md border border-border shadow-2xl',
+        title: 'text-lg font-bold border-b border-border pb-3 mb-0 text-left w-full text-text-primary',
         htmlContainer: 'mt-4',
         closeButton: 'focus:outline-none'
       },
@@ -368,7 +368,7 @@ export default function ClientSellerDashboard({
                 ${msg}
                 <div class="flex items-center justify-end gap-1 mt-1">
                   <span class="text-[10px] text-white/80">${time}</span>
-                  <svg id="${msgId}-ticks" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-black/60"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
+                  <svg id="${msgId}-ticks" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-primary/60"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
                 </div>
               </div>
             </div>
@@ -633,7 +633,7 @@ export default function ClientSellerDashboard({
                             <tr key={product.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
                               <td className="p-4">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-12 h-12 relative bg-gray-200 rounded-md overflow-hidden shrink-0">
+                                  <div className="w-12 h-12 relative bg-border/50 rounded-md overflow-hidden shrink-0">
                                     {product.imageUrl && (
                                       <Image src={product.imageUrl} alt={product.name} fill className="object-cover" sizes="48px" />
                                     )}
@@ -686,8 +686,8 @@ export default function ClientSellerDashboard({
                                         confirmButtonColor: '#ff5c35',
                                         cancelButtonColor: '#94a3b8',
                                         customClass: {
-                                          popup: 'dark:bg-slate-900 dark:text-white rounded-xl border border-border shadow-2xl',
-                                          title: 'dark:text-white text-h3',
+                                          popup: 'bg-surface text-text-primary rounded-xl border border-border shadow-2xl',
+                                          title: 'text-text-primary text-h3',
                                         },
                                         preConfirm: () => {
                                           const name = (document.getElementById('swal-edit-name') as HTMLInputElement).value;
@@ -706,8 +706,8 @@ export default function ClientSellerDashboard({
                                             title: 'Menyimpan...',
                                             allowOutsideClick: false,
                                             customClass: {
-                                              popup: 'dark:bg-slate-900 dark:text-white rounded-xl border border-border shadow-2xl',
-                                              title: 'dark:text-white'
+                                              popup: 'bg-surface text-text-primary rounded-xl border border-border shadow-2xl',
+                                              title: 'text-text-primary'
                                             },
                                             didOpen: () => Swal.showLoading()
                                           });
@@ -721,8 +721,8 @@ export default function ClientSellerDashboard({
                                               timer: 1500,
                                               showConfirmButton: false,
                                               customClass: {
-                                                popup: 'dark:bg-slate-900 dark:text-white rounded-xl border border-border shadow-2xl',
-                                                title: 'dark:text-white'
+                                                popup: 'bg-surface text-text-primary rounded-xl border border-border shadow-2xl',
+                                                title: 'text-text-primary'
                                               }
                                             }).then(() => {
                                               // In real app we update the DB here
@@ -820,8 +820,8 @@ export default function ClientSellerDashboard({
                                       confirmButtonText: 'Tutup',
                                       confirmButtonColor: '#ff5c35',
                                       customClass: {
-                                        popup: 'dark:bg-slate-900 dark:text-white',
-                                        title: 'dark:text-white'
+                                        popup: 'bg-surface text-text-primary',
+                                        title: 'text-text-primary'
                                       }
                                     });
                                   }}
@@ -845,8 +845,8 @@ export default function ClientSellerDashboard({
                                       confirmButtonText: 'Tutup',
                                       confirmButtonColor: '#ff5c35',
                                       customClass: {
-                                        popup: 'dark:bg-slate-900 dark:text-white',
-                                        title: 'dark:text-white'
+                                        popup: 'bg-surface text-text-primary',
+                                        title: 'text-text-primary'
                                       }
                                     });
                                   }}

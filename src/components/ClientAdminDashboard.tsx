@@ -1044,7 +1044,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                 ? 'bg-status-success/10 text-status-success' 
                                 : order.status === 'waiting_verification'
                                 ? 'bg-status-warning/10 text-status-warning'
-                                : 'bg-gray-100 text-gray-600'
+                                : 'bg-border/50 text-text-secondary'
                             }`}>
                               {order.status === 'verified' ? 'Dibayar' : 
                                order.status === 'completed' ? 'Selesai' :
