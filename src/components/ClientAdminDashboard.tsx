@@ -41,7 +41,7 @@ type ClientAdminDashboardProps = {
 
 export default function ClientAdminDashboard({ stats, userName, umkmList, ordersList = [] }: ClientAdminDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'qris'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'qris' | 'settings'>('overview');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [localUmkmList, setLocalUmkmList] = useState(umkmList);
@@ -49,6 +49,15 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   const [searchQueryPayout, setSearchQueryPayout] = useState('');
 
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [feeAplikasi, setFeeAplikasi] = useState<number>(0);
+  const [feeJasa, setFeeJasa] = useState<number>(0);
+  const [feeAdmin, setFeeAdmin] = useState<number>(0);
+  const [feeLoading, setFeeLoading] = useState(false);
+  useEffect(() => {
+    fetch('/api/settings').then(r=>r.json()).then(d=>{
+      setFeeAplikasi(d.fee_aplikasi||0); setFeeJasa(d.fee_jasa||0); setFeeAdmin(d.fee_admin||0);
+    }).catch(console.error);
+  }, []);
 
   useEffect(() => {
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -312,7 +321,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
     }
   };
 
-  const handleTabChange = (tab: 'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'qris') => {
+  const handleTabChange = (tab: 'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'qris' | 'settings') => {
     if (tab === activeTab) return;
     setIsTransitioning(true);
     setTimeout(() => {
@@ -434,6 +443,18 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           >
             <QrCode className="w-5 h-5" />
             <span>Pengaturan QRIS</span>
+          </button>
+
+          <button 
+            onClick={() => handleTabChange('settings')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
+              activeTab === 'settings' 
+                ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
+                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+            }`}
+          >
+            <Store className="w-5 h-5" />
+            <span>Pengaturan Tarif & Jasa</span>
           </button>
         </nav>
 
@@ -1085,7 +1106,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                       <th className="p-4 font-medium">Toko / UMKM</th>
                       <th className="p-4 font-medium">Rekening Tujuan</th>
                       <th className="p-4 font-medium">Dana Diajukan</th>
-                      <th className="p-4 font-medium">Potongan (Admin)</th>
+                      <th className="p-4 font-medium">Biaya (Admin)</th>
                       <th className="p-4 font-medium">Total Ditransfer</th>
                       <th className="p-4 font-medium">Aksi</th>
                     </tr>
@@ -1177,6 +1198,40 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+          {activeTab === 'settings' && (
+            <div className="grid gap-6">
+              <div className="card md:p-6 border border-border">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-h3">Biaya Aplikasi</h2>
+                    <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli pada saat checkout (ditampilkan dalam struk pdf).</p>
+                  </div>
+                  <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Aplikasi', input: 'number', inputValue: feeAplikasi }); if(v){ setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_aplikasi: parseInt(v) }) }); setFeeAplikasi(parseInt(v)); setFeeLoading(false); Swal.fire({toast:true, position:'top-end', title:'Tersimpan', icon:'success', timer:2000, showConfirmButton:false});} }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                </div>
+                <p className="text-4xl font-black text-brand-primary">Rp {feeAplikasi.toLocaleString('id-ID')}</p>
+              </div>
+              <div className="card md:p-6 border border-border">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-h3">Biaya Jasa</h2>
+                    <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli untuk jasa layanan aplikasi.</p>
+                  </div>
+                  <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Jasa', input: 'number', inputValue: feeJasa }); if(v){ setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_jasa: parseInt(v) }) }); setFeeJasa(parseInt(v)); setFeeLoading(false); Swal.fire({toast:true, position:'top-end', title:'Tersimpan', icon:'success', timer:2000, showConfirmButton:false});} }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                </div>
+                <p className="text-4xl font-black text-brand-primary">Rp {feeJasa.toLocaleString('id-ID')}</p>
+              </div>
+              <div className="card md:p-6 border border-border">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-h3">Biaya Admin</h2>
+                    <p className="text-sm text-text-secondary pr-4 mt-1">Dipotong secara tak terlihat dari hasil saldo bersih penjual per transaksi pembayaran.</p>
+                  </div>
+                  <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Admin', input: 'number', inputValue: feeAdmin }); if(v){ setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_admin: parseInt(v) }) }); setFeeAdmin(parseInt(v)); setFeeLoading(false); Swal.fire({toast:true, position:'top-end', title:'Tersimpan', icon:'success', timer:2000, showConfirmButton:false});} }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                </div>
+                <p className="text-4xl font-black text-status-error">-Rp {feeAdmin.toLocaleString('id-ID')}</p>
               </div>
             </div>
           )}

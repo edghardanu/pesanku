@@ -10,6 +10,7 @@ import Swal from "sweetalert2";
 export default function ClientProductDetail({ product, user }: { product: any, user: any }) {
   const router = useRouter();
   const [qty, setQty] = useState(product.minQty || 1);
+  const [notes, setNotes] = useState("");
   const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
 
   // Load the active QRIS from localStorage to simulate Admin's setting
@@ -36,8 +37,8 @@ export default function ClientProductDetail({ product, user }: { product: any, u
       try {
         await fetch('/api/auth/logout', { method: 'POST' });
         window.location.href = '/login';
-      } catch (error) {
-        console.error('Logout failed:', error);
+      } catch (e) {
+        window.location.href = '/';
       }
     }
   };
@@ -87,6 +88,7 @@ export default function ClientProductDetail({ product, user }: { product: any, u
           <p><strong>Produk:</strong> ${product.name}</p>
           <p><strong>Jumlah:</strong> ${qty} Porsi</p>
           <p><strong>Total Bayar:</strong> <span class="text-brand-primary font-bold text-lg">Rp ${totalHarga.toLocaleString('id-ID')}</span></p>
+          ${notes ? `<p><strong>Catatan:</strong> ${notes}</p>` : ''}
           <hr class="my-2 border-gray-200" />
           <p class="text-sm text-text-secondary">Apakah Anda yakin ingin melanjutkan pesanan ini?</p>
         </div>
@@ -115,7 +117,8 @@ export default function ClientProductDetail({ product, user }: { product: any, u
         body: JSON.stringify({
           productId: product.id,
           qty: qty,
-          totalPrice: totalHarga
+          totalPrice: totalHarga,
+          notes: notes
         })
       });
 
@@ -174,7 +177,7 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                 alt={product.name}
                 fill
                 sizes="(max-width: 1024px) 100vw, 66vw"
-                className="object-cover"
+                className="object-contain bg-base dark:bg-border"
                 priority
               />
               <div className="absolute top-4 left-4">
@@ -264,6 +267,17 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                     >+</button>
                   </div>
                   <p className="text-xs text-text-secondary mt-2 font-medium">Minimal pemesanan: {product.minQty || 1} Porsi</p>
+                </div>
+
+                {/* Catatan Tambahan */}
+                <div>
+                  <label className="text-sm font-semibold text-text-primary block mb-2">Catatan Tambahan <span className="text-text-secondary font-normal">(Opsional)</span></label>
+                  <textarea 
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Contoh: Jangan terlalu pedas ya kak..."
+                    className="w-full text-sm bg-base border border-border rounded-xl px-4 py-3 outline-none focus:border-brand-primary placeholder:text-text-secondary/50 min-h-[80px] resize-y"
+                  />
                 </div>
 
                 {/* Ringkasan */}

@@ -28,6 +28,7 @@ type ClientSellerDashboardProps = {
   completedCount: number;
   userName: string;
   sellerOrders?: any[];
+  feeAdmin?: number;
 };
 
 export default function ClientSellerDashboard({
@@ -37,7 +38,8 @@ export default function ClientSellerDashboard({
   waitingCount,
   completedCount,
   userName,
-  sellerOrders = []
+  sellerOrders = [],
+  feeAdmin = 0
 }: ClientSellerDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'produk' | 'keuangan' | 'pengaturan'>('produk');
@@ -267,33 +269,39 @@ export default function ClientSellerDashboard({
     }
   };
 
-  const handleOpenChat = (orderId: string, buyerName: string, productName: string) => {
-    const chatKey = `chat_${orderId}`;
-    let chatHistory = JSON.parse(localStorage.getItem(chatKey) || '[]');
-    
-    let updated = false;
-    chatHistory = chatHistory.map((c: any) => {
-      if (c.sender === 'buyer' && !c.isRead) {
-        updated = true;
-        return { ...c, isRead: true };
-      }
-      return c;
-    });
-    if (updated) {
-      localStorage.setItem(chatKey, JSON.stringify(chatHistory));
-    }
+  const escapeQuotes = (str: string) => str ? str.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
 
-    if (chatHistory.length === 0) {
-      chatHistory = [
-        { sender: 'buyer', text: `Permisi, apakah pesanan <b>${productName}</b> saya sudah diproses?`, time: '10:04 WIB', isRead: true }
-      ];
-      localStorage.setItem(chatKey, JSON.stringify(chatHistory));
-    }
+  const handleOpenChat = async (orderId: string, buyerName: string, productName: string) => {
+    Swal.fire({
+      title: 'Memuat Obrolan...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      const res = await fetch(`/api/chat?orderId=${orderId}`);
+      let { messages } = await res.json();
+      
+      let chatHistory = messages || [];
+
+      const hasSellerOpening = chatHistory.some((m: any) => m.role === 'penjual' || m.role === 'admin');
+      if (!hasSellerOpening) {
+        chatHistory.unshift({
+          role: 'penjual',
+          text: `Halo kak! Tadi kakak melakukan pemesanan untuk <b>${productName}</b> ya?`,
+          createdAt: chatHistory[0]?.createdAt 
+            ? new Date(new Date(chatHistory[0].createdAt).getTime() - 60000).toISOString() 
+            : new Date().toISOString(),
+          isRead: true
+        });
+      }
 
     const renderMsgs = () => chatHistory.map((c: any) => {
       const isMe = c.sender === 'seller';
       if (isMe) {
-        const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
+        const tickClass = c.isRead ? "text-blue-200" : "text-black/60";
         const tickStyle = c.isRead ? "color: #60a5fa;" : "";
         return `
           <div class="flex justify-end mt-3">
@@ -348,24 +356,70 @@ export default function ClientSellerDashboard({
         const chatBox = document.getElementById('chat-box');
         const chatMessages = document.getElementById('chat-messages');
         
+        let editingId: string | null = null;
         if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
         
-        const sendMessage = () => {
+        chatBox?.addEventListener('click', async (e) => {
+          const target = e.target as HTMLElement;
+          if (target.classList.contains('chat-del-btn')) {
+            const id = target.getAttribute('data-id');
+            const bubble = document.getElementById(`msg-bubble-${id}`);
+            if (bubble) bubble.style.display = 'none';
+            await fetch('/api/chat', {
+              method: 'DELETE',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ id })
+            });
+          }
+          if (target.classList.contains('chat-edit-btn')) {
+            const id = target.getAttribute('data-id');
+            const text = target.getAttribute('data-text');
+            if (id && text && input) {
+              editingId = id;
+              input.value = text;
+              input.focus();
+            }
+          }
+        });
+
+        const sendMessage = async () => {
           if (!input.value.trim()) return;
           const msg = input.value;
+          
+          if (editingId) {
+            const id = editingId;
+            editingId = null;
+            input.value = '';
+            const textSpan = document.getElementById(`msg-text-${id}`);
+            const editBtn = document.querySelector(`.chat-edit-btn[data-id="${id}"]`);
+            if (textSpan) textSpan.innerText = msg;
+            if (editBtn) editBtn.setAttribute('data-text', escapeQuotes(msg));
+            await fetch('/api/chat', {
+              method: 'PUT',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ id, text: msg })
+            });
+            return;
+          }
+
           const now = new Date();
           const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} WIB`;
           const msgId = 'msg-' + Date.now();
           
-          const newMsgObj = { sender: 'seller', text: msg, time: time, isRead: false };
-          const currentHistory = JSON.parse(localStorage.getItem(chatKey) || '[]');
-          currentHistory.push(newMsgObj);
-          localStorage.setItem(chatKey, JSON.stringify(currentHistory));
+          input.value = '';
           
           chatMessages?.insertAdjacentHTML('beforeend', `
-            <div class="flex justify-end mt-3">
-              <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm">
-                ${msg}
+            <div class="flex justify-end mt-3 group" id="msg-bubble-${msgId}">
+              <div class="flex flex-col items-end justify-center mr-2 gap-1.5 opacity-80" id="${msgId}-actions" style="display:none;">
+                <button class="chat-edit-btn text-[10px] text-brand-primary flex items-center gap-1 hover:text-brand-primary-hover transition-colors bg-brand-primary/5 px-2 py-0.5 rounded-full" data-id="${msgId}" data-text="${escapeQuotes(msg)}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> Edit
+                </button>
+                <button class="chat-del-btn text-[10px] text-status-error flex items-center gap-1 hover:text-red-700 transition-colors bg-status-error/5 px-2 py-0.5 rounded-full" data-id="${msgId}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Hapus
+                </button>
+              </div>
+              <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm opacity-50" id="${msgId}-container">
+                <span id="msg-text-${msgId}">${msg}</span>
                 <div class="flex items-center justify-end gap-1 mt-1">
                   <span class="text-[10px] text-white/80">${time}</span>
                   <svg id="${msgId}-ticks" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-primary/60"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
@@ -373,9 +427,35 @@ export default function ClientSellerDashboard({
               </div>
             </div>
           `);
-          
-          input.value = '';
           if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+
+          try {
+            const sendRes = await fetch('/api/chat', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ orderId, text: msg })
+            });
+            const { id: realId } = await sendRes.json();
+            
+            // Set REAL ID to buttons so they can be clicked
+            document.querySelector(`.chat-edit-btn[data-id="${msgId}"]`)?.setAttribute('data-id', realId);
+            document.querySelector(`.chat-del-btn[data-id="${msgId}"]`)?.setAttribute('data-id', realId);
+            document.getElementById(`msg-bubble-${msgId}`)!.id = `msg-bubble-${realId}`;
+            document.getElementById(`msg-text-${msgId}`)!.id = `msg-text-${realId}`;
+            
+            const actionsBlock = document.getElementById(`${msgId}-actions`);
+            if (actionsBlock) actionsBlock.style.display = 'flex';
+
+            const c = document.getElementById(`${msgId}-container`);
+            if (c) c.classList.remove('opacity-50');
+            const ticks = document.getElementById(`${msgId}-ticks`);
+            if (ticks) {
+               ticks.classList.remove('text-black/60');
+               ticks.classList.add('text-blue-200');
+            }
+          } catch (e) {
+            console.error('Failed to send msg');
+          }
         };
 
         sendBtn?.addEventListener('click', sendMessage);
@@ -384,6 +464,10 @@ export default function ClientSellerDashboard({
         });
       }
     });
+
+    } catch (error) {
+      Swal.fire('Terjadi Kesalahan', 'Gagal memuat obrolan', 'error');
+    }
   };
 
   return (
@@ -515,13 +599,10 @@ export default function ClientSellerDashboard({
                 )}
               </AnimatePresence>
             </button>
-            <button onClick={() => setIsMobileSidebarOpen(true)} className="p-2 text-text-primary">
-              <Menu className="w-6 h-6" />
-            </button>
           </div>
         </header>
 
-        <div className="p-6 md:p-10 flex-1 relative">
+        <div className="p-6 md:p-10 pb-28 md:pb-10 flex-1 relative">
           {/* Loading Overlay */}
           {isTransitioning && (
             <div className="absolute inset-0 bg-base/60 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl transition-all duration-300">
@@ -762,15 +843,15 @@ export default function ClientSellerDashboard({
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="card p-6 border-status-success border-2 shadow-sm">
-                  <h3 className="text-body-small text-text-secondary mb-2">Total Saldo Bersih</h3>
+                  <h3 className="text-body-small text-text-secondary mb-2">Total Saldo Bersih (Setelah Biaya)</h3>
                   <p className="text-display-1 font-bold text-status-success">
-                    Rp {sellerOrders.filter(o => o.status === 'completed' || o.status === 'verified').reduce((acc, curr) => acc + curr.totalPrice, 0).toLocaleString('id-ID')}
+                    Rp {sellerOrders.filter(o => o.status === 'completed' || o.status === 'verified').reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - feeAdmin), 0).toLocaleString('id-ID')}
                   </p>
                 </div>
                 <div className="card p-6">
                   <h3 className="text-body-small text-text-secondary mb-2">Menunggu Pembayaran / Verifikasi</h3>
                   <p className="text-display-1 font-bold text-status-warning">
-                    Rp {sellerOrders.filter(o => o.status === 'waiting_verification').reduce((acc, curr) => acc + curr.totalPrice, 0).toLocaleString('id-ID')}
+                    Rp {sellerOrders.filter(o => o.status === 'waiting_verification').reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - feeAdmin), 0).toLocaleString('id-ID')}
                   </p>
                 </div>
               </div>
@@ -805,8 +886,16 @@ export default function ClientSellerDashboard({
                             <td className="p-4">
                               <p className="font-semibold text-text-primary line-clamp-1">{order.productName}</p>
                               <p className="text-xs text-text-secondary mt-1">Pembeli: {order.buyerName}</p>
+                              {order.notes && (
+                                <p className="text-xs text-brand-secondary-dark dark:text-brand-secondary mt-1 italic">Catatan: "{order.notes}"</p>
+                              )}
                             </td>
-                            <td className="p-4 font-semibold text-brand-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</td>
+                            <td className="p-4">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-brand-primary">Rp {Math.max(0, order.totalPrice - feeAdmin).toLocaleString('id-ID')}</span>
+                                {feeAdmin > 0 && <span className="text-[10px] text-text-secondary mt-0.5">Biaya Admin Rp {feeAdmin.toLocaleString('id-ID')}</span>}
+                              </div>
+                            </td>
                             <td className="p-4">
                               {order.proofUrl ? (
                                 <button 
@@ -1032,11 +1121,77 @@ export default function ClientSellerDashboard({
                   </button>
                 </div>
               </form>
+
+              {/* Mobile Logout Button (Visible only on mobile since desktop has it in sidebar) */}
+              <div className="md:hidden mt-8 border-t border-border pt-8">
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-2 p-4 rounded-xl font-medium text-status-error bg-status-error/10 hover:bg-status-error hover:text-white transition-all cursor-pointer"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Keluar dari Akun
+                </button>
+              </div>
             </div>
           )}
           </div>
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-4 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
+        <Link href="/" className="flex flex-col items-center gap-1.5 w-[20%] text-text-secondary hover:text-brand-primary pb-2">
+          <Store className="w-6 h-6 stroke-[1.5]" />
+          <span>Beranda</span>
+        </Link>
+        
+        <button 
+          onClick={() => handleTabChange('produk')} 
+          className={`flex flex-col items-center gap-1.5 w-[20%] transition-colors pb-2 ${activeTab === 'produk' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+        >
+          <Package className={`w-6 h-6 stroke-[1.5] ${activeTab === 'produk' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
+          <span>Produk</span>
+        </button>
+        
+        <div className="w-[20%] flex flex-col justify-end items-center relative pb-2 h-full">
+          <div className="absolute bottom-6 flex justify-center w-full">
+            <Link 
+              href="/seller/product/new" 
+              className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105"
+            >
+              <Plus className="w-7 h-7 stroke-2" />
+            </Link>
+          </div>
+          <span className="text-text-secondary mt-1">Tambah</span>
+        </div>
+        
+        <button 
+          onClick={() => handleTabChange('keuangan')} 
+          className={`flex flex-col items-center gap-1.5 w-[20%] transition-colors pb-2 ${activeTab === 'keuangan' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+        >
+          <DollarSign className={`w-6 h-6 stroke-[1.5] ${activeTab === 'keuangan' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
+          <span>Transaksi</span>
+        </button>
+        
+        <button 
+          onClick={() => handleTabChange('pengaturan')} 
+          className={`flex flex-col items-center gap-1.5 w-[20%] transition-colors pb-2 ${activeTab === 'pengaturan' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+        >
+          {profile?.logoUrl ? (
+            <div className={`w-6 h-6 rounded-full overflow-hidden border-[1.5px] ${activeTab === 'pengaturan' ? 'border-brand-primary ring-2 ring-brand-primary/20' : 'border-border'}`}>
+              <Image src={profile.logoUrl} alt="Profil" width={24} height={24} className="object-cover w-full h-full" />
+            </div>
+          ) : (
+            <div className="relative">
+              <Settings className={`w-6 h-6 stroke-[1.5] ${activeTab === 'pengaturan' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
+              {activeTab === 'pengaturan' && (
+                <div className="absolute inset-0 rounded-full ring-2 ring-brand-primary/20 scale-110" />
+              )}
+            </div>
+          )}
+          <span>Profil</span>
+        </button>
+      </nav>
     </div>
   );
 }

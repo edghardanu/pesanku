@@ -1,6 +1,12 @@
 import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
+// Global System Settings
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+});
+
 // Users table
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -10,6 +16,8 @@ export const users = sqliteTable('users', {
   passwordHash: text('password_hash').notNull(),
   role: text('role', { enum: ['admin', 'penjual', 'pembeli'] }).notNull(),
   status: text('status', { enum: ['active', 'inactive', 'pending'] }).default('active'),
+  address: text('address'),
+  profileImageUrl: text('profile_image_url'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 
@@ -47,7 +55,9 @@ export const orders = sqliteTable('orders', {
   buyerId: text('buyer_id').notNull().references(() => users.id),
   qty: integer('qty').notNull(),
   totalPrice: integer('total_price').notNull(),
-  status: text('status', { enum: ['waiting_verification', 'verified', 'preorder_running', 'failed', 'processing', 'completed'] }).default('waiting_verification'),
+  notes: text('notes'),
+  status: text('status', { enum: ['waiting_verification', 'verified', 'preorder_running', 'failed', 'processing', 'completed', 'cancelled'] }).default('waiting_verification'),
+  isRead: integer('is_read', { mode: 'boolean' }).default(false),
   deliveryProofUrl: text('delivery_proof_url'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
@@ -92,3 +102,14 @@ export const payouts = sqliteTable('payouts', {
   processedBy: text('processed_by').references(() => users.id),
   processedAt: integer('processed_at', { mode: 'timestamp' }),
 });
+
+// Chat Messages
+export const chatMessages = sqliteTable('chat_messages', {
+  id: text('id').primaryKey(),
+  orderId: text('order_id').notNull().references(() => orders.id),
+  senderId: text('sender_id').notNull().references(() => users.id),
+  text: text('text').notNull(),
+  isRead: integer('is_read', { mode: 'boolean' }).default(false),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+

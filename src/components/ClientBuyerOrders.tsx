@@ -3,13 +3,20 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ClientBuyerOrders({ orders, user }: { orders: any[], user?: any }) {
   const router = useRouter();
   const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [localOrders, setLocalOrders] = useState(orders);
+
+  useEffect(() => {
+    setLocalOrders(orders);
+  }, [orders]);
 
   // Load the active QRIS from localStorage
   useEffect(() => {
@@ -18,6 +25,34 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
       setQrisUrl(savedQris);
     }
   }, []);
+
+  // Mark all orders as read when viewing this page
+  useEffect(() => {
+    fetch('/api/orders', { method: 'PATCH' }).catch(err => console.error(err));
+  }, []);
+
+  // Check initial mode for dark mode
+  useEffect(() => {
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      setIsDarkMode(true);
+      document.documentElement.classList.add('dark');
+    } else {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      localStorage.theme = 'light';
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.theme = 'dark';
+      setIsDarkMode(true);
+    }
+  };
 
   const handleLogout = async () => {
     const result = await Swal.fire({
@@ -197,33 +232,41 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
     }
   };
 
-  const handleOpenChat = (orderId: string, storeName: string, productName: string) => {
-    const chatKey = `chat_${orderId}`;
-    let chatHistory = JSON.parse(localStorage.getItem(chatKey) || '[]');
-    
-    let updated = false;
-    chatHistory = chatHistory.map((c: any) => {
-      if (c.sender === 'seller' && !c.isRead) {
-        updated = true;
-        return { ...c, isRead: true };
-      }
-      return c;
-    });
-    if (updated) {
-      localStorage.setItem(chatKey, JSON.stringify(chatHistory));
-    }
+  const escapeQuotes = (str: string) => str ? str.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
 
-    if (chatHistory.length === 0) {
-      chatHistory = [
-        { sender: 'seller', text: `Halo! Ada yang bisa kami bantu terkait pesanan <b>${productName}</b>?`, time: '10:05 WIB', isRead: true }
-      ];
-      localStorage.setItem(chatKey, JSON.stringify(chatHistory));
-    }
+  const handleOpenChat = async (orderId: string, storeName: string, productName: string) => {
+    // Show loading state first
+    Swal.fire({
+      title: 'Memuat Obrolan...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      const res = await fetch(`/api/chat?orderId=${orderId}`);
+      let { messages } = await res.json();
+      
+      let chatHistory = messages || [];
+
+      // Virtual fallback: Ensure the seller always has an opening message on the frontend!
+      const hasSellerOpening = chatHistory.some((m: any) => m.role === 'penjual' || m.role === 'admin');
+      if (!hasSellerOpening) {
+        chatHistory.unshift({
+          role: 'penjual',
+          text: `Halo kak! Tadi kakak melakukan pemesanan untuk <b>${productName}</b> ya?`,
+          createdAt: chatHistory[0]?.createdAt 
+            ? new Date(new Date(chatHistory[0].createdAt).getTime() - 60000).toISOString() 
+            : new Date().toISOString(),
+          isRead: true
+        });
+      }
 
     const renderMsgs = () => chatHistory.map((c: any) => {
       const isMe = c.sender === 'buyer';
       if (isMe) {
-        const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
+        const tickClass = c.isRead ? "text-blue-200" : "text-black/60";
         const tickStyle = c.isRead ? "color: #60a5fa;" : "";
         return `
           <div class="flex justify-end mt-3">
@@ -278,24 +321,71 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
         const chatBox = document.getElementById('chat-box');
         const chatMessages = document.getElementById('chat-messages');
         
+        let editingId: string | null = null;
+
         if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
         
-        const sendMessage = () => {
+        chatBox?.addEventListener('click', async (e) => {
+          const target = e.target as HTMLElement;
+          if (target.classList.contains('chat-del-btn')) {
+            const id = target.getAttribute('data-id');
+            const bubble = document.getElementById(`msg-bubble-${id}`);
+            if (bubble) bubble.style.display = 'none';
+            await fetch('/api/chat', {
+              method: 'DELETE',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ id })
+            });
+          }
+          if (target.classList.contains('chat-edit-btn')) {
+            const id = target.getAttribute('data-id');
+            const text = target.getAttribute('data-text');
+            if (id && text && input) {
+              editingId = id;
+              input.value = text;
+              input.focus();
+            }
+          }
+        });
+        
+        const sendMessage = async () => {
           if (!input.value.trim()) return;
           const msg = input.value;
+          
+          if (editingId) {
+            const id = editingId;
+            editingId = null;
+            input.value = '';
+            const textSpan = document.getElementById(`msg-text-${id}`);
+            const editBtn = document.querySelector(`.chat-edit-btn[data-id="${id}"]`);
+            if (textSpan) textSpan.innerText = msg;
+            if (editBtn) editBtn.setAttribute('data-text', escapeQuotes(msg));
+            await fetch('/api/chat', {
+              method: 'PUT',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ id, text: msg })
+            });
+            return;
+          }
+
           const now = new Date();
           const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} WIB`;
           const msgId = 'msg-' + Date.now();
           
-          const newMsgObj = { sender: 'buyer', text: msg, time: time, isRead: false };
-          const currentHistory = JSON.parse(localStorage.getItem(chatKey) || '[]');
-          currentHistory.push(newMsgObj);
-          localStorage.setItem(chatKey, JSON.stringify(currentHistory));
+          input.value = '';
           
           chatMessages?.insertAdjacentHTML('beforeend', `
-            <div class="flex justify-end mt-3">
-              <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm">
-                ${msg}
+            <div class="flex justify-end mt-3 group" id="msg-bubble-${msgId}">
+              <div class="flex flex-col items-end justify-center mr-2 gap-1.5 opacity-80" id="${msgId}-actions" style="display:none;">
+                <button class="chat-edit-btn text-[10px] text-brand-primary flex items-center gap-1 hover:text-brand-primary-hover transition-colors bg-brand-primary/5 px-2 py-0.5 rounded-full" data-id="${msgId}" data-text="${escapeQuotes(msg)}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> Edit
+                </button>
+                <button class="chat-del-btn text-[10px] text-status-error flex items-center gap-1 hover:text-red-700 transition-colors bg-status-error/5 px-2 py-0.5 rounded-full" data-id="${msgId}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Hapus
+                </button>
+              </div>
+              <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm opacity-50" id="${msgId}-container">
+                <span id="msg-text-${msgId}">${msg}</span>
                 <div class="flex items-center justify-end gap-1 mt-1">
                   <span class="text-[10px] text-white/80">${time}</span>
                   <svg id="${msgId}-ticks" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-primary/60"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
@@ -303,9 +393,36 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
               </div>
             </div>
           `);
-          
-          input.value = '';
           if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+
+          try {
+            const sendRes = await fetch('/api/chat', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ orderId, text: msg })
+            });
+            const { id: realId } = await sendRes.json();
+            
+            // Set REAL ID to buttons so they can be clicked
+            document.querySelector(`.chat-edit-btn[data-id="${msgId}"]`)?.setAttribute('data-id', realId);
+            document.querySelector(`.chat-del-btn[data-id="${msgId}"]`)?.setAttribute('data-id', realId);
+            document.getElementById(`msg-bubble-${msgId}`)!.id = `msg-bubble-${realId}`;
+            document.getElementById(`msg-text-${msgId}`)!.id = `msg-text-${realId}`;
+            
+            const actionsBlock = document.getElementById(`${msgId}-actions`);
+            if (actionsBlock) actionsBlock.style.display = 'flex';
+
+            const c = document.getElementById(`${msgId}-container`);
+            if (c) c.classList.remove('opacity-50');
+            const ticks = document.getElementById(`${msgId}-ticks`);
+            // Add blue checks since server received it successfully
+            if (ticks) {
+               ticks.classList.remove('text-black/60');
+               ticks.classList.add('text-blue-200');
+            }
+          } catch (e) {
+            console.error('Failed to send msg');
+          }
         };
 
         sendBtn?.addEventListener('click', sendMessage);
@@ -314,6 +431,10 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
         });
       }
     });
+
+    } catch (error) {
+      Swal.fire('Terjadi Kesalahan', 'Gagal memuat obrolan', 'error');
+    }
   };
 
   return (
@@ -326,33 +447,156 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
             </Link>
             <span className="font-semibold text-lg text-text-primary">Daftar Pesanan Saya</span>
           </div>
-          <button 
-            onClick={handleLogout}
-            className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error flex items-center gap-1.5 py-1.5 px-3 text-sm font-semibold rounded-xl transition-all"
-            title="Keluar / Logout"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Keluar</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={toggleDarkMode}
+              className="p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors relative flex items-center justify-center w-10 h-10"
+              aria-label="Toggle Dark Mode"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {isDarkMode ? (
+                  <motion.div
+                    key="moon"
+                    initial={{ scale: 0.5, opacity: 0, rotate: -90 }}
+                    animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                    exit={{ scale: 0.5, opacity: 0, rotate: 90 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute"
+                  >
+                    <Moon className="w-5 h-5 text-brand-secondary" />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="sun"
+                    initial={{ scale: 0.5, opacity: 0, rotate: 90 }}
+                    animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                    exit={{ scale: 0.5, opacity: 0, rotate: -90 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute"
+                  >
+                    <Sun className="w-5 h-5 text-brand-primary" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </button>
+
+            {user && (
+              <button 
+                onClick={handleLogout}
+                className="p-2 rounded-full text-status-error hover:bg-status-error/10 transition-colors flex items-center justify-center w-10 h-10"
+                title="Keluar / Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 pt-6 max-w-4xl">
+      <main className="container mx-auto px-4 pt-6 max-w-4xl pb-24 md:pb-12">
         {orders.length === 0 ? (
-          <div className="text-center py-20 bg-surface rounded-2xl border border-border mt-8">
-            <FileImage className="w-16 h-16 text-text-secondary/50 mx-auto mb-4" />
-            <h3 className="text-h3 text-text-primary mb-2">Belum ada pesanan</h3>
-            <p className="text-text-secondary mb-6">Anda belum pernah melakukan pemesanan produk apapun.</p>
-            <Link href="/#katalog" className="btn-primary py-2 px-6">
-              Mulai Belanja
-            </Link>
-          </div>
+          !user ? (
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", bounce: 0.5, duration: 0.8 }}
+              className="text-center py-20 px-4 bg-surface rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.06)] border border-border mt-8 flex flex-col items-center max-w-lg mx-auto overflow-hidden relative"
+            >
+              <div className="absolute -top-32 -left-32 w-64 h-64 bg-brand-primary/10 rounded-full blur-3xl opacity-50 mix-blend-multiply" />
+              <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-brand-secondary/20 rounded-full blur-3xl opacity-50 mix-blend-multiply" />
+              
+              <div className="relative flex flex-col items-center">
+                {/* Bayangan Dasar (Floor Shadow) */}
+                <motion.div 
+                  animate={{ scale: [1, 0.7, 1], opacity: [0.2, 0.05, 0.2] }}
+                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                  className="absolute bottom-2 left-1/2 -translate-x-1/2 w-40 h-6 bg-black blur-[8px] rounded-[100%] z-0"
+                />
+
+                <motion.div 
+                  animate={{ y: [0, -12, 0], rotate: [-1, 1, -1] }}
+                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                  className="relative w-56 h-56 mb-4 mt-6 z-10"
+                >
+                  {/* Gelembung Awan (Thought Bubble) */}
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.5, y: 10, x: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
+                    transition={{ delay: 0.4, type: "spring", bounce: 0.6 }}
+                    className="absolute top-0 -right-4 z-20 drop-shadow-xl"
+                  >
+                    <div className="relative bg-white text-slate-800 px-5 py-3 rounded-full font-bold text-lg border border-slate-100 rotate-6 shadow-sm">
+                      Yahh..
+                      {/* Ekor gelembung awan (Thought dots) */}
+                      <div className="absolute -bottom-2 -left-1 w-4 h-4 bg-white rounded-full border border-slate-100 border-t-0 border-r-0"></div>
+                      <div className="absolute -bottom-5 -left-4 w-2 h-2 bg-white rounded-full border border-slate-100"></div>
+                    </div>
+                  </motion.div>
+
+                  <Image 
+                    src="/confused-man-smooth.png" 
+                    alt="Bingung Belum Login"
+                    fill
+                    quality={100}
+                    unoptimized
+                    priority
+                    className="object-contain z-10"
+                    style={{ clipPath: "inset(2px)" }}
+                  />
+                </motion.div>
+              </div>
+              
+              <h3 className="text-h2 text-text-primary dark:text-white mb-3 font-bold">Anda belum masuk!</h3>
+              <p className="text-body-base text-text-secondary dark:text-gray-100 mb-8 max-w-sm">Tampaknya Anda belum login ke dalam akun, silakan masuk untuk melihat dan membuat pesanan baru.</p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto z-10 relative">
+                <Link href="/login" className="btn-primary py-3 px-8 text-base text-white shadow-lg hover:shadow-brand-primary/30 transition-shadow w-full sm:w-auto text-center rounded-xl">
+                  Masuk Sekarang
+                </Link>
+              </div>
+            </motion.div>
+          ) : (
+            <div className="text-center py-20 bg-surface rounded-3xl border border-border mt-8 shadow-sm">
+              <FileImage className="w-16 h-16 text-text-secondary/50 mx-auto mb-4" />
+              <h3 className="text-h3 text-text-primary mb-2">Anda Belum Membuat Pesanan</h3>
+              <p className="text-text-secondary mb-6">Mulai pesan makanan dan minuman UMKM favoritmu sekarang!</p>
+              <Link href="/" className="btn-primary py-2.5 px-8 font-medium">
+                Pesan Sekarang
+              </Link>
+            </div>
+          )
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => {
+            {localOrders.map((order) => {
               const isWaitingPayment = !order.paymentId;
               const isPendingVerif = order.paymentId && order.paymentStatus === 'pending';
               const isVerified = order.paymentId && order.paymentStatus === 'approved';
+              
+              const updateQty = (delta: number) => {
+                const minAllowed = order.minQty || 1;
+                if (order.qty + delta < minAllowed) {
+                  Swal.fire({
+                    icon: 'warning',
+                    title: 'Batas Minimal',
+                    text: `Penjual menetapkan minimal pemesanan adalah ${minAllowed} porsi.`,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000,
+                  });
+                  return;
+                }
+                // Calculate unit price from original state
+                const unitPrice = order.totalPrice / order.qty;
+                const newQty = order.qty + delta;
+                
+                setLocalOrders(prev => prev.map(o => {
+                  if (o.orderId === order.orderId) {
+                    return { ...o, qty: newQty, totalPrice: unitPrice * newQty };
+                  }
+                  return o;
+                }));
+              };
               
               return (
                 <div key={order.orderId} className="card p-0 border border-border overflow-hidden bg-surface">
@@ -377,7 +621,32 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                       <div>
                         <h3 className="font-bold text-text-primary mb-1">{order.productName}</h3>
                         <p className="text-sm text-text-secondary mb-1">Toko: {order.storeName || 'Toko UMKM'}</p>
-                        <p className="text-sm font-medium">Jumlah: {order.qty} porsi</p>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <p className="text-sm font-medium">Jumlah:</p>
+                          <div className={`flex items-center border border-border rounded-lg bg-base overflow-hidden ${order.status === 'completed' || order.status === 'cancelled' || order.paymentId ? 'opacity-50 pointer-events-none bg-gray-100 dark:bg-gray-800' : ''}`}>
+                            <button 
+                              onClick={() => updateQty(-1)}
+                              disabled={order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId}
+                              className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                            >
+                              -
+                            </button>
+                            <span className="text-sm font-semibold w-8 text-center">{order.qty}</span>
+                            <button 
+                              onClick={() => updateQty(1)}
+                              disabled={order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId}
+                              className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                        {order.notes && (
+                          <div className="mt-2 text-xs text-text-secondary bg-base p-2 rounded-lg border border-border flex items-start gap-1.5 w-max max-w-[200px] sm:max-w-[300px]">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="shrink-0 mt-0.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                             <span className="leading-tight italic line-clamp-2">"{order.notes}"</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     
@@ -424,6 +693,13 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                               >
                                 <MessageCircle className="w-3.5 h-3.5" /> Chat
                               </button>
+                              
+                              <Link 
+                                href={`/invoice/${order.orderId}`}
+                                className="btn-outline border-gray-300 text-gray-700 hover:bg-gray-50 py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
+                              >
+                                <Receipt className="w-3.5 h-3.5" /> Detail Pembayaran
+                              </Link>
                               
                               {order.deliveryProofUrl && (
                                 <button 
@@ -487,6 +763,51 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
           </div>
         )}
       </main>
+
+      {/* Mobile Bottom Navigation Bar (Orders Page) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-4 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
+        <Link 
+          href="/" 
+          className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
+        >
+          <Home className="w-6 h-6 stroke-[1.5]" />
+          <span>Beranda</span>
+        </Link>
+        
+        <div className="w-1/4 flex flex-col justify-end items-center relative pb-2 h-full">
+          <Link href="/" className="absolute bottom-6 flex justify-center w-full">
+            <button className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105">
+              <ShoppingBag className="w-7 h-7 stroke-[1.5]" />
+            </button>
+          </Link>
+          <span className="text-text-secondary mt-1">Belanja</span>
+        </div>
+        
+        <button 
+          className="flex flex-col items-center gap-1.5 w-1/4 text-brand-primary font-semibold pb-2"
+        >
+          <FileText className="w-6 h-6 stroke-[1.5] fill-brand-primary/10 stroke-brand-primary" />
+          <span>Pesanan</span>
+        </button>
+        
+        {user ? (
+          <Link 
+            href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'}
+            className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
+          >
+            <User className="w-6 h-6 stroke-[1.5]" />
+            <span>Akun</span>
+          </Link>
+        ) : (
+          <Link 
+            href="/login"
+            className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
+          >
+            <User className="w-6 h-6 stroke-[1.5]" />
+            <span>Masuk</span>
+          </Link>
+        )}
+      </nav>
     </div>
   );
 }
