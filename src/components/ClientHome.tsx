@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut } from "lucide-react";
+import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, ShoppingCart } from "lucide-react";
 import { motion, Variants, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
 
@@ -34,6 +34,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [greeting, setGreeting] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -59,6 +60,26 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
       localStorage.theme = 'dark';
       setIsDarkMode(true);
     }
+  };
+
+  const handleCheckout = (e: React.MouseEvent, productName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    Swal.fire({
+      icon: 'success',
+      title: 'Berhasil ditambahkan!',
+      text: `${productName} telah dimasukkan ke keranjang.`,
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2000,
+      customClass: {
+        popup: 'dark:bg-slate-800 dark:text-white',
+        title: 'dark:text-white',
+      }
+    }).then(() => {
+      window.location.href = '/buyer/orders';
+    });
   };
 
   useEffect(() => {
@@ -276,13 +297,88 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
             )}
           </div>
           
-          <button 
-            className="md:hidden text-text-primary p-2 z-50 relative"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          <div className="md:hidden flex items-center gap-1 relative right-2">
+            {/* Mobile Search Toggle */}
+            <button 
+              onClick={() => {
+                setIsMobileSearchOpen(!isMobileSearchOpen);
+                if (!isMobileSearchOpen) setTimeout(() => document.querySelector<HTMLInputElement>('#mobile-search')?.focus(), 100);
+              }}
+              className="p-2 rounded-full hover:bg-brand-primary/10 transition-colors relative flex items-center justify-center w-10 h-10"
+              aria-label="Toggle Search"
+            >
+              <Search className={`w-5 h-5 ${isMobileSearchOpen ? 'text-brand-primary' : 'text-text-primary'}`} />
+            </button>
+            
+            {/* Mobile Theme Toggle */}
+            <button 
+              onClick={toggleDarkMode}
+              className="p-2 rounded-full hover:bg-brand-primary/10 transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10"
+              aria-label="Toggle Dark Mode"
+            >
+            <AnimatePresence mode="wait" initial={false}>
+              {isDarkMode ? (
+                <motion.div
+                  key="moon"
+                  initial={{ y: -30, opacity: 0, rotate: -90 }}
+                  animate={{ y: 0, opacity: 1, rotate: 0 }}
+                  exit={{ y: 30, opacity: 0, rotate: 90 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute"
+                >
+                  <Moon className="w-5 h-5 text-brand-primary" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="sun"
+                  initial={{ y: 30, opacity: 0, rotate: 90 }}
+                  animate={{ y: 0, opacity: 1, rotate: 0 }}
+                  exit={{ y: -30, opacity: 0, rotate: -90 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute"
+                >
+                  <Sun className="w-5 h-5 text-brand-primary" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Search Input Dropdown */}
+        <AnimatePresence>
+          {isMobileSearchOpen && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden overflow-hidden bg-surface border-b border-border shadow-sm absolute w-full left-0 top-[64px]"
+            >
+              <div className="p-4">
+                <div className="relative w-full">
+                  <input 
+                    id="mobile-search"
+                    type="text" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari makanan atau minuman..." 
+                    className="input-field pl-10 pr-10 rounded-xl w-full border-brand-primary/20 focus:border-brand-primary"
+                  />
+                  <Search className="w-5 h-5 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
+                  {searchQuery && (
+                    <button 
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary p-1"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
@@ -638,6 +734,18 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                               <span className="font-medium">Ditutup: {deadlineText}</span>
                             </div>
                           )}
+
+                          {user && user.role === 'pembeli' && (
+                            <div className="mt-4 md:hidden">
+                              <button 
+                                onClick={(e) => handleCheckout(e, product.name)}
+                                className="w-full btn-primary py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 hover:bg-brand-primary-hover transition-colors shadow-sm"
+                              >
+                                <ShoppingCart className="w-4 h-4" />
+                                Checkout Sekarang
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </Link>
@@ -649,7 +757,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
         </section>
       </main>
 
-      <footer className="bg-surface border-t border-border py-12 mt-12">
+      <footer className="bg-surface border-t border-border py-12 pb-28 md:pb-12 mt-12">
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center items-center gap-2 mb-6">
             <motion.div
@@ -685,13 +793,69 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
             y: { repeat: Infinity, duration: 2, ease: "easeInOut" }
           }}
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 py-3 px-5 bg-brand-primary text-white rounded-full shadow-xl hover:bg-brand-primary/90 hover:shadow-brand-primary/30 hover:shadow-2xl transition-all z-50 flex items-center gap-2 justify-center font-medium"
+          className="fixed md:bottom-6 bottom-28 md:right-6 right-4 py-2 px-4 md:py-3 md:px-5 bg-brand-primary text-white rounded-full shadow-xl hover:bg-brand-primary/90 hover:shadow-brand-primary/30 hover:shadow-2xl transition-all z-40 flex items-center gap-1 md:gap-2 justify-center font-medium"
           aria-label="Kembali ke atas"
         >
-          <span className="text-sm">Yuk Kembali ke Atas</span>
-          <ChevronUp className="w-5 h-5" />
+          <span className="text-xs md:text-sm">Yuk Kembali ke Atas</span>
+          <ChevronUp className="w-4 h-4 md:w-5 md:h-5" />
         </motion.button>
       )}
+
+      {/* Mobile Bottom Navigation Bar (Landing Page) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-4 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
+        <button 
+          onClick={scrollToTop} 
+          className="flex flex-col items-center gap-1.5 w-1/4 text-brand-primary font-semibold pb-2"
+        >
+          <Home className="w-6 h-6 stroke-[1.5] fill-brand-primary/10 stroke-brand-primary" />
+          <span>Beranda</span>
+        </button>
+        
+        <div className="w-1/4 flex flex-col justify-end items-center relative pb-2 h-full">
+          <div className="absolute bottom-6 flex justify-center w-full">
+            <button 
+              onClick={() => {
+                const productsSection = document.getElementById('produk');
+                if (productsSection) {
+                  productsSection.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  window.scrollTo({ top: window.innerHeight * 0.8, behavior: 'smooth' });
+                }
+              }}
+              className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105"
+            >
+              <ShoppingBag className="w-7 h-7 stroke-[1.5]" />
+            </button>
+          </div>
+          <span className="text-text-secondary mt-1">Belanja</span>
+        </div>
+        
+        <Link 
+          href={user ? (user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders') : '/buyer/orders'}
+          className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
+        >
+          <FileText className="w-6 h-6 stroke-[1.5]" />
+          <span>Pesanan</span>
+        </Link>
+        
+        {user ? (
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+            className={`flex flex-col items-center gap-1.5 w-1/4 transition-colors pb-2 ${isMobileMenuOpen ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+          >
+            <User className={`w-6 h-6 stroke-[1.5] ${isMobileMenuOpen ? 'stroke-brand-primary fill-brand-primary/10' : ''}`} />
+            <span>Akun</span>
+          </button>
+        ) : (
+          <Link 
+            href="/login"
+            className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
+          >
+            <User className="w-6 h-6 stroke-[1.5]" />
+            <span>Masuk</span>
+          </Link>
+        )}
+      </nav>
     </>
   );
 }

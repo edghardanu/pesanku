@@ -515,13 +515,10 @@ export default function ClientSellerDashboard({
                 )}
               </AnimatePresence>
             </button>
-            <button onClick={() => setIsMobileSidebarOpen(true)} className="p-2 text-text-primary">
-              <Menu className="w-6 h-6" />
-            </button>
           </div>
         </header>
 
-        <div className="p-6 md:p-10 flex-1 relative">
+        <div className="p-6 md:p-10 pb-28 md:pb-10 flex-1 relative">
           {/* Loading Overlay */}
           {isTransitioning && (
             <div className="absolute inset-0 bg-base/60 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl transition-all duration-300">
@@ -1032,11 +1029,77 @@ export default function ClientSellerDashboard({
                   </button>
                 </div>
               </form>
+
+              {/* Mobile Logout Button (Visible only on mobile since desktop has it in sidebar) */}
+              <div className="md:hidden mt-8 border-t border-border pt-8">
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-2 p-4 rounded-xl font-medium text-status-error bg-status-error/10 hover:bg-status-error hover:text-white transition-all cursor-pointer"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Keluar dari Akun
+                </button>
+              </div>
             </div>
           )}
           </div>
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-4 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
+        <Link href="/" className="flex flex-col items-center gap-1.5 w-[20%] text-text-secondary hover:text-brand-primary pb-2">
+          <Store className="w-6 h-6 stroke-[1.5]" />
+          <span>Beranda</span>
+        </Link>
+        
+        <button 
+          onClick={() => handleTabChange('produk')} 
+          className={`flex flex-col items-center gap-1.5 w-[20%] transition-colors pb-2 ${activeTab === 'produk' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+        >
+          <Package className={`w-6 h-6 stroke-[1.5] ${activeTab === 'produk' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
+          <span>Produk</span>
+        </button>
+        
+        <div className="w-[20%] flex flex-col justify-end items-center relative pb-2 h-full">
+          <div className="absolute bottom-6 flex justify-center w-full">
+            <Link 
+              href="/seller/product/new" 
+              className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105"
+            >
+              <Plus className="w-7 h-7 stroke-2" />
+            </Link>
+          </div>
+          <span className="text-text-secondary mt-1">Tambah</span>
+        </div>
+        
+        <button 
+          onClick={() => handleTabChange('keuangan')} 
+          className={`flex flex-col items-center gap-1.5 w-[20%] transition-colors pb-2 ${activeTab === 'keuangan' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+        >
+          <DollarSign className={`w-6 h-6 stroke-[1.5] ${activeTab === 'keuangan' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
+          <span>Transaksi</span>
+        </button>
+        
+        <button 
+          onClick={() => handleTabChange('pengaturan')} 
+          className={`flex flex-col items-center gap-1.5 w-[20%] transition-colors pb-2 ${activeTab === 'pengaturan' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+        >
+          {profile?.logoUrl ? (
+            <div className={`w-6 h-6 rounded-full overflow-hidden border-[1.5px] ${activeTab === 'pengaturan' ? 'border-brand-primary ring-2 ring-brand-primary/20' : 'border-border'}`}>
+              <Image src={profile.logoUrl} alt="Profil" width={24} height={24} className="object-cover w-full h-full" />
+            </div>
+          ) : (
+            <div className="relative">
+              <Settings className={`w-6 h-6 stroke-[1.5] ${activeTab === 'pengaturan' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
+              {activeTab === 'pengaturan' && (
+                <div className="absolute inset-0 rounded-full ring-2 ring-brand-primary/20 scale-110" />
+              )}
+            </div>
+          )}
+          <span>Profil</span>
+        </button>
+      </nav>
     </div>
   );
 }

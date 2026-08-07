@@ -92,3 +92,14 @@ export const payouts = sqliteTable('payouts', {
   processedBy: text('processed_by').references(() => users.id),
   processedAt: integer('processed_at', { mode: 'timestamp' }),
 });
+
+// Chat Messages
+export const chatMessages = sqliteTable('chat_messages', {
+  id: text('id').primaryKey(),
+  orderId: text('order_id').notNull().references(() => orders.id),
+  senderId: text('sender_id').notNull().references(() => users.id),
+  text: text('text').notNull(),
+  isRead: integer('is_read', { mode: 'boolean' }).default(false),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+
