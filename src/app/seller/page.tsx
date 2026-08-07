@@ -5,6 +5,8 @@ import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import ClientSellerDashboard from "@/components/ClientSellerDashboard";
 
+export const dynamic = 'force-dynamic';
+
 export default async function SellerDashboard() {
   const user = await getUserFromSession();
   

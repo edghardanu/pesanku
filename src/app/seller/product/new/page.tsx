@@ -69,6 +69,9 @@ export default function NewProductPage() {
       price: formData.get("price"),
       minQty: minQty,
       deadline: deadline,
+      minOrderQty: formData.get("minOrderQty"),
+      maxOrderQty: formData.get("maxOrderQty"),
+      batchCategory: formData.get("batchCategory"),
       imageUrl: imagePreview || "",
     };
 
@@ -205,7 +208,7 @@ export default function NewProductPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-body-small font-medium text-text-primary mb-1">
-                    Minimal Pembelian (Porsi) <span className="text-status-error">*</span>
+                    Target Kuota Total (Porsi) <span className="text-status-error">*</span>
                   </label>
                   <input 
                     type="number" 
@@ -215,6 +218,7 @@ export default function NewProductPage() {
                     onChange={(e) => setHasMinQty(parseInt(e.target.value) > 0)}
                     className="input-field bg-white"
                   />
+                  <p className="text-[10px] text-text-secondary mt-1">Preorder harus mencapai angka ini agar diproses.</p>
                 </div>
 
                 <div>
@@ -226,6 +230,45 @@ export default function NewProductPage() {
                     name="deadline"
                     className="input-field bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                   />
+                </div>
+                
+                <div>
+                  <label className="block text-body-small font-medium text-text-primary mb-1">
+                    Kategori / Termin
+                  </label>
+                  <input 
+                    type="text" 
+                    name="batchCategory"
+                    placeholder="Contoh: Termin 1"
+                    className="input-field bg-white"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-body-small font-medium text-text-primary mb-1">
+                      Min. Order / Orang
+                    </label>
+                    <input 
+                      type="number" 
+                      name="minOrderQty"
+                      min="1"
+                      defaultValue="1"
+                      className="input-field bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-body-small font-medium text-text-primary mb-1">
+                      Max. Order / Orang
+                    </label>
+                    <input 
+                      type="number" 
+                      name="maxOrderQty"
+                      min="1"
+                      placeholder="Tak terbatas"
+                      className="input-field bg-white"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

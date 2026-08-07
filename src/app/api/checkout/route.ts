@@ -12,9 +12,9 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { productId, qty, totalPrice, notes } = body;
+    const { productId, qty, notes } = body;
 
-    if (!productId || !qty || !totalPrice) {
+    if (!productId || !qty) {
       return NextResponse.json({ error: 'Data pesanan tidak lengkap' }, { status: 400 });
     }
 
@@ -23,6 +23,8 @@ export async function POST(req: Request) {
     if (!product) {
       return NextResponse.json({ error: 'Produk tidak ditemukan' }, { status: 404 });
     }
+
+    const calculatedTotalPrice = product.price * qty;
 
     // Generate custom Order ID
     const orderId = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -33,10 +35,18 @@ export async function POST(req: Request) {
       productId: productId,
       buyerId: user.id,
       qty: qty,
-      totalPrice: totalPrice,
+      totalPrice: calculatedTotalPrice,
       notes: notes || '',
       status: 'waiting_verification',
     });
+
+    // Update Progress Terkumpul pada Produk
+    await db.update(products)
+      .set({ 
+        currentQty: (product.currentQty || 0) + qty,
+        status: ((product.currentQty || 0) + qty) >= (product.preorderMinQty || 1) ? 'quota_reached' : product.status
+      })
+      .where(eq(products.id, productId));
 
     return NextResponse.json({ message: 'Pesanan berhasil dibuat. Menunggu pembayaran.', orderId }, { status: 201 });
   } catch (error) {

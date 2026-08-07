@@ -6,6 +6,8 @@ import { getUserFromSession } from "@/lib/auth";
 import ClientProductDetail from "@/components/ClientProductDetail";
 import { dummyProducts } from "@/lib/dummyData";
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const { id } = resolvedParams;
@@ -29,6 +31,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         imageUrl: products.imageUrl,
         minQty: products.preorderMinQty,
         currentQty: products.currentQty,
+        minOrderQty: products.minOrderQty,
+        maxOrderQty: products.maxOrderQty,
+        batchCategory: products.batchCategory,
         deadlineDate: products.deadlineDate,
         status: products.status,
         storeName: sellerProfiles.storeName,

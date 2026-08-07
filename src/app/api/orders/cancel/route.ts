@@ -28,13 +28,26 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Pesanan tidak ditemukan atau Anda tidak memiliki akses' }, { status: 404 });
     }
 
+    // Hapus data chat terkait jika ada
+    const { chatMessages } = await import('@/lib/schema');
+    await db.delete(chatMessages).where(eq(chatMessages.orderId, orderId));
+
     // Hapus data pembayaran terkait jika ada
     await db.delete(payments).where(eq(payments.orderId, orderId));
+
+    // Decrement currentQty from product
+    const { products } = await import('@/lib/schema');
+    const product = await db.select().from(products).where(eq(products.id, existingOrder.productId)).get();
+    if (product && existingOrder.status !== 'cancelled' && existingOrder.status !== 'failed') {
+      const newQty = Math.max(0, (product.currentQty || 0) - existingOrder.qty);
+      const newStatus = newQty >= (product.preorderMinQty || 1) ? 'quota_reached' : 'active';
+      await db.update(products).set({ currentQty: newQty, status: newStatus }).where(eq(products.id, product.id));
+    }
 
     // Hapus data pesanan
     await db.delete(orders).where(eq(orders.id, orderId));
 
-    return NextResponse.json({ message: 'Pesanan berhasil dibatalkan' }, { status: 200 });
+    return NextResponse.json({ message: 'Data berhasil dihapus' }, { status: 200 });
   } catch (error) {
     console.error('Cancel order error:', error);
     return NextResponse.json({ error: 'Terjadi kesalahan saat membatalkan pesanan' }, { status: 500 });

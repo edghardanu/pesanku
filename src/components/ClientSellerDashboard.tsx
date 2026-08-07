@@ -18,6 +18,9 @@ type Product = {
   currentQty: number | null;
   status: string | null;
   deadlineDate: Date | null;
+  batchCategory?: string | null;
+  minOrderQty?: number | null;
+  maxOrderQty?: number | null;
 };
 
 type ClientSellerDashboardProps = {
@@ -72,6 +75,26 @@ export default function ClientSellerDashboard({
 
   const [localProducts, setLocalProducts] = useState(myProducts);
 
+  // Poll for real-time updates on products (e.g. currentQty updates)
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch('/api/products');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.products) {
+            setLocalProducts(data.products);
+          }
+        }
+      } catch (err) {
+        console.error('Error polling products:', err);
+      }
+    };
+
+    const interval = setInterval(fetchProducts, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const [formData, setFormData] = useState({
     storeName: profile?.storeName || '',
     address: profile?.address || '',
@@ -108,12 +131,8 @@ export default function ClientSellerDashboard({
 
   const handleTabChange = (tab: 'produk' | 'keuangan' | 'pengaturan') => {
     if (tab === activeTab) return;
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setActiveTab(tab);
-      setIsTransitioning(false);
-      setIsMobileSidebarOpen(false); // Close mobile sidebar on tab change
-    }, 400); // Simulate lazy loading delay
+    setActiveTab(tab);
+    setIsMobileSidebarOpen(false); // Close mobile sidebar on tab change
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -562,7 +581,7 @@ export default function ClientSellerDashboard({
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen md:h-screen overflow-y-auto">
         {/* Topbar Mobile */}
-        <header className="md:hidden bg-surface border-b border-border p-4 flex items-center justify-between">
+        <header className="md:hidden bg-surface/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between sticky top-0 z-50 transition-all">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-6 h-6 text-brand-primary" />
             <span className="text-h3 text-brand-primary font-bold">pesanku</span>
@@ -748,15 +767,41 @@ export default function ClientSellerDashboard({
                                         html: `
                                           <div class="flex flex-col gap-4 text-left mt-4">
                                             <div>
+                                              <label class="text-caption text-text-secondary mb-1 block">Foto Produk Baru (Opsional)</label>
+                                              
+                                              <div id="swal-image-preview-container" class="mb-3 ${product.imageUrl ? 'block' : 'hidden'}">
+                                                <div class="relative w-full h-32 rounded-lg border border-border overflow-hidden bg-base">
+                                                  <img id="swal-image-preview" src="${product.imageUrl || ''}" class="w-full h-full object-contain" />
+                                                </div>
+                                              </div>
+
+                                              <input id="swal-edit-image" type="file" accept="image/*" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none">
+                                              <p class="text-[10px] text-text-secondary mt-1">Kosongkan jika tidak ingin mengubah foto</p>
+                                            </div>
+                                            <div>
                                               <label class="text-caption text-text-secondary mb-1 block">Nama Produk</label>
                                               <input id="swal-edit-name" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.name}">
+                                            </div>
+                                            <div>
+                                              <label class="text-caption text-text-secondary mb-1 block">Kategori / Termin</label>
+                                              <input id="swal-edit-category" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.batchCategory || ''}" placeholder="Contoh: Termin 1">
                                             </div>
                                             <div>
                                               <label class="text-caption text-text-secondary mb-1 block">Harga (Rp)</label>
                                               <input id="swal-edit-price" type="number" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.price}">
                                             </div>
+                                            <div class="grid grid-cols-2 gap-3">
+                                              <div>
+                                                <label class="text-caption text-text-secondary mb-1 block">Min. Order / Org</label>
+                                                <input id="swal-edit-minorder" type="number" min="1" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.minOrderQty || 1}">
+                                              </div>
+                                              <div>
+                                                <label class="text-caption text-text-secondary mb-1 block">Max. Order / Org</label>
+                                                <input id="swal-edit-maxorder" type="number" min="1" placeholder="Tak Terbatas" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.maxOrderQty || ''}">
+                                              </div>
+                                            </div>
                                             <div>
-                                              <label class="text-caption text-text-secondary mb-1 block">Minimal Kuota Preorder</label>
+                                              <label class="text-caption text-text-secondary mb-1 block">Minimal Kuota Preorder (Total)</label>
                                               <input id="swal-edit-min" type="number" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.preorderMinQty || 1}">
                                             </div>
                                           </div>
@@ -770,18 +815,66 @@ export default function ClientSellerDashboard({
                                           popup: 'bg-surface text-text-primary rounded-xl border border-border shadow-2xl',
                                           title: 'text-text-primary text-h3',
                                         },
-                                        preConfirm: () => {
+                                        didOpen: () => {
+                                          const imageInput = document.getElementById('swal-edit-image') as HTMLInputElement;
+                                          const previewContainer = document.getElementById('swal-image-preview-container');
+                                          const previewImage = document.getElementById('swal-image-preview') as HTMLImageElement;
+                                          
+                                          if (imageInput && previewContainer && previewImage) {
+                                            imageInput.addEventListener('change', function() {
+                                              const file = this.files?.[0];
+                                              if (file) {
+                                                const reader = new FileReader();
+                                                reader.onload = function(e) {
+                                                  previewImage.src = e.target?.result as string;
+                                                  previewContainer.classList.remove('hidden');
+                                                  previewContainer.classList.add('block');
+                                                };
+                                                reader.readAsDataURL(file);
+                                              }
+                                            });
+                                          }
+                                        },
+                                        preConfirm: async () => {
                                           const name = (document.getElementById('swal-edit-name') as HTMLInputElement).value;
                                           const price = (document.getElementById('swal-edit-price') as HTMLInputElement).value;
                                           const min = (document.getElementById('swal-edit-min') as HTMLInputElement).value;
+                                          const category = (document.getElementById('swal-edit-category') as HTMLInputElement).value;
+                                          const minOrder = (document.getElementById('swal-edit-minorder') as HTMLInputElement).value;
+                                          const maxOrder = (document.getElementById('swal-edit-maxorder') as HTMLInputElement).value;
+                                          const imageInput = document.getElementById('swal-edit-image') as HTMLInputElement;
                                           
-                                          if (!name || !price || !min) {
-                                            Swal.showValidationMessage('Semua kolom wajib diisi!');
+                                          if (!name || !price || !min || !minOrder) {
+                                            Swal.showValidationMessage('Semua kolom teks penting wajib diisi!');
                                             return false;
                                           }
-                                          return { name, price: parseInt(price), min: parseInt(min) };
+                                          
+                                          let imageUrl = '';
+                                          if (imageInput.files && imageInput.files[0]) {
+                                            const file = imageInput.files[0];
+                                            if (file.size > 2 * 1024 * 1024) {
+                                              Swal.showValidationMessage('Ukuran gambar maksimal 2MB!');
+                                              return false;
+                                            }
+                                            // Convert to base64
+                                            const reader = new FileReader();
+                                            imageUrl = await new Promise((resolve) => {
+                                              reader.onload = (e) => resolve(e.target?.result as string);
+                                              reader.readAsDataURL(file);
+                                            });
+                                          }
+
+                                          return { 
+                                            name, 
+                                            price: parseInt(price), 
+                                            min: parseInt(min), 
+                                            imageUrl,
+                                            batchCategory: category,
+                                            minOrderQty: parseInt(minOrder),
+                                            maxOrderQty: maxOrder ? parseInt(maxOrder) : null
+                                          };
                                         }
-                                      }).then((result) => {
+                                      }).then(async (result) => {
                                         if (result.isConfirmed) {
                                           Swal.fire({
                                             title: 'Menyimpan...',
@@ -793,8 +886,24 @@ export default function ClientSellerDashboard({
                                             didOpen: () => Swal.showLoading()
                                           });
                                           
-                                          // Simulate API update
-                                          setTimeout(() => {
+                                          try {
+                                            const res = await fetch('/api/products', {
+                                              method: 'PUT',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({
+                                                id: product.id,
+                                                name: result.value.name,
+                                                price: result.value.price,
+                                                minQty: result.value.minQty || result.value.min,
+                                                imageUrl: result.value.imageUrl,
+                                                batchCategory: result.value.batchCategory,
+                                                minOrderQty: result.value.minOrderQty,
+                                                maxOrderQty: result.value.maxOrderQty
+                                              })
+                                            });
+
+                                            if (!res.ok) throw new Error('Gagal memperbarui produk');
+
                                             Swal.fire({
                                               icon: 'success',
                                               title: 'Berhasil',
@@ -806,10 +915,11 @@ export default function ClientSellerDashboard({
                                                 title: 'text-text-primary'
                                               }
                                             }).then(() => {
-                                              // In real app we update the DB here
                                               window.location.reload();
                                             });
-                                          }, 800);
+                                          } catch (error) {
+                                            Swal.fire('Gagal', 'Terjadi kesalahan saat menyimpan', 'error');
+                                          }
                                         }
                                       });
                                     }}

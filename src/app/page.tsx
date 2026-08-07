@@ -2,8 +2,9 @@ import { db } from "@/lib/db";
 import { products, sellerProfiles, orders } from "@/lib/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import ClientHome from "@/components/ClientHome";
-import { dummyProducts } from "@/lib/dummyData";
 import { getUserFromSession } from "@/lib/auth";
+
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const user = await getUserFromSession();
@@ -25,6 +26,9 @@ export default async function Home() {
         imageUrl: products.imageUrl,
         minQty: products.preorderMinQty,
         currentQty: products.currentQty,
+        minOrderQty: products.minOrderQty,
+        maxOrderQty: products.maxOrderQty,
+        batchCategory: products.batchCategory,
         deadlineDate: products.deadlineDate,
         status: products.status,
         sellerName: sellerProfiles.storeName,
@@ -44,7 +48,5 @@ export default async function Home() {
     // Fallback gracefully without breaking the UI
   }
 
-  const allProducts = [...dbProducts, ...dummyProducts];
-
-  return <ClientHome initialProducts={allProducts} totalSold={totalSold} user={user} />;
+  return <ClientHome initialProducts={dbProducts} totalSold={totalSold} user={user} />;
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Trash2 } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -107,6 +107,47 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
         await Swal.fire({
           title: 'Pesanan Dibatalkan',
           text: 'Pesanan Anda telah berhasil dibatalkan.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+
+        router.refresh();
+      } catch (error: any) {
+        Swal.fire('Gagal!', error.message || 'Terjadi kesalahan.', 'error');
+      }
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string, productName: string) => {
+    const result = await Swal.fire({
+      title: 'Hapus Data Pesanan?',
+      text: `Apakah Anda yakin ingin menghapus data pesanan ${orderId} (${productName}) secara permanen?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch('/api/orders/cancel', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId }),
+        });
+
+        const json = await res.json();
+
+        if (!res.ok) {
+          throw new Error(json.error || 'Gagal menghapus pesanan');
+        }
+
+        await Swal.fire({
+          title: 'Terhapus',
+          text: 'Data pesanan berhasil dihapus dari sistem.',
           icon: 'success',
           timer: 2000,
           showConfirmButton: false
@@ -441,7 +482,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
 
   return (
     <div className="min-h-screen bg-base pb-24">
-      <header className="bg-surface border-b border-border sticky top-0 z-50">
+      <header className="bg-surface/80 backdrop-blur-md border-b border-border sticky top-0 z-50 transition-all">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Kembali ke Beranda">
@@ -559,7 +600,15 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
             </motion.div>
           ) : (
             <div className="text-center py-20 bg-surface rounded-3xl border border-border mt-8 shadow-sm">
-              <FileImage className="w-16 h-16 text-text-secondary/50 mx-auto mb-4" />
+              <div className="mx-auto w-fit relative mb-6 mt-4">
+                <div className="w-48 h-36 md:w-64 md:h-48 overflow-hidden relative flex justify-center items-start rounded-3xl shadow-md border border-gray-100 dark:border-gray-800 bg-orange-50/30">
+                  <img 
+                    src="https://media1.tenor.com/m/1f8NZQnyGgkAAAAC/hamie-hamieverse.gif" 
+                    alt="Belum Ada Pesanan" 
+                    className="w-48 h-48 md:w-64 md:h-64 object-cover object-top scale-[1.15]"
+                  />
+                </div>
+              </div>
               <h3 className="text-h3 text-text-primary mb-2">Anda Belum Membuat Pesanan</h3>
               <p className="text-text-secondary mb-6">Mulai pesan makanan dan minuman UMKM favoritmu sekarang!</p>
               <Link href="/" className="btn-primary py-2.5 px-8 font-medium">
@@ -623,6 +672,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                       <div>
                         <h3 className="font-bold text-text-primary mb-1">{order.productName}</h3>
                         <p className="text-sm text-text-secondary mb-1">Toko: {order.storeName || 'Toko UMKM'}</p>
+                        <p className="text-sm text-brand-primary font-semibold mb-2">Rp {(order.totalPrice / order.qty).toLocaleString('id-ID')} / Porsi</p>
                         <div className="flex items-center gap-3 mt-1.5">
                           <p className="text-sm font-medium">Jumlah:</p>
                           <div className={`flex items-center border border-border rounded-lg bg-base overflow-hidden ${order.status === 'completed' || order.status === 'cancelled' || order.paymentId ? 'opacity-50 pointer-events-none bg-gray-100 dark:bg-gray-800' : ''}`}>
@@ -653,7 +703,10 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                     </div>
                     
                     <div className="flex flex-col items-end w-full sm:w-auto gap-3">
-                      <p className="font-bold text-lg text-brand-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</p>
+                      <div className="text-right">
+                        <p className="text-xs text-text-secondary font-medium">Total Harga</p>
+                        <p className="font-bold text-lg text-brand-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</p>
+                      </div>
                       
                       {(() => {
                         const isWaitingPayment = order.status === 'waiting_verification' && !order.paymentId;
@@ -753,6 +806,13 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                                   <CreditCard className="w-3.5 h-3.5" /> Bayar Sekarang
                                 </button>
                               )}
+
+                              <button 
+                                onClick={() => handleDeleteOrder(order.orderId, order.productName)}
+                                className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Hapus Data
+                              </button>
                             </div>
                           </div>
                         );

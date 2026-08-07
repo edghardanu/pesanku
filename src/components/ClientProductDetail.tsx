@@ -9,9 +9,23 @@ import Swal from "sweetalert2";
 
 export default function ClientProductDetail({ product, user }: { product: any, user: any }) {
   const router = useRouter();
-  const [qty, setQty] = useState(product.minQty || 1);
+  const [qty, setQty] = useState(product.minOrderQty || 1);
   const [notes, setNotes] = useState("");
+  const [hasActiveOrder, setHasActiveOrder] = useState(false);
   const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
+
+  useEffect(() => {
+    if (user && user.role === 'pembeli') {
+      fetch('/api/orders')
+        .then(res => res.json())
+        .then(data => {
+          if (typeof data.hasActiveOrder === 'boolean') {
+            setHasActiveOrder(data.hasActiveOrder);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [user]);
 
   // Load the active QRIS from localStorage to simulate Admin's setting
   useEffect(() => {
@@ -43,8 +57,9 @@ export default function ClientProductDetail({ product, user }: { product: any, u
     }
   };
 
-  const progressPercentage = Math.min(((product.currentQty || 0) / product.minQty) * 100, 100);
-  const isFull = (product.currentQty || 0) >= product.minQty;
+  const currentTotal = (product.currentQty || 0) + qty;
+  const progressPercentage = Math.min((currentTotal / (product.minQty || 1)) * 100, 100);
+  const isFull = currentTotal >= (product.minQty || 1);
   
   let deadlineText = "Tidak ada batas waktu";
   if (product.deadlineDate) {
@@ -102,51 +117,14 @@ export default function ClientProductDetail({ product, user }: { product: any, u
 
     if (!confirmResult.isConfirmed) return;
 
-    Swal.fire({
-      title: 'Memproses Pesanan...',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: product.id,
-          qty: qty,
-          totalPrice: totalHarga,
-          notes: notes
-        })
-      });
-
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || 'Terjadi kesalahan saat memproses pesanan.');
-      }
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Pesanan Berhasil Dibuat!',
-        text: 'Silakan lanjutkan ke halaman pesanan Anda untuk melakukan pembayaran.',
-        confirmButtonColor: '#10b981',
-        confirmButtonText: 'Lihat Pesanan Saya'
-      }).then(() => {
-        router.push('/buyer/orders');
-      });
-      
-    } catch (error: any) {
-      Swal.fire('Gagal!', error.message, 'error');
-    }
+    Swal.close();
+    router.push(`/process-order?productId=${product.id}&qty=${qty}&notes=${encodeURIComponent(notes)}`);
   };
 
   return (
     <div className="min-h-screen bg-base pb-24">
       {/* Navbar Simple */}
-      <header className="bg-surface border-b border-border sticky top-0 z-50">
+      <header className="bg-surface/80 backdrop-blur-md border-b border-border sticky top-0 z-50 transition-all">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Kembali ke Beranda">
@@ -194,6 +172,13 @@ export default function ClientProductDetail({ product, user }: { product: any, u
 
             <div className="card p-6 border border-border">
               <h1 className="text-display-2 text-text-primary mb-2">{product.name}</h1>
+              {product.batchCategory && (
+                <div className="mb-4">
+                  <span className="bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary px-3 py-1 rounded-md text-sm font-bold border border-brand-secondary/30">
+                    {product.batchCategory}
+                  </span>
+                </div>
+              )}
               <p className="text-h2 text-brand-primary font-bold mb-6">Rp {product.price.toLocaleString('id-ID')}</p>
               
               <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed">
@@ -232,7 +217,7 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                   <div className="flex justify-between text-sm mb-2 font-medium">
                     <span className="text-text-secondary">Progress Terkumpul</span>
                     <span className={isFull ? 'text-brand-accent font-bold' : 'text-brand-secondary-dark dark:text-brand-secondary font-bold'}>
-                      {product.currentQty || 0} / {product.minQty} Porsi
+                      {currentTotal} / {product.minQty} Porsi
                     </span>
                   </div>
                   <div className="w-full bg-border h-2.5 rounded-full overflow-hidden mb-3">
@@ -252,7 +237,7 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                   <label className="text-sm font-semibold text-text-primary block mb-2">Jumlah Porsi</label>
                   <div className="flex items-center border border-border rounded-xl overflow-hidden w-full max-w-[200px]">
                     <button 
-                      onClick={() => setQty(Math.max(product.minQty || 1, qty - 1))}
+                      onClick={() => setQty(Math.max(product.minOrderQty || 1, qty - 1))}
                       className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-r border-border"
                     >-</button>
                     <input 
@@ -262,11 +247,18 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                       className="w-full text-center py-2 font-semibold bg-surface text-text-primary outline-none"
                     />
                     <button 
-                      onClick={() => setQty(qty + 1)}
+                      onClick={() => {
+                        const maxQty = product.maxOrderQty || 999;
+                        if (qty < maxQty) {
+                          setQty(qty + 1);
+                        } else if (product.maxOrderQty) {
+                          Swal.fire('Batas Maksimal', `Maksimal pesanan adalah ${maxQty} porsi.`, 'warning');
+                        }
+                      }}
                       className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-l border-border"
                     >+</button>
                   </div>
-                  <p className="text-xs text-text-secondary mt-2 font-medium">Minimal pemesanan: {product.minQty || 1} Porsi</p>
+                  <p className="text-xs text-text-secondary mt-2 font-medium">Minimal: {product.minOrderQty || 1} Porsi {product.maxOrderQty ? `| Maksimal: ${product.maxOrderQty} Porsi` : ''}</p>
                 </div>
 
                 {/* Catatan Tambahan */}
@@ -289,9 +281,10 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                   
                   <button 
                     onClick={handleCheckout}
-                    className="w-full btn-primary py-3.5 text-lg shadow-lg shadow-brand-primary/20 hover:scale-[1.02] transition-all"
+                    disabled={hasActiveOrder}
+                    className={`w-full py-3.5 text-lg shadow-lg hover:scale-[1.02] transition-all rounded-xl ${hasActiveOrder ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none' : 'btn-primary shadow-brand-primary/20'}`}
                   >
-                    Pesan Sekarang
+                    {hasActiveOrder ? 'Selesaikan dulu pesanan anda' : 'Pesan Sekarang'}
                   </button>
                 </div>
               </div>

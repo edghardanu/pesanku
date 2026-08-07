@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, ShoppingCart, LayoutDashboard } from "lucide-react";
 import { motion, Variants, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
@@ -30,6 +31,7 @@ const itemVariants: Variants = {
 };
 
 export default function ClientHome({ initialProducts, totalSold, user }: { initialProducts: any[], totalSold: number, user?: any }) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -38,8 +40,10 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
   const [isLoading, setIsLoading] = useState(true);
   const [greeting, setGreeting] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     // Check initial mode
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       setIsDarkMode(true);
@@ -51,6 +55,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
   }, []);
 
   const [orderCount, setOrderCount] = useState(0);
+  const [hasActiveOrder, setHasActiveOrder] = useState(false);
 
   useEffect(() => {
     if (user && user.role === 'pembeli') {
@@ -59,6 +64,9 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
         .then(data => {
           if (typeof data.count === 'number') {
             setOrderCount(data.count);
+          }
+          if (typeof data.hasActiveOrder === 'boolean') {
+            setHasActiveOrder(data.hasActiveOrder);
           }
         })
         .catch(console.error);
@@ -103,9 +111,11 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
       return;
     }
     
-    const minQty = product.minQty || product.preorderMinQty || 1;
+    const globalMinQty = product.preorderMinQty || product.minQty || 10;
     const currentQty = product.currentQty || 0;
-    const isFull = currentQty >= minQty;
+    const buyerMinQty = product.minOrderQty || 1;
+    const buyerMaxQty = product.maxOrderQty || 999;
+    const isFull = currentQty >= globalMinQty;
 
     const confirmResult = await Swal.fire({
       title: 'Checkout Cepat',
@@ -120,7 +130,10 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
           <!-- Product Details -->
           <div class="bg-base p-4 rounded-xl border border-border mb-4">
-            <h2 class="text-lg font-bold text-text-primary mb-1">${product.name}</h2>
+            <div class="flex justify-between items-start mb-1">
+              <h2 class="text-lg font-bold text-text-primary">${product.name}</h2>
+              ${product.batchCategory ? `<span class="bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary px-2 py-1 rounded text-[10px] font-bold border border-brand-secondary/30">${product.batchCategory}</span>` : ''}
+            </div>
             <p class="text-xl font-bold text-brand-primary mb-4">Rp ${product.price.toLocaleString('id-ID')}</p>
             <div>
               <p class="text-sm font-semibold text-text-primary mb-1">Deskripsi Makanan</p>
@@ -144,14 +157,15 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
           <div class="bg-base p-4 rounded-xl border border-border mb-6">
             <div class="flex justify-between text-sm mb-2 font-medium">
               <span class="text-text-secondary">Progress Terkumpul</span>
-              <span class="${isFull ? 'text-brand-accent' : 'text-brand-secondary-dark dark:text-brand-secondary'} font-bold">
-                ${currentQty} / ${minQty} Porsi
+              <span id="swal-progress-text" class="${isFull ? 'text-brand-accent' : 'text-brand-secondary-dark dark:text-brand-secondary'} font-bold">
+                ${currentQty + buyerMinQty} / ${globalMinQty} Porsi
               </span>
             </div>
             <div class="w-full bg-border h-2.5 rounded-full overflow-hidden mb-3">
               <div 
-                class="h-full rounded-full ${isFull ? 'bg-brand-accent' : 'bg-brand-secondary'}"
-                style="width: ${Math.min((currentQty / minQty) * 100, 100)}%"
+                id="swal-progress-bar"
+                class="h-full rounded-full transition-all duration-300 ${isFull ? 'bg-brand-accent' : 'bg-brand-secondary'}"
+                style="width: ${Math.min(((currentQty + buyerMinQty) / globalMinQty) * 100, 100)}%"
               ></div>
             </div>
           </div>
@@ -160,10 +174,10 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
           <label class="text-sm font-semibold text-text-primary block mb-2">Jumlah Porsi</label>
           <div class="flex items-center border border-border rounded-lg bg-base w-max mb-1 overflow-hidden">
             <button type="button" id="swal-btn-minus" class="px-4 py-2 hover:bg-border/50 border-r border-border font-bold transition-colors w-12 flex justify-center items-center">-</button>
-            <input id="swal-input-qty" type="number" readonly value="${minQty}" class="w-16 text-center bg-transparent font-bold outline-none m-0 p-0" />
+            <input id="swal-input-qty" type="number" readonly value="${buyerMinQty}" class="w-16 text-center bg-transparent font-bold outline-none m-0 p-0" />
             <button type="button" id="swal-btn-plus" class="px-4 py-2 hover:bg-border/50 border-l border-border font-bold transition-colors w-12 flex justify-center items-center">+</button>
           </div>
-          <p class="text-xs text-text-secondary mb-5 font-medium">Minimal pemesanan: ${minQty} Porsi</p>
+          <p class="text-xs text-text-secondary mb-5 font-medium">Minimal: ${buyerMinQty} Porsi ${product.maxOrderQty ? `| Maksimal: ${buyerMaxQty} Porsi` : ''}</p>
 
           <!-- Notes -->
           <label class="text-sm font-semibold text-text-primary block mb-2">Catatan Tambahan <span class="text-text-secondary font-normal">(Opsional)</span></label>
@@ -172,7 +186,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
           <!-- Total -->
           <div class="flex justify-between items-center mt-6 border-t border-border pt-4">
             <span class="text-text-secondary font-medium">Total Harga</span>
-            <span id="swal-total-price" class="text-xl font-bold text-brand-primary tracking-tight">Rp ${(minQty * product.price).toLocaleString('id-ID')}</span>
+            <span id="swal-total-price" class="text-xl font-bold text-brand-primary tracking-tight">Rp ${(buyerMinQty * product.price).toLocaleString('id-ID')}</span>
           </div>
         </div>
       `,
@@ -194,23 +208,48 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
         const btnPlus = document.getElementById('swal-btn-plus');
         const inputQty = document.getElementById('swal-input-qty') as HTMLInputElement;
         const totalPriceEl = document.getElementById('swal-total-price');
+        const progressTextEl = document.getElementById('swal-progress-text');
+        const progressBarEl = document.getElementById('swal-progress-bar');
 
         if (btnMinus && btnPlus && inputQty && totalPriceEl) {
           const updateDisplay = (newQty: number) => {
             inputQty.value = newQty.toString();
             totalPriceEl.innerHTML = `Rp ${(newQty * product.price).toLocaleString('id-ID')}`;
+            
+            if (progressTextEl && progressBarEl) {
+              const newTotalQty = currentQty + newQty;
+              progressTextEl.innerHTML = `${newTotalQty} / ${globalMinQty} Porsi`;
+              
+              const newPercentage = Math.min((newTotalQty / globalMinQty) * 100, 100);
+              progressBarEl.style.width = `${newPercentage}%`;
+              
+              if (newPercentage >= 100) {
+                progressTextEl.className = 'text-brand-accent font-bold';
+                progressBarEl.className = 'h-full rounded-full transition-all duration-300 bg-brand-accent';
+              } else {
+                progressTextEl.className = 'text-brand-secondary-dark dark:text-brand-secondary font-bold';
+                progressBarEl.className = 'h-full rounded-full transition-all duration-300 bg-brand-secondary';
+              }
+            }
           };
 
           btnMinus.onclick = () => {
             let current = parseInt(inputQty.value);
-            if (current > minQty) {
+            if (current > buyerMinQty) {
               updateDisplay(current - 1);
             }
           };
 
           btnPlus.onclick = () => {
             let current = parseInt(inputQty.value);
-            updateDisplay(current + 1);
+            if (current < buyerMaxQty) {
+              updateDisplay(current + 1);
+            } else if (product.maxOrderQty) {
+                Swal.showValidationMessage(`Maksimal pesanan adalah ${buyerMaxQty} porsi.`);
+                setTimeout(() => Swal.resetValidationMessage(), 2000);
+            } else {
+                updateDisplay(current + 1);
+            }
           };
         }
       },
@@ -219,7 +258,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
         const inputNotes = document.getElementById('swal-input-notes') as HTMLTextAreaElement;
         
         return {
-          qty: inputQty ? parseInt(inputQty.value) : minQty,
+          qty: inputQty ? parseInt(inputQty.value) : buyerMinQty,
           notes: inputNotes ? inputNotes.value : ''
         };
       }
@@ -231,48 +270,8 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
     const finalNotes = confirmResult.value.notes;
     const finalTotalPrice = finalQty * product.price;
 
-    Swal.fire({
-      title: 'Memproses Pesanan...',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          productId: product.id,
-          qty: finalQty,
-          totalPrice: finalTotalPrice,
-          notes: finalNotes
-        })
-      });
-      const data = await res.json();
-      
-      if (res.ok) {
-        setOrderCount(prev => prev + 1);
-        Swal.fire({
-          icon: 'success',
-          title: 'Berhasil ditambahkan!',
-          text: `${product.name} ditaruh di keranjang pesanan.`,
-          toast: true,
-          position: 'top-end',
-          showConfirmButton: false,
-          timer: 2500,
-          customClass: {
-            popup: 'bg-surface text-text-primary border border-border',
-            title: 'text-text-primary',
-          }
-        });
-      } else {
-        Swal.fire('Gagal', data.error || 'Terjadi kesalahan.', 'error');
-      }
-    } catch (err) {
-      Swal.fire('Gagal', 'Gangguan jaringan.', 'error');
-    }
+    Swal.close();
+    router.push(`/process-order?productId=${product.id}&qty=${finalQty}&notes=${encodeURIComponent(finalNotes)}`);
   };
 
   useEffect(() => {
@@ -293,11 +292,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
   }, [user?.name]);
 
   useEffect(() => {
-    // Hide loading screen after 1.5s
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
-    return () => clearTimeout(timer);
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -350,8 +345,9 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
   return (
     <>
-      <AnimatePresence>
-        {isLoading && (
+      {isMounted && (
+        <AnimatePresence>
+          {isLoading && (
           <motion.div 
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -382,7 +378,8 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>
+      )}
 
       <header className="bg-surface/80 backdrop-blur-md border-b border-border sticky top-0 z-50 transition-all">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -700,8 +697,21 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-brand-primary/5 py-12 lg:py-24 px-4">
-          <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent pointer-events-none" />
+        <section className="relative overflow-hidden py-16 md:py-20 lg:py-28 px-6 sm:px-8 lg:px-12 min-h-[500px] md:min-h-[550px] lg:min-h-[620px] flex items-center">
+          {/* Background Banner */}
+          <div className="absolute inset-0 z-0">
+            <Image 
+              src="/street-food-festival.jpg"
+              alt="Background Banner"
+              fill
+              quality={100}
+              sizes="100vw"
+              className="object-cover object-center opacity-100 scale-100"
+              priority
+            />
+            {/* Dark overlay for rich contrast and text readability */}
+            <div className="absolute inset-0 bg-slate-950/45 dark:bg-slate-950/65 pointer-events-none" />
+          </div>
           
           <div className="container mx-auto relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -721,7 +731,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                 }}
                 className="text-left"
               >
-                <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary rounded-full text-sm font-semibold tracking-wide">
+                <div className="inline-flex items-center gap-2 mb-6 px-3.5 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full text-sm font-semibold tracking-wide">
                   100% Dukung UMKM Lokal Indonesia
                   <motion.svg 
                     animate={{ 
@@ -731,28 +741,28 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                     }}
                     transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
                     viewBox="0 0 3 2" 
-                    className="w-4 h-3 rounded-[2px] overflow-hidden border border-brand-secondary/40 shadow-sm shrink-0 origin-left"
+                    className="w-4 h-3 rounded-[2px] overflow-hidden border border-white/40 shadow-sm shrink-0 origin-left"
                   >
                     <rect width="3" height="1" y="0" fill="#ef4444" />
                     <rect width="3" height="1" y="1" fill="#ffffff" />
                   </motion.svg>
                 </div>
-                <h1 className="text-display-1 text-text-primary mb-6 tracking-tight leading-[1.1]">
+                <h1 className="text-display-1 text-white mb-6 tracking-tight leading-[1.1]">
                   Pesan Makanan UMKM Favoritmu, <span className="text-brand-primary relative inline-block">
                     Kapan Saja
                     <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 20" preserveAspectRatio="none">
-                      <path d="M0 10 Q 50 20 100 10" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-brand-accent/50" />
+                      <path d="M0 10 Q 50 20 100 10" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-yellow-400/50" />
                     </svg>
                   </span>
                 </h1>
-                <p className="text-body-large text-text-secondary mb-10 leading-relaxed max-w-xl">
+                <p className="text-body-large text-slate-200 mb-10 leading-relaxed max-w-xl">
                   Sistem preorder makanan dan minuman dari UMKM lokal dengan minimum order yang jelas. Rasakan hidangan segar langsung dari tangan ahlinya.
                 </p>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-start gap-4">
-                  <Link href="#katalog" className="btn-primary text-lg px-8 py-3.5 shadow-xl shadow-brand-primary/20 hover:scale-105 transition-all w-full sm:w-auto text-center">
+                  <Link href="#katalog" className="btn-primary text-lg px-8 py-3.5 shadow-xl shadow-brand-primary/25 hover:scale-105 transition-all w-full sm:w-auto text-center">
                     Mulai Belanja
                   </Link>
-                  <Link href="/seller" className="btn-outline text-lg px-8 py-3.5 hover:bg-brand-primary/5 w-full sm:w-auto text-center">
+                  <Link href="/seller" className="text-lg px-8 py-3.5 border border-white/40 hover:border-white text-white hover:bg-white/10 rounded-lg font-medium transition-all duration-200 shadow-sm active:scale-95 hover:shadow-md hover:-translate-y-0.5 cursor-pointer w-full sm:w-auto text-center">
                     Daftar Jadi Penjual
                   </Link>
                 </div>
@@ -915,7 +925,14 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                           </div>
                         </div>
 
-                        <h3 className="text-h3 mb-2 line-clamp-2 leading-tight group-hover:text-brand-primary transition-colors">{product.name}</h3>
+                        <h3 className="text-h3 mb-1 line-clamp-2 leading-tight group-hover:text-brand-primary transition-colors">{product.name}</h3>
+                        {product.batchCategory && (
+                          <div className="mb-2">
+                            <span className="bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary px-2 py-0.5 rounded text-[10px] font-bold border border-brand-secondary/30">
+                              {product.batchCategory}
+                            </span>
+                          </div>
+                        )}
                         
                         {product.description && (
                           <p className="text-body-small text-text-secondary line-clamp-2 mb-3 leading-relaxed">
@@ -953,10 +970,11 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                             <div className="mt-4 w-full">
                               <button 
                                 onClick={(e) => handleCheckout(e, product)}
-                                className="w-full btn-primary py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 hover:bg-brand-primary-hover transition-colors shadow-sm"
+                                disabled={hasActiveOrder}
+                                className={`w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm ${hasActiveOrder ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed' : 'btn-primary hover:bg-brand-primary-hover'}`}
                               >
                                 <ShoppingCart className="w-4 h-4" />
-                                Checkout Sekarang
+                                {hasActiveOrder ? 'Selesaikan dulu pesanan anda' : 'Checkout Sekarang'}
                               </button>
                             </div>
                           )}

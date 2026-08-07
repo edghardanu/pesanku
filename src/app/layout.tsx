@@ -1,4 +1,4 @@
-﻿import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import GlobalThemeToggle from "@/components/GlobalThemeToggle";
 
@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   description: "Platform preorder makanan dan minuman dari UMKM lokal.",
 };
 
+import Image from "next/image";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -20,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" suppressHydrationWarning>
-      <body className="font-sans antialiased bg-base text-text-primary min-h-screen flex flex-col transition-colors duration-300">
+      <body className="font-sans antialiased text-text-primary min-h-screen flex flex-col transition-colors duration-300">
         {children}
       </body>
     </html>

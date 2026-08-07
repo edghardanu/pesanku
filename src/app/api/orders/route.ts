@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { orders, products } from "@/lib/schema";
 import { getUserFromSession } from "@/lib/auth";
 import crypto from "crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 export async function POST(request: Request) {
   try {
@@ -56,7 +56,18 @@ export async function GET(request: Request) {
         eq(orders.isRead, false)
       )
     );
-    return NextResponse.json({ count: unreadOrders.length });
+
+    const activeOrders = await db.select().from(orders).where(
+      and(
+        eq(orders.buyerId, user.id),
+        sql`${orders.status} != 'completed' AND ${orders.status} != 'cancelled'`
+      )
+    );
+
+    return NextResponse.json({ 
+      count: unreadOrders.length,
+      hasActiveOrder: activeOrders.length > 0 
+    });
   } catch (error) {
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }

@@ -323,12 +323,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
 
   const handleTabChange = (tab: 'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'qris' | 'settings') => {
     if (tab === activeTab) return;
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setActiveTab(tab);
-      setIsTransitioning(false);
-      setIsMobileSidebarOpen(false);
-    }, 400); // Simulate lazy loading delay
+    setActiveTab(tab);
+    setIsMobileSidebarOpen(false);
   };
 
   const handleLogout = async () => {
@@ -472,7 +468,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen md:h-screen overflow-y-auto relative">
         {/* Topbar Mobile */}
-        <header className="md:hidden bg-surface border-b border-border p-4 flex items-center justify-between sticky top-0 z-30">
+        <header className="md:hidden bg-surface/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between sticky top-0 z-50 transition-all">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-6 h-6 text-brand-primary" />
             <span className="text-h3 text-brand-primary font-bold tracking-tight">pesanku admin</span>
