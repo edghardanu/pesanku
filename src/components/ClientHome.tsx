@@ -375,7 +375,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                           onClick={() => {
                             setSearchQuery(product.name);
                             setIsSearchFocused(false);
-                            document.getElementById('katalog')?.scrollIntoView({ behavior: 'smooth' });
+                            router.push(`/product/${product.id}`);
                           }}
                           className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
                         >
@@ -390,7 +390,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
-                            <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {product.sellerName || 'Toko'}</p>
+                            <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
                           </div>
                         </button>
                       ))
@@ -548,7 +548,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="md:hidden overflow-hidden bg-surface border-b border-border shadow-sm absolute w-full left-0 top-[64px]"
+              className="md:hidden bg-surface border-b border-border shadow-sm absolute w-full left-0 top-[64px] z-40"
             >
               <div className="p-4">
                 <div className="relative w-full">
@@ -585,7 +585,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                                 setSearchQuery(product.name);
                                 setIsSearchFocused(false);
                                 setIsMobileSearchOpen(false);
-                                document.getElementById('katalog')?.scrollIntoView({ behavior: 'smooth' });
+                                router.push(`/product/${product.id}`);
                               }}
                               className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
                             >
@@ -600,7 +600,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                               )}
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
-                                <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {product.sellerName || 'Toko'}</p>
+                                <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
                               </div>
                             </button>
                           ))
@@ -660,7 +660,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                               setSearchQuery(product.name);
                               setIsSearchFocused(false);
                               setIsMobileMenuOpen(false);
-                              document.getElementById('katalog')?.scrollIntoView({ behavior: 'smooth' });
+                              router.push(`/product/${product.id}`);
                             }}
                             className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
                           >
@@ -675,7 +675,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                             )}
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
-                              <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {product.sellerName || 'Toko'}</p>
+                              <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
                             </div>
                           </button>
                         ))
