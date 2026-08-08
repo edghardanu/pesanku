@@ -60,6 +60,8 @@ export default function ClientProductDetail({ product, user }: { product: any, u
   const currentTotal = (product.currentQty || 0) + qty;
   const progressPercentage = Math.min((currentTotal / (product.minQty || 1)) * 100, 100);
   const isFull = currentTotal >= (product.minQty || 1);
+  const availableStock = Math.max(0, (product.stock || 0) - (product.currentQty || 0));
+  const isOutOfStock = availableStock <= 0;
   
 
 
@@ -206,22 +208,28 @@ export default function ClientProductDetail({ product, user }: { product: any, u
               
               <div className="space-y-6">
                 {/* Kuota Produk */}
-                <div className="bg-base p-4 rounded-xl border border-border">
+                <div className={`p-4 rounded-xl border ${isOutOfStock ? 'bg-status-error/5 border-status-error/30' : 'bg-base border-border'}`}>
                   <div className="flex justify-between text-sm font-medium">
                     <span className="text-text-secondary">Kuota Produk Tersedia</span>
-                    <span className="text-text-primary font-bold">
-                      {Math.max(0, (product.stock || 0) - (product.currentQty || 0))} Porsi
+                    <span className={`font-bold ${isOutOfStock ? 'text-status-error' : 'text-text-primary'}`}>
+                      {availableStock} Porsi
                     </span>
                   </div>
+                  {isOutOfStock && (
+                    <p className="text-xs text-status-error mt-2 font-medium flex items-center gap-1">
+                      <span>⚠</span> Stok produk ini telah habis
+                    </p>
+                  )}
                 </div>
 
                 {/* Input Qty */}
                 <div>
                   <label className="text-sm font-semibold text-text-primary block mb-2">Jumlah Porsi</label>
-                  <div className="flex items-center border border-border rounded-xl overflow-hidden w-full max-w-[200px]">
+                  <div className={`flex items-center border rounded-xl overflow-hidden w-full max-w-[200px] ${isOutOfStock ? 'border-border opacity-50 pointer-events-none' : 'border-border'}`}>
                     <button 
                       onClick={() => setQty(Math.max(product.minOrderQty || 1, qty - 1))}
-                      className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-r border-border"
+                      disabled={isOutOfStock}
+                      className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-r border-border disabled:cursor-not-allowed"
                     >-</button>
                     <input 
                       type="number" 
@@ -231,14 +239,15 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                     />
                     <button 
                       onClick={() => {
-                        const maxQty = product.maxOrderQty || 999;
+                        const maxQty = Math.min(product.maxOrderQty || 999, availableStock);
                         if (qty < maxQty) {
                           setQty(qty + 1);
-                        } else if (product.maxOrderQty) {
-                          Swal.fire('Batas Maksimal', `Maksimal pesanan adalah ${maxQty} porsi.`, 'warning');
+                        } else {
+                          Swal.fire('Batas Maksimal', `Maksimal pesanan adalah ${maxQty} porsi (sesuai stok tersedia).`, 'warning');
                         }
                       }}
-                      className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-l border-border"
+                      disabled={isOutOfStock}
+                      className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-l border-border disabled:cursor-not-allowed"
                     >+</button>
                   </div>
                   <p className="text-xs text-text-secondary mt-2 font-medium">Minimal: {product.minOrderQty || 1} Porsi {product.maxOrderQty ? `| Maksimal: ${product.maxOrderQty} Porsi` : ''}</p>
@@ -264,10 +273,16 @@ export default function ClientProductDetail({ product, user }: { product: any, u
                   
                   <button 
                     onClick={handleCheckout}
-                    disabled={hasActiveOrder}
-                    className={`w-full py-3.5 text-lg shadow-lg hover:scale-[1.02] transition-all rounded-xl ${hasActiveOrder ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none' : 'btn-primary shadow-brand-primary/20'}`}
+                    disabled={hasActiveOrder || isOutOfStock}
+                    className={`w-full py-3.5 text-lg transition-all rounded-xl ${
+                      isOutOfStock
+                        ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none'
+                        : hasActiveOrder
+                        ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none'
+                        : 'btn-primary shadow-lg shadow-brand-primary/20 hover:scale-[1.02]'
+                    }`}
                   >
-                    {hasActiveOrder ? 'Selesaikan dulu pesanan anda' : 'Pesan Sekarang'}
+                    {isOutOfStock ? '⚠ Stok Tidak Tersedia / Habis' : hasActiveOrder ? 'Selesaikan dulu pesanan anda' : 'Pesan Sekarang'}
                   </button>
                 </div>
               </div>
