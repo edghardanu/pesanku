@@ -33,6 +33,7 @@ const itemVariants: Variants = {
 export default function ClientHome({ initialProducts, totalSold, user }: { initialProducts: any[], totalSold: number, user?: any }) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -346,6 +347,8 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                 type="text" 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                 placeholder="Cari makanan atau minuman..." 
                 className="input-field pl-10 pr-10 rounded-full bg-base focus:bg-surface transition-all duration-300 border-transparent focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/10"
               />
@@ -358,6 +361,44 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                 >
                   <X className="w-4 h-4" />
                 </button>
+              )}
+              
+              {/* Desktop Search Dropdown */}
+              {searchQuery && isSearchFocused && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
+                  <div className="max-h-60 overflow-y-auto">
+                    {filteredProducts.length > 0 ? (
+                      filteredProducts.slice(0, 5).map(product => (
+                        <button
+                          key={product.id}
+                          onClick={() => {
+                            setSearchQuery(product.name);
+                            document.getElementById('katalog')?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
+                        >
+                          {product.imageUrl ? (
+                            <div className="w-10 h-10 rounded-lg bg-base overflow-hidden shrink-0">
+                              <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-base flex items-center justify-center shrink-0">
+                              <ShoppingBag className="w-5 h-5 text-text-secondary" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
+                            <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {product.sellerName || 'Toko'}</p>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-4 text-center text-sm text-text-secondary">
+                        Pencarian tidak ditemukan
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -514,6 +555,8 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                     type="text" 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                     placeholder="Cari makanan atau minuman..." 
                     className="input-field pl-10 pr-10 rounded-xl w-full border-brand-primary/20 focus:border-brand-primary"
                   />
@@ -525,6 +568,45 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                     >
                       <X className="w-4 h-4" />
                     </button>
+                  )}
+
+                  {/* Mobile Search Dropdown */}
+                  {searchQuery && isSearchFocused && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
+                      <div className="max-h-60 overflow-y-auto">
+                        {filteredProducts.length > 0 ? (
+                          filteredProducts.slice(0, 5).map(product => (
+                            <button
+                              key={product.id}
+                              onClick={() => {
+                                setSearchQuery(product.name);
+                                setIsMobileSearchOpen(false);
+                                document.getElementById('katalog')?.scrollIntoView({ behavior: 'smooth' });
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
+                            >
+                              {product.imageUrl ? (
+                                <div className="w-10 h-10 rounded-lg bg-base overflow-hidden shrink-0">
+                                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                </div>
+                              ) : (
+                                <div className="w-10 h-10 rounded-lg bg-base flex items-center justify-center shrink-0">
+                                  <ShoppingBag className="w-5 h-5 text-text-secondary" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
+                                <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {product.sellerName || 'Toko'}</p>
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-4 py-4 text-center text-sm text-text-secondary">
+                            Pencarian tidak ditemukan
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -546,6 +628,8 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                   placeholder="Cari makanan atau minuman..." 
                   className="input-field pl-10 pr-10 rounded-full w-full"
                 />
@@ -557,6 +641,45 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                   >
                     <X className="w-4 h-4" />
                   </button>
+                )}
+
+                {/* Mobile Menu Search Dropdown */}
+                {searchQuery && isSearchFocused && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
+                    <div className="max-h-60 overflow-y-auto">
+                      {filteredProducts.length > 0 ? (
+                        filteredProducts.slice(0, 5).map(product => (
+                          <button
+                            key={product.id}
+                            onClick={() => {
+                              setSearchQuery(product.name);
+                              setIsMobileMenuOpen(false);
+                              document.getElementById('katalog')?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
+                          >
+                            {product.imageUrl ? (
+                              <div className="w-10 h-10 rounded-lg bg-base overflow-hidden shrink-0">
+                                <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-base flex items-center justify-center shrink-0">
+                                <ShoppingBag className="w-5 h-5 text-text-secondary" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
+                              <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {product.sellerName || 'Toko'}</p>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-4 py-4 text-center text-sm text-text-secondary">
+                          Pencarian tidak ditemukan
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
               <div className="flex justify-center mb-2">
