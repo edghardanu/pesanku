@@ -8,12 +8,56 @@ import { ArrowLeft, Clock, Store, MapPin, CheckCircle, ShieldCheck, LogOut } fro
 import Swal from "sweetalert2";
 import { ProductItem, AuthUser } from "@/types";
 
-export default function ClientProductDetail({ product, user }: { product: ProductItem, user: AuthUser | null }) {
+export default function ClientProductDetail({ product: initialProduct, user }: { product: ProductItem, user: AuthUser | null }) {
   const router = useRouter();
+  const productId = initialProduct.id;
+  const [product, setProduct] = useState(initialProduct);
   const [qty, setQty] = useState(product.minOrderQty || 1);
   const [notes, setNotes] = useState("");
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
-  const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (productId.startsWith("dummy-")) return;
+
+    let isActive = true;
+
+    const refreshProduct = async () => {
+      try {
+        const response = await fetch(`/api/products/${productId}`, {
+          cache: "no-store",
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (isActive && data.product) {
+          setProduct(data.product as ProductItem);
+          setCurrentTime(Date.now());
+        }
+      } catch (error) {
+        console.error("Gagal memperbarui detail produk:", error);
+      }
+    };
+
+    void refreshProduct();
+
+    const interval = window.setInterval(refreshProduct, 3000);
+    const handleFocus = () => void refreshProduct();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") void refreshProduct();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [productId]);
 
   useEffect(() => {
     if (user && user.role === 'pembeli') {
@@ -26,17 +70,7 @@ export default function ClientProductDetail({ product, user }: { product: Produc
         })
         .catch(console.error);
     }
-  }, [user]);
-
-  // Load the active QRIS from localStorage to simulate Admin's setting
-  useEffect(() => {
-    setTimeout(() => {
-      const savedQris = localStorage.getItem('adminQrisUrl');
-      if (savedQris) {
-        setQrisUrl(savedQris);
-      }
-    }, 0);
-  }, []);
+  }, [user, product.id]);
 
   const handleLogout = async () => {
     const result = await Swal.fire({
@@ -60,15 +94,37 @@ export default function ClientProductDetail({ product, user }: { product: Produc
     }
   };
 
-  const currentTotal = (product.currentQty || 0) + qty;
-  const progressPercentage = Math.min((currentTotal / (product.minQty || 1)) * 100, 100);
-  const isFull = currentTotal >= (product.minQty || 1);
+  const isFull = (product.currentQty || 0) >= (product.minQty || 1);
   const availableStock = Math.max(0, (product.stock || 0) - (product.currentQty || 0));
+  const minimumOrder = product.minOrderQty || 1;
+  const maximumOrder = Math.min(product.maxOrderQty || Number.MAX_SAFE_INTEGER, availableStock);
+  const selectedQty = maximumOrder < minimumOrder
+    ? minimumOrder
+    : Math.min(Math.max(qty, minimumOrder), maximumOrder);
   const isOutOfStock = availableStock <= 0;
-  
+  const deadline = product.deadlineDate ? new Date(product.deadlineDate) : null;
+  const hasValidDeadline = Boolean(deadline && !Number.isNaN(deadline.getTime()));
+  const isDeadlinePassed = Boolean(deadline && hasValidDeadline && deadline.getTime() < currentTime);
+  const isClosedStatus = ['closed', 'processing', 'completed'].includes(product.status || '');
+  const isPreorderClosed = isClosedStatus || isDeadlinePassed;
+  const isOrderUnavailable = isOutOfStock || isPreorderClosed;
+  const statusLabel = isPreorderClosed
+    ? 'Preorder Ditutup'
+    : isFull
+      ? 'Kuota Terpenuhi'
+      : 'Preorder Terbuka';
 
 
   const handleCheckout = async () => {
+    if (isOrderUnavailable) {
+      Swal.fire(
+        'Produk Tidak Tersedia',
+        isOutOfStock ? 'Stok produk ini telah habis.' : 'Masa preorder produk ini telah ditutup.',
+        'warning',
+      );
+      return;
+    }
+
     if (!user) {
       Swal.fire({
         title: 'Anda Belum Login',
@@ -91,7 +147,7 @@ export default function ClientProductDetail({ product, user }: { product: Produc
       return;
     }
 
-    const totalHarga = qty * product.price;
+    const totalHarga = selectedQty * product.price;
 
     // STEP 1: Konfirmasi Pesanan
     const confirmResult = await Swal.fire({
@@ -99,7 +155,7 @@ export default function ClientProductDetail({ product, user }: { product: Produc
       html: `
         <div class="text-left space-y-3">
           <p><strong>Produk:</strong> ${product.name}</p>
-          <p><strong>Jumlah:</strong> ${qty} Porsi</p>
+          <p><strong>Jumlah:</strong> ${selectedQty} Porsi</p>
           <p><strong>Total Bayar:</strong> <span class="text-brand-primary font-bold text-lg">Rp ${totalHarga.toLocaleString('id-ID')}</span></p>
           ${notes ? `<p><strong>Catatan:</strong> ${notes}</p>` : ''}
           <hr class="my-2 border-gray-200" />
@@ -116,7 +172,7 @@ export default function ClientProductDetail({ product, user }: { product: Produc
     if (!confirmResult.isConfirmed) return;
 
     Swal.close();
-    router.push(`/process-order?productId=${product.id}&qty=${qty}&notes=${encodeURIComponent(notes)}`);
+    router.push(`/process-order?productId=${product.id}&qty=${selectedQty}&notes=${encodeURIComponent(notes)}`);
   };
 
   return (
@@ -158,12 +214,14 @@ export default function ClientProductDetail({ product, user }: { product: Produc
               />
               <div className="absolute top-4 left-4">
                 <span className={`px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-md ${
-                  isFull 
-                    ? 'bg-brand-accent text-white' 
-                    : 'bg-brand-secondary text-slate-900'
+                  isPreorderClosed
+                    ? 'bg-status-error text-white'
+                    : isFull
+                      ? 'bg-brand-accent text-white'
+                      : 'bg-brand-secondary text-slate-900'
                 }`}>
-                  {isFull ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
-                  {isFull ? "Kuota Terpenuhi" : "Preorder Terbuka"}
+                  {isFull && !isPreorderClosed ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                  {statusLabel}
                 </span>
               </div>
             </div>
@@ -182,6 +240,25 @@ export default function ClientProductDetail({ product, user }: { product: Produc
               <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed">
                 <h3 className="text-text-primary font-semibold mb-2">Deskripsi Makanan</h3>
                 <p>{product.description || 'Tidak ada deskripsi yang ditambahkan untuk produk ini.'}</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-5 border-t border-border">
+                <div className="bg-base border border-border rounded-lg p-3">
+                  <p className="text-xs text-text-secondary mb-1">Target Preorder</p>
+                  <p className="font-semibold text-text-primary">{product.minQty || 1} Porsi</p>
+                </div>
+                <div className="bg-base border border-border rounded-lg p-3">
+                  <p className="text-xs text-text-secondary mb-1">Waktu Proses</p>
+                  <p className="font-semibold text-text-primary">{product.processingTime || '-'}</p>
+                </div>
+                <div className="bg-base border border-border rounded-lg p-3">
+                  <p className="text-xs text-text-secondary mb-1">Batas Preorder</p>
+                  <p className="font-semibold text-text-primary">
+                    {deadline && hasValidDeadline
+                      ? deadline.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : 'Tanpa batas waktu'}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -203,8 +280,9 @@ export default function ClientProductDetail({ product, user }: { product: Produc
                   </div>
                 </div>
               </div>
-              <div className="bg-status-success/15 text-status-success px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1">
-                <ShieldCheck className="w-4 h-4" /> UMKM Terverifikasi
+              <div className={`${product.sellerApprovalStatus === 'approved' ? 'bg-status-success/15 text-status-success' : 'bg-base text-text-secondary'} px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-border`}>
+                <ShieldCheck className="w-4 h-4" />
+                {product.sellerApprovalStatus === 'approved' ? 'UMKM Terverifikasi' : 'Profil UMKM'}
               </div>
             </div>
           </div>
@@ -235,21 +313,21 @@ export default function ClientProductDetail({ product, user }: { product: Produc
                   <label className="text-sm font-semibold text-text-primary block mb-2">Jumlah Porsi</label>
                   <div className={`flex items-center border rounded-xl overflow-hidden w-full max-w-[200px] ${isOutOfStock ? 'border-border opacity-50 pointer-events-none' : 'border-border'}`}>
                     <button 
-                      onClick={() => setQty(Math.max(product.minOrderQty || 1, qty - 1))}
+                      onClick={() => setQty(Math.max(minimumOrder, selectedQty - 1))}
                       disabled={isOutOfStock}
                       className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-r border-border disabled:cursor-not-allowed"
                     >-</button>
                     <input 
                       type="number" 
-                      value={qty} 
+                      value={selectedQty}
                       readOnly
                       className="w-full text-center py-2 font-semibold bg-surface text-text-primary outline-none"
                     />
                     <button 
                       onClick={() => {
-                        const maxQty = Math.min(product.maxOrderQty || 999, availableStock);
-                        if (qty < maxQty) {
-                          setQty(qty + 1);
+                        const maxQty = maximumOrder;
+                        if (selectedQty < maxQty) {
+                          setQty(selectedQty + 1);
                         } else {
                           Swal.fire('Batas Maksimal', `Maksimal pesanan adalah ${maxQty} porsi (sesuai stok tersedia).`, 'warning');
                         }
@@ -276,21 +354,27 @@ export default function ClientProductDetail({ product, user }: { product: Produc
                 <div className="border-t border-border pt-4">
                   <div className="flex justify-between items-center mb-6">
                     <span className="text-text-secondary font-medium">Total Harga</span>
-                    <span className="text-h2 font-bold text-brand-primary">Rp {(qty * product.price).toLocaleString('id-ID')}</span>
+                    <span className="text-h2 font-bold text-brand-primary">Rp {(selectedQty * product.price).toLocaleString('id-ID')}</span>
                   </div>
                   
                   <button 
                     onClick={handleCheckout}
-                    disabled={hasActiveOrder || isOutOfStock}
+                    disabled={hasActiveOrder || isOrderUnavailable}
                     className={`w-full py-3.5 text-lg transition-all rounded-xl ${
-                      isOutOfStock
+                      isOrderUnavailable
                         ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none'
                         : hasActiveOrder
                         ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none'
                         : 'btn-primary shadow-lg shadow-brand-primary/20 hover:scale-[1.02]'
                     }`}
                   >
-                    {isOutOfStock ? '⚠ Stok Tidak Tersedia / Habis' : hasActiveOrder ? 'Selesaikan dulu pesanan anda' : 'Pesan Sekarang'}
+                    {isOutOfStock
+                      ? 'Stok Tidak Tersedia / Habis'
+                      : isPreorderClosed
+                        ? 'Preorder Sudah Ditutup'
+                        : hasActiveOrder
+                          ? 'Selesaikan dulu pesanan anda'
+                          : 'Pesan Sekarang'}
                   </button>
                 </div>
               </div>

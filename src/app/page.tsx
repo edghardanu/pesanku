@@ -29,14 +29,20 @@ export default async function Home() {
         minQty: products.preorderMinQty,
         currentQty: products.currentQty,
         minOrderQty: products.minOrderQty,
+        maxOrderQty: products.maxOrderQty,
         stock: products.stock,
+        processingTime: products.processingTime,
         batchCategory: products.batchCategory,
         deadlineDate: products.deadlineDate,
         status: products.status,
+        createdAt: products.createdAt,
         sellerName: sellerProfiles.storeName,
+        storeName: sellerProfiles.storeName,
         sellerAddress: sellerProfiles.address,
+        storeAddress: sellerProfiles.address,
         sellerAvatar: sellerProfiles.logoUrl,
         sellerLogoUrl: sellerProfiles.logoUrl,
+        sellerApprovalStatus: sellerProfiles.approvalStatus,
       })
       .from(products)
       .innerJoin(sellerProfiles, eq(products.sellerId, sellerProfiles.userId))

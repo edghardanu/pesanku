@@ -119,6 +119,7 @@ export interface ProductItem {
   storeAddress?: string | null;
   sellerLogoUrl?: string | null;
   sellerAvatar?: string | null;
+  sellerApprovalStatus?: string | null;
   totalSold?: number;
 }
 
