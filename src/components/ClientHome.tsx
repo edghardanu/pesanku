@@ -365,17 +365,16 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
               
               {/* Desktop Search Dropdown */}
               {searchQuery && isSearchFocused && (
-                <div 
-                  className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50"
-                  onMouseDown={(e) => e.preventDefault()}
-                >
+                <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
                   <div className="max-h-60 overflow-y-auto">
                     {filteredProducts.length > 0 ? (
                       filteredProducts.slice(0, 5).map(product => (
                         <button
                           key={product.id}
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={() => {
                             setSearchQuery(product.name);
+                            setIsSearchFocused(false);
                             document.getElementById('katalog')?.scrollIntoView({ behavior: 'smooth' });
                           }}
                           className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
@@ -575,17 +574,16 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
                   {/* Mobile Search Dropdown */}
                   {searchQuery && isSearchFocused && (
-                    <div 
-                      className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50"
-                      onMouseDown={(e) => e.preventDefault()}
-                    >
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
                       <div className="max-h-60 overflow-y-auto">
                         {filteredProducts.length > 0 ? (
                           filteredProducts.slice(0, 5).map(product => (
                             <button
                               key={product.id}
+                              onMouseDown={(e) => e.preventDefault()}
                               onClick={() => {
                                 setSearchQuery(product.name);
+                                setIsSearchFocused(false);
                                 setIsMobileSearchOpen(false);
                                 document.getElementById('katalog')?.scrollIntoView({ behavior: 'smooth' });
                               }}
@@ -651,17 +649,16 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
                 {/* Mobile Menu Search Dropdown */}
                 {searchQuery && isSearchFocused && (
-                  <div 
-                    className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50"
-                    onMouseDown={(e) => e.preventDefault()}
-                  >
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
                     <div className="max-h-60 overflow-y-auto">
                       {filteredProducts.length > 0 ? (
                         filteredProducts.slice(0, 5).map(product => (
                           <button
                             key={product.id}
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={() => {
                               setSearchQuery(product.name);
+                              setIsSearchFocused(false);
                               setIsMobileMenuOpen(false);
                               document.getElementById('katalog')?.scrollIntoView({ behavior: 'smooth' });
                             }}
