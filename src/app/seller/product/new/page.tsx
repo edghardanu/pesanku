@@ -164,7 +164,7 @@ export default function NewProductPage() {
                     <button 
                       type="button" 
                       onClick={removeImage}
-                      className="absolute -top-2 -right-2 bg-white text-status-error rounded-full p-1 shadow-md hover:bg-status-error hover:text-white transition-colors"
+                      className="absolute -top-2 -right-2 bg-surface text-status-error rounded-full p-1 shadow-md hover:bg-status-error hover:text-white transition-colors"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -194,7 +194,7 @@ export default function NewProductPage() {
             <hr className="border-border my-6" />
 
             <div className="bg-brand-secondary/10 p-4 rounded-xl mb-6">
-              <h3 className="text-body-base font-semibold text-brand-secondary-dark mb-2">Pengaturan Preorder</h3>
+              <h3 className="text-body-base font-semibold text-brand-secondary-dark dark:text-brand-secondary mb-2">Pengaturan Preorder</h3>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -206,7 +206,7 @@ export default function NewProductPage() {
                     name="minOrderQty"
                     min="1"
                     defaultValue="1"
-                    className="input-field bg-white"
+                    className="input-field"
                   />
                 </div>
                 <div>
@@ -218,7 +218,7 @@ export default function NewProductPage() {
                     name="stock"
                     min="0"
                     defaultValue="100"
-                    className="input-field bg-white"
+                    className="input-field"
                   />
                 </div>
               </div>
@@ -230,7 +230,7 @@ export default function NewProductPage() {
                   type="text" 
                   name="processingTime"
                   placeholder="Contoh: 2 Hari, 1 Minggu, dsb."
-                  className="input-field bg-white"
+                  className="input-field"
                 />
               </div>
             </div>
