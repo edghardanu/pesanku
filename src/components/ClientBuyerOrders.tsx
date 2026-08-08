@@ -706,18 +706,22 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                           </div>
                         </div>
                         {/* Catatan Tambahan */}
-                        <div className="mt-2.5">
+                        <div className="mt-3 w-full">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Pencil className="w-4 h-4 text-text-secondary" />
+                            <span className="text-xs sm:text-sm font-semibold text-text-secondary uppercase tracking-wide">Catatan Tambahan</span>
+                          </div>
                           {editingNoteId === order.orderId ? (
-                            <div className="flex items-start gap-1.5 w-full max-w-[280px] sm:max-w-[340px]">
+                            <div className="w-full">
                               <textarea
                                 autoFocus
                                 value={noteInputs[order.orderId] ?? order.notes ?? ''}
                                 onChange={(e) => setNoteInputs(prev => ({ ...prev, [order.orderId]: e.target.value }))}
-                                rows={2}
-                                placeholder="Tambahkan catatan untuk pesanan ini..."
-                                className="flex-1 text-xs bg-base border border-brand-primary/50 focus:border-brand-primary rounded-lg px-2.5 py-1.5 resize-none outline-none text-text-primary transition-colors"
+                                rows={4}
+                                placeholder="Contoh: Jangan terlalu pedas ya kak, tolong dibungkus rapi..."
+                                className="w-full text-sm sm:text-base bg-base border-2 border-brand-primary/50 focus:border-brand-primary rounded-xl px-3 py-3 resize-none outline-none text-text-primary transition-colors leading-relaxed placeholder:text-text-secondary/40 shadow-sm"
                               />
-                              <div className="flex flex-col gap-1 shrink-0">
+                              <div className="flex items-center gap-2 mt-2.5">
                                 <button
                                   onClick={async () => {
                                     const newNote = noteInputs[order.orderId] ?? order.notes ?? '';
@@ -740,44 +744,43 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                                     }
                                     setEditingNoteId(null);
                                   }}
-                                  className="p-1.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-hover transition-colors"
-                                  title="Simpan catatan"
+                                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-brand-primary text-white text-sm font-semibold rounded-xl hover:bg-brand-primary-hover active:scale-95 transition-all"
                                 >
-                                  <Save className="w-3 h-3" />
+                                  <Save className="w-4 h-4" /> Simpan Catatan
                                 </button>
                                 <button
                                   onClick={() => setEditingNoteId(null)}
-                                  className="p-1.5 bg-gray-100 dark:bg-gray-700 text-text-secondary rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                                  title="Batal"
+                                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-100 dark:bg-gray-700 text-text-secondary text-sm font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95 transition-all"
                                 >
-                                  <X className="w-3 h-3" />
+                                  <X className="w-4 h-4" /> Batal
                                 </button>
                               </div>
                             </div>
                           ) : (
                             <div
-                              className="group flex items-start gap-1.5 cursor-pointer w-max max-w-[200px] sm:max-w-[300px]"
+                              className="group cursor-pointer w-full"
                               onClick={() => {
                                 setNoteInputs(prev => ({ ...prev, [order.orderId]: order.notes ?? '' }));
                                 setEditingNoteId(order.orderId);
                               }}
-                              title="Klik untuk edit catatan"
                             >
                               {order.notes ? (
-                                <div className="flex items-start gap-1.5 bg-base border border-border rounded-lg px-2 py-1.5 group-hover:border-brand-primary/40 transition-colors">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-text-secondary"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                                  <span className="leading-tight italic line-clamp-2 text-xs text-text-secondary">"{order.notes}"</span>
-                                  <Pencil className="w-3 h-3 text-brand-primary/60 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="flex items-start gap-2.5 bg-base border border-border rounded-xl px-3 py-3 sm:py-3.5 group-hover:border-brand-primary/40 group-hover:bg-brand-primary/[0.02] active:bg-brand-primary/5 transition-all">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-brand-primary/60"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                                  <span className="leading-relaxed text-sm text-text-secondary flex-1 italic">"{order.notes}"</span>
+                                  <Pencil className="w-4 h-4 text-brand-primary/50 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-1 text-xs text-text-secondary/60 hover:text-brand-primary transition-colors border border-dashed border-border hover:border-brand-primary/40 rounded-lg px-2 py-1.5">
-                                  <Pencil className="w-3 h-3" />
-                                  <span>Tambah catatan...</span>
+                                <div className="flex items-center justify-center gap-2 text-sm text-text-secondary/60 hover:text-brand-primary active:text-brand-primary transition-colors border-2 border-dashed border-border hover:border-brand-primary/40 rounded-xl px-3 py-4 w-full">
+                                  <Pencil className="w-4 h-4" />
+                                  <span className="font-medium">Tap untuk menambahkan catatan...</span>
                                 </div>
                               )}
                             </div>
                           )}
                         </div>
+
+
                       </div>
                     </div>
                     

@@ -53,7 +53,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
   }, []);
 
   const [orderCount, setOrderCount] = useState(0);
-  const [hasActiveOrder, setHasActiveOrder] = useState(false);
+  const [activeProductIds, setActiveProductIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user && user.role === 'pembeli') {
@@ -63,8 +63,8 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
           if (typeof data.count === 'number') {
             setOrderCount(data.count);
           }
-          if (typeof data.hasActiveOrder === 'boolean') {
-            setHasActiveOrder(data.hasActiveOrder);
+          if (Array.isArray(data.activeProductIds)) {
+            setActiveProductIds(new Set(data.activeProductIds));
           }
         })
         .catch(console.error);
@@ -118,75 +118,78 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
     const confirmResult = await Swal.fire({
       title: 'Checkout Cepat',
       html: `
-        <div class="text-left font-sans mt-2 px-1 pb-4">
-          
-          <!-- Image -->
-          <div class="w-full h-48 rounded-2xl bg-base dark:bg-border overflow-hidden relative mb-4">
-            ${product.imageUrl ? `<img src="${product.imageUrl}" class="w-full h-full object-contain" />` : `<div class="w-full h-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary/50"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>`}
-            ${product.status === 'active' ? `<div class="absolute top-3 left-3 bg-brand-primary text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Preorder Terbuka</div>` : ''}
-          </div>
+        <div class="text-left font-sans">
 
-          <!-- Product Details -->
-          <div class="bg-base p-4 rounded-xl border border-border mb-4">
-            <div class="flex justify-between items-start mb-1">
-              <h2 class="text-lg font-bold text-text-primary">${product.name}</h2>
-              ${product.batchCategory ? `<span class="bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary px-2 py-1 rounded text-[10px] font-bold border border-brand-secondary/30">${product.batchCategory}</span>` : ''}
+          <!-- Image + Product Info side by side -->
+          <div class="flex gap-3 mb-4">
+            <div class="w-28 h-28 rounded-xl bg-base overflow-hidden relative shrink-0">
+              ${product.imageUrl
+                ? `<img src="${product.imageUrl}" class="w-full h-full object-cover" />`
+                : `<div class="w-full h-full flex items-center justify-center bg-border/30"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>`
+              }
+              ${product.status === 'active'
+                ? `<div class="absolute top-1.5 left-1.5 bg-brand-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">Terbuka</div>`
+                : ''}
             </div>
-            <p class="text-xl font-bold text-brand-primary mb-4">Rp ${product.price.toLocaleString('id-ID')}</p>
-            <div>
-              <p class="text-sm font-semibold text-text-primary mb-1">Deskripsi Makanan</p>
-              <p class="text-sm text-text-secondary whitespace-pre-wrap">${product.description || 'Tidak ada deskripsi.'}</p>
-            </div>
-          </div>
-
-          <!-- Seller Info -->
-          <div class="flex items-center gap-3 mb-6 bg-base p-4 rounded-xl border border-border">
-            <div class="w-10 h-10 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
-            </div>
-            <div>
-              <h3 class="font-bold text-text-primary text-sm line-clamp-1">${product.sellerName || 'Toko UMKM'}</h3>
-              <span class="px-2 py-0.5 bg-status-success/10 text-status-success text-[10px] rounded-full font-medium inline-block mt-1">UMKM Terverifikasi</span>
+            <div class="flex-1 min-w-0">
+              <h2 class="font-bold text-text-primary text-base leading-tight mb-0.5 line-clamp-2">${product.name}</h2>
+              ${product.batchCategory ? `<span class="bg-brand-secondary/20 text-brand-secondary-dark px-1.5 py-0.5 rounded text-[10px] font-bold border border-brand-secondary/30 inline-block mb-1">${product.batchCategory}</span>` : ''}
+              <p class="text-lg font-bold text-brand-primary mb-2">Rp ${product.price.toLocaleString('id-ID')}</p>
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 bg-brand-primary/10 rounded-full flex items-center justify-center shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
+                </div>
+                <span class="text-xs font-semibold text-text-primary line-clamp-1">${product.sellerName || 'Toko UMKM'}</span>
+                <span class="px-1.5 py-0.5 bg-status-success/10 text-status-success text-[9px] rounded-full font-medium shrink-0">✓ Terverifikasi</span>
+              </div>
             </div>
           </div>
 
-          <h3 class="font-bold text-lg mb-4">Atur Pesanan</h3>
-          <div class="bg-base p-4 rounded-xl border border-border mb-6">
-            <div class="flex flex-col gap-2 text-sm font-medium">
-              <div class="flex justify-between">
-                <span class="text-text-secondary">Minimal Order</span>
-                <span class="text-text-primary font-bold">${buyerMinQty} Porsi</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-secondary">Stok Tersedia</span>
-                <span class="text-text-primary font-bold">${Math.max(0, (product.stock || 0) - (product.currentQty || 0))} Porsi</span>
-              </div>
-              ${product.processingTime ? `
-              <div class="flex justify-between pt-2 border-t border-border mt-1">
-                <span class="text-text-secondary">Waktu Proses</span>
-                <span class="text-brand-primary font-bold">${product.processingTime}</span>
-              </div>
-              ` : ''}
+          ${product.description ? `
+          <div class="bg-base px-3 py-2 rounded-xl border border-border mb-3">
+            <p class="text-xs text-text-secondary leading-relaxed line-clamp-2">${product.description}</p>
+          </div>` : ''}
+
+          <!-- Info Row -->
+          <div class="grid grid-cols-2 gap-2 mb-4">
+            <div class="bg-base rounded-xl border border-border p-2.5 text-center">
+              <p class="text-[10px] text-text-secondary mb-0.5">Min. Order</p>
+              <p class="text-sm font-bold text-text-primary">${buyerMinQty} Porsi</p>
             </div>
+            <div class="bg-base rounded-xl border border-border p-2.5 text-center">
+              <p class="text-[10px] text-text-secondary mb-0.5">Stok Tersedia</p>
+              <p class="text-sm font-bold text-text-primary">${Math.max(0, (product.stock || 0) - (product.currentQty || 0))} Porsi</p>
+            </div>
+            ${product.processingTime ? `
+            <div class="col-span-2 bg-brand-primary/5 rounded-xl border border-brand-primary/20 p-2.5 flex justify-between items-center">
+              <p class="text-xs text-text-secondary">⏱ Waktu Proses</p>
+              <p class="text-xs font-bold text-brand-primary">${product.processingTime}</p>
+            </div>` : ''}
           </div>
 
           <!-- Qty -->
-          <label class="text-sm font-semibold text-text-primary block mb-2">Jumlah Porsi</label>
-          <div class="flex items-center border border-border rounded-lg bg-base w-max mb-1 overflow-hidden">
-            <button type="button" id="swal-btn-minus" class="px-4 py-2 hover:bg-border/50 border-r border-border font-bold transition-colors w-12 flex justify-center items-center">-</button>
-            <input id="swal-input-qty" type="number" readonly value="${buyerMinQty}" class="w-16 text-center bg-transparent font-bold outline-none m-0 p-0" />
-            <button type="button" id="swal-btn-plus" class="px-4 py-2 hover:bg-border/50 border-l border-border font-bold transition-colors w-12 flex justify-center items-center">+</button>
+          <div class="mb-3">
+            <label class="text-xs font-semibold text-text-secondary uppercase tracking-wide block mb-2">Jumlah Porsi</label>
+            <div class="flex items-center gap-3">
+              <div class="flex items-center border border-border rounded-xl bg-base overflow-hidden">
+                <button type="button" id="swal-btn-minus" class="px-3 py-2.5 hover:bg-border/50 border-r border-border font-bold transition-colors w-10 flex justify-center items-center text-lg">−</button>
+                <input id="swal-input-qty" type="number" readonly value="${buyerMinQty}" class="w-14 text-center bg-transparent font-bold outline-none text-base" />
+                <button type="button" id="swal-btn-plus" class="px-3 py-2.5 hover:bg-border/50 border-l border-border font-bold transition-colors w-10 flex justify-center items-center text-lg">+</button>
+              </div>
+              <p class="text-xs text-text-secondary">Min: <strong>${buyerMinQty}</strong> porsi</p>
+            </div>
           </div>
-          <p class="text-xs text-text-secondary mb-5 font-medium">Minimal: ${buyerMinQty} Porsi</p>
 
           <!-- Notes -->
-          <label class="text-sm font-semibold text-text-primary block mb-2">Catatan Tambahan <span class="text-text-secondary font-normal">(Opsional)</span></label>
-          <textarea id="swal-input-notes" placeholder="Contoh: Jangan terlalu pedas ya kak..." class="w-full text-sm bg-base border border-border rounded-xl px-4 py-3 outline-none focus:border-brand-primary placeholder:text-text-secondary/50 min-h-[80px] resize-y mb-2"></textarea>
+          <div class="mb-4">
+            <label class="text-xs font-semibold text-text-secondary uppercase tracking-wide block mb-2">Catatan <span class="font-normal normal-case">(Opsional)</span></label>
+            <textarea id="swal-input-notes" placeholder="Contoh: Jangan terlalu pedas ya kak..." class="w-full text-sm bg-base border border-border rounded-xl px-3 py-2.5 outline-none resize-none" rows="2"></textarea>
+          </div>
 
           <!-- Total -->
-          <div class="flex justify-between items-center mt-6 border-t border-border pt-4">
-            <span class="text-text-secondary font-medium">Total Harga</span>
-            <span id="swal-total-price" class="text-xl font-bold text-brand-primary tracking-tight">Rp ${(buyerMinQty * product.price).toLocaleString('id-ID')}</span>
+          <div class="flex justify-between items-center border-t border-border pt-3">
+            <span class="text-sm text-text-secondary font-medium">Total Harga</span>
+            <span id="swal-total-price" class="text-xl font-bold text-brand-primary">Rp ${(buyerMinQty * product.price).toLocaleString('id-ID')}</span>
           </div>
         </div>
       `,
@@ -196,12 +199,12 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
       confirmButtonColor: '#ff5c35',
       cancelButtonColor: '#94a3b8',
       customClass: {
-        popup: 'bg-surface text-text-primary rounded-3xl w-full max-w-md border border-border flex flex-col',
-        title: 'text-left text-xl font-bold border-b border-border pb-4 w-full m-0 px-6 pt-6 text-text-primary shrink-0',
-        htmlContainer: 'm-0 p-0 overflow-y-auto text-text-primary flex-1 min-h-0 px-6',
-        actions: 'w-full grid border-t border-border mt-0 pt-4 px-4 pb-4 shrink-0',
-        confirmButton: 'w-full py-3.5 text-lg rounded-xl shadow-lg order-1',
-        cancelButton: 'w-full bg-transparent hover:underline text-text-secondary shadow-none order-2 mt-2'
+        popup: 'bg-surface text-text-primary rounded-2xl w-full border border-border',
+        title: 'text-center text-lg font-bold border-b border-border pb-3 w-full m-0 px-5 pt-5 text-text-primary',
+        htmlContainer: 'swal-checkout-body m-0 px-5 pt-4 pb-2 text-text-primary',
+        actions: 'w-full flex flex-col gap-2 px-5 pb-5 pt-3 border-t border-border mt-0',
+        confirmButton: 'w-full py-3 text-base rounded-xl font-semibold shadow-md',
+        cancelButton: 'w-full py-2 text-sm rounded-xl bg-gray-100 text-text-secondary shadow-none font-medium'
       },
       didOpen: () => {
         const btnMinus = document.getElementById('swal-btn-minus');
@@ -1040,52 +1043,55 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                           )}
 
                           <div className="mt-4 w-full">
-                            <button 
-                              onClick={(e) => {
-                                if (!user) {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  Swal.fire({
-                                    title: 'Login Diperlukan',
-                                    html: `
-                                      <div class="text-center py-2">
-                                        <div class="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                                          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-primary" style="color:#E05638"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                        </div>
-                                        <p class="text-text-secondary text-sm leading-relaxed">Anda harus <strong class="text-text-primary">login</strong> terlebih dahulu untuk dapat melakukan checkout dan memesan produk dari UMKM kami.</p>
-                                      </div>
-                                    `,
-                                    showCancelButton: true,
-                                    confirmButtonText: 'Masuk Sekarang',
-                                    cancelButtonText: 'Batalkan',
-                                    confirmButtonColor: '#E05638',
-                                    cancelButtonColor: '#94a3b8',
-                                    customClass: {
-                                      popup: 'rounded-2xl',
-                                      confirmButton: 'rounded-xl px-6',
-                                      cancelButton: 'rounded-xl px-6',
+                            {(() => {
+                              const hasThisProductOrder = user && user.role === 'pembeli' && activeProductIds.has(product.id);
+                              return (
+                                <button 
+                                  onClick={(e) => {
+                                    if (!user) {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      Swal.fire({
+                                        title: 'Login Diperlukan',
+                                        html: `
+                                          <div class="text-center py-2">
+                                            <div class="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-primary" style="color:#E05638"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                            </div>
+                                            <p class="text-text-secondary text-sm leading-relaxed">Anda harus <strong class="text-text-primary">login</strong> terlebih dahulu untuk dapat melakukan checkout dan memesan produk dari UMKM kami.</p>
+                                          </div>
+                                        `,
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Masuk Sekarang',
+                                        cancelButtonText: 'Batalkan',
+                                        confirmButtonColor: '#E05638',
+                                        cancelButtonColor: '#94a3b8',
+                                        customClass: {
+                                          popup: 'rounded-2xl',
+                                          confirmButton: 'rounded-xl px-6',
+                                          cancelButton: 'rounded-xl px-6',
+                                        }
+                                      }).then((result) => {
+                                        if (result.isConfirmed) {
+                                          window.location.href = '/login';
+                                        }
+                                      });
+                                      return;
                                     }
-                                  }).then((result) => {
-                                    if (result.isConfirmed) {
-                                      window.location.href = '/login';
-                                    }
-                                  });
-                                  return;
-                                }
-                                handleCheckout(e, product);
-                              }}
-                              disabled={!!(user && user.role === 'pembeli' && hasActiveOrder)}
-                              className={`w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm font-semibold ${
-                                user && user.role === 'pembeli' && hasActiveOrder
-                                  ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed'
-                                  : 'btn-primary hover:bg-brand-primary-hover'
-                              }`}
-                            >
-                              <ShoppingCart className="w-4 h-4" />
-                              {user && user.role === 'pembeli' && hasActiveOrder
-                                ? 'Selesaikan dulu pesanan anda'
-                                : 'Checkout Sekarang'}
-                            </button>
+                                    handleCheckout(e, product);
+                                  }}
+                                  disabled={!!hasThisProductOrder}
+                                  className={`w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm font-semibold ${
+                                    hasThisProductOrder
+                                      ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed'
+                                      : 'btn-primary hover:bg-brand-primary-hover'
+                                  }`}
+                                >
+                                  <ShoppingCart className="w-4 h-4" />
+                                  {hasThisProductOrder ? 'Selesaikan dulu pesanan anda' : 'Checkout Sekarang'}
+                                </button>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>

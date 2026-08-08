@@ -73,9 +73,20 @@ export async function GET(request: Request) {
 
     const activeOrders = await db.select().from(orders).where(activeOrdersQuery);
 
+    // Also fetch ALL active orders (by any product) to return activeProductIds
+    const allActiveOrders = await db.select({ productId: orders.productId }).from(orders).where(
+      and(
+        eq(orders.buyerId, user.id),
+        sql`${orders.status} != 'completed' AND ${orders.status} != 'cancelled'`
+      )
+    );
+
+    const activeProductIds = [...new Set(allActiveOrders.map(o => o.productId))];
+
     return NextResponse.json({ 
       count: unreadOrders.length,
-      hasActiveOrder: activeOrders.length > 0 
+      hasActiveOrder: activeOrders.length > 0,
+      activeProductIds,
     });
   } catch (error) {
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

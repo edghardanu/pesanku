@@ -98,33 +98,70 @@ body {
 
 /* SweetAlert2 – Cap popup height & enable scrollable body */
 .swal2-popup {
-  max-height: 90vh !important;
+  max-height: 92vh !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
 }
 
-.swal2-html-container {
+/* Mobile: nearly full-width, taller usable area */
+@media (max-width: 480px) {
+  .swal2-popup {
+    width: calc(100vw - 1.5rem) !important;
+    max-width: calc(100vw - 1.5rem) !important;
+    max-height: 88vh !important;
+    border-radius: 1.25rem !important;
+    margin: auto !important;
+  }
+  .swal-checkout-body {
+    max-height: calc(88vh - 130px) !important;
+  }
+}
+
+/* Tablet */
+@media (min-width: 481px) and (max-width: 768px) {
+  .swal2-popup {
+    width: 92vw !important;
+    max-width: 480px !important;
+    max-height: 90vh !important;
+  }
+  .swal-checkout-body {
+    max-height: calc(90vh - 140px) !important;
+  }
+}
+
+/* Checkout modal specific: explicit scrollable height */
+.swal-checkout-body {
   overflow-y: auto !important;
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  /* Custom thin scrollbar */
+  -webkit-overflow-scrolling: touch !important;
+  max-height: calc(92vh - 140px) !important;
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
 }
 
-.swal2-html-container::-webkit-scrollbar {
-  width: 6px;
+.swal-checkout-body::-webkit-scrollbar { width: 4px; }
+.swal-checkout-body::-webkit-scrollbar-track { background: transparent; }
+.swal-checkout-body::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 9999px;
 }
 
-.swal2-html-container::-webkit-scrollbar-track {
-  background: transparent;
+/* Generic html container scroll fallback */
+.swal2-html-container {
+  overflow-y: auto !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
 }
 
+.swal2-html-container::-webkit-scrollbar { width: 4px; }
+.swal2-html-container::-webkit-scrollbar-track { background: transparent; }
 .swal2-html-container::-webkit-scrollbar-thumb {
   background-color: var(--color-border);
   border-radius: 9999px;
 }
+
 
 /* SweetAlert2 Dark Mode Enhancements */
 .dark .swal2-popup {
