@@ -86,6 +86,16 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
     }
   };
 
+  const scrollToCatalog = () => {
+    const catalogSection = document.getElementById('katalog');
+    if (catalogSection) {
+      catalogSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    window.scrollTo({ top: window.innerHeight * 0.8, behavior: 'smooth' });
+  };
+
   const handleCheckout = async (e: React.MouseEvent, product: ProductItem) => {
     e.preventDefault();
     e.stopPropagation();
@@ -930,7 +940,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
         </section>
 
         {/* Katalog Section */}
-        <section id="katalog" className="py-16 px-4 container mx-auto">
+        <section id="katalog" className="scroll-mt-24 py-16 px-4 container mx-auto">
           <motion.div 
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -1205,14 +1215,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
         <div className="w-[20%] flex flex-col justify-end items-center relative pb-2 h-full">
           <div className="absolute bottom-6 flex justify-center w-full">
             <button 
-              onClick={() => {
-                const productsSection = document.getElementById('produk');
-                if (productsSection) {
-                  productsSection.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                  window.scrollTo({ top: window.innerHeight * 0.8, behavior: 'smooth' });
-                }
-              }}
+              onClick={scrollToCatalog}
               className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105"
             >
               <ShoppingBag className="w-7 h-7 stroke-[1.5]" />

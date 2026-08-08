@@ -4,7 +4,6 @@ import { jwtVerify } from 'jose';
 const protectedRoutes = [
   { prefix: '/admin', roles: ['admin'] },
   { prefix: '/seller', roles: ['penjual'] },
-  { prefix: '/buyer/orders', roles: ['pembeli'] },
   { prefix: '/profile', roles: ['admin', 'penjual', 'pembeli'] },
   { prefix: '/invoice', roles: ['admin', 'penjual', 'pembeli'] },
 ];
@@ -49,5 +48,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/seller/:path*', '/buyer/orders/:path*', '/profile/:path*', '/invoice/:path*'],
+  matcher: ['/admin/:path*', '/seller/:path*', '/profile/:path*', '/invoice/:path*'],
 };

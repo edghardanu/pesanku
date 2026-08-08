@@ -1002,10 +1002,14 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
         </Link>
         
         <div className="w-1/4 flex flex-col justify-end items-center relative pb-2 h-full">
-          <Link href="/" className="absolute bottom-6 flex justify-center w-full">
-            <button className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105">
+          <Link
+            href="/#katalog"
+            className="absolute bottom-6 flex justify-center w-full"
+            aria-label="Buka katalog produk"
+          >
+            <span className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105">
               <ShoppingBag className="w-7 h-7 stroke-[1.5]" />
-            </button>
+            </span>
           </Link>
           <span className="text-text-secondary mt-1">Belanja</span>
         </div>
