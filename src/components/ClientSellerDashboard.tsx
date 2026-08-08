@@ -717,21 +717,13 @@ export default function ClientSellerDashboard({
                           <th className="p-4 font-medium">Harga</th>
                           <th className="p-4 font-medium">Jumlah Pesanan</th>
                           <th className="p-4 font-medium">Stok Tersedia</th>
-                          <th className="p-4 font-medium">Status & Deadline</th>
                           <th className="p-4 font-medium text-right">Aksi</th>
                         </tr>
                       </thead>
                       <tbody className="text-body-base text-text-primary">
                         {localProducts.map(product => {
                           const current = product.currentQty || 0;
-                          const min = product.preorderMinQty || 1;
                           const availableStock = Math.max(0, (product.stock || 0) - current);
-                          const isFull = current >= min;
-                          
-                          let deadlineText = "-";
-                          if (product.deadlineDate) {
-                            deadlineText = new Date(product.deadlineDate).toLocaleDateString('id-ID');
-                          }
 
                           return (
                             <tr key={product.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
@@ -763,12 +755,6 @@ export default function ClientSellerDashboard({
                                   </span>
                                   <span className="text-caption text-text-secondary">Pcs</span>
                                 </div>
-                              </td>
-                              <td className="p-4">
-                                <span className={`inline-block px-2 py-1 rounded text-caption font-semibold mb-1 ${isFull ? 'bg-brand-accent/20 text-brand-accent' : 'bg-brand-secondary/20 text-brand-secondary'}`}>
-                                  {isFull ? 'Kuota Tercapai' : 'Menunggu Kuota'}
-                                </span>
-                                <p className="text-caption text-text-secondary">s/d {deadlineText}</p>
                               </td>
                               <td className="p-4 text-right">
                                 <div className="flex justify-end gap-3 items-center">
