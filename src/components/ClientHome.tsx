@@ -365,7 +365,10 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
               
               {/* Desktop Search Dropdown */}
               {searchQuery && isSearchFocused && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
+                <div 
+                  className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50"
+                  onMouseDown={(e) => e.preventDefault()}
+                >
                   <div className="max-h-60 overflow-y-auto">
                     {filteredProducts.length > 0 ? (
                       filteredProducts.slice(0, 5).map(product => (
@@ -572,7 +575,10 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
                   {/* Mobile Search Dropdown */}
                   {searchQuery && isSearchFocused && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
+                    <div 
+                      className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50"
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
                       <div className="max-h-60 overflow-y-auto">
                         {filteredProducts.length > 0 ? (
                           filteredProducts.slice(0, 5).map(product => (
@@ -645,7 +651,10 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
                 {/* Mobile Menu Search Dropdown */}
                 {searchQuery && isSearchFocused && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
+                  <div 
+                    className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50"
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
                     <div className="max-h-60 overflow-y-auto">
                       {filteredProducts.length > 0 ? (
                         filteredProducts.slice(0, 5).map(product => (
