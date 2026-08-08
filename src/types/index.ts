@@ -28,7 +28,8 @@ export interface OrderItem {
   proofUrl?: string | null;
   deliveryProofUrl?: string | null;
   buyerName?: string;
-  buyerPhone?: string;
+  buyerPhone?: string | null;
+  buyerAddress?: string | null;
   productName?: string;
   productPrice?: number;
   productImageUrl?: string | null;
@@ -155,4 +156,5 @@ export interface InvoiceOrder {
   buyerName?: string | null;
   buyerEmail?: string | null;
   buyerPhone?: string | null;
+  buyerAddress?: string | null;
 }

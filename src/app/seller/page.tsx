@@ -32,6 +32,8 @@ export default async function SellerDashboard() {
     createdAt: orders.createdAt,
     productName: products.name,
     buyerName: users.name,
+    buyerPhone: users.phone,
+    buyerAddress: users.address,
     proofUrl: payments.proofUrl,
     deliveryProofUrl: orders.deliveryProofUrl,
   })

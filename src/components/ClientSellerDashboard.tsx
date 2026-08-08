@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Plus, Package, DollarSign, Settings, LogOut, Info, Menu, X, Upload, Store, Sun, Moon, MessageCircle } from "lucide-react";
+import { ShoppingBag, Plus, Package, DollarSign, Settings, LogOut, Info, X, Upload, Store, Sun, Moon, MessageCircle, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import Swal from 'sweetalert2';
@@ -564,6 +564,13 @@ export default function ClientSellerDashboard({
         </nav>
         
         <div className="p-4 border-t border-border flex flex-col gap-2">
+          <Link 
+            href="/profile"
+            className="flex items-center gap-3 p-3 text-text-secondary hover:text-brand-primary hover:bg-brand-primary/10 hover-btn rounded-lg font-medium transition-colors w-full"
+          >
+            <User className="w-5 h-5" />
+            Profil Akun
+          </Link>
           <button 
             onClick={toggleDarkMode}
             className="flex items-center justify-between p-3 text-text-secondary hover:text-text-primary hover:bg-border/40 dark:hover:bg-slate-800/80 hover-btn rounded-lg font-medium transition-colors w-full cursor-pointer"
@@ -596,6 +603,26 @@ export default function ClientSellerDashboard({
             <span className="text-h3 text-brand-primary font-bold">pesanku</span>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleTabChange('pengaturan')}
+              className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors flex items-center justify-center w-9 h-9 border border-border hover-btn cursor-pointer"
+              aria-label="Buka Pengaturan Toko"
+              title="Pengaturan Toko"
+            >
+              <Settings className="w-4 h-4 text-brand-secondary" />
+            </button>
+            <Link
+              href="/profile"
+              className="p-2 rounded-full hover:bg-brand-primary/10 transition-colors flex items-center justify-center w-9 h-9 border border-border hover-btn"
+              aria-label="Buka Profil Akun"
+              title="Profil Akun"
+            >
+              {profile?.logoUrl ? (
+                <Image src={profile.logoUrl} alt="Profil Akun" width={20} height={20} className="object-cover w-5 h-5 rounded-full" />
+              ) : (
+                <User className="w-4 h-4 text-brand-primary" />
+              )}
+            </Link>
             <button 
               onClick={toggleDarkMode}
               className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors relative overflow-hidden flex items-center justify-center w-9 h-9 border border-border hover-btn cursor-pointer"
@@ -995,6 +1022,12 @@ export default function ClientSellerDashboard({
                             <td className="p-4">
                               <p className="font-semibold text-text-primary line-clamp-1">{order.productName}</p>
                               <p className="text-xs text-text-secondary mt-1">Pembeli: {order.buyerName}</p>
+                              {order.buyerPhone && (
+                                <p className="text-xs text-text-secondary mt-1">No. HP: {order.buyerPhone}</p>
+                              )}
+                              {order.buyerAddress && (
+                                <p className="text-xs text-text-secondary mt-1 max-w-[260px] line-clamp-2">Alamat: {order.buyerAddress}</p>
+                              )}
                               {order.notes && (
                                 <p className="text-xs text-brand-secondary-dark dark:text-brand-secondary mt-1 italic">Catatan: &ldquo;{order.notes}&rdquo;</p>
                               )}
@@ -1283,24 +1316,19 @@ export default function ClientSellerDashboard({
           <span>Transaksi</span>
         </button>
         
-        <button 
-          onClick={() => handleTabChange('pengaturan')} 
-          className={`flex flex-col items-center gap-1.5 w-[20%] transition-colors pb-2 ${activeTab === 'pengaturan' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+        <Link 
+          href="/profile" 
+          className="flex flex-col items-center gap-1.5 w-[20%] text-text-secondary hover:text-brand-primary transition-colors pb-2"
         >
           {profile?.logoUrl ? (
-            <div className={`w-6 h-6 rounded-full overflow-hidden border-[1.5px] ${activeTab === 'pengaturan' ? 'border-brand-primary ring-2 ring-brand-primary/20' : 'border-border'}`}>
+            <div className="w-6 h-6 rounded-full overflow-hidden border-[1.5px] border-border">
               <Image src={profile.logoUrl} alt="Profil" width={24} height={24} className="object-cover w-full h-full" />
             </div>
           ) : (
-            <div className="relative">
-              <Settings className={`w-6 h-6 stroke-[1.5] ${activeTab === 'pengaturan' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
-              {activeTab === 'pengaturan' && (
-                <div className="absolute inset-0 rounded-full ring-2 ring-brand-primary/20 scale-110" />
-              )}
-            </div>
+            <User className="w-6 h-6 stroke-[1.5]" />
           )}
           <span>Profil</span>
-        </button>
+        </Link>
       </nav>
     </div>
   );

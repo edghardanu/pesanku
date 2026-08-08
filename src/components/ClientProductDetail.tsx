@@ -187,8 +187,13 @@ export default function ClientProductDetail({ product, user }: { product: Produc
 
             <div className="card p-6 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
-                  <Store className="w-6 h-6" />
+                <div className="w-12 h-12 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary overflow-hidden border border-border">
+                  {product.sellerLogoUrl || product.sellerAvatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={product.sellerLogoUrl || product.sellerAvatar || undefined} alt={product.storeName || product.sellerName || 'Toko'} className="w-full h-full object-cover" />
+                  ) : (
+                    <Store className="w-6 h-6" />
+                  )}
                 </div>
                 <div>
                   <h3 className="font-bold text-text-primary text-lg">{product.storeName || product.sellerName}</h3>

@@ -103,6 +103,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
               <h3 className="text-lg font-bold text-gray-800">{order.buyerName}</h3>
               <p className="text-gray-600 text-sm mt-1">{order.buyerEmail}</p>
               <p className="text-gray-600 text-sm mt-1">{order.buyerPhone || '-'}</p>
+              <p className="text-gray-600 text-sm mt-1 leading-relaxed max-w-[250px]">{order.buyerAddress || '-'}</p>
             </div>
           </div>
 

@@ -28,6 +28,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       buyerName: users.name,
       buyerEmail: users.email,
       buyerPhone: users.phone,
+      buyerAddress: users.address,
       
       sellerName: sellerProfiles.storeName,
       sellerAddress: sellerProfiles.address,

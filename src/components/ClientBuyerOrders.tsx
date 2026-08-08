@@ -559,13 +559,22 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
             </button>
 
             {user && (
-              <button 
-                onClick={handleLogout}
-                className="p-2 rounded-full text-status-error hover:bg-status-error/10 transition-colors flex items-center justify-center w-10 h-10"
-                title="Keluar / Logout"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
+              <>
+                <Link
+                  href="/profile"
+                  className="p-2 rounded-full text-text-secondary hover:text-brand-primary hover:bg-brand-primary/10 transition-colors flex items-center justify-center w-10 h-10"
+                  title="Profil Akun"
+                >
+                  <User className="w-5 h-5" />
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="p-2 rounded-full text-status-error hover:bg-status-error/10 transition-colors flex items-center justify-center w-10 h-10"
+                  title="Keluar / Logout"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -1010,7 +1019,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
         
         {user ? (
           <Link 
-            href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'}
+            href="/profile"
             className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
           >
             <User className="w-6 h-6 stroke-[1.5]" />

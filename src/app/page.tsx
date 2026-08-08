@@ -35,15 +35,17 @@ export default async function Home() {
         status: products.status,
         sellerName: sellerProfiles.storeName,
         sellerAddress: sellerProfiles.address,
+        sellerAvatar: sellerProfiles.logoUrl,
+        sellerLogoUrl: sellerProfiles.logoUrl,
       })
       .from(products)
       .innerJoin(sellerProfiles, eq(products.sellerId, sellerProfiles.userId))
       .orderBy(desc(products.createdAt));
 
-    // Map to add hardcoded fields that aren't in schema yet
+    // Provide a fallback avatar for sellers without a profile image.
     dbProducts = rawProducts.map(p => ({
       ...p,
-      sellerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop"
+      sellerAvatar: p.sellerAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop",
     }));
   } catch (error) {
     console.error("Database error while fetching products/orders on homepage:", error);

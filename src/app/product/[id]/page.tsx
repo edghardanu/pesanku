@@ -38,6 +38,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         status: products.status,
         storeName: sellerProfiles.storeName,
         storeAddress: sellerProfiles.address,
+        sellerLogoUrl: sellerProfiles.logoUrl,
+        sellerAvatar: sellerProfiles.logoUrl,
         sellerName: users.name,
       })
       .from(products)
