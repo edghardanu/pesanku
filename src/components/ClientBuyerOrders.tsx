@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2 } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,6 +15,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [prevOrders, setPrevOrders] = useState<BuyerOrderViewItem[]>(orders);
   const [localOrders, setLocalOrders] = useState<BuyerOrderViewItem[]>(orders);
+  const [bottomNavLoading, setBottomNavLoading] = useState<'home' | 'catalog' | null>(null);
 
   if (orders !== prevOrders) {
     setPrevOrders(orders);
@@ -40,6 +41,20 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
       fetch('/api/orders', { method: 'PATCH' }).catch(err => console.error(err));
     }
   }, [user]);
+
+  useEffect(() => {
+    router.prefetch('/');
+  }, [router]);
+
+  useEffect(() => {
+    if (!bottomNavLoading) return;
+
+    const timer = window.setTimeout(() => {
+      setBottomNavLoading(null);
+    }, 5000);
+
+    return () => window.clearTimeout(timer);
+  }, [bottomNavLoading]);
 
   // Check initial mode for dark mode
   useEffect(() => {
@@ -995,23 +1010,47 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-4 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
         <Link 
           href="/" 
-          className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
+          prefetch={true}
+          onNavigate={() => setBottomNavLoading('home')}
+          aria-busy={bottomNavLoading === 'home'}
+          className={`flex flex-col items-center gap-1.5 w-1/4 transition-colors pb-2 ${
+            bottomNavLoading === 'home'
+              ? 'text-brand-primary font-semibold'
+              : 'text-text-secondary hover:text-brand-primary'
+          }`}
         >
-          <Home className="w-6 h-6 stroke-[1.5]" />
-          <span>Beranda</span>
+          {bottomNavLoading === 'home' ? (
+            <Loader2 className="w-6 h-6 stroke-[1.8] animate-spin" />
+          ) : (
+            <Home className="w-6 h-6 stroke-[1.5]" />
+          )}
+          <span>{bottomNavLoading === 'home' ? 'Membuka' : 'Beranda'}</span>
         </Link>
         
         <div className="w-1/4 flex flex-col justify-end items-center relative pb-2 h-full">
           <Link
             href="/#katalog"
+            prefetch={true}
+            onNavigate={() => setBottomNavLoading('catalog')}
+            aria-busy={bottomNavLoading === 'catalog'}
             className="absolute bottom-6 flex justify-center w-full"
             aria-label="Buka katalog produk"
           >
-            <span className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105">
-              <ShoppingBag className="w-7 h-7 stroke-[1.5]" />
+            <span className={`w-14 h-14 rounded-full text-white flex items-center justify-center shadow-lg transition-all transform hover:scale-105 ${
+              bottomNavLoading === 'catalog'
+                ? 'bg-brand-primary-hover scale-105'
+                : 'bg-brand-primary hover:bg-brand-primary-hover'
+            }`}>
+              {bottomNavLoading === 'catalog' ? (
+                <Loader2 className="w-7 h-7 stroke-[1.8] animate-spin" />
+              ) : (
+                <ShoppingBag className="w-7 h-7 stroke-[1.5]" />
+              )}
             </span>
           </Link>
-          <span className="text-text-secondary mt-1">Belanja</span>
+          <span className={`mt-1 ${bottomNavLoading === 'catalog' ? 'text-brand-primary font-semibold' : 'text-text-secondary'}`}>
+            {bottomNavLoading === 'catalog' ? 'Membuka' : 'Belanja'}
+          </span>
         </div>
         
         <button 
