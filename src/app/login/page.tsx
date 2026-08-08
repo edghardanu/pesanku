@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Eye, EyeOff, ArrowLeft, Home, ShoppingCart, FileText, User, Sun, Moon } from "lucide-react";
+import { ShoppingBag, Eye, EyeOff, ArrowLeft, Home, FileText, User, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from 'sweetalert2';
 
@@ -11,18 +11,19 @@ export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
-    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
-    } else {
-      setIsDarkMode(false);
-      document.documentElement.classList.remove('dark');
-    }
+    setTimeout(() => {
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        setIsDarkMode(true);
+        document.documentElement.classList.add('dark');
+      } else {
+        setIsDarkMode(false);
+        document.documentElement.classList.remove('dark');
+      }
+    }, 0);
   }, []);
 
   const toggleDarkMode = () => {
@@ -44,37 +45,6 @@ export default function LoginPage() {
 
     const formData = new FormData(e.currentTarget);
     
-    if (isForgotPassword) {
-      // Handle Reset Password
-      const data = {
-        email: formData.get("email"),
-        newPassword: formData.get("newPassword"),
-      };
-
-      try {
-        const res = await fetch("/api/auth/reset-password", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-
-        const json = await res.json();
-
-        if (!res.ok) {
-          throw new Error(json.error || "Gagal mengubah password");
-        }
-
-        Swal.fire('Berhasil!', 'Password Anda telah diperbarui. Silakan login dengan password baru.', 'success');
-        setIsForgotPassword(false);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
-    // Handle Login
     const data = {
       email: formData.get("email"),
       password: formData.get("password"),
@@ -104,11 +74,21 @@ export default function LoginPage() {
         router.push("/");
       }
       router.refresh();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Terjadi kesalahan";
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    Swal.fire({
+      icon: 'info',
+      title: 'Reset password',
+      text: 'Untuk keamanan akun, reset password publik dinonaktifkan. Silakan hubungi admin Pesanku untuk bantuan pemulihan akun.',
+      confirmButtonColor: '#ff5722',
+    });
   };
 
   return (
@@ -157,12 +137,10 @@ export default function LoginPage() {
 
       <div className="card w-full max-w-md p-8">
         <h1 className="text-h2 text-text-primary mb-2 text-center">
-          {isForgotPassword ? "Ganti Password Baru" : "Selamat Datang Kembali!"}
+          Selamat Datang Kembali!
         </h1>
         <p className="text-body-base text-text-secondary mb-8 text-center">
-          {isForgotPassword 
-            ? "Masukkan email Anda dan password baru yang diinginkan." 
-            : "Silakan masuk ke akun Anda."}
+          Silakan masuk ke akun Anda.
         </p>
 
         {error && (
@@ -185,99 +163,53 @@ export default function LoginPage() {
             />
           </div>
 
-          {!isForgotPassword ? (
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-body-small font-medium text-text-primary">
-                  Password
-                </label>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    setIsForgotPassword(true);
-                    setError("");
-                  }} 
-                  className="text-caption text-brand-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
-                >
-                  Lupa password?
-                </button>
-              </div>
-              <div className="relative">
-                <input 
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  placeholder="Masukkan password Anda"
-                  className="input-field pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-secondary hover:text-text-primary"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <label className="block text-body-small font-medium text-text-primary mb-1">
-                Password Baru
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-body-small font-medium text-text-primary">
+                Password
               </label>
-              <div className="relative">
-                <input 
-                  type={showPassword ? "text" : "password"}
-                  name="newPassword"
-                  placeholder="Masukkan password baru"
-                  className="input-field pr-10"
-                  required
-                  minLength={6}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-secondary hover:text-text-primary"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
+              <button 
+                type="button" 
+                onClick={handleForgotPassword}
+                className="text-caption text-brand-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
+              >
+                Lupa password?
+              </button>
             </div>
-          )}
+            <div className="relative">
+              <input 
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Masukkan password Anda"
+                className="input-field pr-10"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-secondary hover:text-text-primary"
+              >
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+          </div>
 
           <button disabled={loading} type="submit" className="btn-primary w-full mt-6 py-3 text-lg disabled:opacity-50">
-            {loading ? "Memproses..." : (isForgotPassword ? "Simpan Password Baru" : "Masuk")}
+            {loading ? "Memproses..." : "Masuk"}
           </button>
         </form>
 
         <div className="mt-8 text-center space-y-3">
-          {isForgotPassword && (
-            <button 
-              onClick={() => {
-                setIsForgotPassword(false);
-                setError("");
-              }}
-              className="text-body-small text-text-secondary hover:text-text-primary hover:underline block w-full"
-            >
-              Kembali ke Login
-            </button>
-          )}
-          
-          {!isForgotPassword && (
-            <p className="text-body-small text-text-secondary">
-              Belum punya akun?{' '}
-              <Link href="/register" className="text-brand-primary font-medium hover:underline">
-                Daftar Sekarang
-              </Link>
-            </p>
-          )}
+          <p className="text-body-small text-text-secondary">
+            Belum punya akun?{' '}
+            <Link href="/register" className="text-brand-primary font-medium hover:underline">
+              Daftar Sekarang
+            </Link>
+          </p>
         </div>
       </div>
 

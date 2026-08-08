@@ -25,14 +25,16 @@ type Product = {
   stock?: number | null;
 };
 
+import { SellerProfile, OrderItem, ChatMessage } from "@/types";
+
 type ClientSellerDashboardProps = {
-  profile: any;
+  profile?: SellerProfile | null;
   myProducts: Product[];
   activeCount: number;
   waitingCount: number;
   completedCount: number;
   userName: string;
-  sellerOrders?: any[];
+  sellerOrders?: OrderItem[];
   feeAdmin?: number;
 };
 
@@ -54,13 +56,15 @@ export default function ClientSellerDashboard({
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
-    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark');
-      setIsDarkMode(true);
-    } else {
-      document.documentElement.classList.remove('dark');
-      setIsDarkMode(false);
-    }
+    setTimeout(() => {
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        setIsDarkMode(true);
+      } else {
+        document.documentElement.classList.remove('dark');
+        setIsDarkMode(false);
+      }
+    }, 0);
   }, []);
 
   const toggleDarkMode = () => {
@@ -218,8 +222,9 @@ export default function ClientSellerDashboard({
           showConfirmButton: false,
           timer: 3000
         });
-      } catch (error: any) {
-        Swal.fire('Error', error.message, 'error');
+      } catch (error) {
+        const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
+        Swal.fire('Error', errMsg, 'error');
       }
     }
   };
@@ -283,8 +288,9 @@ export default function ClientSellerDashboard({
           }).then(() => {
             window.location.reload();
           });
-        } catch (error: any) {
-          Swal.fire('Gagal!', error.message || 'Terjadi kesalahan.', 'error');
+        } catch (error) {
+          const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
+          Swal.fire('Gagal!', errMsg, 'error');
         }
       };
       reader.readAsDataURL(file);
@@ -304,11 +310,11 @@ export default function ClientSellerDashboard({
 
     try {
       const res = await fetch(`/api/chat?orderId=${orderId}`);
-      let { messages } = await res.json();
+      const { messages } = await res.json();
       
-      let chatHistory = messages || [];
+      const chatHistory = messages || [];
 
-      const hasSellerOpening = chatHistory.some((m: any) => m.role === 'penjual' || m.role === 'admin');
+      const hasSellerOpening = chatHistory.some((m: ChatMessage) => m.role === 'penjual' || m.role === 'admin');
       if (!hasSellerOpening) {
         chatHistory.unshift({
           role: 'penjual',
@@ -320,7 +326,7 @@ export default function ClientSellerDashboard({
         });
       }
 
-    const renderMsgs = () => chatHistory.map((c: any) => {
+    const renderMsgs = () => chatHistory.map((c: ChatMessage) => {
       const isMe = c.sender === 'seller';
       if (isMe) {
         const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
@@ -990,7 +996,7 @@ export default function ClientSellerDashboard({
                               <p className="font-semibold text-text-primary line-clamp-1">{order.productName}</p>
                               <p className="text-xs text-text-secondary mt-1">Pembeli: {order.buyerName}</p>
                               {order.notes && (
-                                <p className="text-xs text-brand-secondary-dark dark:text-brand-secondary mt-1 italic">Catatan: "{order.notes}"</p>
+                                <p className="text-xs text-brand-secondary-dark dark:text-brand-secondary mt-1 italic">Catatan: &ldquo;{order.notes}&rdquo;</p>
                               )}
                             </td>
                             <td className="p-4">
@@ -1058,7 +1064,7 @@ export default function ClientSellerDashboard({
                             <td className="p-4 text-right">
                               <div className="flex items-center justify-end gap-2">
                                 <button 
-                                  onClick={() => handleOpenChat(order.id, order.buyerName || 'Pembeli', order.productName)}
+                                  onClick={() => handleOpenChat(order.id, order.buyerName || 'Pembeli', order.productName || 'Produk')}
                                   className="btn-outline border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10 hover:border-brand-primary p-1.5 rounded-full transition-all"
                                   title="Chat dengan Pembeli"
                                 >
@@ -1072,7 +1078,7 @@ export default function ClientSellerDashboard({
                                   order.status === 'cancelled' ? 'bg-status-error/10 text-status-error border-status-error/20' : 
                                   'bg-border/60 text-text-secondary border-border'
                                 }`}
-                                defaultValue={order.status}
+                                defaultValue={order.status ?? 'waiting_verification'}
                                 onChange={async (e) => {
                                   const newStatus = e.target.value;
                                   try {
@@ -1103,8 +1109,9 @@ export default function ClientSellerDashboard({
                                     }).then(() => {
                                       window.location.reload();
                                     });
-                                  } catch (error: any) {
-                                    Swal.fire('Error', error.message || 'Gagal memperbarui status', 'error');
+                                  } catch (error: unknown) {
+                                    const errMsg = error instanceof Error ? error.message : 'Gagal memperbarui status';
+                                    Swal.fire('Error', errMsg, 'error');
                                   }
                                 }}
                               >

@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
 import { usePathname } from "next/navigation";
 
+import { AuthUser } from "@/types";
+
 export default function HelpWidget() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -16,12 +18,14 @@ export default function HelpWidget() {
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
     const u = localStorage.getItem("user");
     if (u) {
-      setUser(JSON.parse(u));
+      setTimeout(() => {
+        setUser(JSON.parse(u));
+      }, 0);
     }
   }, []);
 
@@ -58,7 +62,6 @@ export default function HelpWidget() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: user.id,
           category,
           customCategory: category === "lainnya" ? customCategory : null,
           notes
@@ -73,8 +76,9 @@ export default function HelpWidget() {
       setNotes("");
       setCategory("bug");
       setCustomCategory("");
-    } catch (err: any) {
-      Swal.fire('Error', err.message || 'Gagal mengirim tiket', 'error');
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Gagal mengirim tiket';
+      Swal.fire('Error', errMsg, 'error');
     } finally {
       setIsSubmitting(false);
     }

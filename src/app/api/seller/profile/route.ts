@@ -36,7 +36,13 @@ export async function PUT(request: Request) {
         finalLogoUrl = null; // Allow removing logo if needed, though usually not handled via empty string in forms, but good for completeness.
     }
 
-    const updateData: any = {
+    const updateData: {
+      storeName: string;
+      address?: string | null;
+      category?: string | null;
+      bankAccount?: string | null;
+      logoUrl?: string | null;
+    } = {
         storeName,
         address,
         category,

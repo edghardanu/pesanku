@@ -80,8 +80,9 @@ export default function NewProductPage() {
       }
 
       router.push("/seller");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Gagal menyimpan produk";
+      setError(errMsg);
     } finally {
       setLoading(false);
     }

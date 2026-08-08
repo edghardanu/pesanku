@@ -28,7 +28,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
+import { UmkmItem, OrderItem, TicketItem, PayoutItem, VerificationItem } from "@/types";
 
 type ClientAdminDashboardProps = {
   stats: {
@@ -38,8 +39,8 @@ type ClientAdminDashboardProps = {
     escrowBalance: number;
   };
   userName: string;
-  umkmList: any[];
-  ordersList?: any[];
+  umkmList: UmkmItem[];
+  ordersList?: OrderItem[];
 };
 
 export default function ClientAdminDashboard({ stats, userName, umkmList, ordersList = [] }: ClientAdminDashboardProps) {
@@ -63,13 +64,15 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   }, []);
 
   useEffect(() => {
-    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark');
-      setIsDarkMode(true);
-    } else {
-      document.documentElement.classList.remove('dark');
-      setIsDarkMode(false);
-    }
+    setTimeout(() => {
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        setIsDarkMode(true);
+      } else {
+        document.documentElement.classList.remove('dark');
+        setIsDarkMode(false);
+      }
+    }, 0);
   }, []);
 
   const toggleDarkMode = () => {
@@ -89,10 +92,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
 
   // Live DB orders state for real-time calculation
-  const [liveOrders, setLiveOrders] = useState<any[]>(ordersList);
+  const [liveOrders, setLiveOrders] = useState<OrderItem[]>(ordersList);
 
   // 100% Real-time async polling from SQLite DB every 3 seconds
-  const [ticketsList, setTicketsList] = useState<any[]>([]);
+  const [ticketsList, setTicketsList] = useState<TicketItem[]>([]);
 
   useEffect(() => {
     const fetchLiveStats = async () => {
@@ -146,7 +149,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
       
       return monthNames.map((month, i) => {
-        const monthOrders = ordersInYear.filter(o => new Date(o.createdAt).getMonth() === i);
+        const monthOrders = ordersInYear.filter(o => o.createdAt && new Date(o.createdAt).getMonth() === i);
         const count = monthOrders.length;
         const amount = monthOrders.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
 
@@ -166,7 +169,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
         `Tgl 25-${daysInMonth}`
       ];
 
-      const ordersInMonth = ordersInYear.filter(o => new Date(o.createdAt).getMonth() + 1 === monthIndex);
+      const ordersInMonth = ordersInYear.filter(o => o.createdAt && new Date(o.createdAt).getMonth() + 1 === monthIndex);
       
       const periodRanges = [
         [1, 4],
@@ -181,6 +184,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
       return periodLabels.map((label, i) => {
         const [startDay, endDay] = periodRanges[i];
         const periodOrders = ordersInMonth.filter(o => {
+          if (!o.createdAt) return false;
           const day = new Date(o.createdAt).getDate();
           return day >= startDay && day <= endDay;
         });
@@ -193,53 +197,55 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
     }
   };
 
-  const [mockPayouts, setMockPayouts] = useState<any[]>([]);
-  const [mockVerifications, setMockVerifications] = useState<any[]>([]);
+  const [mockPayouts, setMockPayouts] = useState<PayoutItem[]>([]);
+  const [mockVerifications, setMockVerifications] = useState<VerificationItem[]>([]);
   const [adminQrisUrl, setAdminQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS'); // Mock initial QRIS
 
   useEffect(() => {
-    const savedPayouts = localStorage.getItem('mockPayouts');
-    if (savedPayouts) {
-      setMockPayouts(JSON.parse(savedPayouts));
-    } else {
-      setMockPayouts([
-        {
-          id: '1',
-          storeName: 'Toko Roti Ibu Ana',
-          rekening: 'BCA - 8921831923 (Ana)',
-          diajukan: 'Rp 500.000',
-          potongan: '-Rp 9.000',
-          total: 'Rp 491.000'
-        }
-      ]);
-    }
+    setTimeout(() => {
+      const savedPayouts = localStorage.getItem('mockPayouts');
+      if (savedPayouts) {
+        setMockPayouts(JSON.parse(savedPayouts));
+      } else {
+        setMockPayouts([
+          {
+            id: '1',
+            storeName: 'Toko Roti Ibu Ana',
+            rekening: 'BCA - 8921831923 (Ana)',
+            diajukan: 'Rp 500.000',
+            potongan: '-Rp 9.000',
+            total: 'Rp 491.000'
+          }
+        ]);
+      }
 
-    const savedVerifications = localStorage.getItem('mockVerifications');
-    if (savedVerifications) {
-      setMockVerifications(JSON.parse(savedVerifications));
-    } else {
-      setMockVerifications([
-        {
-          id: 'ORD-99821',
-          pembeli: 'Budi Pembeli',
-          totalBayar: 'Rp 105.000',
-          waktu: '10 mnt lalu'
-        }
-      ]);
-    }
+      const savedVerifications = localStorage.getItem('mockVerifications');
+      if (savedVerifications) {
+        setMockVerifications(JSON.parse(savedVerifications));
+      } else {
+        setMockVerifications([
+          {
+            id: 'ORD-99821',
+            pembeli: 'Budi Pembeli',
+            totalBayar: 'Rp 105.000',
+            waktu: '10 mnt lalu'
+          }
+        ]);
+      }
 
-    const savedQris = localStorage.getItem('adminQrisUrl');
-    if (savedQris) {
-      setAdminQrisUrl(savedQris);
-    }
+      const savedQris = localStorage.getItem('adminQrisUrl');
+      if (savedQris) {
+        setAdminQrisUrl(savedQris);
+      }
+    }, 0);
   }, []);
 
-  const updateMockPayouts = (newPayouts: any[]) => {
+  const updateMockPayouts = (newPayouts: PayoutItem[]) => {
     setMockPayouts(newPayouts);
     localStorage.setItem('mockPayouts', JSON.stringify(newPayouts));
   };
 
-  const updateMockVerifications = (newVerifications: any[]) => {
+  const updateMockVerifications = (newVerifications: VerificationItem[]) => {
     setMockVerifications(newVerifications);
     localStorage.setItem('mockVerifications', JSON.stringify(newVerifications));
   };
@@ -338,8 +344,9 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           };
           setLocalUmkmList([newUmkm, ...localUmkmList]);
         });
-      } catch (error: any) {
-        Swal.fire('Error', error.message, 'error');
+      } catch (error) {
+        const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
+        Swal.fire('Error', errMsg, 'error');
       }
     }
   };
@@ -699,7 +706,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                           <td className="p-4">
                             <div className="flex gap-2 items-center">
                               <select
-                                value={umkm.status}
+                                value={umkm.status ?? 'pending'}
                                 onChange={async (e) => {
                                   const newStatus = e.target.value;
                                   try {
@@ -808,7 +815,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                       ticketsList.map((ticket) => (
                         <tr key={ticket.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
                           <td className="p-4 text-text-secondary">
-                            {new Date(ticket.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
                           </td>
                           <td className="p-4">
                             <p className="font-semibold text-text-primary">{ticket.userName || '-'}</p>

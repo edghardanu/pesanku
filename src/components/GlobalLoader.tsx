@@ -14,20 +14,32 @@ function LoaderContent() {
 
   useEffect(() => {
     // Show loader on mount (first load)
-    setIsLoading(true);
+    let active = true;
+    setTimeout(() => {
+      if (active) setIsLoading(true);
+    }, 0);
     const timer = setTimeout(() => {
-      setIsLoading(false);
+      if (active) setIsLoading(false);
     }, 1000);
-    return () => clearTimeout(timer);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, []); // Only run once on full page load
 
   useEffect(() => {
     // Show loader on route change
-    setIsLoading(true);
+    let active = true;
+    setTimeout(() => {
+      if (active) setIsLoading(true);
+    }, 0);
     const timer = setTimeout(() => {
-      setIsLoading(false);
+      if (active) setIsLoading(false);
     }, 500); // Shorter for route changes
-    return () => clearTimeout(timer);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [pathname, searchParams]);
 
   return (

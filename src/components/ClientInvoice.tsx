@@ -1,24 +1,28 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Printer, ArrowLeft, CheckCircle2, Clock, Package, Truck, XCircle } from "lucide-react";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { InvoiceOrder } from "@/types";
 
-export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, feeAdmin = 0 }: { order: any, feeAplikasi?: number, feeJasa?: number, feeAdmin?: number }) {
+export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, feeAdmin = 0 }: { order: InvoiceOrder, feeAplikasi?: number, feeJasa?: number, feeAdmin?: number }) {
   const router = useRouter();
   
   const [printDate, setPrintDate] = useState("");
 
   useEffect(() => {
-    setPrintDate(new Date().toLocaleString('id-ID'));
+    setTimeout(() => {
+      setPrintDate(new Date().toLocaleString('id-ID'));
+    }, 0);
   }, []);
   
   const handlePrint = () => {
     window.print();
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: string | Date | null) => {
+    if (!date) return 'Tanggal tidak tersedia';
+
     return new Date(date).toLocaleDateString('id-ID', {
       weekday: 'long',
       year: 'numeric',
@@ -29,7 +33,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
     }) + ' WIB';
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string | null) => {
     switch (status) {
       case 'pending':
         return <div className="inline-flex mt-2 items-center gap-1.5 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold"><Clock className="w-4 h-4" /> Menunggu Pembayaran</div>;
@@ -166,7 +170,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
       </div>
       
       {/* Global CSS for printing */}
-      <style dangerouslySetInnerHTML={{__html: `
+      <style>{`
         @media print {
           body { background-color: white; -webkit-print-color-adjust: exact; }
           .print\\:hidden { display: none !important; }
@@ -175,7 +179,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
           .print\\:p-0 { padding: 0 !important; }
           .print\\:m-0 { margin: 0 !important; }
         }
-      `}} />
+      `}</style>
     </div>
   );
 }

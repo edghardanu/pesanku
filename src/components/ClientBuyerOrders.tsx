@@ -7,24 +7,30 @@ import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, 
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { AuthUser, BuyerOrderViewItem, ChatMessage } from "@/types";
 
-export default function ClientBuyerOrders({ orders, user }: { orders: any[], user?: any }) {
+export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrderViewItem[], user?: AuthUser | null }) {
   const router = useRouter();
   const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [localOrders, setLocalOrders] = useState(orders);
+  const [prevOrders, setPrevOrders] = useState<BuyerOrderViewItem[]>(orders);
+  const [localOrders, setLocalOrders] = useState<BuyerOrderViewItem[]>(orders);
+
+  if (orders !== prevOrders) {
+    setPrevOrders(orders);
+    setLocalOrders(orders);
+  }
+
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    setLocalOrders(orders);
-  }, [orders]);
 
   // Load the active QRIS from localStorage
   useEffect(() => {
     const savedQris = localStorage.getItem('adminQrisUrl');
     if (savedQris) {
-      setQrisUrl(savedQris);
+      setTimeout(() => {
+        setQrisUrl(savedQris);
+      }, 0);
     }
   }, []);
 
@@ -37,13 +43,15 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
 
   // Check initial mode for dark mode
   useEffect(() => {
-    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
-    } else {
-      setIsDarkMode(false);
-      document.documentElement.classList.remove('dark');
-    }
+    setTimeout(() => {
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        setIsDarkMode(true);
+        document.documentElement.classList.add('dark');
+      } else {
+        setIsDarkMode(false);
+        document.documentElement.classList.remove('dark');
+      }
+    }, 0);
   }, []);
 
   const toggleDarkMode = () => {
@@ -56,6 +64,22 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
       localStorage.theme = 'dark';
       setIsDarkMode(true);
     }
+  };
+
+  const formatOrderDate = (date: string | Date | null) => {
+    if (!date) return 'Tanggal tidak tersedia';
+
+    const orderDate = new Date(date);
+    const formattedDate = orderDate.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+    const formattedTime = orderDate
+      .toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      .replace('.', ':');
+
+    return `${formattedDate}, ${formattedTime} WIB`;
   };
 
   const handleLogout = async () => {
@@ -118,10 +142,11 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
         }
 
         router.refresh();
-      } catch (error: any) {
+      } catch (error) {
         // Rollback optimistic update
         setLocalOrders(orders);
-        Swal.fire('Gagal!', error.message || 'Terjadi kesalahan.', 'error');
+        const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
+        Swal.fire('Gagal!', errMsg, 'error');
       }
     }
   };
@@ -161,8 +186,9 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
         });
 
         router.refresh();
-      } catch (error: any) {
-        Swal.fire('Gagal!', error.message || 'Terjadi kesalahan.', 'error');
+      } catch (error) {
+        const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
+        Swal.fire('Gagal!', errMsg, 'error');
       }
     }
   };
@@ -202,8 +228,9 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
         });
 
         router.refresh();
-      } catch (error: any) {
-        Swal.fire('Gagal!', error.message || 'Terjadi kesalahan.', 'error');
+      } catch (error) {
+        const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
+        Swal.fire('Gagal!', errMsg, 'error');
       }
     }
   };
@@ -274,8 +301,9 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
             router.refresh();
           });
           
-        } catch (error: any) {
-          Swal.fire('Gagal!', error.message, 'error');
+        } catch (error) {
+          const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
+          Swal.fire('Gagal!', errMsg, 'error');
         }
       };
       reader.readAsDataURL(file);
@@ -296,12 +324,12 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
 
     try {
       const res = await fetch(`/api/chat?orderId=${orderId}`);
-      let { messages } = await res.json();
+      const { messages } = await res.json();
       
-      let chatHistory = messages || [];
+      const chatHistory = messages || [];
 
       // Virtual fallback: Ensure the seller always has an opening message on the frontend!
-      const hasSellerOpening = chatHistory.some((m: any) => m.role === 'penjual' || m.role === 'admin');
+      const hasSellerOpening = chatHistory.some((m: ChatMessage) => m.role === 'penjual' || m.role === 'admin');
       if (!hasSellerOpening) {
         chatHistory.unshift({
           role: 'penjual',
@@ -313,7 +341,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
         });
       }
 
-    const renderMsgs = () => chatHistory.map((c: any) => {
+    const renderMsgs = () => chatHistory.map((c: ChatMessage) => {
       const isMe = c.sender === 'buyer';
       if (isMe) {
         const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
@@ -684,7 +712,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                     const data = await res.json();
                     throw new Error(data.error || 'Gagal menyimpan perubahan');
                   }
-                } catch (error: any) {
+                } catch (error) {
                   // Rollback on error
                   setLocalOrders(prev => prev.map(o => {
                     if (o.orderId === order.orderId) {
@@ -692,10 +720,11 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                     }
                     return o;
                   }));
+                  const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
                   Swal.fire({
                     icon: 'error',
                     title: 'Gagal',
-                    text: error.message || 'Terjadi kesalahan.',
+                    text: errMsg,
                     toast: true,
                     position: 'top-end',
                     showConfirmButton: false,
@@ -709,7 +738,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                   <div className="p-4 border-b border-border bg-base flex justify-between items-center">
                     <span className="text-xs font-mono text-text-secondary">{order.orderId}</span>
                     <span className="text-xs text-text-secondary font-medium">
-                      {new Date(order.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}, {new Date(order.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')} WIB
+                      {formatOrderDate(order.createdAt)}
                     </span>
                   </div>
                   <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
@@ -821,7 +850,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                         {order.notes ? (
                           <div className="flex items-start gap-2.5 bg-base border border-border rounded-xl px-3 py-3 group-hover:border-brand-primary/40 group-hover:bg-brand-primary/[0.02] active:bg-brand-primary/5 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-brand-primary/60"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                            <span className="leading-relaxed text-sm text-text-secondary flex-1 italic">"{order.notes}"</span>
+                             <span className="leading-relaxed text-sm text-text-secondary flex-1 italic">&ldquo;{order.notes}&rdquo;</span>
                             <Pencil className="w-4 h-4 text-brand-primary/50 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                         ) : (

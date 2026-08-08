@@ -51,10 +51,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     notFound();
   }
 
-  // Jika tidak ada user login, kembalikan null untuk user (mereka akan diminta login saat klik beli)
-  const safeUser = user ? { id: user.id, name: user.name, role: user.role } : null;
-
   return (
-    <ClientProductDetail product={productData} user={safeUser} />
+    <ClientProductDetail product={productData} user={user} />
   );
 }

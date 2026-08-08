@@ -34,7 +34,8 @@ export async function GET() {
         createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString()
       }))
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { settings } from "@/lib/schema";
 import { NextResponse } from "next/server";
 import { inArray } from "drizzle-orm";
+import { getUserFromSession } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,12 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // Hanya admin yang boleh mengubah settings fee
+    const user = await getUserFromSession();
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     
     const updates = [];

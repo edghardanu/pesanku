@@ -7,18 +7,22 @@ import { User, Mail, Phone, Store, ArrowLeft, LogOut, Package, CreditCard, Shiel
 import GlobalThemeToggle from "./GlobalThemeToggle";
 import Swal from "sweetalert2";
 
-export default function ClientProfile({ user, sellerData }: { user: any, sellerData: any }) {
+import { AuthUser, SellerProfile } from "@/types";
+
+export default function ClientProfile({ user, sellerData }: { user: AuthUser, sellerData?: SellerProfile | null }) {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
-    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
-    } else {
-      setIsDarkMode(false);
-      document.documentElement.classList.remove('dark');
-    }
+    setTimeout(() => {
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        setIsDarkMode(true);
+        document.documentElement.classList.add('dark');
+      } else {
+        setIsDarkMode(false);
+        document.documentElement.classList.remove('dark');
+      }
+    }, 0);
   }, []);
 
   const handleLogout = async () => {
@@ -64,7 +68,7 @@ export default function ClientProfile({ user, sellerData }: { user: any, sellerD
           <div className="w-24 h-24 rounded-full bg-brand-primary/10 border-4 border-brand-primary/20 flex items-center justify-center text-brand-primary text-3xl font-bold shadow-inner mb-4 relative overflow-hidden">
             {user?.profileImageUrl || sellerData?.logoUrl ? (
                // eslint-disable-next-line @next/next/no-img-element
-               <img src={user.profileImageUrl || sellerData?.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+               <img src={user.profileImageUrl || sellerData?.logoUrl || undefined} alt="Logo" className="w-full h-full object-cover" />
             ) : (
                getInitials(user.name)
             )}

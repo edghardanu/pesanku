@@ -3,48 +3,65 @@ import { db } from '@/lib/db';
 import { users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
+import { getUserFromSession } from '@/lib/auth';
 
 export async function PUT(request: Request) {
   try {
+    const sessionUser = await getUserFromSession();
+    if (!sessionUser) {
+      return NextResponse.json(
+        { error: 'Anda harus login untuk mengubah password' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
-    const { email, newPassword } = body;
+    const { currentPassword, newPassword } = body as {
+      currentPassword?: string;
+      newPassword?: string;
+    };
 
-    if (!email || !newPassword) {
+    if (!currentPassword || !newPassword) {
       return NextResponse.json(
-        { error: 'Email dan password baru wajib diisi' },
+        { error: 'Password lama dan password baru wajib diisi' },
         { status: 400 }
       );
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       return NextResponse.json(
-        { error: 'Password minimal 6 karakter' },
+        { error: 'Password minimal 8 karakter' },
         { status: 400 }
       );
     }
 
-    // Cek apakah user ada
     const user = await db
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(eq(users.id, sessionUser.id))
       .get();
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Pengguna dengan email tersebut tidak ditemukan' },
+        { error: 'Pengguna tidak ditemukan' },
         { status: 404 }
       );
     }
 
-    // Hash password baru
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isCurrentPasswordValid) {
+      return NextResponse.json(
+        { error: 'Password lama tidak sesuai' },
+        { status: 401 }
+      );
+    }
+
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
-    // Update password di database
     await db
       .update(users)
       .set({ passwordHash })
-      .where(eq(users.email, email));
+      .where(eq(users.id, user.id));
 
     return NextResponse.json({ message: 'Password berhasil diubah' });
   } catch (error) {

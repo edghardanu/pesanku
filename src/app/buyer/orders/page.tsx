@@ -7,10 +7,12 @@ import ClientBuyerOrders from "@/components/ClientBuyerOrders";
 
 export const dynamic = 'force-dynamic';
 
+import { BuyerOrderViewItem } from "@/types";
+
 export default async function BuyerOrdersPage() {
   const user = await getUserFromSession();
 
-  let userOrders: any[] = [];
+  let userOrders: BuyerOrderViewItem[] = [];
   
   if (user && user.role === 'pembeli') {
     // Fetch orders with product details and payment records
@@ -43,6 +45,5 @@ export default async function BuyerOrdersPage() {
       .orderBy(desc(orders.createdAt));
   }
 
-  return <ClientBuyerOrders orders={userOrders} user={user ? { id: user.id, name: user.name, role: user.role } : null} />;
+  return <ClientBuyerOrders orders={userOrders} user={user} />;
 }
-

@@ -24,5 +24,5 @@ export default async function ProfilePage() {
     sellerData = await db.select().from(sellerProfiles).where(eq(sellerProfiles.userId, user.id)).get();
   }
 
-  return <ClientProfile user={userData} sellerData={sellerData} />;
+  return <ClientProfile user={userData} sellerData={sellerData ?? undefined} />;
 }

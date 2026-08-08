@@ -3,12 +3,19 @@ import { db } from '@/lib/db';
 import { tickets, users } from '@/lib/schema';
 import { v4 as uuidv4 } from 'uuid';
 import { eq, desc } from 'drizzle-orm';
+import { getUserFromSession } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
-    const { userId, category, customCategory, notes } = await req.json();
+    // Verifikasi user harus login sebelum submit tiket
+    const sessionUser = await getUserFromSession();
+    if (!sessionUser) {
+      return NextResponse.json({ message: 'Unauthorized — silakan login terlebih dahulu' }, { status: 401 });
+    }
 
-    if (!userId || !category || !notes) {
+    const { category, customCategory, notes } = await req.json();
+
+    if (!category || !notes) {
       return NextResponse.json({ message: 'Data tidak lengkap' }, { status: 400 });
     }
 
@@ -16,7 +23,7 @@ export async function POST(req: Request) {
 
     await db.insert(tickets).values({
       id: ticketId,
-      userId,
+      userId: sessionUser.id,   // ambil dari session, bukan dari body (mencegah spoofing)
       category,
       customCategory: customCategory || null,
       notes,
@@ -30,8 +37,14 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
+    // Hanya admin yang dapat melihat semua tiket
+    const sessionUser = await getUserFromSession();
+    if (!sessionUser || sessionUser.role !== 'admin') {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
     const allTickets = await db
       .select({
         id: tickets.id,

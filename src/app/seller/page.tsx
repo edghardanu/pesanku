@@ -54,7 +54,7 @@ export default async function SellerDashboard() {
 
   return (
     <ClientSellerDashboard 
-      profile={profile}
+      profile={profile ?? undefined}
       myProducts={myProducts}
       activeCount={activeCount}
       waitingCount={waitingCount}

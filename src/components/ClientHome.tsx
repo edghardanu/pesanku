@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, ShoppingCart, LayoutDashboard } from "lucide-react";
 import { motion, Variants, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
+import { ProductItem, AuthUser } from "@/types";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -30,7 +31,7 @@ const itemVariants: Variants = {
   }
 };
 
-export default function ClientHome({ initialProducts, totalSold, user }: { initialProducts: any[], totalSold: number, user?: any }) {
+export default function ClientHome({ initialProducts, totalSold, user }: { initialProducts: ProductItem[], totalSold: number, user?: AuthUser | null }) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -42,14 +43,16 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
-    // Check initial mode
-    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
-    } else {
-      setIsDarkMode(false);
-      document.documentElement.classList.remove('dark');
-    }
+    setTimeout(() => {
+      // Check initial mode
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        setIsDarkMode(true);
+        document.documentElement.classList.add('dark');
+      } else {
+        setIsDarkMode(false);
+        document.documentElement.classList.remove('dark');
+      }
+    }, 0);
   }, []);
 
   const [orderCount, setOrderCount] = useState(0);
@@ -83,7 +86,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
     }
   };
 
-  const handleCheckout = async (e: React.MouseEvent, product: any) => {
+  const handleCheckout = async (e: React.MouseEvent, product: ProductItem) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -283,20 +286,22 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
   };
 
   useEffect(() => {
-    const now = new Date();
-    const utcHours = now.getUTCHours();
-    const wibHours = (utcHours + 7) % 24;
-    
-    let text = "Selamat malam";
-    if (wibHours >= 5 && wibHours < 11) {
-      text = "Selamat pagi";
-    } else if (wibHours >= 11 && wibHours < 15) {
-      text = "Selamat siang";
-    } else if (wibHours >= 15 && wibHours < 18) {
-      text = "Selamat sore";
-    }
-    
-    setGreeting(`${text}, ${user?.name || 'Pengunjung'}`);
+    setTimeout(() => {
+      const now = new Date();
+      const utcHours = now.getUTCHours();
+      const wibHours = (utcHours + 7) % 24;
+      
+      let text = "Selamat malam";
+      if (wibHours >= 5 && wibHours < 11) {
+        text = "Selamat pagi";
+      } else if (wibHours >= 11 && wibHours < 15) {
+        text = "Selamat siang";
+      } else if (wibHours >= 15 && wibHours < 18) {
+        text = "Selamat sore";
+      }
+      
+      setGreeting(`${text}, ${user?.name || 'Pengunjung'}`);
+    }, 0);
   }, [user?.name]);
 
   // Removed local isLoading in favor of GlobalLoader
@@ -968,8 +973,11 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
               {filteredProducts.map((product) => {
-                const progressPercentage = Math.min((product.currentQty / product.minQty) * 100, 100);
-                const isFull = product.currentQty >= product.minQty;
+                const currentQty = product.currentQty ?? 0;
+                const minQty = product.minQty ?? 1;
+                const progressPercentage = Math.min((currentQty / minQty) * 100, 100);
+                const isFull = currentQty >= minQty;
+                const productImageUrl = product.imageUrl ?? "/street-food-festival.jpg";
                 
                 // Format deadline
                 let deadlineText = "Tidak ada batas waktu";
@@ -986,7 +994,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                     <Link href={`/product/${product.id}`} className="card block group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                       <div className="relative aspect-[4/3] overflow-hidden bg-surface dark:bg-border rounded-t-2xl">
                         <Image 
-                          src={product.imageUrl} 
+                          src={productImageUrl} 
                           alt={product.name}
                           fill
                           className="object-contain group-hover:scale-110 transition-transform duration-500 ease-out"
@@ -1006,7 +1014,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                             {product.sellerAvatar && (
                               <Image 
                                 src={product.sellerAvatar} 
-                                alt={product.sellerName}
+                                alt={product.sellerName ?? "Penjual"}
                                 fill
                                 sizes="40px"
                                 className="object-cover"

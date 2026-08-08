@@ -6,8 +6,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Clock, Store, MapPin, CheckCircle, ShieldCheck, LogOut } from "lucide-react";
 import Swal from "sweetalert2";
+import { ProductItem, AuthUser } from "@/types";
 
-export default function ClientProductDetail({ product, user }: { product: any, user: any }) {
+export default function ClientProductDetail({ product, user }: { product: ProductItem, user: AuthUser | null }) {
   const router = useRouter();
   const [qty, setQty] = useState(product.minOrderQty || 1);
   const [notes, setNotes] = useState("");
@@ -29,10 +30,12 @@ export default function ClientProductDetail({ product, user }: { product: any, u
 
   // Load the active QRIS from localStorage to simulate Admin's setting
   useEffect(() => {
-    const savedQris = localStorage.getItem('adminQrisUrl');
-    if (savedQris) {
-      setQrisUrl(savedQris);
-    }
+    setTimeout(() => {
+      const savedQris = localStorage.getItem('adminQrisUrl');
+      if (savedQris) {
+        setQrisUrl(savedQris);
+      }
+    }, 0);
   }, []);
 
   const handleLogout = async () => {

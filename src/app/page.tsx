@@ -6,10 +6,12 @@ import { getUserFromSession } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
+import { ProductItem } from "@/types";
+
 export default async function Home() {
   const user = await getUserFromSession();
   let totalSold = 0;
-  let dbProducts: any[] = [];
+  let dbProducts: ProductItem[] = [];
 
   try {
     // Fetch total products sold

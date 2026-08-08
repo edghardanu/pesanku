@@ -118,9 +118,10 @@ export async function DELETE(req: Request) {
     await db.delete(products).where(and(eq(products.id, id), eq(products.sellerId, user.id)));
 
     return NextResponse.json({ message: 'Produk berhasil dihapus' }, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Delete product error:', error);
-    if (error?.message?.includes('FOREIGN KEY')) {
+    const errMsg = error instanceof Error ? error.message : '';
+    if (errMsg.includes('FOREIGN KEY')) {
        return NextResponse.json({ message: 'Produk tidak dapat dihapus karena terkait dengan data pesanan yang masih ada.' }, { status: 400 });
     }
     return NextResponse.json({ message: 'Terjadi kesalahan pada server saat menghapus produk' }, { status: 500 });
