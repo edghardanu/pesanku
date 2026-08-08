@@ -242,11 +242,7 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
                 <p>{product.description || 'Tidak ada deskripsi yang ditambahkan untuk produk ini.'}</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6 pt-5 border-t border-border">
-                <div className="bg-base border border-border rounded-lg p-3">
-                  <p className="text-xs text-text-secondary mb-1">Target Preorder</p>
-                  <p className="font-semibold text-text-primary">{product.minQty || 1} Porsi</p>
-                </div>
+              <div className="grid grid-cols-1 gap-3 mt-6 pt-5 border-t border-border">
                 <div className="bg-base border border-border rounded-lg p-3">
                   <p className="text-xs text-text-secondary mb-1">Waktu Proses</p>
                   <p className="font-semibold text-text-primary">{product.processingTime || '-'}</p>
