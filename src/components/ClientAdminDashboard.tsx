@@ -21,7 +21,10 @@ import {
   TrendingUp,
   Filter,
   Sun,
-  Moon
+  Moon,
+  LayoutDashboard,
+  MoreHorizontal,
+  Ticket
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -542,13 +545,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                 )}
               </AnimatePresence>
             </button>
-            <button onClick={() => setIsMobileSidebarOpen(true)} className="p-2 text-text-primary">
-              <Menu className="w-6 h-6" />
-            </button>
           </div>
         </header>
 
-        <div className="p-4 md:p-8 flex-1 relative">
+        <div className="p-4 md:p-8 pb-28 md:pb-8 flex-1 relative">
           {/* Loading Overlay */}
         {isTransitioning && (
           <div className="absolute inset-0 bg-base/60 backdrop-blur-sm z-50 flex items-center justify-center transition-all duration-300">
@@ -1331,6 +1331,68 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
         </div>
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-2 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
+        <button
+          onClick={() => handleTabChange('overview')}
+          className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 ${activeTab === 'overview' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+        >
+          <LayoutDashboard className={`w-6 h-6 stroke-[1.5] ${activeTab === 'overview' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
+          <span>Overview</span>
+        </button>
+
+        <button
+          onClick={() => handleTabChange('umkm')}
+          className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 ${activeTab === 'umkm' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+        >
+          <Store className={`w-6 h-6 stroke-[1.5] ${activeTab === 'umkm' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
+          <span>UMKM</span>
+        </button>
+
+        <button
+          onClick={() => handleTabChange('verifikasi')}
+          className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 relative ${activeTab === 'verifikasi' ? 'text-status-warning font-semibold' : 'text-text-secondary hover:text-status-warning'}`}
+        >
+          <div className="relative">
+            <CheckCircle className={`w-6 h-6 stroke-[1.5] ${activeTab === 'verifikasi' ? 'fill-status-warning/10 stroke-status-warning' : ''}`} />
+            {mockVerifications.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-status-warning text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{mockVerifications.length}</span>
+            )}
+          </div>
+          <span>Verifikasi</span>
+        </button>
+
+        <button
+          onClick={() => handleTabChange('pencairan')}
+          className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 relative ${activeTab === 'pencairan' ? 'text-brand-secondary-dark font-semibold' : 'text-text-secondary hover:text-brand-secondary-dark'}`}
+        >
+          <div className="relative">
+            <ArrowRightLeft className={`w-6 h-6 stroke-[1.5] ${activeTab === 'pencairan' ? 'fill-brand-secondary/10 stroke-brand-secondary-dark' : ''}`} />
+            {mockPayouts.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-brand-secondary-dark text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{mockPayouts.length}</span>
+            )}
+          </div>
+          <span>Pencairan</span>
+        </button>
+
+        <button
+          onClick={() => setIsMobileSidebarOpen(true)}
+          className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 ${
+            ['qris', 'tickets', 'settings'].includes(activeTab)
+              ? 'text-brand-primary font-semibold'
+              : 'text-text-secondary hover:text-brand-primary'
+          }`}
+        >
+          <div className="relative">
+            <MoreHorizontal className={`w-6 h-6 stroke-[1.5] ${['qris', 'tickets', 'settings'].includes(activeTab) ? 'stroke-brand-primary' : ''}`} />
+            {ticketsList.filter(t => t.status === 'open').length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-status-error text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{ticketsList.filter(t => t.status === 'open').length}</span>
+            )}
+          </div>
+          <span>Lainnya</span>
+        </button>
+      </nav>
     </div>
   );
 }
