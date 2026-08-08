@@ -630,9 +630,13 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
               const isPendingVerif = order.paymentId && order.paymentStatus === 'pending';
               const isVerified = order.paymentId && order.paymentStatus === 'approved';
               
-              const updateQty = (delta: number) => {
+              const updateQty = async (delta: number) => {
                 const minAllowed = order.minQty || 1;
-                if (order.qty + delta < minAllowed) {
+                const availableStock = Math.max(0, (order.stock || 0) - (order.currentQty || 0) + order.qty);
+                const maxAllowed = Math.min(order.maxQty || 999999, availableStock);
+                const newQty = order.qty + delta;
+
+                if (newQty < minAllowed) {
                   Swal.fire({
                     icon: 'warning',
                     title: 'Batas Minimal',
@@ -644,16 +648,60 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                   });
                   return;
                 }
+
+                if (newQty > maxAllowed) {
+                  Swal.fire({
+                    icon: 'warning',
+                    title: 'Batas Maksimal / Stok',
+                    text: `Batas pemesanan adalah ${maxAllowed} porsi.`,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000,
+                  });
+                  return;
+                }
+
                 // Calculate unit price from original state
                 const unitPrice = order.totalPrice / order.qty;
-                const newQty = order.qty + delta;
+                const newTotalPrice = unitPrice * newQty;
                 
+                // Optimistic update
                 setLocalOrders(prev => prev.map(o => {
                   if (o.orderId === order.orderId) {
-                    return { ...o, qty: newQty, totalPrice: unitPrice * newQty };
+                    return { ...o, qty: newQty, totalPrice: newTotalPrice };
                   }
                   return o;
                 }));
+
+                try {
+                  const res = await fetch('/api/orders/update-qty', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId: order.orderId, qty: newQty }),
+                  });
+                  if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Gagal menyimpan perubahan');
+                  }
+                } catch (error: any) {
+                  // Rollback on error
+                  setLocalOrders(prev => prev.map(o => {
+                    if (o.orderId === order.orderId) {
+                      return { ...o, qty: order.qty, totalPrice: order.totalPrice };
+                    }
+                    return o;
+                  }));
+                  Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: error.message || 'Terjadi kesalahan.',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000,
+                  });
+                }
               };
               
               return (
@@ -668,7 +716,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                     <div className="flex gap-4 items-center">
                       <div className="w-16 h-16 rounded-xl bg-base dark:bg-border overflow-hidden relative shrink-0">
                         {order.productImageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
+                          /* eslint-disable-next-line @next/next/no-img-element */
                           <img src={order.productImageUrl} alt={order.productName} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-base dark:bg-border">
@@ -705,99 +753,102 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                             </button>
                           </div>
                         </div>
-                        {/* Catatan Tambahan */}
-                        <div className="mt-3 w-full">
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <Pencil className="w-4 h-4 text-text-secondary" />
-                            <span className="text-xs sm:text-sm font-semibold text-text-secondary uppercase tracking-wide">Catatan Tambahan</span>
-                          </div>
-                          {editingNoteId === order.orderId ? (
-                            <div className="w-full">
-                              <textarea
-                                autoFocus
-                                value={noteInputs[order.orderId] ?? order.notes ?? ''}
-                                onChange={(e) => setNoteInputs(prev => ({ ...prev, [order.orderId]: e.target.value }))}
-                                rows={4}
-                                placeholder="Contoh: Jangan terlalu pedas ya kak, tolong dibungkus rapi..."
-                                className="w-full text-sm sm:text-base bg-base border-2 border-brand-primary/50 focus:border-brand-primary rounded-xl px-3 py-3 resize-none outline-none text-text-primary transition-colors leading-relaxed placeholder:text-text-secondary/40 shadow-sm"
-                              />
-                              <div className="flex items-center gap-2 mt-2.5">
-                                <button
-                                  onClick={async () => {
-                                    const newNote = noteInputs[order.orderId] ?? order.notes ?? '';
-                                    try {
-                                      const res = await fetch('/api/orders/update-note', {
-                                        method: 'PATCH',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ orderId: order.orderId, notes: newNote }),
-                                      });
-                                      if (res.ok) {
-                                        setLocalOrders(prev => prev.map(o =>
-                                          o.orderId === order.orderId ? { ...o, notes: newNote } : o
-                                        ));
-                                        Swal.fire({ icon: 'success', title: 'Catatan Disimpan', toast: true, position: 'top-end', showConfirmButton: false, timer: 1800 });
-                                      } else {
-                                        Swal.fire({ icon: 'error', title: 'Gagal menyimpan catatan', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
-                                      }
-                                    } catch {
-                                      Swal.fire({ icon: 'error', title: 'Terjadi kesalahan', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
-                                    }
-                                    setEditingNoteId(null);
-                                  }}
-                                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-brand-primary text-white text-sm font-semibold rounded-xl hover:bg-brand-primary-hover active:scale-95 transition-all"
-                                >
-                                  <Save className="w-4 h-4" /> Simpan Catatan
-                                </button>
-                                <button
-                                  onClick={() => setEditingNoteId(null)}
-                                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-100 dark:bg-gray-700 text-text-secondary text-sm font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95 transition-all"
-                                >
-                                  <X className="w-4 h-4" /> Batal
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div
-                              className="group cursor-pointer w-full"
-                              onClick={() => {
-                                setNoteInputs(prev => ({ ...prev, [order.orderId]: order.notes ?? '' }));
-                                setEditingNoteId(order.orderId);
-                              }}
-                            >
-                              {order.notes ? (
-                                <div className="flex items-start gap-2.5 bg-base border border-border rounded-xl px-3 py-3 sm:py-3.5 group-hover:border-brand-primary/40 group-hover:bg-brand-primary/[0.02] active:bg-brand-primary/5 transition-all">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-brand-primary/60"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                                  <span className="leading-relaxed text-sm text-text-secondary flex-1 italic">"{order.notes}"</span>
-                                  <Pencil className="w-4 h-4 text-brand-primary/50 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
-                              ) : (
-                                <div className="flex items-center justify-center gap-2 text-sm text-text-secondary/60 hover:text-brand-primary active:text-brand-primary transition-colors border-2 border-dashed border-border hover:border-brand-primary/40 rounded-xl px-3 py-4 w-full">
-                                  <Pencil className="w-4 h-4" />
-                                  <span className="font-medium">Tap untuk menambahkan catatan...</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-
                       </div>
                     </div>
-                    
-                    <div className="flex flex-col items-end w-full sm:w-auto gap-3">
-                      <div className="text-right">
-                        <p className="text-xs text-text-secondary font-medium">Total Harga</p>
-                        <p className="font-bold text-lg text-brand-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</p>
+                  </div>
+
+                  {/* Catatan Tambahan — full width row */}
+                  <div className="px-5 pb-4 border-t border-border pt-4">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Pencil className="w-4 h-4 text-text-secondary" />
+                      <span className="text-xs sm:text-sm font-semibold text-text-secondary uppercase tracking-wide">Catatan Tambahan</span>
+                    </div>
+                    {editingNoteId === order.orderId ? (
+                      <div className="w-full">
+                        <textarea
+                          autoFocus
+                          value={noteInputs[order.orderId] ?? order.notes ?? ''}
+                          onChange={(e) => setNoteInputs(prev => ({ ...prev, [order.orderId]: e.target.value }))}
+                          rows={3}
+                          placeholder="Contoh: Jangan terlalu pedas ya kak, tolong dibungkus rapi..."
+                          className="w-full text-sm bg-base border-2 border-brand-primary/50 focus:border-brand-primary rounded-xl px-3 py-3 resize-none outline-none text-text-primary transition-colors leading-relaxed placeholder:text-text-secondary/40 shadow-sm"
+                        />
+                        <div className="grid grid-cols-2 gap-2 mt-2.5">
+                          <button
+                            onClick={async () => {
+                              const newNote = noteInputs[order.orderId] ?? order.notes ?? '';
+                              try {
+                                const res = await fetch('/api/orders/update-note', {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ orderId: order.orderId, notes: newNote }),
+                                });
+                                if (res.ok) {
+                                  setLocalOrders(prev => prev.map(o =>
+                                    o.orderId === order.orderId ? { ...o, notes: newNote } : o
+                                  ));
+                                  Swal.fire({ icon: 'success', title: 'Catatan Disimpan', toast: true, position: 'top-end', showConfirmButton: false, timer: 1800 });
+                                } else {
+                                  Swal.fire({ icon: 'error', title: 'Gagal menyimpan catatan', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                                }
+                              } catch {
+                                Swal.fire({ icon: 'error', title: 'Terjadi kesalahan', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                              }
+                              setEditingNoteId(null);
+                            }}
+                            className="flex items-center justify-center gap-2 py-3 bg-brand-primary text-white text-sm font-semibold rounded-xl hover:bg-brand-primary-hover active:scale-95 transition-all"
+                          >
+                            <Save className="w-4 h-4 shrink-0" />
+                            <span>Simpan Catatan</span>
+                          </button>
+                          <button
+                            onClick={() => setEditingNoteId(null)}
+                            className="flex items-center justify-center gap-2 py-3 bg-gray-100 dark:bg-gray-700 text-text-secondary text-sm font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95 transition-all"
+                          >
+                            <X className="w-4 h-4 shrink-0" />
+                            <span>Batal</span>
+                          </button>
+                        </div>
                       </div>
-                      
-                      {(() => {
-                        const isWaitingPayment = order.status === 'waiting_verification' && !order.paymentId;
-                        const isPendingVerif = order.status === 'waiting_verification' && !!order.paymentId;
+                    ) : (
+                      <div
+                        className="group cursor-pointer w-full"
+                        onClick={() => {
+                          setNoteInputs(prev => ({ ...prev, [order.orderId]: order.notes ?? '' }));
+                          setEditingNoteId(order.orderId);
+                        }}
+                      >
+                        {order.notes ? (
+                          <div className="flex items-start gap-2.5 bg-base border border-border rounded-xl px-3 py-3 group-hover:border-brand-primary/40 group-hover:bg-brand-primary/[0.02] active:bg-brand-primary/5 transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-brand-primary/60"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                            <span className="leading-relaxed text-sm text-text-secondary flex-1 italic">"{order.notes}"</span>
+                            <Pencil className="w-4 h-4 text-brand-primary/50 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-2 text-sm text-text-secondary/60 hover:text-brand-primary active:text-brand-primary transition-colors border-2 border-dashed border-border hover:border-brand-primary/40 rounded-xl px-3 py-4 w-full">
+                            <Pencil className="w-4 h-4" />
+                            <span className="font-medium">Tap untuk menambahkan catatan...</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="px-5 pb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-border pt-4">
+                    <div>
+                      <p className="text-xs text-text-secondary font-medium">Total Harga</p>
+                      <p className="font-bold text-lg text-brand-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</p>
+                    </div>
+                    
+                    {(() => {
+                      const isWaitingPayment = order.status === 'waiting_verification' && !order.paymentId;
+                      const isPendingVerif = order.status === 'waiting_verification' && !!order.paymentId;
                         const isVerified = order.status === 'verified';
                         const isCompleted = order.status === 'completed';
                         const isCancelled = order.status === 'cancelled';
 
                         return (
+
                           <div className="w-full flex flex-col items-end gap-2">
                             {isWaitingPayment && (
                               <span className="inline-block px-3 py-1 bg-status-error/10 text-status-error rounded-full text-xs font-bold w-full sm:w-auto text-center">Menunggu Pembayaran</span>
@@ -896,7 +947,6 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                       })()}
                     </div>
                   </div>
-                </div>
               );
             })}
           </div>
