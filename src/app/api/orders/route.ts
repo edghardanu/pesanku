@@ -50,6 +50,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
+    const { searchParams } = new URL(request.url);
+    const productId = searchParams.get('productId');
+
     const unreadOrders = await db.select().from(orders).where(
       and(
         eq(orders.buyerId, user.id),
@@ -57,12 +60,18 @@ export async function GET(request: Request) {
       )
     );
 
-    const activeOrders = await db.select().from(orders).where(
-      and(
-        eq(orders.buyerId, user.id),
-        sql`${orders.status} != 'completed' AND ${orders.status} != 'cancelled'`
-      )
-    );
+    const activeOrdersQuery = productId
+      ? and(
+          eq(orders.buyerId, user.id),
+          eq(orders.productId, productId),
+          sql`${orders.status} != 'completed' AND ${orders.status} != 'cancelled'`
+        )
+      : and(
+          eq(orders.buyerId, user.id),
+          sql`${orders.status} != 'completed' AND ${orders.status} != 'cancelled'`
+        );
+
+    const activeOrders = await db.select().from(orders).where(activeOrdersQuery);
 
     return NextResponse.json({ 
       count: unreadOrders.length,

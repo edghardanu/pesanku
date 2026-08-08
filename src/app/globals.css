@@ -96,12 +96,46 @@ body {
   }
 }
 
+/* SweetAlert2 – Cap popup height & enable scrollable body */
+.swal2-popup {
+  max-height: 90vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.swal2-html-container {
+  overflow-y: auto !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  /* Custom thin scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.swal2-html-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.swal2-html-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.swal2-html-container::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 9999px;
+}
+
 /* SweetAlert2 Dark Mode Enhancements */
 .dark .swal2-popup {
   background-color: var(--color-surface) !important;
   color: var(--color-text-primary) !important;
   border: 1px solid var(--color-border) !important;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .swal2-html-container::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
 }
 
 .dark .swal2-title,

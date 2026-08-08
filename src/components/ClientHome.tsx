@@ -118,7 +118,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
     const confirmResult = await Swal.fire({
       title: 'Checkout Cepat',
       html: `
-        <div class="text-left font-sans mt-2 max-h-[70vh] overflow-y-auto px-1 pb-4">
+        <div class="text-left font-sans mt-2 px-1 pb-4">
           
           <!-- Image -->
           <div class="w-full h-48 rounded-2xl bg-base dark:bg-border overflow-hidden relative mb-4">
@@ -196,10 +196,10 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
       confirmButtonColor: '#ff5c35',
       cancelButtonColor: '#94a3b8',
       customClass: {
-        popup: 'bg-surface text-text-primary rounded-3xl w-full max-w-md border border-border',
-        title: 'text-left text-xl font-bold border-b border-border pb-4 w-full m-0 p-0 text-text-primary',
-        htmlContainer: 'm-0 p-0 overflow-hidden text-text-primary',
-        actions: 'w-full grid border-t border-border mt-0 pt-4 px-4 pb-4',
+        popup: 'bg-surface text-text-primary rounded-3xl w-full max-w-md border border-border flex flex-col',
+        title: 'text-left text-xl font-bold border-b border-border pb-4 w-full m-0 px-6 pt-6 text-text-primary shrink-0',
+        htmlContainer: 'm-0 p-0 overflow-y-auto text-text-primary flex-1 min-h-0 px-6',
+        actions: 'w-full grid border-t border-border mt-0 pt-4 px-4 pb-4 shrink-0',
         confirmButton: 'w-full py-3.5 text-lg rounded-xl shadow-lg order-1',
         cancelButton: 'w-full bg-transparent hover:underline text-text-secondary shadow-none order-2 mt-2'
       },
@@ -1039,18 +1039,54 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                             </div>
                           )}
 
-                          {user && user.role === 'pembeli' && (
-                            <div className="mt-4 w-full">
-                              <button 
-                                onClick={(e) => handleCheckout(e, product)}
-                                disabled={hasActiveOrder}
-                                className={`w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm ${hasActiveOrder ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed' : 'btn-primary hover:bg-brand-primary-hover'}`}
-                              >
-                                <ShoppingCart className="w-4 h-4" />
-                                {hasActiveOrder ? 'Selesaikan dulu pesanan anda' : 'Checkout Sekarang'}
-                              </button>
-                            </div>
-                          )}
+                          <div className="mt-4 w-full">
+                            <button 
+                              onClick={(e) => {
+                                if (!user) {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  Swal.fire({
+                                    title: 'Login Diperlukan',
+                                    html: `
+                                      <div class="text-center py-2">
+                                        <div class="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-primary" style="color:#E05638"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        </div>
+                                        <p class="text-text-secondary text-sm leading-relaxed">Anda harus <strong class="text-text-primary">login</strong> terlebih dahulu untuk dapat melakukan checkout dan memesan produk dari UMKM kami.</p>
+                                      </div>
+                                    `,
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Masuk Sekarang',
+                                    cancelButtonText: 'Batalkan',
+                                    confirmButtonColor: '#E05638',
+                                    cancelButtonColor: '#94a3b8',
+                                    customClass: {
+                                      popup: 'rounded-2xl',
+                                      confirmButton: 'rounded-xl px-6',
+                                      cancelButton: 'rounded-xl px-6',
+                                    }
+                                  }).then((result) => {
+                                    if (result.isConfirmed) {
+                                      window.location.href = '/login';
+                                    }
+                                  });
+                                  return;
+                                }
+                                handleCheckout(e, product);
+                              }}
+                              disabled={!!(user && user.role === 'pembeli' && hasActiveOrder)}
+                              className={`w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm font-semibold ${
+                                user && user.role === 'pembeli' && hasActiveOrder
+                                  ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed'
+                                  : 'btn-primary hover:bg-brand-primary-hover'
+                              }`}
+                            >
+                              <ShoppingCart className="w-4 h-4" />
+                              {user && user.role === 'pembeli' && hasActiveOrder
+                                ? 'Selesaikan dulu pesanan anda'
+                                : 'Checkout Sekarang'}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </Link>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Trash2 } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,6 +13,8 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
   const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [localOrders, setLocalOrders] = useState(orders);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setLocalOrders(orders);
@@ -91,6 +93,17 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
     });
 
     if (result.isConfirmed) {
+      // Optimistic update: langsung hapus dari tampilan
+      setLocalOrders(prev => prev.filter(o => o.orderId !== orderId));
+
+      Swal.fire({
+        title: 'Pesanan Dibatalkan',
+        text: 'Pesanan Anda telah berhasil dibatalkan.',
+        icon: 'success',
+        timer: 1800,
+        showConfirmButton: false
+      });
+
       try {
         const res = await fetch('/api/orders/cancel', {
           method: 'DELETE',
@@ -104,16 +117,10 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
           throw new Error(json.error || 'Gagal membatalkan pesanan');
         }
 
-        await Swal.fire({
-          title: 'Pesanan Dibatalkan',
-          text: 'Pesanan Anda telah berhasil dibatalkan.',
-          icon: 'success',
-          timer: 2000,
-          showConfirmButton: false
-        });
-
         router.refresh();
       } catch (error: any) {
+        // Rollback optimistic update
+        setLocalOrders(orders);
         Swal.fire('Gagal!', error.message || 'Terjadi kesalahan.', 'error');
       }
     }
@@ -698,12 +705,79 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                             </button>
                           </div>
                         </div>
-                        {order.notes && (
-                          <div className="mt-2 text-xs text-text-secondary bg-base p-2 rounded-lg border border-border flex items-start gap-1.5 w-max max-w-[200px] sm:max-w-[300px]">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="shrink-0 mt-0.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                             <span className="leading-tight italic line-clamp-2">"{order.notes}"</span>
-                          </div>
-                        )}
+                        {/* Catatan Tambahan */}
+                        <div className="mt-2.5">
+                          {editingNoteId === order.orderId ? (
+                            <div className="flex items-start gap-1.5 w-full max-w-[280px] sm:max-w-[340px]">
+                              <textarea
+                                autoFocus
+                                value={noteInputs[order.orderId] ?? order.notes ?? ''}
+                                onChange={(e) => setNoteInputs(prev => ({ ...prev, [order.orderId]: e.target.value }))}
+                                rows={2}
+                                placeholder="Tambahkan catatan untuk pesanan ini..."
+                                className="flex-1 text-xs bg-base border border-brand-primary/50 focus:border-brand-primary rounded-lg px-2.5 py-1.5 resize-none outline-none text-text-primary transition-colors"
+                              />
+                              <div className="flex flex-col gap-1 shrink-0">
+                                <button
+                                  onClick={async () => {
+                                    const newNote = noteInputs[order.orderId] ?? order.notes ?? '';
+                                    try {
+                                      const res = await fetch('/api/orders/update-note', {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ orderId: order.orderId, notes: newNote }),
+                                      });
+                                      if (res.ok) {
+                                        setLocalOrders(prev => prev.map(o =>
+                                          o.orderId === order.orderId ? { ...o, notes: newNote } : o
+                                        ));
+                                        Swal.fire({ icon: 'success', title: 'Catatan Disimpan', toast: true, position: 'top-end', showConfirmButton: false, timer: 1800 });
+                                      } else {
+                                        Swal.fire({ icon: 'error', title: 'Gagal menyimpan catatan', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                                      }
+                                    } catch {
+                                      Swal.fire({ icon: 'error', title: 'Terjadi kesalahan', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                                    }
+                                    setEditingNoteId(null);
+                                  }}
+                                  className="p-1.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-hover transition-colors"
+                                  title="Simpan catatan"
+                                >
+                                  <Save className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => setEditingNoteId(null)}
+                                  className="p-1.5 bg-gray-100 dark:bg-gray-700 text-text-secondary rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                  title="Batal"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              className="group flex items-start gap-1.5 cursor-pointer w-max max-w-[200px] sm:max-w-[300px]"
+                              onClick={() => {
+                                setNoteInputs(prev => ({ ...prev, [order.orderId]: order.notes ?? '' }));
+                                setEditingNoteId(order.orderId);
+                              }}
+                              title="Klik untuk edit catatan"
+                            >
+                              {order.notes ? (
+                                <div className="flex items-start gap-1.5 bg-base border border-border rounded-lg px-2 py-1.5 group-hover:border-brand-primary/40 transition-colors">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-text-secondary"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                                  <span className="leading-tight italic line-clamp-2 text-xs text-text-secondary">"{order.notes}"</span>
+                                  <Pencil className="w-3 h-3 text-brand-primary/60 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1 text-xs text-text-secondary/60 hover:text-brand-primary transition-colors border border-dashed border-border hover:border-brand-primary/40 rounded-lg px-2 py-1.5">
+                                  <Pencil className="w-3 h-3" />
+                                  <span>Tambah catatan...</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
@@ -812,12 +886,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                                 </button>
                               )}
 
-                              <button 
-                                onClick={() => handleDeleteOrder(order.orderId, order.productName)}
-                                className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" /> Hapus Data
-                              </button>
+
                             </div>
                           </div>
                         );

@@ -16,7 +16,7 @@ export default function ClientProductDetail({ product, user }: { product: any, u
 
   useEffect(() => {
     if (user && user.role === 'pembeli') {
-      fetch('/api/orders')
+      fetch(`/api/orders?productId=${product.id}`)
         .then(res => res.json())
         .then(data => {
           if (typeof data.hasActiveOrder === 'boolean') {
