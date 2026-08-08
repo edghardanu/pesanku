@@ -61,14 +61,7 @@ export default function ClientProductDetail({ product, user }: { product: any, u
   const progressPercentage = Math.min((currentTotal / (product.minQty || 1)) * 100, 100);
   const isFull = currentTotal >= (product.minQty || 1);
   
-  let deadlineText = "Tidak ada batas waktu";
-  if (product.deadlineDate) {
-    deadlineText = new Date(product.deadlineDate).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-  }
+
 
   const handleCheckout = async () => {
     if (!user) {
@@ -212,23 +205,13 @@ export default function ClientProductDetail({ product, user }: { product: any, u
               <h3 className="font-bold text-lg mb-4 border-b border-border pb-4">Atur Pesanan</h3>
               
               <div className="space-y-6">
-                {/* Progress Preorder */}
+                {/* Kuota Produk */}
                 <div className="bg-base p-4 rounded-xl border border-border">
-                  <div className="flex justify-between text-sm mb-2 font-medium">
-                    <span className="text-text-secondary">Progress Terkumpul</span>
-                    <span className={isFull ? 'text-brand-accent font-bold' : 'text-brand-secondary-dark dark:text-brand-secondary font-bold'}>
-                      {currentTotal} / {product.minQty} Porsi
+                  <div className="flex justify-between text-sm font-medium">
+                    <span className="text-text-secondary">Kuota Produk Tersedia</span>
+                    <span className="text-text-primary font-bold">
+                      {Math.max(0, (product.stock || 0) - (product.currentQty || 0))} Porsi
                     </span>
-                  </div>
-                  <div className="w-full bg-border h-2.5 rounded-full overflow-hidden mb-3">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-1000 ${isFull ? 'bg-brand-accent' : 'bg-brand-secondary'}`}
-                      style={{ width: `${progressPercentage}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-text-secondary">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>Batas Akhir: <strong className="text-text-primary">{deadlineText}</strong></span>
                   </div>
                 </div>
 

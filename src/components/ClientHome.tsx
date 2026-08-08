@@ -159,7 +159,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
               </div>
               <div class="flex justify-between">
                 <span class="text-text-secondary">Stok Tersedia</span>
-                <span class="text-text-primary font-bold">${Math.max(0, product.stock - product.currentQty)} Porsi</span>
+                <span class="text-text-primary font-bold">${Math.max(0, (product.stock || 0) - (product.currentQty || 0))} Porsi</span>
               </div>
               ${product.processingTime ? `
               <div class="flex justify-between pt-2 border-t border-border mt-1">
@@ -228,7 +228,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
           btnPlus.onclick = () => {
             let current = parseInt(inputQty.value);
-            let availableStock = Math.max(0, product.stock - product.currentQty);
+            let availableStock = Math.max(0, (product.stock || 0) - (product.currentQty || 0));
             if (current < availableStock) {
               updateDisplay(current + 1);
             } else {
@@ -1022,7 +1022,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                             </div>
                             <div className="flex justify-between text-caption mb-1.5 font-medium">
                               <span className="text-text-secondary">Tersedia:</span>
-                              <span className="text-text-primary">{Math.max(0, product.stock - product.currentQty)} Porsi</span>
+                              <span className="text-text-primary">{Math.max(0, (product.stock || 0) - (product.currentQty || 0))} Porsi</span>
                             </div>
                             {product.processingTime && (
                               <div className="flex justify-between text-caption font-medium pt-1.5 border-t border-border/50">
