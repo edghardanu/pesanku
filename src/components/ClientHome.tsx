@@ -146,8 +146,8 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
           </div>
 
           ${product.description ? `
-          <div class="bg-base px-3 py-2 rounded-xl border border-border mb-3">
-            <p class="text-xs text-text-secondary leading-relaxed line-clamp-2">${product.description}</p>
+          <div class="bg-base px-3 py-2.5 rounded-xl border border-border mb-3">
+            <p class="text-xs text-text-secondary leading-relaxed">${product.description}</p>
           </div>` : ''}
 
           <!-- Info Row -->
@@ -171,13 +171,14 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
           <div class="mb-3">
             <label class="text-xs font-semibold text-text-secondary uppercase tracking-wide block mb-2">Jumlah Porsi</label>
             <div class="flex items-center gap-3">
-              <div class="flex items-center border border-border rounded-xl bg-base overflow-hidden">
-                <button type="button" id="swal-btn-minus" class="px-3 py-2.5 hover:bg-border/50 border-r border-border font-bold transition-colors w-10 flex justify-center items-center text-lg">−</button>
-                <input id="swal-input-qty" type="number" readonly value="${buyerMinQty}" class="w-14 text-center bg-transparent font-bold outline-none text-base" />
-                <button type="button" id="swal-btn-plus" class="px-3 py-2.5 hover:bg-border/50 border-l border-border font-bold transition-colors w-10 flex justify-center items-center text-lg">+</button>
+              <div class="flex items-center border-2 border-border rounded-xl bg-base overflow-hidden">
+                <button type="button" id="swal-btn-minus" class="px-4 py-3 border-r border-border font-bold transition-all flex justify-center items-center text-xl leading-none opacity-40 cursor-not-allowed" disabled>−</button>
+                <span id="swal-qty-display" class="min-w-[3rem] text-center font-bold text-base px-2 py-3 text-text-primary select-none">${buyerMinQty}</span>
+                <button type="button" id="swal-btn-plus" class="px-4 py-3 hover:bg-border/50 border-l border-border font-bold transition-all flex justify-center items-center text-xl leading-none">+</button>
               </div>
               <p class="text-xs text-text-secondary">Min: <strong>${buyerMinQty}</strong> porsi</p>
             </div>
+            <input id="swal-input-qty" type="hidden" value="${buyerMinQty}" />
           </div>
 
           <!-- Notes -->
@@ -207,31 +208,50 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
         cancelButton: 'w-full py-2 text-sm rounded-xl bg-gray-100 text-text-secondary shadow-none font-medium'
       },
       didOpen: () => {
-        const btnMinus = document.getElementById('swal-btn-minus');
-        const btnPlus = document.getElementById('swal-btn-plus');
+        const btnMinus = document.getElementById('swal-btn-minus') as HTMLButtonElement;
+        const btnPlus = document.getElementById('swal-btn-plus') as HTMLButtonElement;
         const inputQty = document.getElementById('swal-input-qty') as HTMLInputElement;
+        const qtyDisplay = document.getElementById('swal-qty-display');
         const totalPriceEl = document.getElementById('swal-total-price');
-        const progressTextEl = document.getElementById('swal-progress-text');
-        const progressBarEl = document.getElementById('swal-progress-bar');
+        const availableStock = Math.max(0, (product.stock || 0) - (product.currentQty || 0));
+        const minQty = buyerMinQty;
 
-        if (btnMinus && btnPlus && inputQty && totalPriceEl) {
-          const updateDisplay = (newQty: number) => {
-            inputQty.value = newQty.toString();
-            totalPriceEl.innerHTML = `Rp ${(newQty * product.price).toLocaleString('id-ID')}`;
-            
-              // We no longer have progress bar to update
+        if (btnMinus && btnPlus && inputQty && qtyDisplay && totalPriceEl) {
+          const updateButtonStates = (qty: number) => {
+            // Disable minus when at minimum
+            const atMin = qty <= minQty;
+            btnMinus.disabled = atMin;
+            btnMinus.style.opacity = atMin ? '0.35' : '1';
+            btnMinus.style.cursor = atMin ? 'not-allowed' : 'pointer';
+            btnMinus.style.background = atMin ? '' : '';
+
+            // Disable plus when at max stock
+            const atMax = qty >= availableStock;
+            btnPlus.disabled = atMax;
+            btnPlus.style.opacity = atMax ? '0.35' : '1';
+            btnPlus.style.cursor = atMax ? 'not-allowed' : 'pointer';
           };
 
+          const updateDisplay = (newQty: number) => {
+            const clamped = Math.max(minQty, Math.min(newQty, availableStock));
+            inputQty.value = clamped.toString();
+            qtyDisplay.textContent = clamped.toString();
+            totalPriceEl.innerHTML = `Rp ${(clamped * product.price).toLocaleString('id-ID')}`;
+            updateButtonStates(clamped);
+          };
+
+          // Set initial state
+          updateButtonStates(minQty);
+
           btnMinus.onclick = () => {
-            let current = parseInt(inputQty.value);
-            if (current > buyerMinQty) {
+            const current = parseInt(inputQty.value);
+            if (current > minQty) {
               updateDisplay(current - 1);
             }
           };
 
           btnPlus.onclick = () => {
-            let current = parseInt(inputQty.value);
-            let availableStock = Math.max(0, (product.stock || 0) - (product.currentQty || 0));
+            const current = parseInt(inputQty.value);
             if (current < availableStock) {
               updateDisplay(current + 1);
             } else {
