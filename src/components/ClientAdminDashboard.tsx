@@ -510,6 +510,13 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
         {/* Topbar Mobile */}
         <header className="md:hidden bg-surface/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between sticky top-0 z-50 transition-all">
           <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="p-1.5 rounded-lg hover:bg-border/60 text-text-primary mr-1 cursor-pointer"
+              aria-label="Buka Menu Sidebar"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
             <ShoppingBag className="w-6 h-6 text-brand-primary" />
             <span className="text-h3 text-brand-primary font-bold tracking-tight">pesanku admin</span>
           </div>
@@ -544,6 +551,15 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                   </motion.div>
                 )}
               </AnimatePresence>
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-status-error border border-status-error/30 hover:bg-status-error/10 hover-btn transition-colors text-xs font-semibold cursor-pointer"
+              aria-label="Logout"
+              title="Keluar / Logout"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Keluar</span>
             </button>
           </div>
         </header>
@@ -601,6 +617,14 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                 <p className="text-caption text-text-secondary">Login sebagai</p>
                 <p className="font-semibold text-text-primary">{userName}</p>
               </div>
+              <button 
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-status-error border border-status-error/30 hover:bg-status-error/10 hover-btn transition-colors text-sm font-semibold shadow-sm cursor-pointer"
+                title="Keluar / Logout"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Keluar</span>
+              </button>
             </div>
           </header>
 

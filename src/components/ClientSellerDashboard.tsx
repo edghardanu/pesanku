@@ -93,7 +93,8 @@ export default function ClientSellerDashboard({
       }
     };
 
-    const interval = setInterval(fetchProducts, 5000);
+    fetchProducts();
+    const interval = setInterval(fetchProducts, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -714,7 +715,8 @@ export default function ClientSellerDashboard({
                         <tr className="border-b border-border text-body-small text-text-secondary">
                           <th className="p-4 font-medium">Info Produk</th>
                           <th className="p-4 font-medium">Harga</th>
-                          <th className="p-4 font-medium">Progress Kuota</th>
+                          <th className="p-4 font-medium">Jumlah Pesanan</th>
+                          <th className="p-4 font-medium">Stok Tersedia</th>
                           <th className="p-4 font-medium">Status & Deadline</th>
                           <th className="p-4 font-medium text-right">Aksi</th>
                         </tr>
@@ -723,7 +725,7 @@ export default function ClientSellerDashboard({
                         {localProducts.map(product => {
                           const current = product.currentQty || 0;
                           const min = product.preorderMinQty || 1;
-                          const pct = Math.min((current / min) * 100, 100);
+                          const availableStock = Math.max(0, (product.stock || 0) - current);
                           const isFull = current >= min;
                           
                           let deadlineText = "-";
@@ -746,12 +748,20 @@ export default function ClientSellerDashboard({
                                 </div>
                               </td>
                               <td className="p-4 font-medium">Rp {product.price.toLocaleString('id-ID')}</td>
-                              <td className="p-4">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold">{current} / {min}</span>
-                                  <div className="w-16 bg-border h-1.5 rounded-full overflow-hidden">
-                                    <div className={`${isFull ? 'bg-brand-accent' : 'bg-brand-secondary'} h-full rounded-full`} style={{ width: `${pct}%` }}></div>
-                                  </div>
+                              <td className="p-4 font-medium">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-brand-primary text-base">{current}</span>
+                                  <span className="text-caption text-text-secondary">Pcs</span>
+                                </div>
+                              </td>
+                              <td className="p-4 font-medium">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`font-bold text-base ${
+                                    availableStock > 0 ? 'text-status-success' : 'text-status-error'
+                                  }`}>
+                                    {availableStock}
+                                  </span>
+                                  <span className="text-caption text-text-secondary">Pcs</span>
                                 </div>
                               </td>
                               <td className="p-4">
