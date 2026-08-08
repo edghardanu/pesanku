@@ -75,6 +75,31 @@ export default function ClientProfile({ user, sellerData }: { user: AuthUser, se
       ? 'bg-status-warning/10 text-status-warning'
       : 'bg-brand-primary/10 text-brand-primary';
 
+  const isSeller = user.role === 'penjual';
+  const personalCopy = isSeller
+    ? {
+        title: 'Data Penanggung Jawab',
+        nameLabel: 'Nama Penanggung Jawab',
+        phoneLabel: 'Kontak Penjual',
+        addressLabel: 'Alamat Penanggung Jawab',
+        namePlaceholder: 'Nama pemilik atau PIC toko',
+        phonePlaceholder: 'Nomor WhatsApp penjual',
+        addressPlaceholder: 'Alamat domisili penanggung jawab',
+        sectionClass: 'border-status-success/30 bg-status-success/[0.03]',
+        iconClass: 'text-status-success',
+      }
+    : {
+        title: 'Data Pembeli',
+        nameLabel: 'Nama Penerima',
+        phoneLabel: 'WhatsApp Pembeli',
+        addressLabel: 'Alamat Pengiriman',
+        namePlaceholder: 'Nama penerima pesanan',
+        phonePlaceholder: 'Nomor WhatsApp aktif',
+        addressPlaceholder: 'Alamat lengkap untuk pengiriman',
+        sectionClass: 'border-brand-primary/30 bg-brand-primary/[0.03]',
+        iconClass: 'text-brand-primary',
+      };
+
   const avatarUrl = formData.profileImageUrl || formData.logoUrl;
 
   const updateField = (field: keyof ProfileFormData, value: string) => {
@@ -179,8 +204,8 @@ export default function ClientProfile({ user, sellerData }: { user: AuthUser, se
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-m-container mx-auto p-4 space-y-6 mt-4">
-        <section className="bg-surface rounded-2xl p-6 shadow-sm border border-border flex flex-col items-center">
-          <div className="w-24 h-24 rounded-full bg-brand-primary/10 border-4 border-brand-primary/20 flex items-center justify-center text-brand-primary text-3xl font-bold shadow-inner mb-4 relative overflow-hidden">
+        <section className={`rounded-2xl p-6 shadow-sm border flex flex-col items-center ${isSeller ? 'bg-status-success/[0.03] border-status-success/30' : 'bg-brand-primary/[0.03] border-brand-primary/30'}`}>
+          <div className={`w-24 h-24 rounded-full border-4 flex items-center justify-center text-3xl font-bold shadow-inner mb-4 relative overflow-hidden ${isSeller ? 'bg-status-success/10 border-status-success/20 text-status-success' : 'bg-brand-primary/10 border-brand-primary/20 text-brand-primary'}`}>
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarUrl} alt="Foto Profil" className="w-full h-full object-cover" />
@@ -216,14 +241,14 @@ export default function ClientProfile({ user, sellerData }: { user: AuthUser, se
           </span>
         </section>
 
-        <section className="bg-surface rounded-2xl p-5 shadow-sm border border-border space-y-5">
+        <section className={`rounded-2xl p-5 shadow-sm border space-y-5 ${personalCopy.sectionClass}`}>
           <h3 className="font-bold text-text-primary border-b border-border pb-3 flex items-center gap-2">
-            <User className="w-5 h-5 text-brand-primary" /> Data Pribadi
+            <User className={`w-5 h-5 ${personalCopy.iconClass}`} /> {personalCopy.title}
           </h3>
 
           <label className="block">
             <span className="text-body-small font-medium text-text-secondary mb-1 flex items-center gap-2">
-              <User className="w-4 h-4" /> Nama Lengkap
+              <User className="w-4 h-4" /> {personalCopy.nameLabel}
             </span>
             <input
               type="text"
@@ -231,7 +256,7 @@ export default function ClientProfile({ user, sellerData }: { user: AuthUser, se
               value={formData.name}
               onChange={(event) => updateField('name', event.target.value)}
               className="input-field w-full"
-              placeholder="Nama lengkap"
+              placeholder={personalCopy.namePlaceholder}
             />
           </label>
 
@@ -249,26 +274,26 @@ export default function ClientProfile({ user, sellerData }: { user: AuthUser, se
 
           <label className="block">
             <span className="text-body-small font-medium text-text-secondary mb-1 flex items-center gap-2">
-              <Phone className="w-4 h-4" /> No. Telepon
+              <Phone className="w-4 h-4" /> {personalCopy.phoneLabel}
             </span>
             <input
               type="tel"
               value={formData.phone}
               onChange={(event) => updateField('phone', event.target.value)}
               className="input-field w-full"
-              placeholder="Contoh: 08123456789"
+              placeholder={personalCopy.phonePlaceholder}
             />
           </label>
 
           <label className="block">
             <span className="text-body-small font-medium text-text-secondary mb-1 flex items-center gap-2">
-              <MapPin className="w-4 h-4" /> Alamat Pengiriman Utama
+              <MapPin className="w-4 h-4" /> {personalCopy.addressLabel}
             </span>
             <textarea
               value={formData.address}
               onChange={(event) => updateField('address', event.target.value)}
               className="input-field w-full min-h-[96px] py-3"
-              placeholder="Alamat lengkap untuk pengiriman"
+              placeholder={personalCopy.addressPlaceholder}
             />
           </label>
         </section>
