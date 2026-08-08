@@ -21,6 +21,8 @@ type Product = {
   processingTime?: string | null;
   batchCategory?: string | null;
   maxOrderQty?: number | null;
+  minOrderQty?: number | null;
+  stock?: number | null;
 };
 
 type ClientSellerDashboardProps = {

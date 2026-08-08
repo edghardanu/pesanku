@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Swal from "sweetalert2";
 import { CheckCircle2, Loader2 } from "lucide-react";
 
-export default function ClientProcessOrder() {
+function ProcessOrderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [progress, setProgress] = useState(0);
@@ -142,5 +142,13 @@ export default function ClientProcessOrder() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function ClientProcessOrder() {
+  return (
+    <Suspense fallback={null}>
+      <ProcessOrderContent />
+    </Suspense>
   );
 }

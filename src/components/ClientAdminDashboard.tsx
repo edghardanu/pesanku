@@ -341,7 +341,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
     }
   };
 
-  const handleTabChange = (tab: 'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'qris' | 'settings') => {
+  const handleTabChange = (tab: 'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'qris' | 'settings' | 'tickets') => {
     if (tab === activeTab) return;
     setActiveTab(tab);
     setIsMobileSidebarOpen(false);

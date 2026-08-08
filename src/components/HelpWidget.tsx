@@ -169,9 +169,9 @@ export default function HelpWidget() {
           setIsOpen(!isOpen);
           if (isOpen) setShowTicketForm(false);
         }}
-        className="w-14 h-14 bg-brand-primary text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 hover:bg-brand-primary-hover transition-all z-50"
+        className="px-5 h-12 bg-brand-primary text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 hover:bg-brand-primary-hover transition-all z-50 font-semibold"
       >
-        {isOpen ? <X className="w-6 h-6" /> : <HelpCircle className="w-6 h-6" />}
+        {isOpen ? <X className="w-6 h-6" /> : "Butuh Bantuan?"}
       </button>
     </div>
   );

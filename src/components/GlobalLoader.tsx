@@ -5,7 +5,9 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingBag } from "lucide-react";
 
-export default function GlobalLoader() {
+import { Suspense } from "react";
+
+function LoaderContent() {
   const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -62,5 +64,13 @@ export default function GlobalLoader() {
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+export default function GlobalLoader() {
+  return (
+    <Suspense fallback={null}>
+      <LoaderContent />
+    </Suspense>
   );
 }
