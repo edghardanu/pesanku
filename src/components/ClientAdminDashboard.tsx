@@ -41,7 +41,7 @@ type ClientAdminDashboardProps = {
 
 export default function ClientAdminDashboard({ stats, userName, umkmList, ordersList = [] }: ClientAdminDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'qris' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'qris' | 'settings' | 'tickets'>('overview');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [localUmkmList, setLocalUmkmList] = useState(umkmList);
@@ -89,6 +89,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   const [liveOrders, setLiveOrders] = useState<any[]>(ordersList);
 
   // 100% Real-time async polling from SQLite DB every 3 seconds
+  const [ticketsList, setTicketsList] = useState<any[]>([]);
+
   useEffect(() => {
     const fetchLiveStats = async () => {
       try {
@@ -104,8 +106,26 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
       }
     };
 
+    const fetchTickets = async () => {
+      try {
+        const res = await fetch('/api/tickets');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.tickets) {
+            setTicketsList(data.tickets);
+          }
+        }
+      } catch (err) {
+        console.error('Error polling tickets:', err);
+      }
+    };
+
     fetchLiveStats();
-    const interval = setInterval(fetchLiveStats, 3000);
+    fetchTickets();
+    const interval = setInterval(() => {
+      fetchLiveStats();
+      fetchTickets();
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -442,6 +462,23 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           </button>
 
           <button 
+            onClick={() => handleTabChange('tickets')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
+              activeTab === 'tickets' 
+                ? 'bg-status-error/10 text-status-error font-semibold' 
+                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+            }`}
+          >
+            <Settings className="w-5 h-5" />
+            <span>Tiket Bantuan</span>
+            {ticketsList.filter(t => t.status === 'open').length > 0 && (
+              <span className="ml-auto bg-status-error text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                {ticketsList.filter(t => t.status === 'open').length}
+              </span>
+            )}
+          </button>
+
+          <button 
             onClick={() => handleTabChange('settings')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
               activeTab === 'settings' 
@@ -710,6 +747,66 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                 Hapus
                               </button>
                             </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'tickets' && (
+            <div className="card p-0 border border-border overflow-hidden">
+              <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
+                <h2 className="text-h3 w-full sm:w-auto">Daftar Tiket Bantuan</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-surface text-caption text-text-secondary border-b border-border">
+                      <th className="p-4 font-medium">Tanggal</th>
+                      <th className="p-4 font-medium">Pengirim</th>
+                      <th className="p-4 font-medium">Kategori</th>
+                      <th className="p-4 font-medium max-w-xs">Catatan</th>
+                      <th className="p-4 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-body-small text-text-primary">
+                    {ticketsList.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-text-secondary">
+                          Belum ada tiket bantuan.
+                        </td>
+                      </tr>
+                    ) : (
+                      ticketsList.map((ticket) => (
+                        <tr key={ticket.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                          <td className="p-4 text-text-secondary">
+                            {new Date(ticket.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </td>
+                          <td className="p-4">
+                            <p className="font-semibold text-text-primary">{ticket.userName || '-'}</p>
+                            <p className="text-caption text-text-secondary">{ticket.userPhone || '-'}</p>
+                            <span className="text-xs bg-border/50 px-2 py-0.5 rounded">{ticket.userRole}</span>
+                          </td>
+                          <td className="p-4 font-medium text-text-primary">
+                            {ticket.category === 'lainnya' ? ticket.customCategory : ticket.category.replace(/_/g, ' ').toUpperCase()}
+                          </td>
+                          <td className="p-4 text-text-secondary max-w-xs whitespace-pre-wrap">
+                            {ticket.notes}
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                              ticket.status === 'open' 
+                                ? 'bg-status-error/10 text-status-error' 
+                                : ticket.status === 'resolved'
+                                ? 'bg-status-success/10 text-status-success'
+                                : 'bg-status-warning/10 text-status-warning'
+                            }`}>
+                              {ticket.status.toUpperCase()}
+                            </span>
                           </td>
                         </tr>
                       ))

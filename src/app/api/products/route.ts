@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, description, price, imageUrl, minQty, deadline, minOrderQty, maxOrderQty, batchCategory } = body;
+    const { name, description, price, imageUrl, minQty, deadline, minOrderQty, maxOrderQty, batchCategory, processingTime, stock } = body;
 
     if (!name || !price) {
       return NextResponse.json({ message: 'Nama dan harga produk wajib diisi' }, { status: 400 });
@@ -81,6 +81,8 @@ export async function POST(req: Request) {
       deadlineDate: deadlineDate,
       minOrderQty: minOrderQty ? parseInt(minOrderQty) : 1,
       maxOrderQty: maxOrderQty ? parseInt(maxOrderQty) : null,
+      stock: stock ? parseInt(stock) : 0,
+      processingTime: processingTime || null,
       batchCategory: batchCategory || null,
       status: 'draft',
     });
@@ -134,7 +136,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { id, name, price, minQty, imageUrl, minOrderQty, maxOrderQty, batchCategory } = body;
+    const { id, name, price, minQty, imageUrl, minOrderQty, maxOrderQty, batchCategory, processingTime, stock } = body;
 
     if (!id || !name || !price || !minQty) {
       return NextResponse.json({ message: 'Data produk tidak lengkap' }, { status: 400 });
@@ -168,6 +170,8 @@ export async function PUT(req: Request) {
         preorderMinQty: parseInt(minQty),
         minOrderQty: minOrderQty ? parseInt(minOrderQty) : 1,
         maxOrderQty: maxOrderQty ? parseInt(maxOrderQty) : null,
+        stock: stock ? parseInt(stock) : 0,
+        processingTime: processingTime || null,
         batchCategory: batchCategory || null,
         ...(finalImageUrl ? { imageUrl: finalImageUrl } : {})
       })

@@ -590,7 +590,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
               </div>
               
               <h3 className="text-h2 text-text-primary mb-3 font-bold">Anda belum masuk!</h3>
-              <p className="text-body-base !text-black dark:!text-white mb-8 max-w-sm">Tampaknya Anda belum login ke dalam akun, silakan masuk untuk melihat dan membuat pesanan baru.</p>
+              <p className="text-body-base text-text-secondary mb-8 max-w-sm">Tampaknya Anda belum login ke dalam akun, silakan masuk untuk melihat dan membuat pesanan baru.</p>
               
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto z-10 relative">
                 <Link href="/login" className="btn-primary py-3 px-8 text-base text-white shadow-lg hover:shadow-brand-primary/30 transition-shadow w-full sm:w-auto text-center rounded-xl">
@@ -672,6 +672,11 @@ export default function ClientBuyerOrders({ orders, user }: { orders: any[], use
                       <div>
                         <h3 className="font-bold text-text-primary mb-1">{order.productName}</h3>
                         <p className="text-sm text-text-secondary mb-1">Toko: {order.storeName || 'Toko UMKM'}</p>
+                        {order.processingTime && (
+                          <p className="text-sm text-text-secondary mb-1">
+                            Waktu Proses: <span className="font-medium text-text-primary">{order.processingTime}</span>
+                          </p>
+                        )}
                         <p className="text-sm text-brand-primary font-semibold mb-2">Rp {(order.totalPrice / order.qty).toLocaleString('id-ID')} / Porsi</p>
                         <div className="flex items-center gap-3 mt-1.5">
                           <p className="text-sm font-medium">Jumlah:</p>

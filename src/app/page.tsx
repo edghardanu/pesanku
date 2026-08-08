@@ -27,7 +27,7 @@ export default async function Home() {
         minQty: products.preorderMinQty,
         currentQty: products.currentQty,
         minOrderQty: products.minOrderQty,
-        maxOrderQty: products.maxOrderQty,
+        stock: products.stock,
         batchCategory: products.batchCategory,
         deadlineDate: products.deadlineDate,
         status: products.status,

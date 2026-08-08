@@ -10,7 +10,6 @@ export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [hasMinQty, setHasMinQty] = useState(false);
   
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,25 +52,18 @@ export default function NewProductPage() {
     setError("");
 
     const formData = new FormData(e.currentTarget);
-    const minQty = formData.get("minQty");
-    const deadline = formData.get("deadline");
+    const minQty = "1";
 
-    // Validasi di frontend (Business Rule 1)
-    if (deadline && (!minQty || parseInt(minQty as string) < 1)) {
-      setError("Kuota minimal wajib diisi sebelum mengatur deadline!");
-      setLoading(false);
-      return;
-    }
+    // Validasi di frontend (Business Rule 1) removed since deadline is removed
 
     const data = {
       name: formData.get("name"),
       description: formData.get("description"),
       price: formData.get("price"),
       minQty: minQty,
-      deadline: deadline,
       minOrderQty: formData.get("minOrderQty"),
-      maxOrderQty: formData.get("maxOrderQty"),
-      batchCategory: formData.get("batchCategory"),
+      stock: formData.get("stock"),
+      processingTime: formData.get("processingTime"),
       imageUrl: imagePreview || "",
     };
 
@@ -203,73 +195,43 @@ export default function NewProductPage() {
 
             <div className="bg-brand-secondary/10 p-4 rounded-xl mb-6">
               <h3 className="text-body-base font-semibold text-brand-secondary-dark mb-2">Pengaturan Preorder</h3>
-              <p className="text-caption text-text-secondary mb-4">Sistem akan secara otomatis membatalkan preorder jika kuota minimal tidak tercapai hingga batas waktu (deadline) yang ditentukan.</p>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-body-small font-medium text-text-primary mb-1">
-                    Target Kuota Total (Porsi) <span className="text-status-error">*</span>
+                    Minimal Order <span className="text-status-error">*</span>
                   </label>
                   <input 
                     type="number" 
-                    name="minQty"
+                    name="minOrderQty"
                     min="1"
-                    defaultValue="10"
-                    onChange={(e) => setHasMinQty(parseInt(e.target.value) > 0)}
-                    className="input-field bg-white"
-                  />
-                  <p className="text-[10px] text-text-secondary mt-1">Preorder harus mencapai angka ini agar diproses.</p>
-                </div>
-
-                <div>
-                  <label className="block text-body-small font-medium text-text-primary mb-1">
-                    Batas Waktu (Deadline)
-                  </label>
-                  <input 
-                    type="date" 
-                    name="deadline"
-                    className="input-field bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-body-small font-medium text-text-primary mb-1">
-                    Kategori / Termin
-                  </label>
-                  <input 
-                    type="text" 
-                    name="batchCategory"
-                    placeholder="Contoh: Termin 1"
+                    defaultValue="1"
                     className="input-field bg-white"
                   />
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-body-small font-medium text-text-primary mb-1">
-                      Min. Order / Orang
-                    </label>
-                    <input 
-                      type="number" 
-                      name="minOrderQty"
-                      min="1"
-                      defaultValue="1"
-                      className="input-field bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-body-small font-medium text-text-primary mb-1">
-                      Max. Order / Orang
-                    </label>
-                    <input 
-                      type="number" 
-                      name="maxOrderQty"
-                      min="1"
-                      placeholder="Tak terbatas"
-                      className="input-field bg-white"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-body-small font-medium text-text-primary mb-1">
+                    Stok (Produk Tersedia) <span className="text-status-error">*</span>
+                  </label>
+                  <input 
+                    type="number" 
+                    name="stock"
+                    min="0"
+                    defaultValue="100"
+                    className="input-field bg-white"
+                  />
                 </div>
+              </div>
+              <div className="mt-4">
+                <label className="block text-body-small font-medium text-text-primary mb-1">
+                  Waktu Proses Pemesanan (Estimasi)
+                </label>
+                <input 
+                  type="text" 
+                  name="processingTime"
+                  placeholder="Contoh: 2 Hari, 1 Minggu, dsb."
+                  className="input-field bg-white"
+                />
               </div>
             </div>
 

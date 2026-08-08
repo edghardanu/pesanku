@@ -45,6 +45,8 @@ export const products = sqliteTable('products', {
   currentQty: integer('current_qty').default(0),
   minOrderQty: integer('min_order_qty').default(1),
   maxOrderQty: integer('max_order_qty'),
+  stock: integer('stock').default(0),
+  processingTime: text('processing_time'),
   batchCategory: text('batch_category'),
   deadlineDate: integer('deadline_date', { mode: 'timestamp' }),
   status: text('status', { enum: ['draft', 'active', 'quota_reached', 'closed', 'processing', 'completed'] }).default('draft'),
@@ -113,6 +115,17 @@ export const chatMessages = sqliteTable('chat_messages', {
   senderId: text('sender_id').notNull().references(() => users.id),
   text: text('text').notNull(),
   isRead: integer('is_read', { mode: 'boolean' }).default(false),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+
+// Tickets / Reports
+export const tickets = sqliteTable('tickets', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  category: text('category').notNull(),
+  customCategory: text('custom_category'),
+  notes: text('notes').notNull(),
+  status: text('status', { enum: ['open', 'in_progress', 'resolved', 'closed'] }).default('open'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 

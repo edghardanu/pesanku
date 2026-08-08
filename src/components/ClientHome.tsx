@@ -37,13 +37,10 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [greeting, setGreeting] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
     // Check initial mode
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       setIsDarkMode(true);
@@ -114,7 +111,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
     const globalMinQty = product.preorderMinQty || product.minQty || 10;
     const currentQty = product.currentQty || 0;
     const buyerMinQty = product.minOrderQty || 1;
-    const buyerMaxQty = product.maxOrderQty || 999;
+
     const isFull = currentQty >= globalMinQty;
 
     const confirmResult = await Swal.fire({
@@ -152,21 +149,23 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
             </div>
           </div>
 
-          <!-- Progress -->
           <h3 class="font-bold text-lg mb-4">Atur Pesanan</h3>
           <div class="bg-base p-4 rounded-xl border border-border mb-6">
-            <div class="flex justify-between text-sm mb-2 font-medium">
-              <span class="text-text-secondary">Progress Terkumpul</span>
-              <span id="swal-progress-text" class="${isFull ? 'text-brand-accent' : 'text-brand-secondary-dark dark:text-brand-secondary'} font-bold">
-                ${currentQty + buyerMinQty} / ${globalMinQty} Porsi
-              </span>
-            </div>
-            <div class="w-full bg-border h-2.5 rounded-full overflow-hidden mb-3">
-              <div 
-                id="swal-progress-bar"
-                class="h-full rounded-full transition-all duration-300 ${isFull ? 'bg-brand-accent' : 'bg-brand-secondary'}"
-                style="width: ${Math.min(((currentQty + buyerMinQty) / globalMinQty) * 100, 100)}%"
-              ></div>
+            <div class="flex flex-col gap-2 text-sm font-medium">
+              <div class="flex justify-between">
+                <span class="text-text-secondary">Minimal Order</span>
+                <span class="text-text-primary font-bold">${buyerMinQty} Porsi</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-text-secondary">Stok Tersedia</span>
+                <span class="text-text-primary font-bold">${Math.max(0, product.stock - product.currentQty)} Porsi</span>
+              </div>
+              ${product.processingTime ? `
+              <div class="flex justify-between pt-2 border-t border-border mt-1">
+                <span class="text-text-secondary">Waktu Proses</span>
+                <span class="text-brand-primary font-bold">${product.processingTime}</span>
+              </div>
+              ` : ''}
             </div>
           </div>
 
@@ -177,7 +176,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
             <input id="swal-input-qty" type="number" readonly value="${buyerMinQty}" class="w-16 text-center bg-transparent font-bold outline-none m-0 p-0" />
             <button type="button" id="swal-btn-plus" class="px-4 py-2 hover:bg-border/50 border-l border-border font-bold transition-colors w-12 flex justify-center items-center">+</button>
           </div>
-          <p class="text-xs text-text-secondary mb-5 font-medium">Minimal: ${buyerMinQty} Porsi ${product.maxOrderQty ? `| Maksimal: ${buyerMaxQty} Porsi` : ''}</p>
+          <p class="text-xs text-text-secondary mb-5 font-medium">Minimal: ${buyerMinQty} Porsi</p>
 
           <!-- Notes -->
           <label class="text-sm font-semibold text-text-primary block mb-2">Catatan Tambahan <span class="text-text-secondary font-normal">(Opsional)</span></label>
@@ -216,21 +215,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
             inputQty.value = newQty.toString();
             totalPriceEl.innerHTML = `Rp ${(newQty * product.price).toLocaleString('id-ID')}`;
             
-            if (progressTextEl && progressBarEl) {
-              const newTotalQty = currentQty + newQty;
-              progressTextEl.innerHTML = `${newTotalQty} / ${globalMinQty} Porsi`;
-              
-              const newPercentage = Math.min((newTotalQty / globalMinQty) * 100, 100);
-              progressBarEl.style.width = `${newPercentage}%`;
-              
-              if (newPercentage >= 100) {
-                progressTextEl.className = 'text-brand-accent font-bold';
-                progressBarEl.className = 'h-full rounded-full transition-all duration-300 bg-brand-accent';
-              } else {
-                progressTextEl.className = 'text-brand-secondary-dark dark:text-brand-secondary font-bold';
-                progressBarEl.className = 'h-full rounded-full transition-all duration-300 bg-brand-secondary';
-              }
-            }
+              // We no longer have progress bar to update
           };
 
           btnMinus.onclick = () => {
@@ -242,13 +227,12 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
           btnPlus.onclick = () => {
             let current = parseInt(inputQty.value);
-            if (current < buyerMaxQty) {
+            let availableStock = Math.max(0, product.stock - product.currentQty);
+            if (current < availableStock) {
               updateDisplay(current + 1);
-            } else if (product.maxOrderQty) {
-                Swal.showValidationMessage(`Maksimal pesanan adalah ${buyerMaxQty} porsi.`);
-                setTimeout(() => Swal.resetValidationMessage(), 2000);
             } else {
-                updateDisplay(current + 1);
+              Swal.showValidationMessage(`Stok tidak mencukupi (Tersisa ${availableStock} porsi)`);
+              setTimeout(() => Swal.resetValidationMessage(), 2000);
             }
           };
         }
@@ -291,9 +275,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
     setGreeting(`${text}, ${user?.name || 'Pengunjung'}`);
   }, [user?.name]);
 
-  useEffect(() => {
-    setIsLoading(false);
-  }, []);
+  // Removed local isLoading in favor of GlobalLoader
 
   useEffect(() => {
     const handleScroll = () => {
@@ -345,42 +327,6 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
   return (
     <>
-      {isMounted && (
-        <AnimatePresence>
-          {isLoading && (
-          <motion.div 
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="fixed inset-0 z-[100] bg-base flex flex-col items-center justify-center"
-          >
-            <motion.div
-              animate={{ 
-                scale: [0.9, 1.1, 1],
-              }}
-              transition={{ 
-                duration: 1.2,
-                ease: "easeInOut",
-                repeat: Infinity,
-                repeatType: "reverse"
-              }}
-              className="flex flex-col items-center gap-4"
-            >
-              <div className="w-24 h-24 bg-brand-primary/10 rounded-full flex items-center justify-center relative">
-                <motion.div 
-                  className="absolute inset-0 border-4 border-brand-primary/20 rounded-full"
-                  animate={{ scale: [1, 1.5], opacity: [1, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
-                />
-                <ShoppingBag className="w-12 h-12 text-brand-primary" />
-              </div>
-              <span className="text-display-2 text-brand-primary font-bold tracking-tight">pesanku</span>
-            </motion.div>
-          </motion.div>
-        )}
-        </AnimatePresence>
-      )}
-
       <header className="bg-surface/80 backdrop-blur-md border-b border-border sticky top-0 z-50 transition-all">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 hover:scale-105 transition-transform">
@@ -896,12 +842,8 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         <div className="absolute top-3 left-3">
-                          <span className={`px-3 py-1.5 rounded-full text-caption font-bold flex items-center gap-1 backdrop-blur-sm shadow-sm ${
-                            isFull 
-                              ? 'bg-brand-accent/90 text-white' 
-                              : 'bg-brand-secondary/90 text-slate-900 border border-brand-secondary/20'
-                          }`}>
-                            {isFull ? "Kuota Tercapai" : "Terbuka"}
+                          <span className="px-3 py-1.5 rounded-full text-caption font-bold flex items-center gap-1 backdrop-blur-sm shadow-sm bg-brand-secondary/90 text-slate-900 border border-brand-secondary/20">
+                            Terbuka
                           </span>
                         </div>
                       </div>
@@ -944,19 +886,21 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                         </p>
 
                         <div className="space-y-4">
-                          <div>
-                            <div className="flex justify-between text-caption mb-2 font-medium">
-                              <span className="text-text-secondary">Terkumpul: <span className="text-text-primary">{product.currentQty} / {product.minQty}</span></span>
-                              <span className={isFull ? 'text-brand-accent font-bold' : 'text-brand-secondary-dark font-bold'}>
-                                {Math.round(progressPercentage)}%
-                              </span>
+                          <div className="bg-surface/50 p-3 rounded-lg border border-border">
+                            <div className="flex justify-between text-caption mb-1.5 font-medium">
+                              <span className="text-text-secondary">Minimal Order:</span>
+                              <span className="text-text-primary">{product.minOrderQty} Porsi</span>
                             </div>
-                            <div className="w-full bg-border h-2.5 rounded-full overflow-hidden shadow-inner">
-                              <div 
-                                className={`h-full rounded-full transition-all duration-1000 ease-out ${isFull ? 'bg-brand-accent' : 'bg-brand-secondary'}`}
-                                style={{ width: `${progressPercentage}%` }}
-                              />
+                            <div className="flex justify-between text-caption mb-1.5 font-medium">
+                              <span className="text-text-secondary">Tersedia:</span>
+                              <span className="text-text-primary">{Math.max(0, product.stock - product.currentQty)} Porsi</span>
                             </div>
+                            {product.processingTime && (
+                              <div className="flex justify-between text-caption font-medium pt-1.5 border-t border-border/50">
+                                <span className="text-text-secondary">Waktu Proses:</span>
+                                <span className="text-brand-primary">{product.processingTime}</span>
+                              </div>
+                            )}
                           </div>
                           
                           {product.deadlineDate && (

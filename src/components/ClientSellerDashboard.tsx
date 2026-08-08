@@ -18,8 +18,8 @@ type Product = {
   currentQty: number | null;
   status: string | null;
   deadlineDate: Date | null;
+  processingTime?: string | null;
   batchCategory?: string | null;
-  minOrderQty?: number | null;
   maxOrderQty?: number | null;
 };
 
@@ -783,26 +783,22 @@ export default function ClientSellerDashboard({
                                               <input id="swal-edit-name" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.name}">
                                             </div>
                                             <div>
-                                              <label class="text-caption text-text-secondary mb-1 block">Kategori / Termin</label>
-                                              <input id="swal-edit-category" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.batchCategory || ''}" placeholder="Contoh: Termin 1">
-                                            </div>
-                                            <div>
                                               <label class="text-caption text-text-secondary mb-1 block">Harga (Rp)</label>
                                               <input id="swal-edit-price" type="number" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.price}">
                                             </div>
                                             <div class="grid grid-cols-2 gap-3">
                                               <div>
-                                                <label class="text-caption text-text-secondary mb-1 block">Min. Order / Org</label>
+                                                <label class="text-caption text-text-secondary mb-1 block">Minimal Order</label>
                                                 <input id="swal-edit-minorder" type="number" min="1" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.minOrderQty || 1}">
                                               </div>
                                               <div>
-                                                <label class="text-caption text-text-secondary mb-1 block">Max. Order / Org</label>
-                                                <input id="swal-edit-maxorder" type="number" min="1" placeholder="Tak Terbatas" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.maxOrderQty || ''}">
+                                                <label class="text-caption text-text-secondary mb-1 block">Stok Tersedia</label>
+                                                <input id="swal-edit-stock" type="number" min="0" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.stock || 0}">
                                               </div>
                                             </div>
                                             <div>
-                                              <label class="text-caption text-text-secondary mb-1 block">Minimal Kuota Preorder (Total)</label>
-                                              <input id="swal-edit-min" type="number" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.preorderMinQty || 1}">
+                                              <label class="text-caption text-text-secondary mb-1 block">Waktu Proses Pemesanan</label>
+                                              <input id="swal-edit-processingtime" type="text" placeholder="Contoh: 2 Hari" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.processingTime || ''}">
                                             </div>
                                           </div>
                                         `,
@@ -838,13 +834,12 @@ export default function ClientSellerDashboard({
                                         preConfirm: async () => {
                                           const name = (document.getElementById('swal-edit-name') as HTMLInputElement).value;
                                           const price = (document.getElementById('swal-edit-price') as HTMLInputElement).value;
-                                          const min = (document.getElementById('swal-edit-min') as HTMLInputElement).value;
-                                          const category = (document.getElementById('swal-edit-category') as HTMLInputElement).value;
                                           const minOrder = (document.getElementById('swal-edit-minorder') as HTMLInputElement).value;
-                                          const maxOrder = (document.getElementById('swal-edit-maxorder') as HTMLInputElement).value;
+                                          const stock = (document.getElementById('swal-edit-stock') as HTMLInputElement).value;
+                                          const processingTime = (document.getElementById('swal-edit-processingtime') as HTMLInputElement).value;
                                           const imageInput = document.getElementById('swal-edit-image') as HTMLInputElement;
                                           
-                                          if (!name || !price || !min || !minOrder) {
+                                          if (!name || !price || !minOrder) {
                                             Swal.showValidationMessage('Semua kolom teks penting wajib diisi!');
                                             return false;
                                           }
@@ -867,11 +862,11 @@ export default function ClientSellerDashboard({
                                           return { 
                                             name, 
                                             price: parseInt(price), 
-                                            min: parseInt(min), 
+                                            min: product.preorderMinQty || 1, 
                                             imageUrl,
-                                            batchCategory: category,
                                             minOrderQty: parseInt(minOrder),
-                                            maxOrderQty: maxOrder ? parseInt(maxOrder) : null
+                                            stock: parseInt(stock),
+                                            processingTime
                                           };
                                         }
                                       }).then(async (result) => {
@@ -894,11 +889,11 @@ export default function ClientSellerDashboard({
                                                 id: product.id,
                                                 name: result.value.name,
                                                 price: result.value.price,
-                                                minQty: result.value.minQty || result.value.min,
+                                                minQty: result.value.min,
                                                 imageUrl: result.value.imageUrl,
-                                                batchCategory: result.value.batchCategory,
                                                 minOrderQty: result.value.minOrderQty,
-                                                maxOrderQty: result.value.maxOrderQty
+                                                stock: result.value.stock,
+                                                processingTime: result.value.processingTime
                                               })
                                             });
 

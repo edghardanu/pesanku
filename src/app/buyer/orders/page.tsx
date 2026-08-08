@@ -26,6 +26,7 @@ export default async function BuyerOrdersPage() {
         productImageUrl: products.imageUrl,
         storeName: sellerProfiles.storeName,
         minQty: products.preorderMinQty,
+        processingTime: products.processingTime,
         paymentId: payments.id,
         paymentStatus: payments.verificationStatus,
         deliveryProofUrl: orders.deliveryProofUrl,
