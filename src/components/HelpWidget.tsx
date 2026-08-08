@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { MessageCircle, HelpCircle, X, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
+import { usePathname } from "next/navigation";
 
 export default function HelpWidget() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [showTicketForm, setShowTicketForm] = useState(false);
   
@@ -22,6 +24,10 @@ export default function HelpWidget() {
       setUser(JSON.parse(u));
     }
   }, []);
+
+  if (pathname !== "/") {
+    return null;
+  }
 
   const handleWhatsApp = () => {
     // Nomor WA admin/CS (ganti dengan yang sesuai)
