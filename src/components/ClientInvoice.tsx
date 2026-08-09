@@ -7,6 +7,7 @@ import { InvoiceOrder } from "@/types";
 
 export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, feeAdmin = 0 }: { order: InvoiceOrder, feeAplikasi?: number, feeJasa?: number, feeAdmin?: number }) {
   const router = useRouter();
+  const itemUnitPrice = order.selectedVariantPrice ?? order.productPrice;
   
   const [printDate, setPrintDate] = useState("");
 
@@ -17,7 +18,15 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
   }, []);
   
   const handlePrint = () => {
-    window.print();
+    const originalTitle = document.title;
+    const restoreTitle = () => {
+      document.title = originalTitle;
+    };
+
+    setPrintDate(new Date().toLocaleString('id-ID'));
+    document.title = `Invoice-${order.id}`;
+    window.addEventListener('afterprint', restoreTitle, { once: true });
+    window.setTimeout(() => window.print(), 50);
   };
 
   const formatDate = (date: string | Date | null) => {
@@ -54,7 +63,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-800 font-sans pb-24">
+    <div className="invoice-page min-h-screen bg-gray-100 text-gray-800 font-sans pb-24">
       {/* Non-printable action bar */}
       <div className="print:hidden sticky top-0 bg-white border-b border-gray-200 shadow-sm z-50 p-4">
         <div className="max-w-3xl mx-auto flex justify-between items-center">
@@ -64,20 +73,21 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
           </button>
           <button 
             onClick={handlePrint}
+            aria-label={`Cetak atau simpan invoice ${order.id} sebagai PDF`}
             className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg font-bold transition-colors shadow-sm"
           >
             <Printer className="w-5 h-5" />
-            Cetak PDF
+            Cetak / Simpan PDF
           </button>
         </div>
       </div>
 
       {/* Invoice Document */}
-      <div className="max-w-3xl mx-auto p-4 md:p-8 mt-6">
-        <div className="bg-white rounded-xl shadow-md overflow-hidden print:shadow-none print:w-full print:m-0 print:p-0">
+      <div className="invoice-shell max-w-3xl mx-auto p-4 md:p-8 mt-6">
+        <div className="invoice-document bg-white rounded-xl shadow-md overflow-hidden print:shadow-none print:w-full print:m-0 print:p-0">
           
           {/* Header */}
-          <div className="p-8 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-orange-50/30">
+          <div className="invoice-section invoice-header p-8 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-orange-50/30">
             <div>
               <h1 className="text-3xl font-black text-orange-600 tracking-tight">INVOICE</h1>
               <p className="text-sm font-semibold text-gray-500 mt-1 uppercase tracking-wider">{order.id}</p>
@@ -89,7 +99,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
             </div>
           </div>
 
-          <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 border-b border-gray-100">
+          <div className="invoice-section invoice-parties p-8 grid grid-cols-1 md:grid-cols-2 gap-8 border-b border-gray-100">
             {/* Seller */}
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Diterbitkan Oleh (Penjual)</p>
@@ -108,7 +118,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
           </div>
 
           {/* Items */}
-          <div className="p-8">
+          <div className="invoice-section p-8">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b-2 border-gray-100">
@@ -122,20 +132,28 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
                 <tr className="border-b border-gray-50">
                   <td className="py-4 p-2">
                     <p className="font-bold text-gray-800 text-lg">{order.productName}</p>
+                    {order.selectedVariant && (
+                      <p className="text-sm font-semibold text-orange-600 mt-1">
+                        Varian: {order.selectedVariant}
+                        {order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined
+                          ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}`
+                          : ''}
+                      </p>
+                    )}
                     {order.notes && (
                       <p className="text-sm text-gray-500 mt-1 italic">Catatan: {order.notes}</p>
                     )}
                   </td>
-                  <td className="py-4 p-2 text-center text-gray-700">Rp {order.productPrice.toLocaleString('id-ID')}</td>
+                  <td className="py-4 p-2 text-center text-gray-700">Rp {itemUnitPrice.toLocaleString('id-ID')}</td>
                   <td className="py-4 p-2 text-center text-gray-700 font-semibold">{order.qty}x</td>
-                  <td className="py-4 p-2 text-right text-gray-800 font-bold">Rp {(order.productPrice * order.qty).toLocaleString('id-ID')}</td>
+                  <td className="py-4 p-2 text-right text-gray-800 font-bold">Rp {(itemUnitPrice * order.qty).toLocaleString('id-ID')}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           {/* Total */}
-          <div className="bg-gray-50 p-8 flex justify-end">
+          <div className="invoice-section bg-gray-50 p-8 flex justify-end">
             <div className="w-full md:w-1/2 space-y-3">
               
               <div className="flex justify-between text-gray-600 font-medium">
@@ -162,7 +180,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
             </div>
           </div>
 
-          <div className="p-8 text-center border-t border-gray-100">
+          <div className="invoice-footer p-8 text-center border-t border-gray-100">
             <p className="text-sm text-gray-400 font-medium">Ini adalah bukti pembayaran otomatis yang sah yang diterbitkan oleh sistem Pesanku.</p>
             <p className="text-xs text-gray-400 mt-1">Dicetak pada {printDate}</p>
           </div>
@@ -172,8 +190,60 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
       
       {/* Global CSS for printing */}
       <style>{`
+        @page {
+          size: A4 portrait;
+          margin: 12mm;
+        }
+
         @media print {
-          body { background-color: white; -webkit-print-color-adjust: exact; }
+          html, body {
+            background-color: white !important;
+            color: #1f2937 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .invoice-page {
+            min-height: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+          }
+          .invoice-shell {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .invoice-document {
+            width: 100% !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+          }
+          .invoice-section,
+          .invoice-footer,
+          .invoice-document table,
+          .invoice-document tr {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          .invoice-section {
+            padding: 18px 24px !important;
+          }
+          .invoice-header {
+            flex-direction: row !important;
+            align-items: center !important;
+          }
+          .invoice-header > div:last-child {
+            text-align: right !important;
+          }
+          .invoice-parties {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 32px !important;
+          }
+          .invoice-footer {
+            padding: 16px 24px !important;
+          }
           .print\\:hidden { display: none !important; }
           .print\\:shadow-none { box-shadow: none !important; }
           .print\\:w-full { width: 100% !important; max-width: none !important; }

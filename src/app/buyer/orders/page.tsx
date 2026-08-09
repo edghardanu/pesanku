@@ -2,15 +2,23 @@ import { db } from "@/lib/db";
 import { orders, products, payments, sellerProfiles, users } from "@/lib/schema";
 import { eq, desc } from "drizzle-orm";
 import { getUserFromSession } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import ClientBuyerOrders from "@/components/ClientBuyerOrders";
 
 export const dynamic = 'force-dynamic';
 
 import { BuyerOrderViewItem } from "@/types";
 
-export default async function BuyerOrdersPage() {
+export default async function BuyerOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ checkout?: string; count?: string }>;
+}) {
   const user = await getUserFromSession();
+  const query = await searchParams;
+  const parsedCheckoutCount = Number.parseInt(query.count || '', 10);
+  const checkoutCount = user?.role === 'pembeli' && query.checkout === 'success' && Number.isInteger(parsedCheckoutCount)
+    ? Math.min(Math.max(parsedCheckoutCount, 1), 50)
+    : 0;
 
   let userOrders: BuyerOrderViewItem[] = [];
   
@@ -23,18 +31,20 @@ export default async function BuyerOrdersPage() {
         totalPrice: orders.totalPrice,
         status: orders.status,
         notes: orders.notes,
+        selectedVariant: orders.selectedVariant,
+        selectedVariantPrice: orders.selectedVariantPrice,
         createdAt: orders.createdAt,
         productName: products.name,
         productImageUrl: products.imageUrl,
         storeName: sellerProfiles.storeName,
         minQty: products.minOrderQty,
         maxQty: products.maxOrderQty,
-        stock: products.stock,
-        currentQty: products.currentQty,
         processingTime: products.processingTime,
         paymentId: payments.id,
         paymentStatus: payments.verificationStatus,
         deliveryProofUrl: orders.deliveryProofUrl,
+        rating: orders.rating,
+        ratedAt: orders.ratedAt,
       })
       .from(orders)
       .innerJoin(products, eq(orders.productId, products.id))
@@ -45,5 +55,5 @@ export default async function BuyerOrdersPage() {
       .orderBy(desc(orders.createdAt));
   }
 
-  return <ClientBuyerOrders orders={userOrders} user={user} />;
+  return <ClientBuyerOrders orders={userOrders} user={user} checkoutCount={checkoutCount} />;
 }

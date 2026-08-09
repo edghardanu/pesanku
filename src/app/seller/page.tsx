@@ -1,9 +1,11 @@
 import { db } from "@/lib/db";
-import { products, sellerProfiles, orders, users, payments, settings } from "@/lib/schema";
-import { eq, desc } from "drizzle-orm";
+import { products, sellerProfiles, orders, users, payments, settings, productPromotions, promotionOffers } from "@/lib/schema";
+import { and, eq, desc, gt } from "drizzle-orm";
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import ClientSellerDashboard from "@/components/ClientSellerDashboard";
+import { OrderItem } from "@/types";
+import { parseStoredProductVariants } from "@/lib/productVariants";
 
 export const dynamic = 'force-dynamic';
 
@@ -18,17 +20,24 @@ export default async function SellerDashboard() {
   const profile = await db.select().from(sellerProfiles).where(eq(sellerProfiles.userId, user.id)).get();
   
   // Fetch Products
-  const myProducts = await db.select().from(products)
+  const rawProducts = await db.select().from(products)
     .where(eq(products.sellerId, user.id))
     .orderBy(desc(products.createdAt));
+  const myProducts = rawProducts.map(({ variantsJson, ...product }) => ({
+    ...product,
+    variants: parseStoredProductVariants(variantsJson),
+  }));
 
   // Fetch Seller Orders & Payments
-  const sellerOrders = await db.select({
+  const sellerOrdersWithDetails = await db.select({
     id: orders.id,
+    productId: orders.productId,
     qty: orders.qty,
     totalPrice: orders.totalPrice,
     status: orders.status,
     notes: orders.notes,
+    selectedVariant: orders.selectedVariant,
+    selectedVariantPrice: orders.selectedVariantPrice,
     createdAt: orders.createdAt,
     productName: products.name,
     buyerName: users.name,
@@ -54,6 +63,68 @@ export default async function SellerDashboard() {
     if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
   });
 
+  const schedulePrefix = `preorder_schedule:${user.id}:`;
+  const scheduleByOrder = new Map<string, Pick<OrderItem, 'deliveryDate' | 'fulfillmentStatus' | 'scheduleUpdatedAt'>>();
+  feeSettings.forEach((setting) => {
+    if (!setting.key.startsWith(schedulePrefix)) return;
+
+    try {
+      const parsed = JSON.parse(setting.value) as {
+        deliveryDate?: unknown;
+        fulfillmentStatus?: unknown;
+        updatedAt?: unknown;
+      };
+      const validStatuses = ['scheduled', 'preparing', 'ready', 'shipped', 'delivered'];
+      if (typeof parsed.deliveryDate !== 'string' || !validStatuses.includes(String(parsed.fulfillmentStatus))) return;
+
+      scheduleByOrder.set(setting.key.slice(schedulePrefix.length), {
+        deliveryDate: parsed.deliveryDate,
+        fulfillmentStatus: parsed.fulfillmentStatus as OrderItem['fulfillmentStatus'],
+        scheduleUpdatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : null,
+      });
+    } catch {
+      // Ignore malformed legacy schedule metadata.
+    }
+  });
+
+  const sellerOrders: OrderItem[] = sellerOrdersWithDetails.map((order) => ({
+    ...order,
+    ...scheduleByOrder.get(order.id),
+  }));
+
+  const sellerPromotionOffers = await db.select({
+    id: promotionOffers.id,
+    name: promotionOffers.name,
+    price: promotionOffers.price,
+    expiresAt: promotionOffers.expiresAt,
+    isActive: promotionOffers.isActive,
+    createdAt: promotionOffers.createdAt,
+  })
+    .from(promotionOffers)
+    .where(and(eq(promotionOffers.isActive, true), gt(promotionOffers.expiresAt, new Date())))
+    .orderBy(desc(promotionOffers.createdAt));
+
+  const sellerPromotionRequests = await db.select({
+    id: productPromotions.id,
+    promotionId: productPromotions.promotionId,
+    productId: productPromotions.productId,
+    sellerId: productPromotions.sellerId,
+    status: productPromotions.status,
+    requestedAt: productPromotions.requestedAt,
+    reviewedAt: productPromotions.reviewedAt,
+    offerName: promotionOffers.name,
+    offerPrice: promotionOffers.price,
+    expiresAt: promotionOffers.expiresAt,
+    productName: products.name,
+    storeName: sellerProfiles.storeName,
+  })
+    .from(productPromotions)
+    .innerJoin(promotionOffers, eq(productPromotions.promotionId, promotionOffers.id))
+    .innerJoin(products, eq(productPromotions.productId, products.id))
+    .leftJoin(sellerProfiles, eq(productPromotions.sellerId, sellerProfiles.userId))
+    .where(eq(productPromotions.sellerId, user.id))
+    .orderBy(desc(productPromotions.requestedAt));
+
   return (
     <ClientSellerDashboard 
       profile={profile ?? undefined}
@@ -64,6 +135,8 @@ export default async function SellerDashboard() {
       userName={user.name}
       sellerOrders={sellerOrders}
       feeAdmin={feeAdmin}
+      promotionOffers={sellerPromotionOffers}
+      promotionRequests={sellerPromotionRequests}
     />
   );
 }

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Clock, Store, MapPin, CheckCircle, ShieldCheck, LogOut } from "lucide-react";
 import Swal from "sweetalert2";
 import { ProductItem, AuthUser } from "@/types";
+import { findProductVariant, getProductUnitPrice } from "@/lib/productVariants";
 
 export default function ClientProductDetail({ product: initialProduct, user }: { product: ProductItem, user: AuthUser | null }) {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
   const [product, setProduct] = useState(initialProduct);
   const [qty, setQty] = useState(product.minOrderQty || 1);
   const [notes, setNotes] = useState("");
+  const [selectedVariant, setSelectedVariant] = useState("");
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
 
@@ -95,19 +97,18 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
   };
 
   const isFull = (product.currentQty || 0) >= (product.minQty || 1);
-  const availableStock = Math.max(0, (product.stock || 0) - (product.currentQty || 0));
   const minimumOrder = product.minOrderQty || 1;
-  const maximumOrder = Math.min(product.maxOrderQty || Number.MAX_SAFE_INTEGER, availableStock);
-  const selectedQty = maximumOrder < minimumOrder
-    ? minimumOrder
-    : Math.min(Math.max(qty, minimumOrder), maximumOrder);
-  const isOutOfStock = availableStock <= 0;
+  const maximumOrder = product.maxOrderQty || Number.MAX_SAFE_INTEGER;
+  const selectedQty = Math.min(Math.max(qty, minimumOrder), maximumOrder);
   const deadline = product.deadlineDate ? new Date(product.deadlineDate) : null;
   const hasValidDeadline = Boolean(deadline && !Number.isNaN(deadline.getTime()));
   const isDeadlinePassed = Boolean(deadline && hasValidDeadline && deadline.getTime() < currentTime);
   const isClosedStatus = ['closed', 'processing', 'completed'].includes(product.status || '');
   const isPreorderClosed = isClosedStatus || isDeadlinePassed;
-  const isOrderUnavailable = isOutOfStock || isPreorderClosed;
+  const isOrderUnavailable = isPreorderClosed;
+  const selectedVariantDetails = findProductVariant(product.variants, selectedVariant);
+  const unitPrice = getProductUnitPrice(product.price, product.variants, selectedVariant);
+  const hasSelectedVariantPrice = selectedVariantDetails?.price !== null && selectedVariantDetails?.price !== undefined;
   const statusLabel = isPreorderClosed
     ? 'Preorder Ditutup'
     : isFull
@@ -119,7 +120,7 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
     if (isOrderUnavailable) {
       Swal.fire(
         'Produk Tidak Tersedia',
-        isOutOfStock ? 'Stok produk ini telah habis.' : 'Masa preorder produk ini telah ditutup.',
+        'Masa preorder produk ini telah ditutup.',
         'warning',
       );
       return;
@@ -147,7 +148,12 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
       return;
     }
 
-    const totalHarga = selectedQty * product.price;
+    if (product.variants?.length && !selectedVariantDetails) {
+      Swal.fire('Pilih Varian', `Pilih salah satu varian ${product.name} terlebih dahulu.`, 'info');
+      return;
+    }
+
+    const totalHarga = selectedQty * unitPrice;
 
     // STEP 1: Konfirmasi Pesanan
     const confirmResult = await Swal.fire({
@@ -155,6 +161,7 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
       html: `
         <div class="text-left space-y-3">
           <p><strong>Produk:</strong> ${product.name}</p>
+          ${selectedVariant ? `<p><strong>Varian:</strong> ${selectedVariant}</p>` : ''}
           <p><strong>Jumlah:</strong> ${selectedQty} Porsi</p>
           <p><strong>Total Bayar:</strong> <span class="text-brand-primary font-bold text-lg">Rp ${totalHarga.toLocaleString('id-ID')}</span></p>
           ${notes ? `<p><strong>Catatan:</strong> ${notes}</p>` : ''}
@@ -172,7 +179,7 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
     if (!confirmResult.isConfirmed) return;
 
     Swal.close();
-    router.push(`/process-order?productId=${product.id}&qty=${selectedQty}&notes=${encodeURIComponent(notes)}`);
+    router.push(`/process-order?productId=${product.id}&qty=${selectedQty}&notes=${encodeURIComponent(notes)}&variant=${encodeURIComponent(selectedVariant)}`);
   };
 
   return (
@@ -235,7 +242,11 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
                   </span>
                 </div>
               )}
-              <p className="text-h2 text-brand-primary font-bold mb-6">Rp {product.price.toLocaleString('id-ID')}</p>
+              <p className="text-h2 text-brand-primary font-bold mb-1">Rp {unitPrice.toLocaleString('id-ID')}</p>
+              {hasSelectedVariantPrice && (
+                <p className="mb-6 text-xs font-medium text-text-secondary">Harga varian {selectedVariantDetails.name}</p>
+              )}
+              {!hasSelectedVariantPrice && <div className="mb-6" />}
               
               <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed">
                 <h3 className="text-text-primary font-semibold mb-2">Deskripsi Makanan</h3>
@@ -281,28 +292,42 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
               <h3 className="font-bold text-lg mb-4 border-b border-border pb-4">Atur Pesanan</h3>
               
               <div className="space-y-6">
-                {/* Kuota Produk */}
-                <div className={`p-4 rounded-xl border ${isOutOfStock ? 'bg-status-error/5 border-status-error/30' : 'bg-base border-border'}`}>
-                  <div className="flex justify-between text-sm font-medium">
-                    <span className="text-text-secondary">Kuota Produk Tersedia</span>
-                    <span className={`font-bold ${isOutOfStock ? 'text-status-error' : 'text-text-primary'}`}>
-                      {availableStock} Porsi
-                    </span>
-                  </div>
-                  {isOutOfStock && (
-                    <p className="text-xs text-status-error mt-2 font-medium flex items-center gap-1">
-                      <span>⚠</span> Stok produk ini telah habis
-                    </p>
-                  )}
-                </div>
+                {product.variants && product.variants.length > 0 && (
+                  <fieldset>
+                    <legend className="mb-2 text-sm font-semibold text-text-primary">
+                      Pilih Varian <span className="text-status-error">*</span>
+                    </legend>
+                    <div className="flex flex-wrap gap-2">
+                      {product.variants.map((variant) => {
+                        const isSelected = selectedVariant === variant.name;
+                        return (
+                          <button
+                            key={variant.name}
+                            type="button"
+                            onClick={() => setSelectedVariant(variant.name)}
+                            aria-pressed={isSelected}
+                            className={`min-h-10 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${isSelected
+                              ? 'border-brand-primary bg-brand-primary text-white shadow-sm'
+                              : 'border-border bg-surface text-text-primary hover:border-brand-primary hover:text-brand-primary'
+                            }`}
+                          >
+                            {variant.name}
+                            {variant.price !== null && variant.price !== undefined && (
+                              <span className={`ml-1 ${isSelected ? 'text-white/90' : 'text-brand-primary'}`}>· Rp {variant.price.toLocaleString('id-ID')}</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                )}
 
                 {/* Input Qty */}
                 <div>
                   <label className="text-sm font-semibold text-text-primary block mb-2">Jumlah Porsi</label>
-                  <div className={`flex items-center border rounded-xl overflow-hidden w-full max-w-[200px] ${isOutOfStock ? 'border-border opacity-50 pointer-events-none' : 'border-border'}`}>
+                  <div className="flex items-center border border-border rounded-xl overflow-hidden w-full max-w-[200px]">
                     <button 
                       onClick={() => setQty(Math.max(minimumOrder, selectedQty - 1))}
-                      disabled={isOutOfStock}
                       className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-r border-border disabled:cursor-not-allowed"
                     >-</button>
                     <input 
@@ -317,10 +342,9 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
                         if (selectedQty < maxQty) {
                           setQty(selectedQty + 1);
                         } else {
-                          Swal.fire('Batas Maksimal', `Maksimal pesanan adalah ${maxQty} porsi (sesuai stok tersedia).`, 'warning');
+                          Swal.fire('Batas Maksimal', `Maksimal pesanan adalah ${maxQty} porsi.`, 'warning');
                         }
                       }}
-                      disabled={isOutOfStock}
                       className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-l border-border disabled:cursor-not-allowed"
                     >+</button>
                   </div>
@@ -342,7 +366,7 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
                 <div className="border-t border-border pt-4">
                   <div className="flex justify-between items-center mb-6">
                     <span className="text-text-secondary font-medium">Total Harga</span>
-                    <span className="text-h2 font-bold text-brand-primary">Rp {(selectedQty * product.price).toLocaleString('id-ID')}</span>
+                    <span className="text-h2 font-bold text-brand-primary">Rp {(selectedQty * unitPrice).toLocaleString('id-ID')}</span>
                   </div>
                   
                   <button 
@@ -356,9 +380,7 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
                         : 'btn-primary shadow-lg shadow-brand-primary/20 hover:scale-[1.02]'
                     }`}
                   >
-                    {isOutOfStock
-                      ? 'Stok Tidak Tersedia / Habis'
-                      : isPreorderClosed
+                    {isPreorderClosed
                         ? 'Preorder Sudah Ditutup'
                         : hasActiveOrder
                           ? 'Selesaikan dulu pesanan anda'

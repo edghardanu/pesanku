@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
 import Swal from "sweetalert2";
 import { CheckCircle2, Loader2 } from "lucide-react";
 
@@ -15,33 +14,48 @@ function ProcessOrderContent() {
   const hasProcessed = useRef(false);
   const apiStatusRef = useRef<'pending' | 'success' | 'error'>('pending');
   const apiErrorRef = useRef("");
+  const checkoutCountRef = useRef(1);
 
   useEffect(() => {
     // Only process API once
     if (!hasProcessed.current) {
       hasProcessed.current = true;
 
-      const productId = searchParams.get("productId");
-      const qty = searchParams.get("qty");
-      const notes = searchParams.get("notes") || "";
+      const source = searchParams.get("source");
+      let checkoutPayload: { items: unknown[] } | { productId: string; qty: number; notes: string; selectedVariant: string };
 
-      if (!productId || !qty) {
-        router.push("/");
-        return;
+      if (source === 'store') {
+        try {
+          const storedItems = JSON.parse(sessionStorage.getItem('pesanku-store-checkout') || '[]');
+          if (!Array.isArray(storedItems) || storedItems.length === 0) throw new Error('Keranjang kosong');
+          checkoutPayload = { items: storedItems };
+        } catch {
+          router.push("/");
+          return;
+        }
+      } else {
+        const productId = searchParams.get("productId");
+        const qty = searchParams.get("qty");
+        const notes = searchParams.get("notes") || "";
+        const selectedVariant = searchParams.get("variant") || "";
+
+        if (!productId || !qty) {
+          router.push("/");
+          return;
+        }
+        checkoutPayload = { productId, qty: parseInt(qty), notes, selectedVariant };
       }
 
       fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: productId,
-          qty: parseInt(qty),
-          notes: notes
-        })
+        body: JSON.stringify(checkoutPayload)
       })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Terjadi kesalahan saat memproses pesanan.');
+        checkoutCountRef.current = typeof data.itemCount === 'number' ? data.itemCount : 1;
+        if (source === 'store') sessionStorage.removeItem('pesanku-store-checkout');
         apiStatusRef.current = 'success';
       })
       .catch((error) => {
@@ -76,7 +90,7 @@ function ProcessOrderContent() {
         setTimeout(() => {
           if (apiStatusRef.current === 'success') {
             router.refresh();
-            router.push("/buyer/orders");
+            router.push(`/buyer/orders?checkout=success&count=${checkoutCountRef.current}`);
           } else {
             Swal.fire('Gagal!', apiErrorRef.current || 'Terjadi kesalahan.', 'error').then(() => {
               router.push("/");

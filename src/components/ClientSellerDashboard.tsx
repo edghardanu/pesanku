@@ -4,8 +4,11 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Plus, Package, DollarSign, Settings, LogOut, Info, X, Upload, Store, Sun, Moon, MessageCircle, User } from "lucide-react";
+import { ShoppingBag, Plus, Package, DollarSign, Settings, LogOut, Info, X, Upload, Store, Sun, Moon, MessageCircle, User, Menu, Megaphone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import SellerPreorderCalendar from "@/components/SellerPreorderCalendar";
+import SellerPromotionCenter from "@/components/SellerPromotionCenter";
+import { validateProductVariants } from "@/lib/productVariants";
 
 import Swal from 'sweetalert2';
 
@@ -22,10 +25,17 @@ type Product = {
   batchCategory?: string | null;
   maxOrderQty?: number | null;
   minOrderQty?: number | null;
-  stock?: number | null;
+  variants?: ProductVariant[];
 };
 
-import { SellerProfile, OrderItem, ChatMessage } from "@/types";
+import { SellerProfile, OrderItem, ChatMessage, ProductVariant, PromotionOfferItem, PromotionRequestItem } from "@/types";
+
+const escapeHtml = (value: string) => value
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#039;');
 
 type ClientSellerDashboardProps = {
   profile?: SellerProfile | null;
@@ -36,6 +46,8 @@ type ClientSellerDashboardProps = {
   userName: string;
   sellerOrders?: OrderItem[];
   feeAdmin?: number;
+  promotionOffers?: PromotionOfferItem[];
+  promotionRequests?: PromotionRequestItem[];
 };
 
 export default function ClientSellerDashboard({
@@ -46,10 +58,12 @@ export default function ClientSellerDashboard({
   completedCount,
   userName,
   sellerOrders = [],
-  feeAdmin = 0
+  feeAdmin = 0,
+  promotionOffers = [],
+  promotionRequests = []
 }: ClientSellerDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'produk' | 'keuangan' | 'pengaturan'>('produk');
+  const [activeTab, setActiveTab] = useState<'produk' | 'promosi' | 'keuangan' | 'pengaturan'>('produk');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   
@@ -136,7 +150,7 @@ export default function ClientSellerDashboard({
     reader.readAsDataURL(file);
   };
 
-  const handleTabChange = (tab: 'produk' | 'keuangan' | 'pengaturan') => {
+  const handleTabChange = (tab: 'produk' | 'promosi' | 'keuangan' | 'pengaturan') => {
     if (tab === activeTab) return;
     setActiveTab(tab);
     setIsMobileSidebarOpen(false); // Close mobile sidebar on tab change
@@ -539,6 +553,17 @@ export default function ClientSellerDashboard({
             <Package className="w-5 h-5" />
             Produk Preorder
           </button>
+          <button
+            onClick={() => handleTabChange('promosi')}
+            className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${
+              activeTab === 'promosi'
+                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
+                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+            }`}
+          >
+            <Megaphone className="w-5 h-5" />
+            Promosi Produk
+          </button>
           <button 
             onClick={() => handleTabChange('keuangan')}
             className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${
@@ -599,6 +624,13 @@ export default function ClientSellerDashboard({
         {/* Topbar Mobile */}
         <header className="md:hidden bg-surface/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between sticky top-0 z-50 transition-all">
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="p-1.5 rounded-lg hover:bg-border/60 text-text-primary"
+              aria-label="Buka menu penjual"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
             <ShoppingBag className="w-6 h-6 text-brand-primary" />
             <span className="text-h3 text-brand-primary font-bold">pesanku</span>
           </div>
@@ -731,6 +763,12 @@ export default function ClientSellerDashboard({
                 </div>
               </div>
 
+              <SellerPreorderCalendar
+                key={sellerOrders.map((order) => `${order.id}:${order.deliveryDate || ''}:${order.fulfillmentStatus || ''}`).join('|')}
+                orders={sellerOrders}
+                products={localProducts.map((product) => ({ id: product.id, name: product.name }))}
+              />
+
               {/* Product List */}
               <div className="card overflow-hidden">
                 <div className="p-5 border-b border-border bg-surface/50 flex justify-between items-center">
@@ -749,14 +787,12 @@ export default function ClientSellerDashboard({
                           <th className="p-4 font-medium">Info Produk</th>
                           <th className="p-4 font-medium">Harga</th>
                           <th className="p-4 font-medium">Jumlah Pesanan</th>
-                          <th className="p-4 font-medium">Stok Tersedia</th>
                           <th className="p-4 font-medium text-right">Aksi</th>
                         </tr>
                       </thead>
                       <tbody className="text-body-base text-text-primary">
                         {localProducts.map(product => {
                           const current = product.currentQty || 0;
-                          const availableStock = Math.max(0, (product.stock || 0) - current);
 
                           return (
                             <tr key={product.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
@@ -769,6 +805,15 @@ export default function ClientSellerDashboard({
                                   </div>
                                   <div>
                                     <p className="font-semibold text-text-primary line-clamp-1">{product.name}</p>
+                                    {product.variants && product.variants.length > 0 && (
+                                      <div className="mt-1.5 flex max-w-sm flex-wrap gap-1">
+                                        {product.variants.map((variant) => (
+                                          <span key={variant.name} className="rounded-full border border-brand-primary/25 bg-brand-primary/10 px-2 py-0.5 text-[10px] font-semibold text-brand-primary">
+                                            {variant.name}{variant.price !== null && variant.price !== undefined ? ` · Rp ${variant.price.toLocaleString('id-ID')}` : ''}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </td>
@@ -779,20 +824,17 @@ export default function ClientSellerDashboard({
                                   <span className="text-caption text-text-secondary">Pcs</span>
                                 </div>
                               </td>
-                              <td className="p-4 font-medium">
-                                <div className="flex items-center gap-1.5">
-                                  <span className={`font-bold text-base ${
-                                    availableStock > 0 ? 'text-status-success' : 'text-status-error'
-                                  }`}>
-                                    {availableStock}
-                                  </span>
-                                  <span className="text-caption text-text-secondary">Pcs</span>
-                                </div>
-                              </td>
                               <td className="p-4 text-right">
                                 <div className="flex justify-end gap-3 items-center">
                                   <button 
                                     onClick={() => {
+                                      const variantRows = (product.variants || []).map((variant) => `
+                                        <div class="swal-variant-row grid grid-cols-[minmax(0,1fr)_minmax(120px,0.55fr)_36px] gap-2">
+                                          <input type="text" maxlength="40" aria-label="Nama varian" placeholder="Nama varian" class="swal-variant-name input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2" value="${escapeHtml(variant.name)}">
+                                          <input type="number" min="0" step="1" aria-label="Harga varian opsional" placeholder="Harga opsional" class="swal-variant-price input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2" value="${variant.price ?? ''}">
+                                          <button type="button" class="swal-remove-variant rounded-md border border-red-200 text-red-500 hover:bg-red-50" aria-label="Hapus varian">×</button>
+                                        </div>
+                                      `).join('');
                                       Swal.fire({
                                         title: 'Edit Produk',
                                         html: `
@@ -817,19 +859,19 @@ export default function ClientSellerDashboard({
                                               <label class="text-caption text-text-secondary mb-1 block">Harga (Rp)</label>
                                               <input id="swal-edit-price" type="number" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.price}">
                                             </div>
-                                            <div class="grid grid-cols-2 gap-3">
-                                              <div>
-                                                <label class="text-caption text-text-secondary mb-1 block">Minimal Order</label>
-                                                <input id="swal-edit-minorder" type="number" min="1" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.minOrderQty || 1}">
-                                              </div>
-                                              <div>
-                                                <label class="text-caption text-text-secondary mb-1 block">Stok Tersedia</label>
-                                                <input id="swal-edit-stock" type="number" min="0" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.stock || 0}">
-                                              </div>
+                                            <div>
+                                              <label class="text-caption text-text-secondary mb-1 block">Minimal Order</label>
+                                              <input id="swal-edit-minorder" type="number" min="1" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.minOrderQty || 1}">
                                             </div>
                                             <div>
                                               <label class="text-caption text-text-secondary mb-1 block">Waktu Proses Pemesanan</label>
                                               <input id="swal-edit-processingtime" type="text" placeholder="Contoh: 2 Hari" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.processingTime || ''}">
+                                            </div>
+                                            <div>
+                                              <label class="text-caption text-text-secondary mb-1 block">Varian Produk (Opsional)</label>
+                                              <div id="swal-variant-rows" class="flex flex-col gap-2">${variantRows}</div>
+                                              <button id="swal-add-variant" type="button" class="mt-2 w-full rounded-md border border-brand-primary px-3 py-2 text-sm font-semibold text-brand-primary hover:bg-brand-primary/10">+ Tambah Varian</button>
+                                              <p class="text-[10px] text-text-secondary mt-1">Harga varian boleh dikosongkan untuk memakai harga dasar produk.</p>
                                             </div>
                                           </div>
                                         `,
@@ -846,6 +888,8 @@ export default function ClientSellerDashboard({
                                           const imageInput = document.getElementById('swal-edit-image') as HTMLInputElement;
                                           const previewContainer = document.getElementById('swal-image-preview-container');
                                           const previewImage = document.getElementById('swal-image-preview') as HTMLImageElement;
+                                          const variantContainer = document.getElementById('swal-variant-rows');
+                                          const addVariantButton = document.getElementById('swal-add-variant');
                                           
                                           if (imageInput && previewContainer && previewImage) {
                                             imageInput.addEventListener('change', function() {
@@ -861,17 +905,42 @@ export default function ClientSellerDashboard({
                                               }
                                             });
                                           }
+
+                                          addVariantButton?.addEventListener('click', () => {
+                                            if (!variantContainer || variantContainer.querySelectorAll('.swal-variant-row').length >= 10) return;
+                                            variantContainer.insertAdjacentHTML('beforeend', `
+                                              <div class="swal-variant-row grid grid-cols-[minmax(0,1fr)_minmax(120px,0.55fr)_36px] gap-2">
+                                                <input type="text" maxlength="40" aria-label="Nama varian" placeholder="Nama varian" class="swal-variant-name input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2">
+                                                <input type="number" min="0" step="1" aria-label="Harga varian opsional" placeholder="Harga opsional" class="swal-variant-price input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2">
+                                                <button type="button" class="swal-remove-variant rounded-md border border-red-200 text-red-500 hover:bg-red-50" aria-label="Hapus varian">×</button>
+                                              </div>
+                                            `);
+                                          });
+
+                                          variantContainer?.addEventListener('click', (event) => {
+                                            const target = event.target as HTMLElement;
+                                            target.closest('.swal-remove-variant')?.closest('.swal-variant-row')?.remove();
+                                          });
                                         },
                                         preConfirm: async () => {
                                           const name = (document.getElementById('swal-edit-name') as HTMLInputElement).value;
                                           const price = (document.getElementById('swal-edit-price') as HTMLInputElement).value;
                                           const minOrder = (document.getElementById('swal-edit-minorder') as HTMLInputElement).value;
-                                          const stock = (document.getElementById('swal-edit-stock') as HTMLInputElement).value;
                                           const processingTime = (document.getElementById('swal-edit-processingtime') as HTMLInputElement).value;
+                                          const variantsInput = Array.from(document.querySelectorAll('.swal-variant-row')).map((row) => ({
+                                            name: (row.querySelector('.swal-variant-name') as HTMLInputElement).value,
+                                            price: (row.querySelector('.swal-variant-price') as HTMLInputElement).value,
+                                          }));
                                           const imageInput = document.getElementById('swal-edit-image') as HTMLInputElement;
                                           
                                           if (!name || !price || !minOrder) {
                                             Swal.showValidationMessage('Semua kolom teks penting wajib diisi!');
+                                            return false;
+                                          }
+
+                                          const variantResult = validateProductVariants(variantsInput);
+                                          if (!variantResult.success) {
+                                            Swal.showValidationMessage(variantResult.error);
                                             return false;
                                           }
                                           
@@ -896,8 +965,8 @@ export default function ClientSellerDashboard({
                                             min: product.preorderMinQty || 1, 
                                             imageUrl,
                                             minOrderQty: parseInt(minOrder),
-                                            stock: parseInt(stock),
-                                            processingTime
+                                            processingTime,
+                                            variants: variantResult.variants
                                           };
                                         }
                                       }).then(async (result) => {
@@ -923,8 +992,8 @@ export default function ClientSellerDashboard({
                                                 minQty: result.value.min,
                                                 imageUrl: result.value.imageUrl,
                                                 minOrderQty: result.value.minOrderQty,
-                                                stock: result.value.stock,
-                                                processingTime: result.value.processingTime
+                                                processingTime: result.value.processingTime,
+                                                variants: result.value.variants
                                               })
                                             });
 
@@ -970,6 +1039,14 @@ export default function ClientSellerDashboard({
                 </div>
               </div>
             </>
+          )}
+
+          {activeTab === 'promosi' && (
+            <SellerPromotionCenter
+              offers={promotionOffers}
+              initialRequests={promotionRequests}
+              products={localProducts.map((product) => ({ id: product.id, name: product.name }))}
+            />
           )}
 
           {activeTab === 'keuangan' && (
@@ -1021,6 +1098,14 @@ export default function ClientSellerDashboard({
                             <td className="p-4 font-mono font-medium text-sm text-text-secondary">{order.id}</td>
                             <td className="p-4">
                               <p className="font-semibold text-text-primary line-clamp-1">{order.productName}</p>
+                              {order.selectedVariant && (
+                                <p className="mt-1 text-xs font-semibold text-brand-primary">
+                                  Varian: {order.selectedVariant}
+                                  {order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined
+                                    ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}`
+                                    : ''}
+                                </p>
+                              )}
                               <p className="text-xs text-text-secondary mt-1">Pembeli: {order.buyerName}</p>
                               {order.buyerPhone && (
                                 <p className="text-xs text-text-secondary mt-1">No. HP: {order.buyerPhone}</p>
@@ -1316,19 +1401,14 @@ export default function ClientSellerDashboard({
           <span>Transaksi</span>
         </button>
         
-        <Link 
-          href="/profile" 
-          className="flex flex-col items-center gap-1.5 w-[20%] text-text-secondary hover:text-brand-primary transition-colors pb-2"
+        <button
+          type="button"
+          onClick={() => handleTabChange('promosi')}
+          className={`flex flex-col items-center gap-1.5 w-[20%] transition-colors pb-2 ${activeTab === 'promosi' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
         >
-          {profile?.logoUrl ? (
-            <div className="w-6 h-6 rounded-full overflow-hidden border-[1.5px] border-border">
-              <Image src={profile.logoUrl} alt="Profil" width={24} height={24} className="object-cover w-full h-full" />
-            </div>
-          ) : (
-            <User className="w-6 h-6 stroke-[1.5]" />
-          )}
-          <span>Profil</span>
-        </Link>
+          <Megaphone className={`w-6 h-6 stroke-[1.5] ${activeTab === 'promosi' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
+          <span>Promosi</span>
+        </button>
       </nav>
     </div>
   );

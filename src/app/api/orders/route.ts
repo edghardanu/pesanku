@@ -4,6 +4,7 @@ import { orders, products } from "@/lib/schema";
 import { getUserFromSession } from "@/lib/auth";
 import crypto from "crypto";
 import { eq, and, sql } from "drizzle-orm";
+import { findProductVariant, parseStoredProductVariants } from "@/lib/productVariants";
 
 export async function POST(request: Request) {
   try {
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { productId } = await request.json();
+    const { productId, selectedVariant } = await request.json();
     if (!productId) {
       return NextResponse.json({ error: "Missing productId" }, { status: 400 });
     }
@@ -23,8 +24,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
+    const availableVariants = parseStoredProductVariants(product.variantsJson);
+    const normalizedVariant = typeof selectedVariant === 'string' ? selectedVariant.trim() : '';
+    const selectedVariantDetails = findProductVariant(availableVariants, normalizedVariant);
+    if (availableVariants.length > 0 && !selectedVariantDetails) {
+      return NextResponse.json({ error: "Pilih varian produk yang tersedia" }, { status: 400 });
+    }
+    if (availableVariants.length === 0 && normalizedVariant) {
+      return NextResponse.json({ error: "Produk ini tidak memiliki pilihan varian" }, { status: 400 });
+    }
+
     const orderId = `ORD-${Date.now().toString().slice(-6)}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
     const initialQty = product.preorderMinQty || 1;
+    const unitPrice = selectedVariantDetails?.price ?? product.price;
 
     // Create order
     await db.insert(orders).values({
@@ -32,7 +44,9 @@ export async function POST(request: Request) {
       productId: product.id,
       buyerId: user.id,
       qty: initialQty,
-      totalPrice: product.price * initialQty,
+      totalPrice: unitPrice * initialQty,
+      selectedVariant: normalizedVariant || null,
+      selectedVariantPrice: selectedVariantDetails?.price ?? null,
       status: "waiting_verification",
     });
 

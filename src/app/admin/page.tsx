@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { users, orders, sellerProfiles } from "@/lib/schema";
+import { productPromotions, promotionOffers, products, users, orders, sellerProfiles } from "@/lib/schema";
 import { eq, sql, desc } from "drizzle-orm";
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -55,12 +55,45 @@ export default async function AdminDashboard() {
   .from(orders)
   .orderBy(desc(orders.createdAt));
 
+  const adminPromotionOffers = await db.select({
+    id: promotionOffers.id,
+    name: promotionOffers.name,
+    price: promotionOffers.price,
+    expiresAt: promotionOffers.expiresAt,
+    isActive: promotionOffers.isActive,
+    createdAt: promotionOffers.createdAt,
+  })
+    .from(promotionOffers)
+    .orderBy(desc(promotionOffers.createdAt));
+
+  const promotionRequests = await db.select({
+    id: productPromotions.id,
+    promotionId: productPromotions.promotionId,
+    productId: productPromotions.productId,
+    sellerId: productPromotions.sellerId,
+    status: productPromotions.status,
+    requestedAt: productPromotions.requestedAt,
+    reviewedAt: productPromotions.reviewedAt,
+    offerName: promotionOffers.name,
+    offerPrice: promotionOffers.price,
+    expiresAt: promotionOffers.expiresAt,
+    productName: products.name,
+    storeName: sellerProfiles.storeName,
+  })
+    .from(productPromotions)
+    .innerJoin(promotionOffers, eq(productPromotions.promotionId, promotionOffers.id))
+    .innerJoin(products, eq(productPromotions.productId, products.id))
+    .leftJoin(sellerProfiles, eq(productPromotions.sellerId, sellerProfiles.userId))
+    .orderBy(desc(productPromotions.requestedAt));
+
   return (
     <ClientAdminDashboard 
       stats={stats}
       userName={user.name}
       umkmList={umkmList}
       ordersList={ordersList}
+      promotionOffers={adminPromotionOffers}
+      promotionRequests={promotionRequests}
     />
   );
 }

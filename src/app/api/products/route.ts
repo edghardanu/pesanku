@@ -5,6 +5,11 @@ import { getUserFromSession } from '@/lib/auth';
 import cloudinary from '@/lib/cloudinary';
 import crypto from 'crypto';
 import { eq, and, desc } from 'drizzle-orm';
+import {
+  parseStoredProductVariants,
+  serializeProductVariants,
+  validateProductVariants,
+} from '@/lib/productVariants';
 
 export async function GET(req: Request) {
   try {
@@ -17,7 +22,12 @@ export async function GET(req: Request) {
       .where(eq(products.sellerId, user.id))
       .orderBy(desc(products.createdAt));
 
-    return NextResponse.json({ products: myProducts }, { status: 200 });
+    return NextResponse.json({
+      products: myProducts.map(({ variantsJson, ...product }) => ({
+        ...product,
+        variants: parseStoredProductVariants(variantsJson),
+      })),
+    }, { status: 200 });
   } catch (error) {
     console.error('Fetch products error:', error);
     return NextResponse.json({ message: 'Terjadi kesalahan pada server' }, { status: 500 });
@@ -33,10 +43,15 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, description, price, imageUrl, minQty, deadline, minOrderQty, maxOrderQty, batchCategory, processingTime, stock } = body;
+    const { name, description, price, imageUrl, minQty, deadline, minOrderQty, maxOrderQty, batchCategory, processingTime, variants } = body;
 
     if (!name || !price) {
       return NextResponse.json({ message: 'Nama dan harga produk wajib diisi' }, { status: 400 });
+    }
+
+    const variantResult = validateProductVariants(variants);
+    if (!variantResult.success) {
+      return NextResponse.json({ message: variantResult.error }, { status: 400 });
     }
 
     // Business Rule 1: Deadline tidak bisa diatur jika minQty belum ada
@@ -81,9 +96,9 @@ export async function POST(req: Request) {
       deadlineDate: deadlineDate,
       minOrderQty: minOrderQty ? parseInt(minOrderQty) : 1,
       maxOrderQty: maxOrderQty ? parseInt(maxOrderQty) : null,
-      stock: stock ? parseInt(stock) : 0,
       processingTime: processingTime || null,
       batchCategory: batchCategory || null,
+      variantsJson: serializeProductVariants(variantResult.variants),
       status: 'draft',
     });
 
@@ -137,7 +152,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { id, name, price, minQty, imageUrl, minOrderQty, maxOrderQty, batchCategory, processingTime, stock } = body;
+    const { id, name, price, minQty, imageUrl, minOrderQty, maxOrderQty, batchCategory, processingTime, variants } = body;
 
     if (!id || !name || !price || !minQty) {
       return NextResponse.json({ message: 'Data produk tidak lengkap' }, { status: 400 });
@@ -149,6 +164,13 @@ export async function PUT(req: Request) {
     const existingProduct = await db.select().from(products).where(and(eq(products.id, id), eq(products.sellerId, user.id))).get();
     if (!existingProduct) {
         return NextResponse.json({ message: 'Produk tidak ditemukan atau akses ditolak' }, { status: 404 });
+    }
+
+    const variantResult = variants === undefined
+      ? { success: true as const, variants: parseStoredProductVariants(existingProduct.variantsJson) }
+      : validateProductVariants(variants);
+    if (!variantResult.success) {
+      return NextResponse.json({ message: variantResult.error }, { status: 400 });
     }
 
     // Jika imageUrl adalah base64, upload ke Cloudinary
@@ -171,9 +193,9 @@ export async function PUT(req: Request) {
         preorderMinQty: parseInt(minQty),
         minOrderQty: minOrderQty ? parseInt(minOrderQty) : 1,
         maxOrderQty: maxOrderQty ? parseInt(maxOrderQty) : null,
-        stock: stock ? parseInt(stock) : 0,
         processingTime: processingTime || null,
         batchCategory: batchCategory || null,
+        variantsJson: serializeProductVariants(variantResult.variants),
         ...(finalImageUrl ? { imageUrl: finalImageUrl } : {})
       })
       .where(and(eq(products.id, id), eq(products.sellerId, user.id)));

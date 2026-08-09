@@ -24,12 +24,14 @@ import {
   Moon,
   LayoutDashboard,
   MoreHorizontal,
-  Ticket
+  Ticket,
+  Megaphone
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { UmkmItem, OrderItem, TicketItem, PayoutItem, VerificationItem } from "@/types";
+import { UmkmItem, OrderItem, TicketItem, PayoutItem, VerificationItem, PromotionOfferItem, PromotionRequestItem } from "@/types";
+import AdminPromotionManager from "@/components/AdminPromotionManager";
 
 type ClientAdminDashboardProps = {
   stats: {
@@ -41,14 +43,17 @@ type ClientAdminDashboardProps = {
   userName: string;
   umkmList: UmkmItem[];
   ordersList?: OrderItem[];
+  promotionOffers?: PromotionOfferItem[];
+  promotionRequests?: PromotionRequestItem[];
 };
 
-export default function ClientAdminDashboard({ stats, userName, umkmList, ordersList = [] }: ClientAdminDashboardProps) {
+export default function ClientAdminDashboard({ stats, userName, umkmList, ordersList = [], promotionOffers = [], promotionRequests = [] }: ClientAdminDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'qris' | 'settings' | 'tickets'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'promosi' | 'qris' | 'settings' | 'tickets'>('overview');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [localUmkmList, setLocalUmkmList] = useState(umkmList);
+  const [localPromotionRequests, setLocalPromotionRequests] = useState(promotionRequests);
   const [searchQueryUmkm, setSearchQueryUmkm] = useState('');
   const [searchQueryPayout, setSearchQueryPayout] = useState('');
 
@@ -351,7 +356,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
     }
   };
 
-  const handleTabChange = (tab: 'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'qris' | 'settings' | 'tickets') => {
+  const handleTabChange = (tab: 'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'promosi' | 'qris' | 'settings' | 'tickets') => {
     if (tab === activeTab) return;
     setActiveTab(tab);
     setIsMobileSidebarOpen(false);
@@ -427,6 +432,23 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           >
             <Store className="w-5 h-5" />
             <span>Daftar UMKM</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('promosi')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
+              activeTab === 'promosi'
+                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
+                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+            }`}
+          >
+            <Megaphone className="w-5 h-5" />
+            <span>Promosi Produk</span>
+            {localPromotionRequests.filter((request) => request.status === 'pending').length > 0 && (
+              <span className="ml-auto bg-status-warning text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                {localPromotionRequests.filter((request) => request.status === 'pending').length}
+              </span>
+            )}
           </button>
           
           <button 
@@ -846,6 +868,14 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                 </table>
               </div>
             </div>
+          )}
+
+          {activeTab === 'promosi' && (
+            <AdminPromotionManager
+              initialOffers={promotionOffers}
+              initialRequests={localPromotionRequests}
+              onRequestReviewed={(requestId, status, reviewedAt) => setLocalPromotionRequests((current) => current.map((request) => request.id === requestId ? { ...request, status, reviewedAt } : request))}
+            />
           )}
 
           {activeTab === 'overview' && (
@@ -1410,13 +1440,13 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
         <button
           onClick={() => setIsMobileSidebarOpen(true)}
           className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 ${
-            ['qris', 'tickets', 'settings'].includes(activeTab)
+            ['promosi', 'qris', 'tickets', 'settings'].includes(activeTab)
               ? 'text-brand-primary font-semibold'
               : 'text-text-secondary hover:text-brand-primary'
           }`}
         >
           <div className="relative">
-            <MoreHorizontal className={`w-6 h-6 stroke-[1.5] ${['qris', 'tickets', 'settings'].includes(activeTab) ? 'stroke-brand-primary' : ''}`} />
+            <MoreHorizontal className={`w-6 h-6 stroke-[1.5] ${['promosi', 'qris', 'tickets', 'settings'].includes(activeTab) ? 'stroke-brand-primary' : ''}`} />
             {ticketsList.filter(t => t.status === 'open').length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-status-error text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{ticketsList.filter(t => t.status === 'open').length}</span>
             )}

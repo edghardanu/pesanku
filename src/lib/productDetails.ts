@@ -3,9 +3,10 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { products, sellerProfiles, users } from "@/lib/schema";
 import { ProductItem } from "@/types";
+import { parseStoredProductVariants } from "@/lib/productVariants";
 
 export async function getProductDetail(productId: string): Promise<ProductItem | undefined> {
-  return db
+  const product = await db
     .select({
       id: products.id,
       sellerId: products.sellerId,
@@ -17,9 +18,9 @@ export async function getProductDetail(productId: string): Promise<ProductItem |
       currentQty: products.currentQty,
       minOrderQty: products.minOrderQty,
       maxOrderQty: products.maxOrderQty,
-      stock: products.stock,
       processingTime: products.processingTime,
       batchCategory: products.batchCategory,
+      variantsJson: products.variantsJson,
       deadlineDate: products.deadlineDate,
       status: products.status,
       createdAt: products.createdAt,
@@ -36,4 +37,12 @@ export async function getProductDetail(productId: string): Promise<ProductItem |
     .leftJoin(sellerProfiles, eq(users.id, sellerProfiles.userId))
     .where(eq(products.id, productId))
     .get();
+
+  if (!product) return undefined;
+
+  const { variantsJson, ...productDetail } = product;
+  return {
+    ...productDetail,
+    variants: parseStoredProductVariants(variantsJson),
+  };
 }

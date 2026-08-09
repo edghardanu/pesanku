@@ -45,12 +45,35 @@ export const products = sqliteTable('products', {
   currentQty: integer('current_qty').default(0),
   minOrderQty: integer('min_order_qty').default(1),
   maxOrderQty: integer('max_order_qty'),
-  stock: integer('stock').default(0),
   processingTime: text('processing_time'),
   batchCategory: text('batch_category'),
+  variantsJson: text('variants_json'),
   deadlineDate: integer('deadline_date', { mode: 'timestamp' }),
   status: text('status', { enum: ['draft', 'active', 'quota_reached', 'closed', 'processing', 'completed'] }).default('draft'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+
+// Promotion packages created by admins and offered to sellers.
+export const promotionOffers = sqliteTable('promotion_offers', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  price: integer('price').notNull(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  createdBy: text('created_by').notNull().references(() => users.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+
+// A seller chooses one product and requests placement in the promoted catalogue.
+export const productPromotions = sqliteTable('product_promotions', {
+  id: text('id').primaryKey(),
+  promotionId: text('promotion_id').notNull().references(() => promotionOffers.id),
+  productId: text('product_id').notNull().references(() => products.id),
+  sellerId: text('seller_id').notNull().references(() => users.id),
+  status: text('status', { enum: ['pending', 'approved', 'rejected', 'cancelled'] }).default('pending'),
+  requestedAt: integer('requested_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  reviewedAt: integer('reviewed_at', { mode: 'timestamp' }),
+  reviewedBy: text('reviewed_by').references(() => users.id),
 });
 
 // Orders table
@@ -61,9 +84,13 @@ export const orders = sqliteTable('orders', {
   qty: integer('qty').notNull(),
   totalPrice: integer('total_price').notNull(),
   notes: text('notes'),
+  selectedVariant: text('selected_variant'),
+  selectedVariantPrice: integer('selected_variant_price'),
   status: text('status', { enum: ['waiting_verification', 'verified', 'preorder_running', 'failed', 'processing', 'completed', 'cancelled'] }).default('waiting_verification'),
   isRead: integer('is_read', { mode: 'boolean' }).default(false),
   deliveryProofUrl: text('delivery_proof_url'),
+  rating: integer('rating'),
+  ratedAt: integer('rated_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 

@@ -9,10 +9,14 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:migrate-rating": "node scripts/migrate-rating.mjs",
+    "db:migrate-variants": "node scripts/migrate-product-variants.mjs",
+    "db:migrate-promotions": "node scripts/migrate-promotions.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
+    "@lottiefiles/dotlottie-react": "^0.19.13",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.10.0",
     "date-fns": "^4.4.0",

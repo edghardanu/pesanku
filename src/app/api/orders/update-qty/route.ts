@@ -40,14 +40,13 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: `Minimal pemesanan adalah ${minAllowed} porsi.` }, { status: 400 });
     }
 
-    // Check maximum limit (if set) and available stock
-    const availableStock = Math.max(0, (product.stock || 0) - (product.currentQty || 0) + orderObj.qty);
-    const maxAllowed = Math.min(product.maxOrderQty || 999999, availableStock);
-    if (qty > maxAllowed) {
-      return NextResponse.json({ error: `Jumlah pesanan melebihi batas atau stok yang tersedia (${maxAllowed} porsi).` }, { status: 400 });
+    // Check the optional maximum limit set by the seller.
+    if (product.maxOrderQty && qty > product.maxOrderQty) {
+      return NextResponse.json({ error: `Maksimal pemesanan adalah ${product.maxOrderQty} porsi.` }, { status: 400 });
     }
 
-    const newTotalPrice = product.price * qty;
+    const unitPrice = orderObj.selectedVariantPrice ?? product.price;
+    const newTotalPrice = unitPrice * qty;
 
     // Update order quantity and total price
     await db.update(orders)

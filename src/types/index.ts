@@ -23,6 +23,8 @@ export interface OrderItem {
   totalPrice: number;
   status: string | null;
   notes?: string | null;
+  selectedVariant?: string | null;
+  selectedVariantPrice?: number | null;
   createdAt?: string | Date | null;
   paymentProofUrl?: string | null;
   proofUrl?: string | null;
@@ -33,6 +35,9 @@ export interface OrderItem {
   productName?: string;
   productPrice?: number;
   productImageUrl?: string | null;
+  deliveryDate?: string | null;
+  fulfillmentStatus?: 'scheduled' | 'preparing' | 'ready' | 'shipped' | 'delivered' | null;
+  scheduleUpdatedAt?: string | null;
 }
 
 export interface UmkmItem {
@@ -75,6 +80,32 @@ export interface VerificationItem {
   waktu: string;
 }
 
+export type PromotionRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+export interface PromotionOfferItem {
+  id: string;
+  name: string;
+  price: number;
+  expiresAt: string | Date;
+  isActive: boolean | null;
+  createdAt?: string | Date | null;
+}
+
+export interface PromotionRequestItem {
+  id: string;
+  promotionId: string;
+  productId: string;
+  sellerId: string;
+  status: PromotionRequestStatus | null;
+  requestedAt?: string | Date | null;
+  reviewedAt?: string | Date | null;
+  offerName: string;
+  offerPrice: number;
+  expiresAt: string | Date;
+  productName: string;
+  storeName?: string | null;
+}
+
 export interface ChatMessage {
   id?: string;
   role?: string;
@@ -95,6 +126,11 @@ export interface AuthUser {
   profileImageUrl?: string | null;
 }
 
+export interface ProductVariant {
+  name: string;
+  price?: number | null;
+}
+
 export interface ProductItem {
   id: string;
   name: string;
@@ -102,7 +138,6 @@ export interface ProductItem {
   imageUrl?: string | null;
   description?: string | null;
   status?: string | null;
-  stock?: number | null;
   currentQty?: number | null;
   preorderMinQty?: number | null;
   minQty?: number | null;
@@ -121,6 +156,12 @@ export interface ProductItem {
   sellerAvatar?: string | null;
   sellerApprovalStatus?: string | null;
   totalSold?: number;
+  averageRating?: number | null;
+  ratingCount?: number;
+  variants?: ProductVariant[];
+  isPromoted?: boolean;
+  promotionLabel?: string | null;
+  promotionExpiresAt?: Date | string | null;
 }
 
 export interface BuyerOrderViewItem {
@@ -129,18 +170,20 @@ export interface BuyerOrderViewItem {
   totalPrice: number;
   status: string | null;
   notes?: string | null;
+  selectedVariant?: string | null;
+  selectedVariantPrice?: number | null;
   createdAt: string | Date | null;
   productName: string;
   productImageUrl?: string | null;
   storeName?: string | null;
   minQty?: number | null;
   maxQty?: number | null;
-  stock?: number | null;
-  currentQty?: number | null;
   processingTime?: string | null;
   paymentId?: string | null;
   paymentStatus?: string | null;
   deliveryProofUrl?: string | null;
+  rating?: number | null;
+  ratedAt?: string | Date | null;
 }
 
 export interface InvoiceOrder {
@@ -149,6 +192,8 @@ export interface InvoiceOrder {
   qty: number;
   totalPrice: number;
   notes?: string | null;
+  selectedVariant?: string | null;
+  selectedVariantPrice?: number | null;
   createdAt: string | Date | null;
   productName: string;
   productPrice: number;

@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, ShoppingCart, LayoutDashboard } from "lucide-react";
+import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, Store, LayoutDashboard, Sparkles } from "lucide-react";
 import { motion, Variants, AnimatePresence } from "framer-motion";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import Swal from "sweetalert2";
 import { ProductItem, AuthUser } from "@/types";
+import ProductRating from "@/components/ProductRating";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -31,7 +33,7 @@ const itemVariants: Variants = {
   }
 };
 
-export default function ClientHome({ initialProducts, totalSold, user }: { initialProducts: ProductItem[], totalSold: number, user?: AuthUser | null }) {
+export default function ClientHome({ initialProducts, user }: { initialProducts: ProductItem[], user?: AuthUser | null }) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -56,7 +58,6 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
   }, []);
 
   const [orderCount, setOrderCount] = useState(0);
-  const [activeProductIds, setActiveProductIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user && user.role === 'pembeli') {
@@ -65,9 +66,6 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
         .then(data => {
           if (typeof data.count === 'number') {
             setOrderCount(data.count);
-          }
-          if (Array.isArray(data.activeProductIds)) {
-            setActiveProductIds(new Set(data.activeProductIds));
           }
         })
         .catch(console.error);
@@ -96,204 +94,6 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
     window.scrollTo({ top: window.innerHeight * 0.8, behavior: 'smooth' });
   };
 
-  const handleCheckout = async (e: React.MouseEvent, product: ProductItem) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!user) {
-      Swal.fire({
-        title: 'Anda Belum Login',
-        text: 'Silakan login terlebih dahulu untuk melakukan pemesanan.',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonText: 'Ke Halaman Login',
-        cancelButtonText: 'Batal',
-        confirmButtonColor: '#ff5c35'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          window.location.href = '/login';
-        }
-      });
-      return;
-    }
-
-    if (user.role === 'penjual' || user.role === 'admin') {
-      Swal.fire('Akses Ditolak', 'Hanya akun pembeli yang dapat melakukan pemesanan.', 'warning');
-      return;
-    }
-    
-    const globalMinQty = product.preorderMinQty || product.minQty || 10;
-    const currentQty = product.currentQty || 0;
-    const buyerMinQty = product.minOrderQty || 1;
-
-    const isFull = currentQty >= globalMinQty;
-
-    const confirmResult = await Swal.fire({
-      title: 'Checkout Cepat',
-      html: `
-        <div class="text-left font-sans">
-
-          <!-- Image + Product Info side by side -->
-          <div class="flex gap-3 mb-4">
-            <div class="w-28 h-28 rounded-xl bg-base overflow-hidden relative shrink-0">
-              ${product.imageUrl
-                ? `<img src="${product.imageUrl}" class="w-full h-full object-cover" />`
-                : `<div class="w-full h-full flex items-center justify-center bg-border/30"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>`
-              }
-              ${product.status === 'active'
-                ? `<div class="absolute top-1.5 left-1.5 bg-brand-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">Terbuka</div>`
-                : ''}
-            </div>
-            <div class="flex-1 min-w-0">
-              <h2 class="font-bold text-text-primary text-base leading-tight mb-0.5 line-clamp-2">${product.name}</h2>
-              ${product.batchCategory ? `<span class="bg-brand-secondary/20 text-brand-secondary-dark px-1.5 py-0.5 rounded text-[10px] font-bold border border-brand-secondary/30 inline-block mb-1">${product.batchCategory}</span>` : ''}
-              <p class="text-lg font-bold text-brand-primary mb-2">Rp ${product.price.toLocaleString('id-ID')}</p>
-              <div class="flex items-center gap-2">
-                <div class="w-6 h-6 bg-brand-primary/10 rounded-full flex items-center justify-center shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
-                </div>
-                <span class="text-xs font-semibold text-text-primary line-clamp-1">${product.sellerName || 'Toko UMKM'}</span>
-                <span class="px-1.5 py-0.5 bg-status-success/10 text-status-success text-[9px] rounded-full font-medium shrink-0">✓ Terverifikasi</span>
-              </div>
-            </div>
-          </div>
-
-          ${product.description ? `
-          <div class="bg-base px-3 py-2.5 rounded-xl border border-border mb-3">
-            <p class="text-xs text-text-secondary leading-relaxed">${product.description}</p>
-          </div>` : ''}
-
-          <!-- Info Row -->
-          <div class="grid grid-cols-2 gap-2 mb-4">
-            <div class="bg-base rounded-xl border border-border p-2.5 text-center">
-              <p class="text-[10px] text-text-secondary mb-0.5">Min. Order</p>
-              <p class="text-sm font-bold text-text-primary">${buyerMinQty} Porsi</p>
-            </div>
-            <div class="bg-base rounded-xl border border-border p-2.5 text-center">
-              <p class="text-[10px] text-text-secondary mb-0.5">Stok Tersedia</p>
-              <p class="text-sm font-bold text-text-primary">${Math.max(0, (product.stock || 0) - (product.currentQty || 0))} Porsi</p>
-            </div>
-            ${product.processingTime ? `
-            <div class="col-span-2 bg-brand-primary/5 rounded-xl border border-brand-primary/20 p-2.5 flex justify-between items-center">
-              <p class="text-xs text-text-secondary">⏱ Waktu Proses</p>
-              <p class="text-xs font-bold text-brand-primary">${product.processingTime}</p>
-            </div>` : ''}
-          </div>
-
-          <!-- Qty -->
-          <div class="mb-3">
-            <label class="text-xs font-semibold text-text-secondary uppercase tracking-wide block mb-2">Jumlah Porsi</label>
-            <div class="flex items-center gap-3">
-              <div class="flex items-center border-2 border-border rounded-xl bg-base overflow-hidden">
-                <button type="button" id="swal-btn-minus" class="px-4 py-3 border-r border-border font-bold transition-all flex justify-center items-center text-xl leading-none opacity-40 cursor-not-allowed" disabled>−</button>
-                <span id="swal-qty-display" class="min-w-[3rem] text-center font-bold text-base px-2 py-3 text-text-primary select-none">${buyerMinQty}</span>
-                <button type="button" id="swal-btn-plus" class="px-4 py-3 hover:bg-border/50 border-l border-border font-bold transition-all flex justify-center items-center text-xl leading-none">+</button>
-              </div>
-              <p class="text-xs text-text-secondary">Min: <strong>${buyerMinQty}</strong> porsi</p>
-            </div>
-            <input id="swal-input-qty" type="hidden" value="${buyerMinQty}" />
-          </div>
-
-          <!-- Notes -->
-          <div class="mb-4">
-            <label class="text-xs font-semibold text-text-secondary uppercase tracking-wide block mb-2">Catatan <span class="font-normal normal-case">(Opsional)</span></label>
-            <textarea id="swal-input-notes" placeholder="Contoh: Jangan terlalu pedas ya kak..." class="w-full text-sm bg-base border border-border rounded-xl px-3 py-2.5 outline-none resize-none" rows="2"></textarea>
-          </div>
-
-          <!-- Total -->
-          <div class="flex justify-between items-center border-t border-border pt-3">
-            <span class="text-sm text-text-secondary font-medium">Total Harga</span>
-            <span id="swal-total-price" class="text-xl font-bold text-brand-primary">Rp ${(buyerMinQty * product.price).toLocaleString('id-ID')}</span>
-          </div>
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: 'Pesan Sekarang',
-      cancelButtonText: 'Batal',
-      confirmButtonColor: '#ff5c35',
-      cancelButtonColor: '#94a3b8',
-      customClass: {
-        popup: 'bg-surface text-text-primary rounded-2xl w-full border border-border',
-        title: 'text-center text-lg font-bold border-b border-border pb-3 w-full m-0 px-5 pt-5 text-text-primary',
-        htmlContainer: 'swal-checkout-body m-0 px-5 pt-4 pb-2 text-text-primary',
-        actions: 'w-full flex flex-col gap-2 px-5 pb-5 pt-3 border-t border-border mt-0',
-        confirmButton: 'w-full py-3 text-base rounded-xl font-semibold shadow-md',
-        cancelButton: 'w-full py-2 text-sm rounded-xl bg-gray-100 text-text-secondary shadow-none font-medium'
-      },
-      didOpen: () => {
-        const btnMinus = document.getElementById('swal-btn-minus') as HTMLButtonElement;
-        const btnPlus = document.getElementById('swal-btn-plus') as HTMLButtonElement;
-        const inputQty = document.getElementById('swal-input-qty') as HTMLInputElement;
-        const qtyDisplay = document.getElementById('swal-qty-display');
-        const totalPriceEl = document.getElementById('swal-total-price');
-        const availableStock = Math.max(0, (product.stock || 0) - (product.currentQty || 0));
-        const minQty = buyerMinQty;
-
-        if (btnMinus && btnPlus && inputQty && qtyDisplay && totalPriceEl) {
-          const updateButtonStates = (qty: number) => {
-            // Disable minus when at minimum
-            const atMin = qty <= minQty;
-            btnMinus.disabled = atMin;
-            btnMinus.style.opacity = atMin ? '0.35' : '1';
-            btnMinus.style.cursor = atMin ? 'not-allowed' : 'pointer';
-            btnMinus.style.background = atMin ? '' : '';
-
-            // Disable plus when at max stock
-            const atMax = qty >= availableStock;
-            btnPlus.disabled = atMax;
-            btnPlus.style.opacity = atMax ? '0.35' : '1';
-            btnPlus.style.cursor = atMax ? 'not-allowed' : 'pointer';
-          };
-
-          const updateDisplay = (newQty: number) => {
-            const clamped = Math.max(minQty, Math.min(newQty, availableStock));
-            inputQty.value = clamped.toString();
-            qtyDisplay.textContent = clamped.toString();
-            totalPriceEl.innerHTML = `Rp ${(clamped * product.price).toLocaleString('id-ID')}`;
-            updateButtonStates(clamped);
-          };
-
-          // Set initial state
-          updateButtonStates(minQty);
-
-          btnMinus.onclick = () => {
-            const current = parseInt(inputQty.value);
-            if (current > minQty) {
-              updateDisplay(current - 1);
-            }
-          };
-
-          btnPlus.onclick = () => {
-            const current = parseInt(inputQty.value);
-            if (current < availableStock) {
-              updateDisplay(current + 1);
-            } else {
-              Swal.showValidationMessage(`Stok tidak mencukupi (Tersisa ${availableStock} porsi)`);
-              setTimeout(() => Swal.resetValidationMessage(), 2000);
-            }
-          };
-        }
-      },
-      preConfirm: () => {
-        const inputQty = document.getElementById('swal-input-qty') as HTMLInputElement;
-        const inputNotes = document.getElementById('swal-input-notes') as HTMLTextAreaElement;
-        
-        return {
-          qty: inputQty ? parseInt(inputQty.value) : buyerMinQty,
-          notes: inputNotes ? inputNotes.value : ''
-        };
-      }
-    });
-
-    if (!confirmResult.isConfirmed || !confirmResult.value) return;
-
-    const finalQty = confirmResult.value.qty;
-    const finalNotes = confirmResult.value.notes;
-    const finalTotalPrice = finalQty * product.price;
-
-    Swal.close();
-    router.push(`/process-order?productId=${product.id}&qty=${finalQty}&notes=${encodeURIComponent(finalNotes)}`);
-  };
 
   useEffect(() => {
     setTimeout(() => {
@@ -413,7 +213,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                           onClick={() => {
                             setSearchQuery(product.name);
                             setIsSearchFocused(false);
-                            router.push(`/product/${product.id}`);
+                            router.push(product.sellerId ? `/store/${product.sellerId}` : `/product/${product.id}`);
                           }}
                           className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
                         >
@@ -623,7 +423,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                                 setSearchQuery(product.name);
                                 setIsSearchFocused(false);
                                 setIsMobileSearchOpen(false);
-                                router.push(`/product/${product.id}`);
+                                router.push(product.sellerId ? `/store/${product.sellerId}` : `/product/${product.id}`);
                               }}
                               className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
                             >
@@ -698,7 +498,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                               setSearchQuery(product.name);
                               setIsSearchFocused(false);
                               setIsMobileMenuOpen(false);
-                              router.push(`/product/${product.id}`);
+                              router.push(product.sellerId ? `/store/${product.sellerId}` : `/product/${product.id}`);
                             }}
                             className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
                           >
@@ -810,24 +610,10 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative overflow-hidden py-16 md:py-20 lg:py-28 px-6 sm:px-8 lg:px-12 min-h-[500px] md:min-h-[550px] lg:min-h-[620px] flex items-center">
-          {/* Background Banner */}
-          <div className="absolute inset-0 z-0">
-            <Image 
-              src="/street-food-festival.jpg"
-              alt="Background Banner"
-              fill
-              quality={100}
-              sizes="100vw"
-              className="object-cover object-center opacity-100 scale-100"
-              priority
-            />
-            {/* Dark overlay for rich contrast and text readability */}
-            <div className="absolute inset-0 bg-slate-950/45 dark:bg-slate-950/65 pointer-events-none" />
-          </div>
+        <section className="relative flex min-h-[500px] items-start overflow-hidden bg-white px-6 py-6 sm:px-8 sm:py-8 md:min-h-[550px] md:py-10 lg:min-h-[620px] lg:px-12 lg:py-12 xl:items-center xl:py-28">
           
           <div className="container mx-auto relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="grid grid-cols-1 items-center gap-6 sm:gap-8 lg:gap-10 xl:grid-cols-[minmax(0,1.05fr)_minmax(280px,0.95fr)] xl:gap-16">
               
               {/* Text Content */}
               <motion.div 
@@ -842,25 +628,9 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                   x: { duration: 0.6, ease: "easeOut" },
                   y: { repeat: Infinity, duration: 4, ease: "easeInOut", delay: 0.5 }
                 }}
-                className="text-left"
+                className="order-2 max-w-3xl text-left xl:order-1"
               >
-                <div className="inline-flex items-center gap-2 mb-6 px-3.5 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full text-sm font-semibold tracking-wide">
-                  100% Dukung UMKM Lokal Indonesia
-                  <motion.svg 
-                    animate={{ 
-                      skewY: [-3, 3, -3],
-                      rotate: [-2, 2, -2],
-                      y: [0, -1, 0]
-                    }}
-                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                    viewBox="0 0 3 2" 
-                    className="w-4 h-3 rounded-[2px] overflow-hidden border border-white/40 shadow-sm shrink-0 origin-left"
-                  >
-                    <rect width="3" height="1" y="0" fill="#ef4444" />
-                    <rect width="3" height="1" y="1" fill="#ffffff" />
-                  </motion.svg>
-                </div>
-                <h1 className="text-display-1 text-white mb-6 tracking-tight leading-[1.1]">
+                <h1 className="text-display-1 mb-6 leading-[1.1] tracking-tight text-black">
                   Pesan Makanan UMKM Favoritmu, <span className="text-brand-primary relative inline-block">
                     Kapan Saja
                     <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 20" preserveAspectRatio="none">
@@ -868,71 +638,33 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                     </svg>
                   </span>
                 </h1>
-                <p className="text-body-large text-slate-200 mb-10 leading-relaxed max-w-xl">
+                <p className="text-body-large mb-10 max-w-xl leading-relaxed text-black">
                   Sistem preorder makanan dan minuman dari UMKM lokal dengan minimum order yang jelas. Rasakan hidangan segar langsung dari tangan ahlinya.
                 </p>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-start gap-4">
-                  <Link href="#katalog" className="btn-primary text-lg px-8 py-3.5 shadow-xl shadow-brand-primary/25 hover:scale-105 transition-all w-full sm:w-auto text-center">
+                  <Link href="#katalog" className="btn-primary w-full px-8 py-3.5 text-center text-lg text-white shadow-xl shadow-brand-primary/25 transition-all hover:scale-105 sm:w-auto">
                     Mulai Belanja
                   </Link>
-                  <Link href="/seller" className="text-lg px-8 py-3.5 border border-white/40 hover:border-white text-white hover:bg-white/10 rounded-lg font-medium transition-all duration-200 shadow-sm active:scale-95 hover:shadow-md hover:-translate-y-0.5 cursor-pointer w-full sm:w-auto text-center">
+                  <Link href="/seller" className="w-full cursor-pointer rounded-lg border border-black/40 px-8 py-3.5 text-center text-lg font-medium text-black shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-black hover:bg-black/5 hover:shadow-md active:scale-95 sm:w-auto">
                     Daftar Jadi Penjual
                   </Link>
                 </div>
               </motion.div>
 
-              {/* Image Banner */}
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1, y: [0, -15, 0] }}
-                transition={{ 
-                  opacity: { duration: 0.8, ease: "easeOut", delay: 0.2 },
-                  scale: { duration: 0.8, ease: "easeOut", delay: 0.2 },
-                  y: { repeat: Infinity, duration: 4, ease: "easeInOut", delay: 1 }
-                }}
-                className="relative mb-8 lg:mb-0 lg:mt-0 order-first lg:order-last"
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.7, ease: "easeOut", delay: 0.15 }}
+                className="order-1 aspect-video w-full max-w-sm justify-self-center overflow-hidden bg-white sm:max-w-lg md:max-w-xl xl:order-2 xl:max-w-2xl xl:justify-self-end xl:self-center"
+                role="img"
+                aria-label="Animasi gerobak makanan"
               >
-                <div className="relative aspect-[4/3] w-full max-w-lg mx-auto">
-                  <div className="absolute inset-0 bg-brand-primary/20 rounded-3xl -rotate-6 scale-105 transition-transform duration-500" />
-                  <div className="absolute inset-0 bg-brand-secondary/30 rounded-3xl rotate-3 scale-105 transition-transform duration-500" />
-                  <div className="relative h-full w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-surface dark:border-border">
-                    <Image 
-                      src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop" 
-                      alt="Berbagai hidangan kuliner nusantara yang lezat"
-                      fill
-                      sizes="(max-width: 1024px) 100vw, 50vw"
-                      className="object-cover"
-                      priority
-                    />
-                  </div>
-                  
-                  {/* Floating Badge */}
-                  <motion.div 
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ 
-                      y: [0, 8, 0], 
-                      opacity: 1 
-                    }}
-                    transition={{ 
-                      opacity: { delay: 0.8, duration: 0.5 },
-                      y: { repeat: Infinity, duration: 3, ease: "easeInOut", delay: 1.2 }
-                    }}
-                    className="absolute -bottom-6 -left-6 bg-surface border border-border p-4 rounded-2xl shadow-xl flex items-center gap-4 z-20"
-                  >
-                    <div className="w-12 h-12 bg-status-success/20 text-status-success rounded-full flex items-center justify-center">
-                      <motion.div
-                        animate={{ y: [-3, 3, -3], scale: [1, 1.1, 1] }}
-                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                      >
-                        <ShoppingBag className="w-6 h-6" />
-                      </motion.div>
-                    </div>
-                    <div>
-                      <p className="text-body-small text-text-secondary">Produk Terjual</p>
-                      <p className="text-h3 font-bold text-text-primary">{totalSold > 0 ? `${totalSold.toLocaleString('id-ID')} Porsi` : 'Belum ada'}</p>
-                    </div>
-                  </motion.div>
-                </div>
+                <DotLottieReact
+                  src="/animations/foodcart.lottie"
+                  autoplay
+                  loop
+                  className="h-full w-full scale-[1.04] brightness-[1.025]"
+                />
               </motion.div>
 
             </div>
@@ -948,9 +680,9 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
             className="flex justify-between items-end mb-10"
           >
             <div>
-              <h2 className="text-h2 mb-2 tracking-tight">Sedang Buka Preorder</h2>
+              <h2 className="text-h2 mb-2 tracking-tight">Rekomendasi Untuk Kamu</h2>
               <p className="text-body-base text-text-secondary">
-                {searchQuery ? `Hasil pencarian untuk "${searchQuery}"` : "Dukung UMKM dengan memesan produk yang sedang membuka preorder."}
+                {searchQuery ? `Hasil pencarian untuk "${searchQuery}"` : "Temukan pilihan produk UMKM yang mungkin kamu sukai."}
               </p>
             </div>
           </motion.div>
@@ -983,10 +715,6 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
               {filteredProducts.map((product) => {
-                const currentQty = product.currentQty ?? 0;
-                const minQty = product.minQty ?? 1;
-                const progressPercentage = Math.min((currentQty / minQty) * 100, 100);
-                const isFull = currentQty >= minQty;
                 const productImageUrl = product.imageUrl ?? "/street-food-festival.jpg";
                 
                 // Format deadline
@@ -1001,7 +729,7 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
                 return (
                   <motion.div variants={itemVariants} key={product.id}>
-                    <Link href={`/product/${product.id}`} className="card block group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                    <Link href={product.sellerId ? `/store/${product.sellerId}` : `/product/${product.id}`} className="card block group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                       <div className="relative aspect-[4/3] overflow-hidden bg-surface dark:bg-border rounded-t-2xl">
                         <Image 
                           src={productImageUrl} 
@@ -1010,12 +738,13 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                           className="object-contain group-hover:scale-110 transition-transform duration-500 ease-out"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute top-3 left-3">
-                          <span className="px-3 py-1.5 rounded-full text-caption font-bold flex items-center gap-1 backdrop-blur-sm shadow-sm bg-brand-secondary/90 text-slate-900 border border-brand-secondary/20">
-                            Terbuka
+                        {product.isPromoted && (
+                          <span className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold text-white shadow-lg ring-2 ring-white/70" style={{ backgroundImage: 'linear-gradient(to right, #f97316, var(--color-brand-primary))' }}>
+                            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                            {product.promotionLabel || 'Paling Populer'}
                           </span>
-                        </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       </div>
                       
                       <div className="p-5">
@@ -1038,6 +767,11 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                         </div>
 
                         <h3 className="text-h3 mb-1 line-clamp-2 leading-tight group-hover:text-brand-primary transition-colors">{product.name}</h3>
+                        <ProductRating
+                          averageRating={product.averageRating}
+                          ratingCount={product.ratingCount}
+                          className="mb-2"
+                        />
                         {product.batchCategory && (
                           <div className="mb-2">
                             <span className="bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary px-2 py-0.5 rounded text-[10px] font-bold border border-brand-secondary/30">
@@ -1061,10 +795,6 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
                               <span className="text-text-secondary">Minimal Order:</span>
                               <span className="text-text-primary">{product.minOrderQty} Porsi</span>
                             </div>
-                            <div className="flex justify-between text-caption mb-1.5 font-medium">
-                              <span className="text-text-secondary">Tersedia:</span>
-                              <span className="text-text-primary">{Math.max(0, (product.stock || 0) - (product.currentQty || 0))} Porsi</span>
-                            </div>
                             {product.processingTime && (
                               <div className="flex justify-between text-caption font-medium pt-1.5 border-t border-border/50">
                                 <span className="text-text-secondary">Waktu Proses:</span>
@@ -1082,51 +812,17 @@ export default function ClientHome({ initialProducts, totalSold, user }: { initi
 
                           <div className="mt-4 w-full">
                             {(() => {
-                              const hasThisProductOrder = user && user.role === 'pembeli' && activeProductIds.has(product.id);
                               return (
-                                <button 
+                                <button
                                   onClick={(e) => {
-                                    if (!user) {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      Swal.fire({
-                                        title: 'Login Diperlukan',
-                                        html: `
-                                          <div class="text-center py-2">
-                                            <div class="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                                              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-primary" style="color:#E05638"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                            </div>
-                                            <p class="text-text-secondary text-sm leading-relaxed">Anda harus <strong class="text-text-primary">login</strong> terlebih dahulu untuk dapat melakukan checkout dan memesan produk dari UMKM kami.</p>
-                                          </div>
-                                        `,
-                                        showCancelButton: true,
-                                        confirmButtonText: 'Masuk Sekarang',
-                                        cancelButtonText: 'Batalkan',
-                                        confirmButtonColor: '#E05638',
-                                        cancelButtonColor: '#94a3b8',
-                                        customClass: {
-                                          popup: 'rounded-2xl',
-                                          confirmButton: 'rounded-xl px-6',
-                                          cancelButton: 'rounded-xl px-6',
-                                        }
-                                      }).then((result) => {
-                                        if (result.isConfirmed) {
-                                          window.location.href = '/login';
-                                        }
-                                      });
-                                      return;
-                                    }
-                                    handleCheckout(e, product);
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    router.push(product.sellerId ? `/store/${product.sellerId}` : `/product/${product.id}`);
                                   }}
-                                  disabled={!!hasThisProductOrder}
-                                  className={`w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm font-semibold ${
-                                    hasThisProductOrder
-                                      ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed'
-                                      : 'btn-primary hover:bg-brand-primary-hover'
-                                  }`}
+                                  className="w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm font-semibold btn-primary hover:bg-brand-primary-hover"
                                 >
-                                  <ShoppingCart className="w-4 h-4" />
-                                  {hasThisProductOrder ? 'Selesaikan dulu pesanan anda' : 'Checkout Sekarang'}
+                                  <Store className="w-4 h-4" />
+                                  Lihat Toko &amp; Katalog
                                 </button>
                               );
                             })()}

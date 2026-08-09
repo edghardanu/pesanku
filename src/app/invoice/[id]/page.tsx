@@ -20,6 +20,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       totalPrice: orders.totalPrice,
       status: orders.status,
       notes: orders.notes,
+      selectedVariant: orders.selectedVariant,
+      selectedVariantPrice: orders.selectedVariantPrice,
       createdAt: orders.createdAt,
       
       productName: products.name,

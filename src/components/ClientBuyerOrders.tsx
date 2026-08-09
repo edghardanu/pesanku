@@ -1,21 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { AuthUser, BuyerOrderViewItem, ChatMessage } from "@/types";
 
-export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrderViewItem[], user?: AuthUser | null }) {
+export default function ClientBuyerOrders({
+  orders,
+  user,
+  checkoutCount = 0,
+}: {
+  orders: BuyerOrderViewItem[];
+  user?: AuthUser | null;
+  checkoutCount?: number;
+}) {
   const router = useRouter();
   const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [prevOrders, setPrevOrders] = useState<BuyerOrderViewItem[]>(orders);
   const [localOrders, setLocalOrders] = useState<BuyerOrderViewItem[]>(orders);
   const [bottomNavLoading, setBottomNavLoading] = useState<'home' | 'catalog' | null>(null);
+  const [checkoutNoticeCount, setCheckoutNoticeCount] = useState(checkoutCount);
+  const [ratingLoadingOrderId, setRatingLoadingOrderId] = useState<string | null>(null);
+  const hasShownCheckoutNotice = useRef(false);
 
   if (orders !== prevOrders) {
     setPrevOrders(orders);
@@ -41,6 +52,22 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
       fetch('/api/orders', { method: 'PATCH' }).catch(err => console.error(err));
     }
   }, [user]);
+
+  useEffect(() => {
+    if (checkoutCount < 1 || hasShownCheckoutNotice.current) return;
+
+    hasShownCheckoutNotice.current = true;
+    void Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: 'Checkout berhasil',
+      text: `${checkoutCount} produk berhasil ditambahkan ke daftar pesanan.`,
+      showConfirmButton: false,
+      timer: 4500,
+      timerProgressBar: true,
+    });
+  }, [checkoutCount]);
 
   useEffect(() => {
     router.prefetch('/');
@@ -247,6 +274,46 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
         const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
         Swal.fire('Gagal!', errMsg, 'error');
       }
+    }
+  };
+
+  const handleProductRating = async (orderId: string, productName: string, rating: number) => {
+    const previousRating = localOrders.find((order) => order.orderId === orderId)?.rating ?? null;
+    setRatingLoadingOrderId(orderId);
+    setLocalOrders((current) => current.map((order) => (
+      order.orderId === orderId ? { ...order, rating, ratedAt: new Date() } : order
+    )));
+
+    try {
+      const response = await fetch('/api/orders/rating', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, rating }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Gagal menyimpan rating.');
+      }
+
+      void Swal.fire({
+        icon: 'success',
+        title: 'Rating Tersimpan',
+        text: `Anda memberikan ${rating} bintang untuk ${productName}.`,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2200,
+      });
+      router.refresh();
+    } catch (error) {
+      setLocalOrders((current) => current.map((order) => (
+        order.orderId === orderId ? { ...order, rating: previousRating } : order
+      )));
+      const message = error instanceof Error ? error.message : 'Terjadi kesalahan saat menyimpan rating.';
+      void Swal.fire({ icon: 'error', title: 'Rating Gagal Disimpan', text: message });
+    } finally {
+      setRatingLoadingOrderId(null);
     }
   };
 
@@ -534,16 +601,25 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
     <div className="min-h-screen bg-base pb-24">
       <header className="bg-surface/80 backdrop-blur-md border-b border-border sticky top-0 z-50 transition-all">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Kembali ke Beranda">
               <ArrowLeft className="w-5 h-5 text-text-primary" />
             </Link>
-            <span className="font-semibold text-lg text-text-primary">Daftar Pesanan Saya</span>
+            <span className="truncate font-semibold text-base text-text-primary sm:text-lg"><span className="hidden sm:inline">Daftar </span>Pesanan Saya</span>
+            {checkoutNoticeCount > 0 && (
+              <span
+                className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-full bg-brand-primary px-2 py-1 text-xs font-bold text-white shadow-sm"
+                aria-label={`${checkoutNoticeCount} pesanan baru`}
+                title={`${checkoutNoticeCount} pesanan baru`}
+              >
+                {checkoutNoticeCount}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button 
               onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors relative flex items-center justify-center w-10 h-10"
+              className="relative hidden h-10 w-10 items-center justify-center rounded-full p-2 transition-colors hover:bg-black/10 dark:hover:bg-white/10 sm:flex"
               aria-label="Toggle Dark Mode"
             >
               <AnimatePresence mode="wait" initial={false}>
@@ -577,7 +653,7 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
               <>
                 <Link
                   href="/profile"
-                  className="p-2 rounded-full text-text-secondary hover:text-brand-primary hover:bg-brand-primary/10 transition-colors flex items-center justify-center w-10 h-10"
+                  className="hidden h-10 w-10 items-center justify-center rounded-full p-2 text-text-secondary transition-colors hover:bg-brand-primary/10 hover:text-brand-primary sm:flex"
                   title="Profil Akun"
                 >
                   <User className="w-5 h-5" />
@@ -596,6 +672,34 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
       </header>
 
       <main className="container mx-auto px-4 pt-6 max-w-4xl pb-24 md:pb-12">
+        <AnimatePresence>
+          {checkoutNoticeCount > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              className="mb-6 flex items-start gap-3 rounded-2xl border border-status-success/30 bg-status-success/10 p-4 shadow-sm sm:items-center"
+              role="status"
+            >
+              <CheckCircle className="mt-0.5 h-6 w-6 shrink-0 text-status-success sm:mt-0" />
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-text-primary">Checkout berhasil</p>
+                <p className="mt-0.5 text-sm text-text-secondary">
+                  <strong className="text-status-success">{checkoutNoticeCount} produk</strong> telah masuk ke daftar pesanan dan menunggu pembayaran.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCheckoutNoticeCount(0)}
+                className="rounded-full p-1.5 text-text-secondary transition-colors hover:bg-black/5 hover:text-text-primary dark:hover:bg-white/10"
+                aria-label="Tutup notifikasi checkout"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {orders.length === 0 ? (
           !user ? (
             <motion.div 
@@ -608,44 +712,18 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
               <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-brand-secondary/20 rounded-full blur-3xl opacity-50 mix-blend-multiply" />
               
               <div className="relative flex flex-col items-center">
-                {/* Bayangan Dasar (Floor Shadow) */}
-                <motion.div 
-                  animate={{ scale: [1, 0.7, 1], opacity: [0.2, 0.05, 0.2] }}
-                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                  className="absolute bottom-2 left-1/2 -translate-x-1/2 w-40 h-6 bg-black blur-[8px] rounded-[100%] z-0"
-                />
-
-                <motion.div 
-                  animate={{ y: [0, -12, 0], rotate: [-1, 1, -1] }}
-                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                  className="relative w-56 h-56 mb-4 mt-6 z-10"
+                <div
+                  className="relative z-10 mb-4 mt-6 h-56 w-56 sm:h-64 sm:w-64"
+                  role="img"
+                  aria-label="Peringatan untuk masuk ke akun"
                 >
-                  {/* Gelembung Awan (Thought Bubble) */}
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.5, y: 10, x: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
-                    transition={{ delay: 0.4, type: "spring", bounce: 0.6 }}
-                    className="absolute top-0 -right-4 z-20 drop-shadow-xl"
-                  >
-                    <div className="relative bg-white text-slate-800 px-5 py-3 rounded-full font-bold text-lg border border-slate-100 rotate-6 shadow-sm">
-                      Yahh..
-                      {/* Ekor gelembung awan (Thought dots) */}
-                      <div className="absolute -bottom-2 -left-1 w-4 h-4 bg-white rounded-full border border-slate-100 border-t-0 border-r-0"></div>
-                      <div className="absolute -bottom-5 -left-4 w-2 h-2 bg-white rounded-full border border-slate-100"></div>
-                    </div>
-                  </motion.div>
-
-                  <Image 
-                    src="/confused-man-smooth.png" 
-                    alt="Bingung Belum Login"
-                    fill
-                    quality={100}
-                    unoptimized
-                    priority
-                    className="object-contain z-10"
-                    style={{ clipPath: "inset(2px)" }}
+                  <DotLottieReact
+                    src="/animations/danger-icon.lottie"
+                    autoplay
+                    loop
+                    className="h-full w-full"
                   />
-                </motion.div>
+                </div>
               </div>
               
               <h3 className="text-h2 text-text-primary mb-3 font-bold">Anda belum masuk!</h3>
@@ -660,11 +738,16 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
           ) : (
             <div className="text-center py-20 bg-surface rounded-3xl border border-border mt-8 shadow-sm">
               <div className="mx-auto w-fit relative mb-6 mt-4">
-                <div className="w-48 h-36 md:w-64 md:h-48 overflow-hidden relative flex justify-center items-start rounded-3xl shadow-md border border-gray-100 dark:border-gray-800 bg-orange-50/30">
-                  <img 
-                    src="https://media1.tenor.com/m/1f8NZQnyGgkAAAAC/hamie-hamieverse.gif" 
-                    alt="Belum Ada Pesanan" 
-                    className="w-48 h-48 md:w-64 md:h-64 object-cover object-top scale-[1.15]"
+                <div
+                  className="relative h-36 w-48 overflow-hidden rounded-3xl md:h-48 md:w-64"
+                  role="img"
+                  aria-label="Belum ada riwayat pesanan"
+                >
+                  <DotLottieReact
+                    src="/animations/no-history.lottie"
+                    autoplay
+                    loop
+                    className="h-full w-full"
                   />
                 </div>
               </div>
@@ -684,8 +767,6 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
               
               const updateQty = async (delta: number) => {
                 const minAllowed = order.minQty || 1;
-                const availableStock = Math.max(0, (order.stock || 0) - (order.currentQty || 0) + order.qty);
-                const maxAllowed = Math.min(order.maxQty || 999999, availableStock);
                 const newQty = order.qty + delta;
 
                 if (newQty < minAllowed) {
@@ -701,11 +782,11 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
                   return;
                 }
 
-                if (newQty > maxAllowed) {
+                if (order.maxQty && newQty > order.maxQty) {
                   Swal.fire({
                     icon: 'warning',
-                    title: 'Batas Maksimal / Stok',
-                    text: `Batas pemesanan adalah ${maxAllowed} porsi.`,
+                    title: 'Batas Maksimal',
+                    text: `Maksimal pemesanan adalah ${order.maxQty} porsi.`,
                     toast: true,
                     position: 'top-end',
                     showConfirmButton: false,
@@ -780,6 +861,14 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
                       <div>
                         <h3 className="font-bold text-text-primary mb-1">{order.productName}</h3>
                         <p className="text-sm text-text-secondary mb-1">Toko: {order.storeName || 'Toko UMKM'}</p>
+                        {order.selectedVariant && (
+                          <p className="mb-1 text-sm font-semibold text-brand-primary">
+                            Varian: {order.selectedVariant}
+                            {order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined
+                              ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}`
+                              : ''}
+                          </p>
+                        )}
                         {order.processingTime && (
                           <p className="text-sm text-text-secondary mb-1">
                             Waktu Proses: <span className="font-medium text-text-primary">{order.processingTime}</span>
@@ -886,6 +975,43 @@ export default function ClientBuyerOrders({ orders, user }: { orders: BuyerOrder
                       </div>
                     )}
                   </div>
+
+                  {order.status === 'completed' && (
+                    <div className="border-t border-border px-5 py-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-text-primary">Beri Rating Produk</p>
+                          <p className="mt-0.5 text-xs text-text-secondary">
+                            {order.rating ? `Rating Anda: ${order.rating} dari 5 bintang. Tap untuk mengubah.` : 'Pilih 1 sampai 5 bintang untuk produk ini.'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1" role="group" aria-label={`Rating untuk ${order.productName}`}>
+                          {[1, 2, 3, 4, 5].map((value) => {
+                            const isActive = value <= (order.rating || 0);
+                            const isLoading = ratingLoadingOrderId === order.orderId;
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => handleProductRating(order.orderId, order.productName, value)}
+                                disabled={isLoading}
+                                aria-label={`Beri ${value} bintang untuk ${order.productName}`}
+                                aria-pressed={order.rating === value}
+                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:cursor-wait disabled:opacity-60 dark:hover:bg-amber-500/10"
+                              >
+                                <Star className={`h-7 w-7 transition-all ${isActive ? 'fill-amber-400 text-amber-400' : 'fill-transparent text-slate-300 hover:text-amber-400 dark:text-slate-600'}`} />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {ratingLoadingOrderId === order.orderId && (
+                        <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-brand-primary" role="status">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Menyimpan rating...
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="px-5 pb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-border pt-4">
                     <div>

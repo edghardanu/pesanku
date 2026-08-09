@@ -3,13 +3,18 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Upload, Info, X } from "lucide-react";
+import { ArrowLeft, Upload, Info, Plus, X } from "lucide-react";
 import Image from "next/image";
+import { MAX_PRODUCT_VARIANTS, MAX_PRODUCT_VARIANT_LENGTH } from "@/lib/productVariants";
+import type { ProductVariant } from "@/types";
 
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [variantInput, setVariantInput] = useState("");
+  const [variantPriceInput, setVariantPriceInput] = useState("");
   
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +51,38 @@ export default function NewProductPage() {
     }
   };
 
+  const addVariant = () => {
+    const nextVariantName = variantInput.trim();
+    if (!nextVariantName) return;
+    if (nextVariantName.length > MAX_PRODUCT_VARIANT_LENGTH) {
+      setError(`Nama varian maksimal ${MAX_PRODUCT_VARIANT_LENGTH} karakter.`);
+      return;
+    }
+    if (variants.length >= MAX_PRODUCT_VARIANTS) {
+      setError(`Maksimal ${MAX_PRODUCT_VARIANTS} varian untuk satu produk.`);
+      return;
+    }
+    if (variants.some((variant) => variant.name.toLocaleLowerCase('id-ID') === nextVariantName.toLocaleLowerCase('id-ID'))) {
+      setError("Nama varian tidak boleh sama.");
+      return;
+    }
+
+    const nextVariantPrice = variantPriceInput.trim() ? Number(variantPriceInput) : null;
+    if (nextVariantPrice !== null && (!Number.isInteger(nextVariantPrice) || nextVariantPrice < 0)) {
+      setError("Harga varian harus berupa angka bulat minimal Rp 0.");
+      return;
+    }
+
+    setVariants((current) => [...current, { name: nextVariantName, price: nextVariantPrice }]);
+    setVariantInput("");
+    setVariantPriceInput("");
+    setError("");
+  };
+
+  const removeVariant = (variantToRemove: string) => {
+    setVariants((current) => current.filter((variant) => variant.name !== variantToRemove));
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -53,6 +90,29 @@ export default function NewProductPage() {
 
     const formData = new FormData(e.currentTarget);
     const minQty = "1";
+    const pendingVariantName = variantInput.trim();
+    const pendingVariantPrice = variantPriceInput.trim() ? Number(variantPriceInput) : null;
+    const submittedVariants = pendingVariantName && !variants.some(
+      (variant) => variant.name.toLocaleLowerCase('id-ID') === pendingVariantName.toLocaleLowerCase('id-ID'),
+    ) ? [...variants, { name: pendingVariantName, price: pendingVariantPrice }] : variants;
+
+    if (!pendingVariantName && variantPriceInput.trim()) {
+      setError("Nama varian wajib diisi jika harga varian diberikan.");
+      setLoading(false);
+      return;
+    }
+
+    if (pendingVariantPrice !== null && (!Number.isInteger(pendingVariantPrice) || pendingVariantPrice < 0)) {
+      setError("Harga varian harus berupa angka bulat minimal Rp 0.");
+      setLoading(false);
+      return;
+    }
+
+    if (pendingVariantName.length > MAX_PRODUCT_VARIANT_LENGTH || submittedVariants.length > MAX_PRODUCT_VARIANTS) {
+      setError(`Maksimal ${MAX_PRODUCT_VARIANTS} varian dengan panjang ${MAX_PRODUCT_VARIANT_LENGTH} karakter per varian.`);
+      setLoading(false);
+      return;
+    }
 
     // Validasi di frontend (Business Rule 1) removed since deadline is removed
 
@@ -62,8 +122,8 @@ export default function NewProductPage() {
       price: formData.get("price"),
       minQty: minQty,
       minOrderQty: formData.get("minOrderQty"),
-      stock: formData.get("stock"),
       processingTime: formData.get("processingTime"),
+      variants: submittedVariants,
       imageUrl: imagePreview || "",
     };
 
@@ -132,6 +192,72 @@ export default function NewProductPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-body-small font-medium text-text-primary mb-1">
+                Varian Produk <span className="font-normal text-text-secondary">(Opsional)</span>
+              </label>
+              <p className="mb-3 text-xs text-text-secondary">
+                Buat pilihan seperti Original, Pedas, Cokelat, atau ukuran produk. Pembeli akan memilih salah satu sebelum checkout.
+              </p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(160px,0.55fr)_auto]">
+                <input
+                  type="text"
+                  value={variantInput}
+                  onChange={(event) => setVariantInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      addVariant();
+                    }
+                  }}
+                  maxLength={MAX_PRODUCT_VARIANT_LENGTH}
+                  placeholder="Contoh: Pedas"
+                  aria-label="Nama varian"
+                  className="input-field"
+                />
+                <input
+                  type="number"
+                  value={variantPriceInput}
+                  onChange={(event) => setVariantPriceInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      addVariant();
+                    }
+                  }}
+                  min="0"
+                  step="1"
+                  placeholder="Harga (opsional)"
+                  aria-label="Harga varian opsional"
+                  className="input-field"
+                />
+                <button
+                  type="button"
+                  onClick={addVariant}
+                  disabled={!variantInput.trim() || variants.length >= MAX_PRODUCT_VARIANTS}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-primary px-4 text-sm font-semibold text-brand-primary transition-colors hover:bg-brand-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Plus className="h-4 w-4" /> Tambah Varian
+                </button>
+              </div>
+              {variants.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2" aria-label="Daftar varian produk">
+                  {variants.map((variant) => (
+                    <span key={variant.name} className="inline-flex items-center gap-2 rounded-full border border-brand-primary/30 bg-brand-primary/10 px-3 py-1.5 text-sm font-semibold text-brand-primary">
+                      {variant.name}
+                      {variant.price !== null && variant.price !== undefined && (
+                        <span className="font-bold">· Rp {variant.price.toLocaleString('id-ID')}</span>
+                      )}
+                      <button type="button" onClick={() => removeVariant(variant.name)} aria-label={`Hapus varian ${variant.name}`} className="rounded-full p-0.5 hover:bg-brand-primary/15">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="mt-2 text-xs text-text-secondary">{variants.length}/{MAX_PRODUCT_VARIANTS} varian</p>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-body-small font-medium text-text-primary mb-1">
@@ -197,7 +323,7 @@ export default function NewProductPage() {
             <div className="bg-brand-secondary/10 p-4 rounded-xl mb-6">
               <h3 className="text-body-base font-semibold text-brand-secondary-dark dark:text-brand-secondary mb-2">Pengaturan Preorder</h3>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div>
                 <div>
                   <label className="block text-body-small font-medium text-text-primary mb-1">
                     Minimal Order <span className="text-status-error">*</span>
@@ -207,18 +333,6 @@ export default function NewProductPage() {
                     name="minOrderQty"
                     min="1"
                     defaultValue="1"
-                    className="input-field"
-                  />
-                </div>
-                <div>
-                  <label className="block text-body-small font-medium text-text-primary mb-1">
-                    Stok (Produk Tersedia) <span className="text-status-error">*</span>
-                  </label>
-                  <input 
-                    type="number" 
-                    name="stock"
-                    min="0"
-                    defaultValue="100"
                     className="input-field"
                   />
                 </div>
