@@ -655,7 +655,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.7, ease: "easeOut", delay: 0.15 }}
-                className="order-1 aspect-video w-full max-w-sm justify-self-center overflow-hidden rounded-[2rem] bg-transparent dark:bg-white/5 sm:max-w-lg md:max-w-xl xl:order-2 xl:max-w-2xl xl:justify-self-end xl:self-center"
+                className="order-1 aspect-video w-full max-w-sm justify-self-center overflow-hidden rounded-[2rem] bg-surface/80 backdrop-blur-md dark:bg-white/5 dark:backdrop-blur-none sm:max-w-lg md:max-w-xl xl:order-2 xl:max-w-2xl xl:justify-self-end xl:self-center"
                 role="img"
                 aria-label="Animasi gerobak makanan"
               >
