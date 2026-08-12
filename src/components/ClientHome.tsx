@@ -39,6 +39,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [greeting, setGreeting] = useState("");
@@ -118,6 +119,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
 
   useEffect(() => {
     const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
       if (window.scrollY > 500) {
         setShowBackToTop(true);
       } else {
@@ -166,9 +168,14 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
 
   return (
     <>
-      <header className="bg-surface/80 backdrop-blur-md border-b border-border sticky top-0 z-50 transition-all">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 hover:scale-105 transition-transform">
+      <div className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled ? 'pt-4 px-4 sm:px-6' : 'pt-0 px-0'}`}>
+        <header className={`mx-auto w-full transition-all duration-300 ${
+          isScrolled 
+            ? 'bg-white/70 dark:bg-surface/70 backdrop-blur-md border border-border/50 shadow-lg rounded-2xl max-w-7xl' 
+            : 'bg-white dark:bg-base border-b border-border'
+        }`}>
+          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2 hover:scale-105 transition-transform">
             <motion.div
               className="flex items-center gap-2"
               animate={{ y: [0, -3, 0] }}
@@ -606,11 +613,12 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
             </div>
           </motion.div>
         )}
-      </header>
+        </header>
+      </div>
 
-      <main className="flex-1">
+      <main className="flex-1 bg-white dark:bg-base">
         {/* Hero Section */}
-        <section className="relative flex min-h-[500px] items-start overflow-hidden bg-base px-6 py-6 sm:px-8 sm:py-8 md:min-h-[550px] md:py-10 lg:min-h-[620px] lg:px-12 lg:py-12 xl:items-center xl:py-28">
+        <section className="relative flex min-h-[500px] items-start overflow-hidden bg-white dark:bg-base px-6 py-6 sm:px-8 sm:py-8 md:min-h-[550px] md:py-10 lg:min-h-[620px] lg:px-12 lg:py-12 xl:items-center xl:py-28">
           
           <div className="container mx-auto relative z-10">
             <div className="grid grid-cols-1 items-center gap-6 sm:gap-8 lg:gap-10 xl:grid-cols-[minmax(0,1.05fr)_minmax(280px,0.95fr)] xl:gap-16">
