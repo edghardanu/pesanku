@@ -172,7 +172,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
         <header className={`mx-auto w-full transition-all duration-300 ${
           isScrolled 
             ? 'bg-white/70 dark:bg-surface/70 backdrop-blur-md border border-border/50 shadow-lg rounded-2xl max-w-7xl' 
-            : 'bg-white dark:bg-base border-b border-border'
+            : 'bg-white dark:bg-base'
         }`}>
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 hover:scale-105 transition-transform">
