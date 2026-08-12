@@ -1,0 +1,42 @@
+{
+  "timestamp": "2026-08-09T01:01:07+07:00",
+  "project": "pesanku",
+  "summary": {
+    "pass": 25,
+    "warn": 6,
+    "fail": 0
+  },
+  "results": [
+  {"status":"pass","msg":"Node.js: v26.2.0"},
+  {"status":"pass","msg":"Versi Node.js memenuhi syarat minimum (v18+)"},
+  {"status":"pass","msg":"npm: 11.13.0"},
+  {"status":"pass","msg":".env.local ditemukan"},
+  {"status":"pass","msg":".env.local ada di .gitignore"},
+  {"status":"pass","msg":".env.example ditemukan"},
+  {"status":"pass","msg":".gitignore ditemukan"},
+  {"status":"pass","msg":"Tidak ada hardcoded credentials di src/"},
+  {"status":"pass","msg":"node_modules tidak ter-commit ke Git"},
+  {"status":"pass","msg":".next tidak ter-commit ke Git"},
+  {"status":"pass","msg":"Tidak ada file sensitif di Git history"},
+  {"status":"warn","msg":"npm audit — terdapat Moderate vulnerability"},
+  {"status":"warn","msg":"4 package outdated — jalankan: npm update"},
+  {"status":"pass","msg":"TypeScript: tidak ada error"},
+  {"status":"pass","msg":"ESLint: tidak ada error"},
+  {"status":"warn","msg":"ESLint: 60 warning"},
+  {"status":"pass","msg":"Tidak ada SQL injection pattern"},
+  {"status":"pass","msg":"Tidak ada dangerouslySetInnerHTML"},
+  {"status":"pass","msg":"Tidak ada eval()"},
+  {"status":"pass","msg":"Tidak ada penggunaan 'any'"},
+  {"status":"warn","msg":"Banyak console statement (38) — gunakan logger untuk production"},
+  {"status":"pass","msg":"Tidak ada TODO/FIXME/HACK"},
+  {"status":"pass","msg":"Semua API route mutasi tampaknya punya auth check"},
+  {"status":"pass","msg":"next.config ditemukan"},
+  {"status":"pass","msg":"Security headers dikonfigurasi"},
+  {"status":"pass","msg":"reactStrictMode dikonfigurasi"},
+  {"status":"pass","msg":"proxy.ts/middleware.ts ditemukan — proteksi route aktif"},
+  {"status":"warn","msg":"35 file belum di-commit:"},
+  {"status":"pass","msg":"Branch belum di-merge: 0 (aman)"},
+  {"status":"warn","msg":"20 commit message generik — gunakan pesan deskriptif"},
+  {"status":"pass","msg":"Build berhasil — tidak ada compile error"}
+  ]
+}

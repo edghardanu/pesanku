@@ -118,7 +118,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 300) {
+      if (window.scrollY > 500) {
         setShowBackToTop(true);
       } else {
         setShowBackToTop(false);
@@ -610,7 +610,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative flex min-h-[500px] items-start overflow-hidden bg-white px-6 py-6 sm:px-8 sm:py-8 md:min-h-[550px] md:py-10 lg:min-h-[620px] lg:px-12 lg:py-12 xl:items-center xl:py-28">
+        <section className="relative flex min-h-[500px] items-start overflow-hidden bg-base px-6 py-6 sm:px-8 sm:py-8 md:min-h-[550px] md:py-10 lg:min-h-[620px] lg:px-12 lg:py-12 xl:items-center xl:py-28">
           
           <div className="container mx-auto relative z-10">
             <div className="grid grid-cols-1 items-center gap-6 sm:gap-8 lg:gap-10 xl:grid-cols-[minmax(0,1.05fr)_minmax(280px,0.95fr)] xl:gap-16">
@@ -630,7 +630,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
                 }}
                 className="order-2 max-w-3xl text-left xl:order-1"
               >
-                <h1 className="text-display-1 mb-6 leading-[1.1] tracking-tight text-black">
+                <h1 className="text-display-1 mb-6 leading-[1.1] tracking-tight text-text-primary">
                   Pesan Makanan UMKM Favoritmu, <span className="text-brand-primary relative inline-block">
                     Kapan Saja
                     <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 20" preserveAspectRatio="none">
@@ -638,14 +638,14 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
                     </svg>
                   </span>
                 </h1>
-                <p className="text-body-large mb-10 max-w-xl leading-relaxed text-black">
+                <p className="text-body-large mb-10 max-w-xl leading-relaxed text-text-secondary">
                   Sistem preorder makanan dan minuman dari UMKM lokal dengan minimum order yang jelas. Rasakan hidangan segar langsung dari tangan ahlinya.
                 </p>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-start gap-4">
                   <Link href="#katalog" className="btn-primary w-full px-8 py-3.5 text-center text-lg text-white shadow-xl shadow-brand-primary/25 transition-all hover:scale-105 sm:w-auto">
                     Mulai Belanja
                   </Link>
-                  <Link href="/seller" className="w-full cursor-pointer rounded-lg border border-black/40 px-8 py-3.5 text-center text-lg font-medium text-black shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-black hover:bg-black/5 hover:shadow-md active:scale-95 sm:w-auto">
+                  <Link href="/seller" className="w-full cursor-pointer rounded-lg border border-border px-8 py-3.5 text-center text-lg font-medium text-text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-text-primary hover:bg-brand-primary/5 hover:shadow-md active:scale-95 sm:w-auto">
                     Daftar Jadi Penjual
                   </Link>
                 </div>
@@ -655,7 +655,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.7, ease: "easeOut", delay: 0.15 }}
-                className="order-1 aspect-video w-full max-w-sm justify-self-center overflow-hidden bg-white sm:max-w-lg md:max-w-xl xl:order-2 xl:max-w-2xl xl:justify-self-end xl:self-center"
+                className="order-1 aspect-video w-full max-w-sm justify-self-center overflow-hidden rounded-[2rem] bg-transparent dark:bg-white/5 sm:max-w-lg md:max-w-xl xl:order-2 xl:max-w-2xl xl:justify-self-end xl:self-center"
                 role="img"
                 aria-label="Animasi gerobak makanan"
               >
@@ -663,7 +663,8 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
                   src="/animations/foodcart.lottie"
                   autoplay
                   loop
-                  className="h-full w-full scale-[1.04] brightness-[1.025]"
+                  backgroundColor="transparent"
+                  className="h-full w-full scale-[1.04] brightness-[1.025] dark:opacity-95"
                 />
               </motion.div>
 
@@ -874,7 +875,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
             y: { repeat: Infinity, duration: 2, ease: "easeInOut" }
           }}
           onClick={scrollToTop}
-          className="fixed md:bottom-6 bottom-28 md:right-6 right-4 py-2 px-4 md:py-3 md:px-5 bg-brand-primary text-white rounded-full shadow-xl hover:bg-brand-primary/90 hover:shadow-brand-primary/30 hover:shadow-2xl transition-all z-40 flex items-center gap-1 md:gap-2 justify-center font-medium"
+          className="fixed md:bottom-24 bottom-28 md:right-6 right-4 py-2 px-4 md:py-3 md:px-5 bg-brand-primary text-white rounded-full shadow-xl hover:bg-brand-primary/90 hover:shadow-brand-primary/30 hover:shadow-2xl transition-all z-40 flex items-center gap-1 md:gap-2 justify-center font-medium"
           aria-label="Kembali ke atas"
         >
           <span className="text-xs md:text-sm">Yuk Kembali ke Atas</span>
