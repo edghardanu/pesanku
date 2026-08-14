@@ -428,10 +428,11 @@ export default function ClientSellerDashboard({
     });
 
     try {
-      const res = await fetch(`/api/chat?orderId=${orderId}`);
+      const res = await fetch(`/api/chat?orderId=${orderId}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Gagal memuat obrolan');
       const { messages } = await res.json();
       
-      const chatHistory = messages || [];
+      const chatHistory: ChatMessage[] = messages || [];
 
       const hasSellerOpening = chatHistory.some((m: ChatMessage) => m.sender === 'seller' || m.role === 'penjual' || m.role === 'admin');
       if (!hasSellerOpening) {
@@ -442,12 +443,12 @@ export default function ClientSellerDashboard({
           createdAt: chatHistory[0]?.createdAt 
             ? new Date(new Date(chatHistory[0].createdAt).getTime() - 60000).toISOString() 
             : new Date().toISOString(),
-          isRead: true
+          isRead: false
         });
       }
 
-    const renderMsgs = () => chatHistory.map((c: any) => {
-      const isMe = c.sender === 'seller' || c.role === 'penjual' || c.role === 'admin' || c.senderId === profile?.id;
+    const renderMsgs = () => chatHistory.map((c: ChatMessage) => {
+      const isMe = c.sender === 'seller';
       if (isMe) {
         const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
         const tickStyle = c.isRead ? "color: #60a5fa;" : "";
@@ -596,11 +597,7 @@ export default function ClientSellerDashboard({
 
             const c = document.getElementById(`${msgId}-container`);
             if (c) c.classList.remove('opacity-50');
-            const ticks = document.getElementById(`${msgId}-ticks`);
-            if (ticks) {
-               ticks.classList.remove('text-text-primary/60');
-               ticks.classList.add('text-blue-200');
-            }
+            // Pesan berhasil terkirim, tetapi centang tetap abu-abu sampai pembeli membacanya.
           } catch (e) {
             console.error('Failed to send msg');
           }

@@ -116,6 +116,7 @@ export interface ChatMessage {
   id?: string;
   role?: string;
   sender?: string;
+  senderId?: string;
   text: string;
   time?: string;
   createdAt?: string | null;

@@ -414,7 +414,7 @@ export default function ClientBuyerOrders({
 
   const escapeQuotes = (str: string) => str ? str.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
 
-  const handleOpenChat = async (orderId: string, storeName: string, productName: string) => {
+  const handleOpenChat = async (orderId: string, productName: string) => {
     // Show loading state first
     Swal.fire({
       title: 'Memuat Obrolan...',
@@ -425,10 +425,11 @@ export default function ClientBuyerOrders({
     });
 
     try {
-      const res = await fetch(`/api/chat?orderId=${orderId}`);
+      const res = await fetch(`/api/chat?orderId=${orderId}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Gagal memuat obrolan');
       const { messages } = await res.json();
       
-      const chatHistory = messages || [];
+      const chatHistory: ChatMessage[] = messages || [];
 
       // Virtual fallback: Ensure the seller always has an opening message on the frontend!
       const hasSellerOpening = chatHistory.some((m: ChatMessage) => m.role === 'penjual' || m.role === 'admin');
@@ -440,12 +441,12 @@ export default function ClientBuyerOrders({
           createdAt: chatHistory[0]?.createdAt 
             ? new Date(new Date(chatHistory[0].createdAt).getTime() - 60000).toISOString() 
             : new Date().toISOString(),
-          isRead: true
+          isRead: false
         });
       }
 
-    const renderMsgs = () => chatHistory.map((c: any) => {
-      const isMe = c.sender === 'buyer' || c.role === 'pembeli';
+    const renderMsgs = () => chatHistory.map((c: ChatMessage) => {
+      const isMe = c.sender === 'buyer';
       if (isMe) {
         const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
         const tickStyle = c.isRead ? "color: #60a5fa;" : "";
@@ -473,7 +474,7 @@ export default function ClientBuyerOrders({
     }).join('');
 
     Swal.fire({
-      title: `Chat: ${storeName}`,
+      title: 'Chat dengan Penjual',
       html: `
         <div class="flex flex-col h-[300px] bg-base border border-border rounded-xl p-4 overflow-y-auto mb-4" id="chat-box">
           <div class="text-xs text-text-secondary text-center mb-4">Hari ini</div>
@@ -595,12 +596,7 @@ export default function ClientBuyerOrders({
 
             const c = document.getElementById(`${msgId}-container`);
             if (c) c.classList.remove('opacity-50');
-            const ticks = document.getElementById(`${msgId}-ticks`);
-            // Add blue checks since server received it successfully
-            if (ticks) {
-               ticks.classList.remove('text-text-primary/60');
-               ticks.classList.add('text-blue-200');
-            }
+            // Pesan berhasil terkirim, tetapi centang tetap abu-abu sampai penjual membacanya.
           } catch (e) {
             console.error('Failed to send msg');
           }
@@ -1126,7 +1122,7 @@ export default function ClientBuyerOrders({
 
                             <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto mt-1">
                               <button 
-                                onClick={() => handleOpenChat(order.orderId, order.storeName || 'Toko UMKM', order.productName)}
+                                onClick={() => handleOpenChat(order.orderId, order.productName)}
                                 className="btn-outline border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10 hover:border-brand-primary py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
                               >
                                 <MessageCircle className="w-3.5 h-3.5" /> Chat
