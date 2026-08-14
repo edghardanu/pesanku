@@ -900,7 +900,7 @@ export default function ClientBuyerOrders({
                 <div
                   className="relative h-36 w-48 overflow-hidden rounded-3xl md:h-48 md:w-64"
                   role="img"
-                  aria-label="Belum ada riwayat pesanan"
+                  aria-label={activeTab === 'chats' ? "Belum ada riwayat obrolan" : "Belum ada riwayat pesanan"}
                 >
                   <DotLottieReact
                     src="/animations/no-history.lottie"
@@ -910,10 +910,16 @@ export default function ClientBuyerOrders({
                   />
                 </div>
               </div>
-              <h3 className="text-h3 text-text-primary mb-2">Anda Belum Membuat Pesanan</h3>
-              <p className="text-text-secondary mb-6">Mulai pesan makanan dan minuman UMKM favoritmu sekarang!</p>
+              <h3 className="text-h3 text-text-primary mb-2">
+                {activeTab === 'chats' ? "Belum Ada Percakapan" : "Anda Belum Membuat Pesanan"}
+              </h3>
+              <p className="text-text-secondary mb-6">
+                {activeTab === 'chats' 
+                  ? "Hubungi penjual untuk bertanya tentang produk atau melakukan pemesanan pre-sales." 
+                  : "Mulai pesan makanan dan minuman UMKM favoritmu sekarang!"}
+              </p>
               <Link href="/" className="btn-primary py-2.5 px-8 font-medium">
-                Pesan Sekarang
+                {activeTab === 'chats' ? "Mulai Bertanya" : "Pesan Sekarang"}
               </Link>
             </div>
           )
