@@ -749,7 +749,7 @@ export default function ClientBuyerOrders({
                   : 'border-transparent text-text-secondary hover:text-text-primary'
               }`}
             >
-              Chat Internal
+              Chat dengan Penjual
               {unreadChatsCount > 0 && (
                 <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-primary px-1.5 text-[10px] font-bold text-white shadow-sm">
                   {unreadChatsCount}
