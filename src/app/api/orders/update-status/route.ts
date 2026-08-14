@@ -11,10 +11,12 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const { orderId, status, deliveryProofUrl } = await req.json() as {
+    const { orderId, status, deliveryProofUrl, dispatchReceiptUrl, cancelReason } = await req.json() as {
       orderId?: string;
       status?: unknown;
       deliveryProofUrl?: unknown;
+      dispatchReceiptUrl?: unknown;
+      cancelReason?: string;
     };
 
     if (!orderId || !status) {
@@ -68,9 +70,15 @@ export async function PUT(req: Request) {
     };
 
     // Update status and optional delivery proof
-    const updateFields: { status: OrderStatusUpdate; deliveryProofUrl?: string } = { status };
+    const updateFields: { status: OrderStatusUpdate; deliveryProofUrl?: string; dispatchReceiptUrl?: string; cancelReason?: string } = { status };
     if (typeof deliveryProofUrl === 'string' && deliveryProofUrl) {
       updateFields.deliveryProofUrl = deliveryProofUrl;
+    }
+    if (typeof dispatchReceiptUrl === 'string' && dispatchReceiptUrl) {
+      updateFields.dispatchReceiptUrl = dispatchReceiptUrl;
+    }
+    if (status === 'cancelled' && cancelReason) {
+      updateFields.cancelReason = cancelReason;
     }
 
     await db.update(orders)

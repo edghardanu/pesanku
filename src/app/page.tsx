@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { orders, productPromotions, products, promotionOffers, sellerProfiles } from "@/lib/schema";
+import { orders, productPromotions, products, promotionOffers, sellerProfiles, users } from "@/lib/schema";
 import { and, desc, eq, gt, isNotNull, sql } from "drizzle-orm";
 import ClientHome from "@/components/ClientHome";
 import { getUserFromSession } from "@/lib/auth";
@@ -38,9 +38,11 @@ export default async function Home() {
         sellerAvatar: sellerProfiles.logoUrl,
         sellerLogoUrl: sellerProfiles.logoUrl,
         sellerApprovalStatus: sellerProfiles.approvalStatus,
+        sellerPhone: users.phone,
       })
       .from(products)
       .innerJoin(sellerProfiles, eq(products.sellerId, sellerProfiles.userId))
+      .innerJoin(users, eq(products.sellerId, users.id))
       .orderBy(desc(products.createdAt));
 
     const productRatings = await db

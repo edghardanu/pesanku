@@ -56,9 +56,11 @@ export async function GET() {
       orderId: orders.id,
       productName: products.name,
       buyerName: users.name,
-      latestMessage: sql<string>`(SELECT text FROM ${chatMessages} WHERE order_id = ${orders.id} AND sender_id = ${users.id} ORDER BY created_at DESC LIMIT 1)`,
-      latestMessageAt: sql<string>`(SELECT created_at FROM ${chatMessages} WHERE order_id = ${orders.id} AND sender_id = ${users.id} ORDER BY created_at DESC LIMIT 1)`,
-      unreadCount: sql<number>`SUM(CASE WHEN ${chatMessages.isRead} = 0 AND ${chatMessages.senderId} != ${user.id} THEN 1 ELSE 0 END)`,
+      qty: orders.qty,
+      totalPrice: orders.totalPrice,
+      latestMessage: sql<string>`(SELECT text FROM chat_messages WHERE chat_messages.order_id = orders.id ORDER BY chat_messages.created_at DESC LIMIT 1)`,
+      latestMessageAt: sql<string>`(SELECT created_at FROM chat_messages WHERE chat_messages.order_id = orders.id ORDER BY chat_messages.created_at DESC LIMIT 1)`,
+      unreadCount: sql<number>`SUM(CASE WHEN chat_messages.is_read = 0 AND chat_messages.sender_id != ${user.id} THEN 1 ELSE 0 END)`,
     })
     .from(orders)
     .innerJoin(products, eq(orders.productId, products.id))

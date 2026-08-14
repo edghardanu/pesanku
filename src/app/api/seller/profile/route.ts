@@ -13,7 +13,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { storeName, address, category, bankAccount, logoUrl, email, password } = body;
+    const { storeName, address, category, bankAccount, logoUrl, email, oldPassword, password } = body;
 
     if (!storeName) {
       return NextResponse.json({ error: 'Nama toko wajib diisi' }, { status: 400 });
@@ -68,7 +68,17 @@ export async function PUT(request: Request) {
       
       const userUpdate: any = { email };
       if (password && password.trim() !== '') {
+          const existingUser = await db.select().from(users).where(eq(users.id, user.id)).get();
           const bcrypt = await import('bcryptjs');
+          if (existingUser?.passwordHash) {
+             if (!oldPassword) {
+                 return NextResponse.json({ error: 'Password lama wajib diisi.' }, { status: 400 });
+             }
+             const isMatch = await bcrypt.default.compare(oldPassword, existingUser.passwordHash);
+             if (!isMatch) {
+                 return NextResponse.json({ error: 'Password lama tidak cocok.' }, { status: 400 });
+             }
+          }
           const salt = await bcrypt.default.genSalt(10);
           userUpdate.passwordHash = await bcrypt.default.hash(password, salt);
       }

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { products, sellerProfiles, orders, users, payments, settings, productPromotions, promotionOffers } from "@/lib/schema";
-import { and, eq, desc, gt, sql } from "drizzle-orm";
+import { and, eq, desc, gt, sql, ne } from "drizzle-orm";
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import ClientSellerDashboard from "@/components/ClientSellerDashboard";
@@ -46,12 +46,13 @@ export default async function SellerDashboard() {
     deliveryDate: orders.deliveryDate,
     proofUrl: payments.proofUrl,
     deliveryProofUrl: orders.deliveryProofUrl,
+    dispatchReceiptUrl: orders.dispatchReceiptUrl,
   })
   .from(orders)
   .innerJoin(products, eq(orders.productId, products.id))
   .innerJoin(users, eq(orders.buyerId, users.id))
   .leftJoin(payments, eq(orders.id, payments.orderId))
-  .where(eq(products.sellerId, user.id))
+  .where(and(eq(products.sellerId, user.id), ne(orders.status, 'chat_only')))
   .orderBy(desc(orders.createdAt));
 
   const activeCount = myProducts.filter(p => p.status === 'active' || p.status === 'draft').length;

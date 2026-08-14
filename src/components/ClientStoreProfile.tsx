@@ -134,7 +134,22 @@ export default function ClientStoreProfile({
     }
 
     if (user.role !== 'pembeli') {
-      await Swal.fire('Akses Ditolak', 'Hanya akun pembeli yang dapat melakukan checkout.', 'warning');
+      const pResult = await Swal.fire({
+        title: 'Akses Ditolak',
+        html: `
+          <p class="mb-2">Hanya akun pembeli yang dapat melakukan checkout.</p>
+          <p class="text-sm text-text-secondary">Anda saat ini masuk sebagai <strong>${user.role}</strong>. Yuk, lengkapi pengalamanmu! Daftar sebagai pembeli sekarang dan mulai jelajahi dunia rasa dari UMKM terbaik kami.</p>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Daftar Akun Pembeli',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#ff5c35'
+      });
+      if (pResult.isConfirmed) {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        router.push('/register');
+      }
       return;
     }
 

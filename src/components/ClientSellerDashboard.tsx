@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Plus, Package, DollarSign, Settings, LogOut, Info, X, Upload, Store, Sun, Moon, MessageCircle, User, Menu, Megaphone, Bell } from "lucide-react";
+import { ShoppingBag, Plus, Package, DollarSign, Settings, LogOut, Info, X, Upload, Store, Sun, Moon, MessageCircle, User, Menu, Megaphone, Bell, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SellerPreorderCalendar from "@/components/SellerPreorderCalendar";
 import SellerPromotionCenter from "@/components/SellerPromotionCenter";
@@ -142,8 +142,11 @@ export default function ClientSellerDashboard({
     bankAccount: profile?.bankAccount || '',
     logoUrl: profile?.logoUrl || '',
     email: userEmail || '',
+    oldPassword: '',
     password: ''
   });
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -345,6 +348,74 @@ export default function ClientSellerDashboard({
     }
   };
 
+  const handleUploadDispatchReceipt = async (orderId: string, currentStatus: string) => {
+    const { value: file } = await Swal.fire({
+      title: 'Upload Bukti Delivery',
+      text: 'Pilih foto/gambar resi atau bukti penyerahan barang ke kurir.',
+      input: 'file',
+      inputAttributes: {
+        'accept': 'image/*',
+        'aria-label': 'Upload Foto Bukti Delivery'
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Upload',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#ff5c35',
+      preConfirm: (file) => {
+        if (!file) {
+          Swal.showValidationMessage('Foto bukti wajib dilampirkan!');
+          return false;
+        }
+        return file;
+      }
+    });
+
+    if (file) {
+      Swal.fire({
+        title: 'Mengunggah...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const dispatchReceiptUrl = e.target?.result as string;
+        try {
+          const res = await fetch('/api/orders/update-status', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId,
+              status: currentStatus, 
+              dispatchReceiptUrl
+            })
+          });
+
+          const data = await res.json();
+          
+          if (!res.ok) {
+            throw new Error(data.error || 'Terjadi kesalahan saat mengunggah bukti.');
+          }
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Bukti delivery (resi) telah berhasil diunggah.',
+            confirmButtonColor: '#10b981',
+          }).then(() => {
+            window.location.reload();
+          });
+        } catch (error) {
+          const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
+          Swal.fire('Gagal!', errMsg, 'error');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const escapeQuotes = (str: string) => str ? str.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
 
   const handleOpenChat = async (orderId: string, buyerName: string, productName: string) => {
@@ -361,13 +432,6 @@ export default function ClientSellerDashboard({
       const { messages } = await res.json();
       
       const chatHistory = messages || [];
-
-      // Optimistically decrement chat counter when chat is opened
-      setNotifications(prev => ({
-        ...prev,
-        unreadChats: prev.unreadChats.filter((c: any) => c.orderId !== orderId),
-        chatThreads: prev.chatThreads.map((t: any) => t.orderId === orderId ? { ...t, unreadCount: 0 } : t)
-      }));
 
       const hasSellerOpening = chatHistory.some((m: ChatMessage) => m.sender === 'seller' || m.role === 'penjual' || m.role === 'admin');
       if (!hasSellerOpening) {
@@ -855,6 +919,25 @@ export default function ClientSellerDashboard({
           </div>
         </header>
 
+        {/* Topbar Desktop */}
+        <header className="hidden md:flex items-center justify-end px-10 pt-6 pb-2 sticky top-0 z-40 bg-base/80 backdrop-blur-sm -mb-8">
+           <div className="relative">
+             <button 
+               className="flex items-center justify-center p-2 rounded-xl border border-border bg-surface text-text-secondary hover:text-brand-primary hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all relative cursor-pointer shadow-sm"
+               title="Notifikasi"
+               onClick={() => setIsNotifDesktopOpen(!isNotifDesktopOpen)}
+             >
+               <Bell className="w-5 h-5" />
+               {totalNotifs > 0 && (
+                 <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-error px-1 text-[9px] font-bold text-white shadow-sm animate-pulse-slow ring-2 ring-surface">
+                   {totalNotifs > 99 ? '99+' : totalNotifs}
+                 </span>
+               )}
+             </button>
+             {isNotifDesktopOpen && renderNotificationsDropdown(true)}
+           </div>
+        </header>
+
         <div className="p-6 md:p-10 pb-28 md:pb-10 flex-1 relative">
           {/* Loading Overlay */}
           {isTransitioning && (
@@ -891,6 +974,7 @@ export default function ClientSellerDashboard({
                             <th className="p-4 font-medium">Total Bayar</th>
                             <th className="p-4 font-medium">Bukti Bayar</th>
                             <th className="p-4 font-medium">Bukti Delivery</th>
+                            <th className="p-4 font-medium">Bukti Barang Sampai</th>
                             <th className="p-4 font-medium text-right">Aksi Status</th>
                           </tr>
                         </thead>
@@ -955,8 +1039,42 @@ export default function ClientSellerDashboard({
                                 )}
                               </td>
                               <td className="p-4">
+                                {order.dispatchReceiptUrl ? (
+                                  <div 
+                                    onClick={() => {
+                                      Swal.fire({
+                                        title: 'Bukti Delivery (Resi)',
+                                        imageUrl: order.dispatchReceiptUrl as string,
+                                        imageWidth: 400,
+                                        imageAlt: 'Bukti Delivery (Resi)',
+                                        confirmButtonText: 'Tutup',
+                                        confirmButtonColor: '#ff5c35',
+                                        customClass: {
+                                          popup: 'bg-surface text-text-primary rounded-xl',
+                                          title: 'text-text-primary text-lg'
+                                        }
+                                      });
+                                    }}
+                                    className="relative w-16 h-16 rounded-xl overflow-hidden border border-border cursor-pointer hover:opacity-80 transition-opacity shadow-sm group inline-block"
+                                    title="Klik untuk melihat bukti"
+                                  >
+                                    <img src={order.dispatchReceiptUrl} alt="Bukti Delivery" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => handleUploadDispatchReceipt(order.id, order.status || 'verified')}
+                                    className="btn-outline border-brand-secondary/40 text-brand-secondary hover:bg-brand-secondary/10 hover:border-brand-secondary py-1.5 px-3 text-xs font-semibold rounded-lg transition-all whitespace-nowrap"
+                                  >
+                                    Upload Bukti
+                                  </button>
+                                )}
+                              </td>
+                              <td className="p-4">
                                 {order.deliveryProofUrl ? (
-                                  <button 
+                                  <div 
                                     onClick={() => {
                                       Swal.fire({
                                         title: 'Bukti Barang Sampai',
@@ -966,15 +1084,19 @@ export default function ClientSellerDashboard({
                                         confirmButtonText: 'Tutup',
                                         confirmButtonColor: '#ff5c35',
                                         customClass: {
-                                          popup: 'bg-surface text-text-primary',
-                                          title: 'text-text-primary'
+                                          popup: 'bg-surface text-text-primary rounded-xl',
+                                          title: 'text-text-primary text-lg'
                                         }
                                       });
                                     }}
-                                    className="text-brand-secondary-dark dark:text-brand-secondary font-medium underline hover:text-brand-primary transition-colors text-sm border border-brand-secondary/30 px-3 py-1.5 rounded-lg"
+                                    className="relative w-16 h-16 rounded-xl overflow-hidden border border-border cursor-pointer hover:opacity-80 transition-opacity shadow-sm group inline-block"
+                                    title="Klik untuk melihat bukti"
                                   >
-                                    Lihat Bukti
-                                  </button>
+                                    <img src={order.deliveryProofUrl} alt="Bukti Delivery" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+                                    </div>
+                                  </div>
                                 ) : (
                                   <button
                                     onClick={() => handleUploadDeliveryProof(order.id)}
@@ -986,13 +1108,7 @@ export default function ClientSellerDashboard({
                               </td>
                               <td className="p-4 text-right">
                                 <div className="flex flex-col items-end gap-2">
-                                  <button 
-                                    onClick={() => handleOpenChat(order.id, order.buyerName || 'Pembeli', order.productName || 'Produk')}
-                                    className="btn-outline border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10 hover:border-brand-primary py-1.5 px-3 rounded-lg transition-all flex items-center gap-1.5 text-xs w-[160px] justify-center"
-                                    title="Chat dengan Pembeli"
-                                  >
-                                    <MessageCircle className="w-3.5 h-3.5" /> Chat Pembeli
-                                  </button>
+
                                   <select
                                     className={`text-xs font-semibold rounded-lg border px-2 py-1.5 outline-none cursor-pointer text-center w-[160px] ${
                                       order.status === 'completed' ? 'bg-status-success/10 text-status-success border-status-success/20' : 
@@ -1113,49 +1229,7 @@ export default function ClientSellerDashboard({
               </div>
             )}
             {activeTab === 'produk' && (
-            <>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-                <div>
-                  <h1 className="text-h1 mb-1">Produk Preorder</h1>
-                  <p className="text-body-base text-text-secondary">Kelola semua produk makanan & minuman preorder Anda di sini.</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Link href="/seller/product/new" className="btn-primary flex items-center gap-2 shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40 relative">
-                    <Plus className="w-5 h-5" />
-                    Tambah Produk
-                  </Link>
-                  <button 
-                    className="hidden md:flex items-center justify-center p-2.5 rounded-xl border border-border bg-base text-text-secondary hover:text-brand-primary hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all relative"
-                    title="Notifikasi"
-                    onClick={() => setIsNotifDesktopOpen(!isNotifDesktopOpen)}
-                  >
-                    <Bell className="w-6 h-6" />
-                    {totalNotifs > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-error px-1 text-[9px] font-bold text-white shadow-sm animate-pulse-slow">
-                        {totalNotifs > 99 ? '99+' : totalNotifs}
-                      </span>
-                    )}
-                  </button>
-                  {isNotifDesktopOpen && renderNotificationsDropdown(true)}
-                </div>
-              </div>
-
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="card p-6">
-                  <h3 className="text-body-small text-text-secondary mb-2">Total Produk Aktif</h3>
-                  <p className="text-display-1 font-bold">{activeCount}</p>
-                </div>
-                <div className="card p-6 border-brand-primary border-2 shadow-sm">
-                  <h3 className="text-body-small text-text-secondary mb-2">Preorder Menunggu Kuota</h3>
-                  <p className="text-display-1 font-bold text-brand-primary">{waitingCount}</p>
-                </div>
-                <div className="card p-6">
-                  <h3 className="text-body-small text-text-secondary mb-2">Preorder Selesai / Dikirim</h3>
-                  <p className="text-display-1 font-bold text-status-success">{completedCount}</p>
-                </div>
-              </div>
-
+              <>
               <SellerPreorderCalendar
                 key={sellerOrders.map((order) => `${order.id}:${order.deliveryDate || ''}:${order.fulfillmentStatus || ''}`).join('|')}
                 orders={sellerOrders}
@@ -1166,6 +1240,10 @@ export default function ClientSellerDashboard({
               <div className="card overflow-hidden">
                 <div className="p-5 border-b border-border bg-surface/50 flex justify-between items-center">
                   <h2 className="text-h3">Daftar Produk</h2>
+                  <Link href="/seller/product/new" className="btn-primary flex items-center gap-2 shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40 relative py-2">
+                    <Plus className="w-4 h-4" />
+                    Tambah Produk
+                  </Link>
                 </div>
                 
                 <div className="overflow-x-auto">
@@ -1581,14 +1659,43 @@ export default function ClientSellerDashboard({
                   </div>
                   
                   <div>
+                    <label className="block text-body-small font-medium text-text-secondary mb-1">Password Lama</label>
+                    <div className="relative">
+                      <input 
+                        type={showOldPassword ? "text" : "password"} 
+                        value={formData.oldPassword}
+                        onChange={(e) => setFormData({...formData, oldPassword: e.target.value})}
+                        className="input-field w-full pr-10"
+                        placeholder="Masukkan password lama untuk mengubahnya"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowOldPassword(!showOldPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary focus:outline-none"
+                      >
+                        {showOldPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div>
                     <label className="block text-body-small font-medium text-text-secondary mb-1">Password Baru</label>
-                    <input 
-                      type="password" 
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="input-field w-full"
-                      placeholder="Kosongkan jika tidak ingin mengubah password"
-                    />
+                    <div className="relative">
+                      <input 
+                        type={showNewPassword ? "text" : "password"} 
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        className="input-field w-full pr-10 bg-brand-primary/5 focus:bg-brand-primary/10 border-brand-primary/20 focus:border-brand-primary/50 transition-colors"
+                        placeholder="Kosongkan jika tidak ingin mengubah password"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-primary/70 hover:text-brand-primary focus:outline-none"
+                      >
+                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                   
                   <div>

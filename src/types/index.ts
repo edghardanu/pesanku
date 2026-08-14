@@ -31,6 +31,7 @@ export interface OrderItem {
   paymentProofUrl?: string | null;
   proofUrl?: string | null;
   deliveryProofUrl?: string | null;
+  dispatchReceiptUrl?: string | null;
   buyerName?: string;
   buyerPhone?: string | null;
   buyerAddress?: string | null;
@@ -42,6 +43,7 @@ export interface OrderItem {
   scheduleUpdatedAt?: string | null;
   deliveryAddress?: string | null;
   storeName?: string | null;
+  cancelReason?: string | null;
 }
 
 export interface UmkmItem {
@@ -159,6 +161,7 @@ export interface ProductItem {
   sellerLogoUrl?: string | null;
   sellerAvatar?: string | null;
   sellerApprovalStatus?: string | null;
+  sellerPhone?: string | null;
   totalSold?: number;
   averageRating?: number | null;
   ratingCount?: number;
@@ -186,8 +189,10 @@ export interface BuyerOrderViewItem {
   paymentId?: string | null;
   paymentStatus?: string | null;
   deliveryProofUrl?: string | null;
+  dispatchReceiptUrl?: string | null;
   rating?: number | null;
   ratedAt?: string | Date | null;
+  cancelReason?: string | null;
 }
 
 export interface InvoiceOrder {

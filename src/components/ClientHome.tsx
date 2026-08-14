@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, Store, LayoutDashboard, Sparkles } from "lucide-react";
+import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, Store, LayoutDashboard, Sparkles, MessageCircle } from "lucide-react";
 import { motion, Variants, AnimatePresence } from "framer-motion";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import Swal from "sweetalert2";
@@ -155,6 +155,94 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
         console.error('Logout failed:', error);
       }
     }
+  };
+  
+  const escapeQuotes = (str: string) => str ? str.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
+
+  const handleInternalPresalesChat = (storeName: string, productId: string, productName: string, sellerAvatarUrl?: string | null) => {
+    Swal.fire({
+      title: `
+        <div class="flex items-center gap-3 ml-2">
+          ${sellerAvatarUrl ? `<img src="${sellerAvatarUrl}" alt="${storeName}" class="w-9 h-9 rounded-full object-cover shrink-0 border border-border bg-brand-primary/10 shadow-sm">` : `<div class="w-9 h-9 rounded-full shrink-0 border border-border bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold overflow-hidden text-sm shadow-sm">${storeName.charAt(0)}</div>`}
+          <span>Chat: ${storeName}</span>
+        </div>
+      `,
+      html: `
+        <div class="flex flex-col h-[300px] bg-base border border-border rounded-xl p-4 overflow-y-auto mb-4 text-left" id="chat-box">
+          <div class="text-xs text-text-secondary text-center mb-4">Hari ini</div>
+          <div id="chat-messages" class="flex flex-col gap-3">
+             <div class="flex justify-start mt-3 gap-2">
+               ${sellerAvatarUrl ? `<img src="${sellerAvatarUrl}" alt="${storeName}" class="w-8 h-8 rounded-full object-cover shrink-0 self-end mb-1 border border-border bg-brand-primary/10">` : `<div class="w-8 h-8 rounded-full shrink-0 self-end mb-1 border border-border bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold overflow-hidden text-xs">${storeName.charAt(0)}</div>`}
+               <div class="bg-surface border border-border rounded-xl rounded-bl-none px-4 py-2 max-w-[80%] text-sm text-text-primary text-left relative shadow-sm">
+                 <div class="font-bold text-xs mb-1 text-brand-primary" style="opacity: 0.8">${storeName}</div>
+                 Halo kak! Apakah ada yang bisa kami bantu seputar produk <b>${escapeQuotes(productName)}</b>?
+                 <div class="text-[10px] text-text-secondary mt-1 text-right w-full block">Sekarang</div>
+               </div>
+             </div>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <input type="text" id="wa-chat-input" class="input-field flex-1 text-sm bg-base border-border rounded-xl px-3 outline-none focus:border-brand-primary" placeholder="Ketik pesan Anda..." value="Halo, saya tertarik dengan produk ${escapeQuotes(productName)}">
+          <button id="send-chat-internal" class="btn-primary py-2 px-4 rounded-xl flex items-center justify-center transition-transform active:scale-95">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </button>
+        </div>
+      `,
+      showConfirmButton: false,
+      showCloseButton: true,
+      customClass: {
+        popup: 'bg-surface text-text-primary rounded-2xl w-[90%] max-w-md border border-border shadow-2xl',
+        title: 'text-lg font-bold border-b border-border pb-3 mb-0 text-left w-full text-text-primary',
+        htmlContainer: 'mt-4 relative',
+        closeButton: 'focus:outline-none'
+      },
+      didOpen: () => {
+        const input = document.getElementById('wa-chat-input') as HTMLInputElement;
+        const sendBtn = document.getElementById('send-chat-internal');
+        
+        const openInternalChat = async () => {
+          if (!input.value.trim()) return;
+          const message = input.value.trim();
+          
+          Swal.fire({
+            title: 'Mengirim Pesan...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+          });
+
+          try {
+            const res = await fetch('/api/chat/presales', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ productId, text: message })
+            });
+            const data = await res.json();
+            
+            if (!res.ok) {
+              Swal.fire('Akses Ditolak!', data.error || 'Terjadi kesalahan jaringan.', 'error');
+              return;
+            }
+
+            Swal.fire({
+              icon: 'success',
+              title: 'Terkirim',
+              text: 'Pesan diteruskan ke penjual, sekarang masuk ke Kotak Keluar Anda.',
+              showConfirmButton: false,
+              timer: 1500
+            }).then(() => {
+              window.location.href = '/buyer/orders'; // Buyer clicks button => goes to their orders tab
+            });
+          } catch (e) {
+            Swal.fire('Error', 'Gagal menghubungi server.', 'error');
+          }
+        };
+
+        sendBtn?.addEventListener('click', openInternalChat);
+        input?.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') openInternalChat();
+        });
+      }
+    });
   };
 
   const filteredProducts = initialProducts.filter(product => {
@@ -825,17 +913,31 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
                           <div className="mt-4 w-full">
                             {(() => {
                               return (
-                                <button
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${product.id}`);
-                                  }}
-                                  className="w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm font-semibold btn-primary hover:bg-brand-primary-hover"
-                                >
-                                  <Store className="w-4 h-4" />
-                                  Lihat Toko &amp; Katalog
-                                </button>
+                                <div className="flex flex-col gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${product.id}`);
+                                    }}
+                                    className="w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm font-semibold btn-primary hover:bg-brand-primary-hover"
+                                  >
+                                    <Store className="w-4 h-4" />
+                                    Lihat Toko &amp; Katalog
+                                  </button>
+                                  
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleInternalPresalesChat(product.sellerName || 'Toko', product.id, product.name, product.sellerLogoUrl || product.sellerAvatar);
+                                    }}
+                                    className="w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm font-semibold border-2 border-brand-primary text-brand-primary hover:bg-brand-primary/10"
+                                  >
+                                    <MessageCircle className="w-4 h-4" />
+                                    Chat Penjual
+                                  </button>
+                                </div>
                               );
                             })()}
                           </div>

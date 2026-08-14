@@ -152,7 +152,23 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
     }
 
     if (user.role === 'penjual' || user.role === 'admin') {
-      Swal.fire('Akses Ditolak', 'Hanya akun pembeli yang dapat melakukan pemesanan.', 'warning');
+      const result = await Swal.fire({
+        title: 'Akses Ditolak',
+        html: `
+          <p class="mb-2">Hanya akun pembeli yang dapat melakukan pemesanan.</p>
+          <p class="text-sm text-text-secondary">Anda saat ini masuk sebagai <strong>${user.role}</strong>. Yuk, buat akun pembeli sekarang juga untuk menikmati berbagai jajanan luar biasa dari UMKM lokal!</p>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Daftar Akun Pembeli',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#ff5c35'
+      });
+      if (result.isConfirmed) {
+        // Logout user first then redirect to register
+        await fetch('/api/auth/logout', { method: 'POST' });
+        router.push('/register');
+      }
       return;
     }
 

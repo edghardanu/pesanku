@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { orders, products, payments, sellerProfiles, users } from "@/lib/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, ne, and } from "drizzle-orm";
 import { getUserFromSession } from "@/lib/auth";
 import ClientBuyerOrders from "@/components/ClientBuyerOrders";
 
@@ -43,6 +43,8 @@ export default async function BuyerOrdersPage({
         paymentId: payments.id,
         paymentStatus: payments.verificationStatus,
         deliveryProofUrl: orders.deliveryProofUrl,
+        dispatchReceiptUrl: orders.dispatchReceiptUrl,
+        cancelReason: orders.cancelReason,
         rating: orders.rating,
         ratedAt: orders.ratedAt,
       })

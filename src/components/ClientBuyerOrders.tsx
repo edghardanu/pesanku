@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star } from "lucide-react";
 import Swal from "sweetalert2";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { AuthUser, BuyerOrderViewItem, ChatMessage } from "@/types";
@@ -19,6 +19,21 @@ export default function ClientBuyerOrders({
   checkoutCount?: number;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const openChatOrderId = searchParams.get('openChat');
+    if (openChatOrderId) {
+      const order = orders.find(o => o.orderId === openChatOrderId);
+      if (order) {
+        // give it a tiny delay to let SWAL mount cleanly
+        setTimeout(() => {
+          setActiveTab('chats');
+          handleOpenChat(order.orderId, order.storeName || 'Toko UMKM', order.productName);
+        }, 500);
+      }
+    }
+  }, [searchParams, orders]);
   const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [prevOrders, setPrevOrders] = useState<BuyerOrderViewItem[]>(orders);
@@ -27,6 +42,11 @@ export default function ClientBuyerOrders({
   const [checkoutNoticeCount, setCheckoutNoticeCount] = useState(checkoutCount);
   const [ratingLoadingOrderId, setRatingLoadingOrderId] = useState<string | null>(null);
   const hasShownCheckoutNotice = useRef(false);
+  const [activeTab, setActiveTab] = useState<'orders' | 'chats'>('orders');
+
+  const filteredLocalOrders = localOrders.filter(o => 
+    activeTab === 'chats' ? o.status === 'chat_only' : o.status !== 'chat_only'
+  );
 
   if (orders !== prevOrders) {
     setPrevOrders(orders);
@@ -701,7 +721,38 @@ export default function ClientBuyerOrders({
           )}
         </AnimatePresence>
 
-        {orders.length === 0 ? (
+        {/* Navigation Tabs */}
+        {user && (
+          <div className="mb-6 flex space-x-2 border-b border-border">
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 ${
+                activeTab === 'orders'
+                  ? 'border-brand-primary text-brand-primary'
+                  : 'border-transparent text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              Pesanan Saya
+            </button>
+            <button
+              onClick={() => setActiveTab('chats')}
+              className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+                activeTab === 'chats'
+                  ? 'border-brand-primary text-brand-primary'
+                  : 'border-transparent text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              Chat Internal
+              {localOrders.some(o => o.status === 'chat_only') && (
+                <span className="flex h-5 items-center justify-center rounded-full bg-brand-primary/10 px-2 text-[10px] font-bold text-brand-primary">
+                  {localOrders.filter(o => o.status === 'chat_only').length}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+
+        {filteredLocalOrders.length === 0 ? (
           !user ? (
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
@@ -761,7 +812,7 @@ export default function ClientBuyerOrders({
           )
         ) : (
           <div className="space-y-4">
-            {localOrders.map((order) => {
+            {filteredLocalOrders.map((order) => {
               const isWaitingPayment = !order.paymentId;
               const isPendingVerif = order.paymentId && order.paymentStatus === 'pending';
               const isVerified = order.paymentId && order.paymentStatus === 'approved';
@@ -870,42 +921,47 @@ export default function ClientBuyerOrders({
                               : ''}
                           </p>
                         )}
-                        {order.processingTime && (
+                        {order.processingTime && order.status !== 'chat_only' && (
                           <p className="text-sm text-text-secondary mb-1">
                             Waktu Proses: <span className="font-medium text-text-primary">{order.processingTime}</span>
                           </p>
                         )}
-                        <p className="text-sm text-brand-primary font-semibold mb-2">Rp {(order.totalPrice / order.qty).toLocaleString('id-ID')} / Porsi</p>
-                        <div className="flex items-center gap-3 mt-1.5">
-                          <p className="text-sm font-medium">Jumlah:</p>
-                          <div className={`flex items-center border border-border rounded-lg bg-base overflow-hidden ${order.status === 'completed' || order.status === 'cancelled' || order.paymentId ? 'opacity-50 pointer-events-none bg-gray-100 dark:bg-gray-800' : ''}`}>
-                            <button 
-                              onClick={() => updateQty(-1)}
-                              disabled={order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId}
-                              className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
-                            >
-                              -
-                            </button>
-                            <span className="text-sm font-semibold w-8 text-center">{order.qty}</span>
-                            <button 
-                              onClick={() => updateQty(1)}
-                              disabled={order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId}
-                              className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
+                        {order.status !== 'chat_only' && (
+                          <>
+                            <p className="text-sm text-brand-primary font-semibold mb-2">Rp {(order.totalPrice / order.qty).toLocaleString('id-ID')} / Porsi</p>
+                            <div className="flex items-center gap-3 mt-1.5">
+                              <p className="text-sm font-medium">Jumlah:</p>
+                              <div className={`flex items-center border border-border rounded-lg bg-base overflow-hidden ${order.status === 'completed' || order.status === 'cancelled' || order.paymentId ? 'opacity-50 pointer-events-none bg-gray-100 dark:bg-gray-800' : ''}`}>
+                                <button 
+                                  onClick={() => updateQty(-1)}
+                                  disabled={order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId}
+                                  className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                >
+                                  -
+                                </button>
+                                <span className="text-sm font-semibold w-8 text-center">{order.qty}</span>
+                                <button 
+                                  onClick={() => updateQty(1)}
+                                  disabled={order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId}
+                                  className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   {/* Catatan Tambahan — full width row */}
-                  <div className="px-5 pb-4 border-t border-border pt-4">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Pencil className="w-4 h-4 text-text-secondary" />
-                      <span className="text-xs sm:text-sm font-semibold text-text-secondary uppercase tracking-wide">Catatan Tambahan</span>
-                    </div>
+                  {order.status !== 'chat_only' && (
+                    <div className="px-5 pb-4 border-t border-border pt-4">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Pencil className="w-4 h-4 text-text-secondary" />
+                        <span className="text-xs sm:text-sm font-semibold text-text-secondary uppercase tracking-wide">Catatan Tambahan</span>
+                      </div>
                     {editingNoteId === order.orderId ? (
                       <div className="w-full">
                         <textarea
@@ -976,6 +1032,7 @@ export default function ClientBuyerOrders({
                       </div>
                     )}
                   </div>
+                  )}
 
                   {order.status === 'completed' && (
                     <div className="border-t border-border px-5 py-4">
@@ -1014,11 +1071,13 @@ export default function ClientBuyerOrders({
                     </div>
                   )}
 
-                  <div className="px-5 pb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-border pt-4">
-                    <div>
-                      <p className="text-xs text-text-secondary font-medium">Total Harga</p>
-                      <p className="font-bold text-lg text-brand-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</p>
-                    </div>
+                  <div className={`px-5 pb-5 flex flex-col sm:flex-row items-start sm:items-center ${order.status === 'chat_only' ? 'justify-end' : 'justify-between'} gap-4 border-t border-border pt-4`}>
+                    {order.status !== 'chat_only' && (
+                      <div>
+                        <p className="text-xs text-text-secondary font-medium">Total Harga</p>
+                        <p className="font-bold text-lg text-brand-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</p>
+                      </div>
+                    )}
                     
                     {(() => {
                       const isWaitingPayment = order.status === 'waiting_verification' && !order.paymentId;
@@ -1026,11 +1085,15 @@ export default function ClientBuyerOrders({
                         const isVerified = order.status === 'verified';
                         const isCompleted = order.status === 'completed';
                         const isCancelled = order.status === 'cancelled';
+                        const isChatOnly = order.status === 'chat_only';
 
                         return (
 
                           <div className="w-full flex flex-col items-end gap-2">
-                            {isWaitingPayment && (
+                            {isChatOnly && (
+                              <span className="inline-block px-3 py-1 bg-brand-primary/10 text-brand-primary rounded-full text-xs font-bold w-full sm:w-auto text-center">Tanya Produk / Pre-sales</span>
+                            )}
+                            {isWaitingPayment && !isChatOnly && (
                               <span className="inline-block px-3 py-1 bg-status-error/10 text-status-error rounded-full text-xs font-bold w-full sm:w-auto text-center">Menunggu Pembayaran</span>
                             )}
                             {isPendingVerif && (
@@ -1049,9 +1112,16 @@ export default function ClientBuyerOrders({
                               </span>
                             )}
                             {isCancelled && (
-                              <span className="px-3 py-1 bg-status-error/10 text-status-error rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                <XCircle className="w-3.5 h-3.5" /> Dibatalkan
-                              </span>
+                              <div className="flex flex-col items-center sm:items-end gap-1.5 w-full sm:w-auto">
+                                <span className="px-3 py-1 bg-status-error/10 text-status-error rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
+                                  <XCircle className="w-3.5 h-3.5" /> Dibatalkan
+                                </span>
+                                {order.cancelReason && (
+                                  <span className="text-[10px] text-text-secondary pr-1 italic text-center sm:text-right max-w-[200px] line-clamp-2" title={order.cancelReason}>
+                                    "{order.cancelReason}"
+                                  </span>
+                                )}
+                              </div>
                             )}
 
                             <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto mt-1">
@@ -1062,33 +1132,41 @@ export default function ClientBuyerOrders({
                                 <MessageCircle className="w-3.5 h-3.5" /> Chat
                               </button>
                               
-                              <Link 
-                                href={`/invoice/${order.orderId}`}
-                                className="btn-outline border-gray-300 text-gray-700 hover:bg-gray-50 py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
-                              >
-                                <Receipt className="w-3.5 h-3.5" /> Detail Pembayaran
-                              </Link>
-                              
-                              {order.deliveryProofUrl && (
-                                <button 
-                                  onClick={() => {
-                                    Swal.fire({
-                                      title: `Bukti Barang Sampai`,
-                                      imageUrl: order.deliveryProofUrl,
-                                      imageWidth: 400,
-                                      imageAlt: 'Bukti Barang Sampai',
-                                      confirmButtonText: 'Tutup',
-                                      confirmButtonColor: '#ff5c35',
-                                      customClass: {
-                                        popup: 'bg-surface text-text-primary',
-                                        title: 'text-text-primary'
-                                      }
-                                    });
-                                  }}
-                                  className="btn-outline border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500 py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
+                              {!isChatOnly && (
+                                <Link 
+                                  href={`/invoice/${order.orderId}`}
+                                  className="btn-outline border-gray-300 text-gray-700 hover:bg-gray-50 py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
                                 >
-                                  <FileImage className="w-3.5 h-3.5" /> Bukti Barang Sampai
-                                </button>
+                                  <Receipt className="w-3.5 h-3.5" /> Detail Pembayaran
+                                </Link>
+                              )}
+                              
+                              {order.deliveryProofUrl && !isChatOnly && (
+                                <div className="flex flex-col items-center sm:items-end w-full sm:w-auto">
+                                  <span className="text-[10px] text-text-secondary mb-1 font-semibold">Bukti Barang Sampai</span>
+                                  <div 
+                                    onClick={() => {
+                                      Swal.fire({
+                                        title: `Bukti Barang Sampai`,
+                                        imageUrl: order.deliveryProofUrl as string,
+                                        imageWidth: 400,
+                                        imageAlt: 'Bukti Barang Sampai',
+                                        confirmButtonText: 'Tutup',
+                                        confirmButtonColor: '#ff5c35',
+                                        customClass: {
+                                          popup: 'bg-surface text-text-primary rounded-xl',
+                                          title: 'text-text-primary text-lg'
+                                        }
+                                      });
+                                    }}
+                                    className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-border cursor-pointer hover:opacity-80 transition-opacity shadow-sm group"
+                                  >
+                                    <img src={order.deliveryProofUrl} alt="Bukti Delivery" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <FileImage className="w-4 h-4 text-white" />
+                                    </div>
+                                  </div>
+                                </div>
                               )}
                               
                               {/* Selesai Pesanan button - only if verified or pending verification */}

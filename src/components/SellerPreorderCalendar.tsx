@@ -161,7 +161,7 @@ export default function SellerPreorderCalendar({
       showDenyButton: Boolean(order.deliveryDate),
       confirmButtonText: 'Simpan Jadwal',
       cancelButtonText: 'Batal',
-      denyButtonText: 'Hapus Jadwal',
+      denyButtonText: 'Batalkan Jadwal',
       confirmButtonColor: '#ff5c35',
       denyButtonColor: '#ef4444',
       preConfirm: () => {
@@ -216,18 +216,21 @@ export default function SellerPreorderCalendar({
     await Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Jadwal pengiriman tersimpan', showConfirmButton: false, timer: 2500 });
   };
 
-  const updateOrderStatus = async (orderId: string, status: string, title: string) => {
+  const updateOrderStatus = async (orderId: string, status: string, title: string, cancelReason?: string) => {
     try {
       Swal.fire({ title: 'Memproses...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      const payload: any = { orderId, status };
+      if (cancelReason) payload.cancelReason = cancelReason;
+      
       const res = await fetch('/api/orders/update-status', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, status }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal mengubah status pesanan');
       
-      setLocalOrders((current) => current.map((item) => item.id === orderId ? { ...item, status } : item));
+      setLocalOrders((current) => current.map((item) => item.id === orderId ? { ...item, status, cancelReason } : item));
       Swal.fire('Berhasil', title, 'success');
     } catch (e: any) {
       Swal.fire('Gagal', e.message, 'error');
@@ -237,7 +240,7 @@ export default function SellerPreorderCalendar({
   const konfirmasiPesanan = (order: OrderItem) => {
     Swal.fire({
       title: 'Konfirmasi Pesanan?',
-      text: 'Pesanan ini akan dikonfirmasi dan statusnya diteruskan ke pembeli.',
+      text: ' akan dikonfirmasi dan statusnya diteruskan ke pembeli.',
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Ya, Konfirmasi',
@@ -252,50 +255,31 @@ export default function SellerPreorderCalendar({
 
   const batalkanPesanan = (order: OrderItem) => {
     Swal.fire({
-      title: 'Batalkan Pesanan?',
-      text: 'Pesanan ini akan dibatalkan secara permanen.',
+      title: 'Perhatian!',
+      html: `
+        <p class="mb-4 text-gray-600">Pesanan ini akan dibatalkan secara permanen, lalu diteruskan kepada Pembeli.</p>
+        <div class="text-left w-full mt-2">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Alasan Pembatalan (Opsional)</label>
+          <textarea id="cancel-reason" class="w-full rounded-lg border border-gray-300 p-3 text-sm outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary placeholder:text-gray-400 min-h-[100px] resize-y" placeholder="Misal: Stok bahan baku telah habis..."></textarea>
+        </div>
+      `,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Ya, Batalkan',
       cancelButtonText: 'Batal',
       confirmButtonColor: '#ef4444',
+      preConfirm: () => {
+        return (document.getElementById('cancel-reason') as HTMLTextAreaElement)?.value || undefined;
+      },
     }).then((result) => {
       if (result.isConfirmed) {
-        updateOrderStatus(order.id, 'cancelled', 'Pesanan berhasil dibatalkan');
+        updateOrderStatus(order.id, 'cancelled', 'Pesanan berhasil dibatalkan', result.value);
       }
     });
   };
 
   return (
     <section className="card mb-8 overflow-hidden border border-border" aria-labelledby="preorder-calendar-title">
-      <div className="border-b border-border bg-surface/60 p-4 sm:p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <CalendarDays className="h-6 w-6 text-brand-primary" />
-              <h2 id="preorder-calendar-title" className="text-xl font-bold text-text-primary">Kalender Pengiriman Preorder</h2>
-            </div>
-            <p className="mt-1 text-sm text-text-secondary">Atur tanggal dan pantau kesiapan pengiriman setiap pesanan pembeli.</p>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label htmlFor="calendar-product-filter" className="sr-only">Filter produk</label>
-            <select
-              id="calendar-product-filter"
-              value={productFilter}
-              onChange={(event) => setProductFilter(event.target.value)}
-              className="min-w-0 rounded-xl border border-border bg-base px-3 py-2.5 text-sm text-text-primary outline-none focus:border-brand-primary sm:min-w-52"
-            >
-              <option value="all">Semua produk</option>
-              {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-            </select>
-            <button onClick={goToToday} className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-text-primary transition-colors hover:border-brand-primary hover:text-brand-primary">Hari Ini</button>
-            <button onClick={refreshOrders} disabled={isRefreshing} className="flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-text-primary transition-colors hover:border-brand-primary hover:text-brand-primary disabled:opacity-60">
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} /> Muat Ulang
-            </button>
-          </div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 gap-3 border-b border-border p-4 sm:grid-cols-3 sm:p-5">
         <div className="rounded-xl border border-border bg-base p-4">
           <p className="text-xs font-medium text-text-secondary">Terjadwal Bulan Ini</p>
@@ -311,8 +295,8 @@ export default function SellerPreorderCalendar({
         </div>
       </div>
 
-      <div className="grid items-start gap-0 lg:grid-cols-[minmax(0,1fr)_330px]">
-        <div className="min-w-0 border-b border-border p-3 sm:p-5 lg:border-b-0 lg:border-r">
+      <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border">
+        <div className="min-w-0 border-b border-border p-3 sm:p-5 lg:border-b-0 w-full lg:w-[65%] shrink-0">
           <div className="mb-4 flex items-center justify-between gap-3">
             <button onClick={() => goToMonth(-1)} className="rounded-full border border-border p-2 text-text-secondary hover:text-brand-primary" aria-label="Bulan sebelumnya"><ChevronLeft className="h-5 w-5" /></button>
             <h3 className="text-center text-base font-bold capitalize text-text-primary sm:text-lg">
@@ -336,9 +320,9 @@ export default function SellerPreorderCalendar({
                 <button
                   key={dateKey}
                   onClick={() => setSelectedDate(dateKey)}
-                  className={`relative min-h-16 border-b border-r border-border p-1 text-left transition-colors sm:min-h-24 sm:p-2 xl:min-h-28 ${
-                    isCurrentMonth ? 'bg-surface hover:bg-brand-primary/5' : 'bg-base/50 text-text-secondary/40'
-                  } ${isSelected ? 'z-10 ring-2 ring-inset ring-brand-primary' : ''}`}
+                  className={`relative min-h-20 border-b border-r border-border p-1 text-left transition-colors sm:p-2 xl:min-h-28 ${
+                    isCurrentMonth ? 'bg-surface hover:bg-brand-primary/10' : 'bg-base/50 text-text-secondary/40 hover:bg-brand-primary/5'
+                  } ${isSelected ? 'z-10 ring-2 ring-inset ring-brand-primary bg-brand-primary/5' : ''}`}
                   aria-label={`${formatLongDate(dateKey)}, ${dayOrders.length} pengiriman`}
                 >
                   <span 
@@ -375,7 +359,7 @@ export default function SellerPreorderCalendar({
           </div>
         </div>
 
-        <aside className="p-4 sm:p-5">
+        <aside className="p-4 sm:p-5 w-full lg:w-[35%] shrink-0">
           <div className="mb-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-brand-primary">Agenda Pengiriman</p>
             <h3 className="mt-1 font-bold capitalize text-text-primary">{formatLongDate(selectedDate)}</h3>
@@ -393,7 +377,7 @@ export default function SellerPreorderCalendar({
                 const status = order.fulfillmentStatus || 'scheduled';
                 const style = fulfillmentStyles[status];
                 return (
-                  <div key={order.id} className="rounded-xl border border-border bg-base p-3">
+                  <div key={order.id} className="rounded-xl border border-border bg-base p-3 relative group">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-text-primary">{order.productName}</p>
@@ -402,27 +386,25 @@ export default function SellerPreorderCalendar({
                       </div>
                       <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${style.badge}`}>{style.label}</span>
                     </div>
-                    <div className="mt-3 space-y-1.5 text-xs text-text-secondary">
+                    <div className="mt-3 space-y-1.5 text-xs text-text-secondary pt-2 border-t border-border/50">
                       <p className="flex items-center gap-2"><UserRound className="h-3.5 w-3.5 shrink-0" /><span className="font-semibold text-text-primary">{order.buyerName || 'Pembeli'}</span></p>
                       {order.buyerPhone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 shrink-0" />{order.buyerPhone}</p>}
                       {order.buyerAddress && <p className="flex items-start gap-2"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="line-clamp-2">{order.buyerAddress}</span></p>}
                       {order.notes && (
-                        <div className="flex items-start gap-2 bg-brand-primary/5 p-2 rounded border border-brand-primary/10 mt-1">
-                          <StickyNote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
-                          <span className="italic text-brand-primary-dark line-clamp-3">{order.notes}</span>
-                        </div>
+                         <div className="flex items-start gap-2 mt-1">
+                           <StickyNote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
+                           <span className="italic text-brand-primary-dark line-clamp-3">{order.notes}</span>
+                         </div>
                       )}
-                      <p className="flex items-center gap-2 font-bold text-text-primary pt-1"><Wallet className="h-4 w-4 shrink-0 text-status-success" />Rp {(order.totalPrice || 0).toLocaleString('id-ID')}</p>
+                      <p className="flex items-center gap-2 font-bold text-text-primary"><Wallet className="h-3.5 w-3.5 shrink-0 text-status-success" />Rp {(order.totalPrice || 0).toLocaleString('id-ID')}</p>
                     </div>
-                    <div className="mt-3 flex flex-col gap-2">
-                      {order.status === 'waiting_verification' && (
-                        <div className="flex gap-2 w-full">
-                          <button onClick={() => konfirmasiPesanan(order)} className="flex-1 rounded-lg bg-brand-primary py-2 text-xs font-semibold text-white hover:bg-brand-primary-hover">Konfirmasi</button>
-                          <button onClick={() => batalkanPesanan(order)} className="flex-1 rounded-lg bg-status-error py-2 text-xs font-semibold text-white hover:bg-red-600">Batalkan</button>
-                        </div>
-                      )}
-                      <button onClick={() => saveSchedule(order)} className="flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-xs font-semibold text-text-primary hover:border-brand-primary hover:text-brand-primary"><Pencil className="h-3.5 w-3.5" />Kelola Jadwal</button>
-                    </div>
+                    {order.status === 'waiting_verification' && (
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={() => konfirmasiPesanan(order)} className="flex-1 rounded-lg bg-brand-primary px-3 py-2 text-xs font-bold text-white hover:bg-brand-primary-hover">Konfirmasi</button>
+                        <button onClick={() => batalkanPesanan(order)} className="flex-1 rounded-lg bg-status-error px-3 py-2 text-xs font-bold text-white hover:bg-red-600">Batalkan</button>
+                      </div>
+                    )}
+                    <button onClick={() => saveSchedule(order)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-xs font-semibold text-text-primary hover:border-brand-primary hover:text-brand-primary"><Pencil className="h-3.5 w-3.5" />Kelola Jadwal</button>
                   </div>
                 );
               })}
