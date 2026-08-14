@@ -898,7 +898,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                         </div>
                                         <div class="flex justify-between">
                                           <span class="text-text-secondary">Alamat:</span>
-                                          <span class="text-text-primary">${order.deliveryAddress || '-'}</span>
+                                          <span class="text-text-primary">${order.deliveryAddress || order.buyerAddress || '-'}</span>
                                         </div>
                                       </div>
                                       

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { productPromotions, promotionOffers, products, users, orders, sellerProfiles } from "@/lib/schema";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, ne, sql, desc } from "drizzle-orm";
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import ClientAdminDashboard from "@/components/ClientAdminDashboard";
@@ -17,7 +17,7 @@ export default async function AdminDashboard() {
   // Fetch Stats
   const usersCountResult = await db.select({ count: sql<number>`count(*)` }).from(users).get();
   const sellersCountResult = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, 'penjual')).get();
-  const ordersCountResult = await db.select({ count: sql<number>`count(*)` }).from(orders).get();
+  const ordersCountResult = await db.select({ count: sql<number>`count(*)` }).from(orders).where(ne(orders.status, 'chat_only')).get();
   const escrowResult = await db.select({ total: sql<number>`sum(${orders.totalPrice})` }).from(orders).where(eq(orders.status, 'verified')).get();
 
   const stats = {
@@ -61,11 +61,13 @@ export default async function AdminDashboard() {
     storeName: sellerProfiles.storeName,
     buyerName: users.name,
     buyerPhone: users.phone,
+    buyerAddress: users.address,
   })
   .from(orders)
   .leftJoin(products, eq(orders.productId, products.id))
   .leftJoin(sellerProfiles, eq(products.sellerId, sellerProfiles.userId))
   .leftJoin(users, eq(orders.buyerId, users.id))
+  .where(ne(orders.status, 'chat_only'))
   .orderBy(desc(orders.createdAt));
 
   const adminPromotionOffers = await db.select({

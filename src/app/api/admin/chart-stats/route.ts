@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { users, orders, products, sellerProfiles } from "@/lib/schema";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, ne, sql, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const usersCountResult = await db.select({ count: sql<number>`count(*)` }).from(users).get();
     const sellersCountResult = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, 'penjual')).get();
-    const ordersCountResult = await db.select({ count: sql<number>`count(*)` }).from(orders).get();
+    const ordersCountResult = await db.select({ count: sql<number>`count(*)` }).from(orders).where(ne(orders.status, 'chat_only')).get();
     const escrowResult = await db.select({ total: sql<number>`sum(${orders.totalPrice})` }).from(orders).where(eq(orders.status, 'verified')).get();
 
     const ordersList = await db.select({
@@ -28,11 +28,13 @@ export async function GET() {
       storeName: sellerProfiles.storeName,
       buyerName: users.name,
       buyerPhone: users.phone,
+      buyerAddress: users.address,
     })
     .from(orders)
     .leftJoin(products, eq(orders.productId, products.id))
     .leftJoin(sellerProfiles, eq(products.sellerId, sellerProfiles.userId))
     .leftJoin(users, eq(orders.buyerId, users.id))
+    .where(ne(orders.status, 'chat_only'))
     .orderBy(desc(orders.createdAt));
 
     return NextResponse.json({
