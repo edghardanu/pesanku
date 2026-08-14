@@ -108,8 +108,8 @@ export default function ClientSellerDashboard({
     const fetchData = async () => {
       try {
         const [prodRes, notifRes] = await Promise.all([
-          fetch('/api/products?t=' + Date.now()),
-          fetch('/api/seller/notifications?t=' + Date.now())
+          fetch('/api/products'),
+          fetch('/api/seller/notifications')
         ]);
         
         if (prodRes.ok) {

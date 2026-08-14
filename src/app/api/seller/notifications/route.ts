@@ -4,8 +4,6 @@ import { chatMessages, orders, products, users } from '@/lib/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { getUserFromSession } from '@/lib/auth';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET() {
   try {
     const user = await getUserFromSession();
@@ -99,10 +97,6 @@ export async function GET() {
       newOrders,
       unreadChats,
       chatThreads
-    }, {
-      headers: {
-        'Cache-Control': 'no-store, max-age=0'
-      }
     });
   } catch (error) {
     console.error('Notifications Error:', error);
