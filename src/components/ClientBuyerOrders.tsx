@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star, Trash2 } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -206,6 +206,94 @@ export default function ClientBuyerOrders({
         router.refresh();
       } catch (error) {
         // Rollback optimistic update
+        setLocalOrders(orders);
+        const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
+        Swal.fire('Gagal!', errMsg, 'error');
+      }
+    }
+  };
+
+  const handleDeleteChatSection = async (orderId: string, storeName: string) => {
+    const result = await Swal.fire({
+      title: 'Hapus Chat?',
+      text: `Apakah Anda yakin ingin menghapus seluruh riwayat obrolan dengan ${storeName}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      setLocalOrders(prev => prev.filter(o => o.orderId !== orderId));
+
+      try {
+        const res = await fetch('/api/orders/cancel', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId }),
+        });
+
+        if (!res.ok) {
+          const json = await res.json();
+          throw new Error(json.error || 'Gagal menghapus chat');
+        }
+
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Obrolan berhasil dihapus',
+          showConfirmButton: false,
+          timer: 2000
+        });
+        router.refresh();
+      } catch (error) {
+        setLocalOrders(orders);
+        const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
+        Swal.fire('Gagal!', errMsg, 'error');
+      }
+    }
+  };
+
+  const handleDeleteAllChats = async () => {
+    const result = await Swal.fire({
+      title: 'Hapus Semua Chat?',
+      text: 'Apakah Anda yakin ingin menghapus semua riwayat obrolan dengan penjual secara permanen?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Hapus Semua',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      setLocalOrders(prev => prev.filter(o => o.status !== 'chat_only'));
+
+      try {
+        const res = await fetch('/api/orders/cancel', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ allChats: true }),
+        });
+
+        if (!res.ok) {
+          const json = await res.json();
+          throw new Error(json.error || 'Gagal menghapus semua chat');
+        }
+
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Semua obrolan berhasil dihapus',
+          showConfirmButton: false,
+          timer: 2000
+        });
+        router.refresh();
+      } catch (error) {
         setLocalOrders(orders);
         const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
         Swal.fire('Gagal!', errMsg, 'error');
@@ -759,6 +847,18 @@ export default function ClientBuyerOrders({
           </div>
         )}
 
+        {activeTab === 'chats' && filteredLocalOrders.length > 0 && (
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={handleDeleteAllChats}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-status-error bg-status-error/10 hover:bg-status-error/20 border border-status-error/20 rounded-xl transition-all hover-btn cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Hapus Semua Chat
+            </button>
+          </div>
+        )}
+
         {filteredLocalOrders.length === 0 ? (
           !user ? (
             <motion.div 
@@ -1145,6 +1245,15 @@ export default function ClientBuyerOrders({
                                   </span>
                                 )}
                               </button>
+
+                              {isChatOnly && (
+                                <button
+                                  onClick={() => handleDeleteChatSection(order.orderId, order.storeName || 'Toko UMKM')}
+                                  className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" /> Hapus Chat
+                                </button>
+                              )}
                               
                               {!isChatOnly && (
                                 <Link 
