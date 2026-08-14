@@ -858,8 +858,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                             Rp {(order.totalPrice || 0).toLocaleString('id-ID')}
                           </td>
                           <td className="p-4 text-xs">
-                            <span className="block text-status-warning"><span className="font-semibold">AD:</span> Rp {(order.adminSplitAmount ?? ((order.totalPrice||0) * 0.5)).toLocaleString('id-ID')}</span>
-                            <span className="block text-status-success mt-1"><span className="font-semibold">PJ:</span> Rp {(order.sellerSplitAmount ?? ((order.totalPrice||0) * 0.5)).toLocaleString('id-ID')}</span>
+                            <span className="block text-status-warning"><span className="font-semibold">Admin:</span> Rp {(order.adminSplitAmount ?? ((order.totalPrice||0) * 0.5)).toLocaleString('id-ID')}</span>
+                            <span className="block text-status-success mt-1"><span className="font-semibold">Penjual:</span> Rp {(order.sellerSplitAmount ?? ((order.totalPrice||0) * 0.5)).toLocaleString('id-ID')}</span>
                           </td>
                           <td className="p-4">
                             <span className={`px-2 py-1 rounded-full text-xs font-bold ${
@@ -905,14 +905,22 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                       <h3 class="font-bold border-b border-border pb-2 mt-4">Alokasi Saldo Pembagian</h3>
                                       <p class="text-xs text-text-secondary mb-2">Ubah manual pembagian saldo jika ada. Otomatis masuk ke penjual setelah pesanan selesai.</p>
                                       
+                                      <div class="mb-3">
+                                        <label class="block text-xs font-semibold mb-1 text-brand-primary">Persentase Pembagian Admin (%)</label>
+                                        <div class="relative">
+                                          <input type="number" id="swal-admin-percent" class="input-field w-full pr-8" placeholder="Contoh: 40" min="0" max="100" />
+                                          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-text-secondary">%</span>
+                                        </div>
+                                      </div>
+                                      
                                       <div class="flex items-center justify-between gap-4">
                                         <div class="flex-1">
                                           <label class="block text-xs font-semibold mb-1 text-status-warning">Saldo Admin (Rp)</label>
-                                          <input type="number" id="swal-admin-split" class="input-field w-full text-right" value="${currentAdmin}" />
+                                          <input type="number" id="swal-admin-split" class="input-field w-full text-right bg-base/50" value="${currentAdmin}" />
                                         </div>
                                         <div class="flex-1">
                                           <label class="block text-xs font-semibold mb-1 text-status-success">Saldo Penjual (Rp)</label>
-                                          <input type="number" id="swal-seller-split" class="input-field w-full text-right" value="${currentSeller}" />
+                                          <input type="number" id="swal-seller-split" class="input-field w-full text-right bg-base/50" value="${currentSeller}" />
                                         </div>
                                       </div>
                                       <div class="flex items-center justify-between mt-2 pt-2 border-t border-border font-bold">
@@ -929,7 +937,13 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                     const t = order.totalPrice || 0;
                                     const adminInput = document.getElementById('swal-admin-split') as HTMLInputElement;
                                     const sellerInput = document.getElementById('swal-seller-split') as HTMLInputElement;
+                                    const percentInput = document.getElementById('swal-admin-percent') as HTMLInputElement;
                                     const validationEl = document.getElementById('swal-total-validation');
+                                    
+                                    // Initialize percent value based on current split
+                                    if (t > 0 && currentAdmin >= 0) {
+                                      percentInput.value = (Math.round((currentAdmin / t) * 100)).toString();
+                                    }
                                     
                                     const checkTotal = () => {
                                       const sum = Number(adminInput.value) + Number(sellerInput.value);
@@ -938,8 +952,39 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                         validationEl.className = sum === t ? 'text-brand-primary' : 'text-status-error';
                                       }
                                     };
-                                    adminInput.addEventListener('input', checkTotal);
-                                    sellerInput.addEventListener('input', checkTotal);
+                                    
+                                    percentInput.addEventListener('input', () => {
+                                      const p = Number(percentInput.value);
+                                      if (!isNaN(p)) {
+                                        const constrainedP = Math.min(Math.max(p, 0), 100);
+                                        const adminVal = Math.round((constrainedP / 100) * t);
+                                        const sellerVal = t - adminVal;
+                                        adminInput.value = adminVal.toString();
+                                        sellerInput.value = sellerVal.toString();
+                                        checkTotal();
+                                      }
+                                    });
+
+                                    adminInput.addEventListener('input', () => {
+                                      const adminVal = Number(adminInput.value);
+                                      if (adminVal <= t) {
+                                        const newSeller = t - adminVal;
+                                        sellerInput.value = newSeller.toString();
+                                        if (t > 0) percentInput.value = (Math.round((adminVal / t) * 100)).toString();
+                                      }
+                                      checkTotal();
+                                    });
+                                    
+                                    sellerInput.addEventListener('input', () => {
+                                      const sellerVal = Number(sellerInput.value);
+                                      if (sellerVal <= t) {
+                                        const newAdmin = t - sellerVal;
+                                        adminInput.value = newAdmin.toString();
+                                        if (t > 0) percentInput.value = (Math.round((newAdmin / t) * 100)).toString();
+                                      }
+                                      checkTotal();
+                                    });
+                                    checkTotal();
                                   },
                                   preConfirm: () => {
                                     const adminSplit = Number((document.getElementById('swal-admin-split') as HTMLInputElement).value);

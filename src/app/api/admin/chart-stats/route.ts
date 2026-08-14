@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { users, orders } from "@/lib/schema";
+import { users, orders, products, sellerProfiles } from "@/lib/schema";
 import { eq, sql, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -17,9 +17,22 @@ export async function GET() {
       qty: orders.qty,
       totalPrice: orders.totalPrice,
       status: orders.status,
+      notes: orders.notes,
+      selectedVariant: orders.selectedVariant,
+      deliveryDate: orders.deliveryDate,
+      deliveryAddress: orders.deliveryAddress,
+      adminSplitAmount: orders.adminSplitAmount,
+      sellerSplitAmount: orders.sellerSplitAmount,
       createdAt: orders.createdAt,
+      productName: products.name,
+      storeName: sellerProfiles.storeName,
+      buyerName: users.name,
+      buyerPhone: users.phone,
     })
     .from(orders)
+    .leftJoin(products, eq(orders.productId, products.id))
+    .leftJoin(sellerProfiles, eq(products.sellerId, sellerProfiles.userId))
+    .leftJoin(users, eq(orders.buyerId, users.id))
     .orderBy(desc(orders.createdAt));
 
     return NextResponse.json({

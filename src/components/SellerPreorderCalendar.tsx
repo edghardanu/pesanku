@@ -353,10 +353,10 @@ export default function SellerPreorderCalendar({
                   >
                     {date.getDate()}
                   </span>
-                  <div className="mt-1 hidden space-y-1 sm:block">
+                  <div className="mt-1 space-y-1 block max-h-24 overflow-y-auto w-full">
                     {dayOrders.slice(0, 2).map((order) => {
                       const style = fulfillmentStyles[order.fulfillmentStatus || 'scheduled'];
-                      return <div key={order.id} className={`truncate rounded px-1.5 py-1 text-[10px] font-semibold ${style.badge}`}>{order.productName}</div>;
+                      return <div key={order.id} className={`rounded px-1.5 py-1 text-[10px] font-semibold break-words whitespace-normal text-left ${style.badge}`}>{order.productName}</div>;
                     })}
                     {dayOrders.length > 2 && <p className="pl-1 text-[10px] font-semibold text-text-secondary">+{dayOrders.length - 2} lainnya</p>}
                   </div>
