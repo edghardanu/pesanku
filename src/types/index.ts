@@ -25,6 +25,8 @@ export interface OrderItem {
   notes?: string | null;
   selectedVariant?: string | null;
   selectedVariantPrice?: number | null;
+  adminSplitAmount?: number | null;
+  sellerSplitAmount?: number | null;
   createdAt?: string | Date | null;
   paymentProofUrl?: string | null;
   proofUrl?: string | null;
@@ -38,6 +40,8 @@ export interface OrderItem {
   deliveryDate?: string | null;
   fulfillmentStatus?: 'scheduled' | 'preparing' | 'ready' | 'shipped' | 'delivered' | null;
   scheduleUpdatedAt?: string | null;
+  deliveryAddress?: string | null;
+  storeName?: string | null;
 }
 
 export interface UmkmItem {

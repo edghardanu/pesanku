@@ -7,9 +7,24 @@ import crypto from "crypto";
 
 export async function GET(request: Request) {
   try {
+    const user = await getUserFromSession();
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get("orderId");
     if (!orderId) return NextResponse.json({ error: "orderId required" }, { status: 400 });
+
+    if (user) {
+      // Mark messages not sent by standard user as read automatically
+      const { and, not } = await import("drizzle-orm");
+      await db.update(chatMessages)
+        .set({ isRead: true })
+        .where(
+          and(
+            eq(chatMessages.orderId, orderId),
+            not(eq(chatMessages.senderId, user.id)),
+            eq(chatMessages.isRead, false)
+          )
+        ).catch(() => {});
+    }
 
     const messages = await db
       .select({

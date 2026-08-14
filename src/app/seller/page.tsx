@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { products, sellerProfiles, orders, users, payments, settings, productPromotions, promotionOffers } from "@/lib/schema";
-import { and, eq, desc, gt } from "drizzle-orm";
+import { and, eq, desc, gt, sql } from "drizzle-orm";
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import ClientSellerDashboard from "@/components/ClientSellerDashboard";
@@ -42,7 +42,8 @@ export default async function SellerDashboard() {
     productName: products.name,
     buyerName: users.name,
     buyerPhone: users.phone,
-    buyerAddress: users.address,
+    buyerAddress: sql<string>`COALESCE(${orders.deliveryAddress}, ${users.address})`.as('buyerAddress'),
+    deliveryDate: orders.deliveryDate,
     proofUrl: payments.proofUrl,
     deliveryProofUrl: orders.deliveryProofUrl,
   })
@@ -137,6 +138,7 @@ export default async function SellerDashboard() {
       feeAdmin={feeAdmin}
       promotionOffers={sellerPromotionOffers}
       promotionRequests={sellerPromotionRequests}
+      userEmail={user.email}
     />
   );
 }

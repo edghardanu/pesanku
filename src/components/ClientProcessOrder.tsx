@@ -22,7 +22,7 @@ function ProcessOrderContent() {
       hasProcessed.current = true;
 
       const source = searchParams.get("source");
-      let checkoutPayload: { items: unknown[] } | { productId: string; qty: number; notes: string; selectedVariant: string };
+      let checkoutPayload: { items: unknown[] } | { productId: string; qty: number; notes: string; selectedVariant: string; deliveryDate?: string; deliveryAddress?: string };
 
       if (source === 'store') {
         try {
@@ -38,12 +38,14 @@ function ProcessOrderContent() {
         const qty = searchParams.get("qty");
         const notes = searchParams.get("notes") || "";
         const selectedVariant = searchParams.get("variant") || "";
+        const deliveryDate = searchParams.get("deliveryDate") || "";
+        const deliveryAddress = searchParams.get("deliveryAddress") || "";
 
         if (!productId || !qty) {
           router.push("/");
           return;
         }
-        checkoutPayload = { productId, qty: parseInt(qty), notes, selectedVariant };
+        checkoutPayload = { productId, qty: parseInt(qty), notes, selectedVariant, deliveryDate, deliveryAddress };
       }
 
       fetch('/api/checkout', {

@@ -13,7 +13,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { storeName, address, category, bankAccount, logoUrl } = body;
+    const { storeName, address, category, bankAccount, logoUrl, email, password } = body;
 
     if (!storeName) {
       return NextResponse.json({ error: 'Nama toko wajib diisi' }, { status: 400 });
@@ -56,6 +56,25 @@ export async function PUT(request: Request) {
     await db.update(sellerProfiles)
       .set(updateData)
       .where(eq(sellerProfiles.userId, user.id));
+
+    if (email) {
+      const { users } = await import('@/lib/schema');
+      if (!user.email || email !== user.email) {
+        const existing = await db.select().from(users).where(eq(users.email, email)).get();
+        if (existing && existing.id !== user.id) {
+           return NextResponse.json({ error: 'Email sudah digunakan oleh akun lain' }, { status: 400 });
+        }
+      }
+      
+      const userUpdate: any = { email };
+      if (password && password.trim() !== '') {
+          const bcrypt = await import('bcryptjs');
+          const salt = await bcrypt.default.genSalt(10);
+          userUpdate.passwordHash = await bcrypt.default.hash(password, salt);
+      }
+      
+      await db.update(users).set(userUpdate).where(eq(users.id, user.id));
+    }
 
     return NextResponse.json({ message: 'Profil berhasil diperbarui' });
   } catch (error) {

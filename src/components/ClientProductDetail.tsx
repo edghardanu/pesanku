@@ -4,10 +4,18 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Clock, Store, MapPin, CheckCircle, ShieldCheck, LogOut } from "lucide-react";
+import { ArrowLeft, Clock, Store, MapPin, CheckCircle, ShieldCheck, LogOut, User } from "lucide-react";
+
 import Swal from "sweetalert2";
 import { ProductItem, AuthUser } from "@/types";
 import { findProductVariant, getProductUnitPrice } from "@/lib/productVariants";
+
+const escapeHtml = (value: string) => value
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#039;');
 
 export default function ClientProductDetail({ product: initialProduct, user }: { product: ProductItem, user: AuthUser | null }) {
   const router = useRouter();
@@ -97,8 +105,8 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
   };
 
   const isFull = (product.currentQty || 0) >= (product.minQty || 1);
-  const minimumOrder = product.minOrderQty || 1;
-  const maximumOrder = product.maxOrderQty || Number.MAX_SAFE_INTEGER;
+  const minimumOrder = 1;
+  const maximumOrder = Number.MAX_SAFE_INTEGER;
   const selectedQty = Math.min(Math.max(qty, minimumOrder), maximumOrder);
   const deadline = product.deadlineDate ? new Date(product.deadlineDate) : null;
   const hasValidDeadline = Boolean(deadline && !Number.isNaN(deadline.getTime()));
@@ -148,14 +156,13 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
       return;
     }
 
-    if (product.variants?.length && !selectedVariantDetails) {
-      Swal.fire('Pilih Varian', `Pilih salah satu varian ${product.name} terlebih dahulu.`, 'info');
-      return;
-    }
+    // Varian sekarang opsional
 
     const totalHarga = selectedQty * unitPrice;
 
     // STEP 1: Konfirmasi Pesanan
+    const defaultAddress = user?.address || '';
+
     const confirmResult = await Swal.fire({
       title: 'Konfirmasi Pesanan',
       html: `
@@ -166,20 +173,40 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
           <p><strong>Total Bayar:</strong> <span class="text-brand-primary font-bold text-lg">Rp ${totalHarga.toLocaleString('id-ID')}</span></p>
           ${notes ? `<p><strong>Catatan:</strong> ${notes}</p>` : ''}
           <hr class="my-2 border-gray-200" />
-          <p class="text-sm text-text-secondary">Apakah Anda yakin ingin melanjutkan pesanan ini?</p>
+          <div class="mt-4">
+            <label class="block text-sm font-semibold mb-1">Pilih Tanggal Pesanan <span class="text-red-500">*</span></label>
+            <input type="date" id="order-date" lang="id" class="w-full border p-2 rounded text-sm mb-3 focus:outline-none focus:border-[#ff5c35]" required>
+            <label class="block text-sm font-semibold mb-1">Alamat Pembeli <span class="text-xs font-normal text-gray-400 ml-1">(Opsional)</span></label>
+            <textarea id="order-address" class="w-full border p-2 rounded text-sm focus:outline-none focus:border-[#ff5c35]" rows="3">${escapeHtml(defaultAddress)}</textarea>
+          </div>
+          <p class="text-sm text-text-secondary mt-3">Apakah Anda yakin ingin melanjutkan pesanan ini?</p>
         </div>
       `,
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Ya, Lanjut Bayar',
       cancelButtonText: 'Batal',
-      confirmButtonColor: '#10b981'
+      confirmButtonColor: '#10b981',
+      preConfirm: () => {
+        const dateInput = document.getElementById('order-date') as HTMLInputElement;
+        const addressInput = document.getElementById('order-address') as HTMLTextAreaElement;
+        
+        const dateVal = dateInput?.value;
+        const addressVal = addressInput?.value?.trim() || '';
+        
+        if (!dateVal) {
+          Swal.showValidationMessage('Silakan pilih tanggal pesanan');
+          return false;
+        }
+        
+        return { orderDate: dateVal, shippingAddress: addressVal };
+      }
     });
 
     if (!confirmResult.isConfirmed) return;
 
     Swal.close();
-    router.push(`/process-order?productId=${product.id}&qty=${selectedQty}&notes=${encodeURIComponent(notes)}&variant=${encodeURIComponent(selectedVariant)}`);
+    router.push(`/process-order?productId=${product.id}&qty=${selectedQty}&notes=${encodeURIComponent(notes)}&variant=${encodeURIComponent(selectedVariant)}&deliveryDate=${encodeURIComponent(confirmResult.value.orderDate)}&deliveryAddress=${encodeURIComponent(confirmResult.value.shippingAddress)}`);
   };
 
   return (
@@ -194,14 +221,23 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
             <span className="font-semibold text-lg text-text-primary">Detail Produk</span>
           </div>
           {user && (
-            <button 
-              onClick={handleLogout}
-              className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error flex items-center gap-1.5 py-1.5 px-3 text-sm font-semibold rounded-xl transition-all"
-              title="Keluar / Logout"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Keluar</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/profile"
+                className="btn-outline border-transparent text-text-secondary hover:text-brand-primary hover:bg-brand-primary/5 flex items-center justify-center p-2 rounded-xl transition-all"
+                title="Profil Akun"
+              >
+                <User className="w-5 h-5" />
+              </Link>
+              <button 
+                onClick={handleLogout}
+                className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error flex items-center gap-1.5 py-1.5 px-3 text-sm font-semibold rounded-xl transition-all"
+                title="Keluar / Logout"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Keluar</span>
+              </button>
+            </div>
           )}
         </div>
       </header>
@@ -295,7 +331,7 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
                 {product.variants && product.variants.length > 0 && (
                   <fieldset>
                     <legend className="mb-2 text-sm font-semibold text-text-primary">
-                      Pilih Varian <span className="text-status-error">*</span>
+                      Pilih Tambah Varian <span className="text-xs font-normal text-gray-400 ml-1">(Opsional)</span>
                     </legend>
                     <div className="flex flex-wrap gap-2">
                       {product.variants.map((variant) => {
@@ -348,7 +384,6 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
                       className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-l border-border disabled:cursor-not-allowed"
                     >+</button>
                   </div>
-                  <p className="text-xs text-text-secondary mt-2 font-medium">Minimal: {product.minOrderQty || 1} Porsi {product.maxOrderQty ? `| Maksimal: ${product.maxOrderQty} Porsi` : ''}</p>
                 </div>
 
                 {/* Catatan Tambahan */}

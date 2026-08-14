@@ -49,7 +49,7 @@ type ClientAdminDashboardProps = {
 
 export default function ClientAdminDashboard({ stats, userName, umkmList, ordersList = [], promotionOffers = [], promotionRequests = [] }: ClientAdminDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'promosi' | 'qris' | 'settings' | 'tickets'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'pesanan' | 'verifikasi' | 'pencairan' | 'umkm' | 'promosi' | 'qris' | 'settings' | 'tickets'>('overview');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [localUmkmList, setLocalUmkmList] = useState(umkmList);
@@ -356,7 +356,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
     }
   };
 
-  const handleTabChange = (tab: 'overview' | 'verifikasi' | 'pencairan' | 'umkm' | 'promosi' | 'qris' | 'settings' | 'tickets') => {
+  const handleTabChange = (tab: 'overview' | 'pesanan' | 'verifikasi' | 'pencairan' | 'umkm' | 'promosi' | 'qris' | 'settings' | 'tickets') => {
     if (tab === activeTab) return;
     setActiveTab(tab);
     setIsMobileSidebarOpen(false);
@@ -432,6 +432,18 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           >
             <Store className="w-5 h-5" />
             <span>Daftar UMKM</span>
+          </button>
+
+          <button 
+            onClick={() => handleTabChange('pesanan')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
+              activeTab === 'pesanan' 
+                ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
+                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+            }`}
+          >
+            <ShoppingBag className="w-5 h-5" />
+            <span>Pesanan Penjual</span>
           </button>
 
           <button
@@ -800,6 +812,176 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                 Hapus
                               </button>
                             </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'pesanan' && (
+            <div className="card p-0 border border-border overflow-hidden">
+              <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
+                <h2 className="text-h3 w-full sm:w-auto">Semua Pesanan Penjual</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-surface text-caption text-text-secondary border-b border-border">
+                      <th className="p-4 font-medium">Toko</th>
+                      <th className="p-4 font-medium">Produk</th>
+                      <th className="p-4 font-medium">Tgl Pesanan</th>
+                      <th className="p-4 font-medium">Total Harga</th>
+                      <th className="p-4 font-medium">Saldo (Admin / Penjual)</th>
+                      <th className="p-4 font-medium">Status Produk</th>
+                      <th className="p-4 font-medium text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-body-small text-text-primary">
+                    {liveOrders.length === 0 ? (
+                      <tr><td colSpan={7} className="p-8 text-center text-text-secondary">Tidak ada pesanan.</td></tr>
+                    ) : (
+                      liveOrders.map((order) => (
+                        <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                          <td className="p-4 font-semibold">{order.storeName || '-'}</td>
+                          <td className="p-4">
+                            <span className="block font-medium">{order.productName || '-'}</span>
+                            <span className="text-xs text-text-secondary block mt-1">{order.qty}x Pcs</span>
+                          </td>
+                          <td className="p-4 text-xs">
+                             {order.deliveryDate ? (order.deliveryDate.includes('-') ? new Date(order.deliveryDate).toLocaleDateString('id-ID') : order.deliveryDate) : '-'}
+                          </td>
+                          <td className="p-4 font-bold text-brand-primary whitespace-nowrap">
+                            Rp {(order.totalPrice || 0).toLocaleString('id-ID')}
+                          </td>
+                          <td className="p-4 text-xs">
+                            <span className="block text-status-warning"><span className="font-semibold">AD:</span> Rp {(order.adminSplitAmount ?? ((order.totalPrice||0) * 0.5)).toLocaleString('id-ID')}</span>
+                            <span className="block text-status-success mt-1"><span className="font-semibold">PJ:</span> Rp {(order.sellerSplitAmount ?? ((order.totalPrice||0) * 0.5)).toLocaleString('id-ID')}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                              ['waiting_verification', 'failed', 'cancelled'].includes(order.status || '') 
+                                ? 'bg-status-error/10 text-status-error'
+                                : order.status === 'completed'
+                                ? 'bg-status-success/10 text-status-success'
+                                : 'bg-status-warning/10 text-status-warning'
+                            }`}>
+                              {order.status === 'verified' ? 'Dibayar' : order.status === 'ongoing' ? 'Diproses' : order.status}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => {
+                                // Default split computation if not explicitly set
+                                const currentAdmin = order.adminSplitAmount ?? ((order.totalPrice || 0) * 0.5);
+                                const currentSeller = order.sellerSplitAmount ?? ((order.totalPrice || 0) * 0.5);
+                                
+                                Swal.fire({
+                                  title: 'Detail Pesanan & Saldo',
+                                  html: `
+                                    <div class="text-left text-sm space-y-3">
+                                      <div class="p-3 bg-base border border-border rounded-lg">
+                                        <div class="flex justify-between border-b border-border pb-2 mb-2">
+                                          <span class="text-text-secondary">Pembeli:</span>
+                                          <strong class="text-text-primary">${order.buyerName || '-'}</strong>
+                                        </div>
+                                        <div class="flex justify-between border-b border-border pb-2 mb-2">
+                                          <span class="text-text-secondary">Kontak:</span>
+                                          <span class="text-text-primary">${order.buyerPhone || '-'}</span>
+                                        </div>
+                                        <div class="flex justify-between border-b border-border pb-2 mb-2">
+                                          <span class="text-text-secondary">Catatan:</span>
+                                          <span class="text-text-primary">${order.notes || '-'}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                          <span class="text-text-secondary">Alamat:</span>
+                                          <span class="text-text-primary">${order.deliveryAddress || '-'}</span>
+                                        </div>
+                                      </div>
+                                      
+                                      <h3 class="font-bold border-b border-border pb-2 mt-4">Alokasi Saldo Pembagian</h3>
+                                      <p class="text-xs text-text-secondary mb-2">Ubah manual pembagian saldo jika ada. Otomatis masuk ke penjual setelah pesanan selesai.</p>
+                                      
+                                      <div class="flex items-center justify-between gap-4">
+                                        <div class="flex-1">
+                                          <label class="block text-xs font-semibold mb-1 text-status-warning">Saldo Admin (Rp)</label>
+                                          <input type="number" id="swal-admin-split" class="input-field w-full text-right" value="${currentAdmin}" />
+                                        </div>
+                                        <div class="flex-1">
+                                          <label class="block text-xs font-semibold mb-1 text-status-success">Saldo Penjual (Rp)</label>
+                                          <input type="number" id="swal-seller-split" class="input-field w-full text-right" value="${currentSeller}" />
+                                        </div>
+                                      </div>
+                                      <div class="flex items-center justify-between mt-2 pt-2 border-t border-border font-bold">
+                                         <span>Total Order:</span>
+                                         <span id="swal-total-validation" class="text-brand-primary">Rp ${(order.totalPrice||0).toLocaleString('id-ID')}</span>
+                                      </div>
+                                    </div>
+                                  `,
+                                  showCancelButton: true,
+                                  confirmButtonText: 'Simpan Saldo',
+                                  cancelButtonText: 'Tutup',
+                                  confirmButtonColor: '#ff5c35',
+                                  didOpen: () => {
+                                    const t = order.totalPrice || 0;
+                                    const adminInput = document.getElementById('swal-admin-split') as HTMLInputElement;
+                                    const sellerInput = document.getElementById('swal-seller-split') as HTMLInputElement;
+                                    const validationEl = document.getElementById('swal-total-validation');
+                                    
+                                    const checkTotal = () => {
+                                      const sum = Number(adminInput.value) + Number(sellerInput.value);
+                                      if (validationEl) {
+                                        validationEl.innerHTML = `Jumlah: Rp ${sum.toLocaleString('id-ID')}`;
+                                        validationEl.className = sum === t ? 'text-brand-primary' : 'text-status-error';
+                                      }
+                                    };
+                                    adminInput.addEventListener('input', checkTotal);
+                                    sellerInput.addEventListener('input', checkTotal);
+                                  },
+                                  preConfirm: () => {
+                                    const adminSplit = Number((document.getElementById('swal-admin-split') as HTMLInputElement).value);
+                                    const sellerSplit = Number((document.getElementById('swal-seller-split') as HTMLInputElement).value);
+                                    if (adminSplit + sellerSplit !== (order.totalPrice || 0)) {
+                                      Swal.showValidationMessage('Total pembagian harus sama dengan total harga pesanan!');
+                                      return false;
+                                    }
+                                    return { adminSplit, sellerSplit };
+                                  }
+                                }).then(async (res) => {
+                                  if (res.isConfirmed) {
+                                    try {
+                                      const response = await fetch('/api/admin/orders/split', {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ 
+                                          orderId: order.id, 
+                                          adminSplitAmount: res.value.adminSplit, 
+                                          sellerSplitAmount: res.value.sellerSplit 
+                                        })
+                                      });
+                                      if(!response.ok) throw new Error('Gagal update');
+                                      
+                                      // Update in memory
+                                      setLiveOrders(prev => prev.map(o => o.id === order.id ? {
+                                        ...o,
+                                        adminSplitAmount: res.value.adminSplit,
+                                        sellerSplitAmount: res.value.sellerSplit
+                                      } : o));
+                                      
+                                      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Tersimpan', showConfirmButton: false, timer: 3000 });
+                                    } catch(err) {
+                                      Swal.fire('Error', 'Gagal memperbarui saldo.', 'error');
+                                    }
+                                  }
+                                });
+                              }}
+                              className="btn-outline px-3 py-1.5 text-xs inline-flex items-center gap-1 hover:bg-brand-primary hover:text-white transition-colors hover:border-brand-primary"
+                            >
+                              <Settings className="w-3 h-3" /> Edit Split
+                            </button>
                           </td>
                         </tr>
                       ))

@@ -1,0 +1,1 @@
+import { db } from './src/lib/db.ts'; import { sellerProfiles } from './src/lib/schema.ts'; async function main() { const u = await db.select({storeName: sellerProfiles.storeName}).from(sellerProfiles); console.log(u.map(x => x.storeName)); } main();

@@ -121,7 +121,6 @@ export default function NewProductPage() {
       description: formData.get("description"),
       price: formData.get("price"),
       minQty: minQty,
-      minOrderQty: formData.get("minOrderQty"),
       processingTime: formData.get("processingTime"),
       variants: submittedVariants,
       imageUrl: imagePreview || "",
@@ -324,18 +323,8 @@ export default function NewProductPage() {
               <h3 className="text-body-base font-semibold text-brand-secondary-dark dark:text-brand-secondary mb-2">Pengaturan Preorder</h3>
               
               <div>
-                <div>
-                  <label className="block text-body-small font-medium text-text-primary mb-1">
-                    Minimal Order <span className="text-status-error">*</span>
-                  </label>
-                  <input 
-                    type="number" 
-                    name="minOrderQty"
-                    min="1"
-                    defaultValue="1"
-                    className="input-field"
-                  />
-                </div>
+              <div>
+              </div>
               </div>
               <div className="mt-4">
                 <label className="block text-body-small font-medium text-text-primary mb-1">

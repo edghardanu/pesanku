@@ -34,16 +34,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    // Check minimum limit from seller
-    const minAllowed = product.minOrderQty || 1;
-    if (qty < minAllowed) {
-      return NextResponse.json({ error: `Minimal pemesanan adalah ${minAllowed} porsi.` }, { status: 400 });
-    }
-
-    // Check the optional maximum limit set by the seller.
-    if (product.maxOrderQty && qty > product.maxOrderQty) {
-      return NextResponse.json({ error: `Maksimal pemesanan adalah ${product.maxOrderQty} porsi.` }, { status: 400 });
-    }
+    // Limit checks removed
 
     const unitPrice = orderObj.selectedVariantPrice ?? product.price;
     const newTotalPrice = unitPrice * qty;

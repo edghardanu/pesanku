@@ -3,6 +3,9 @@ import { getUserFromSession } from "@/lib/auth";
 import { getProductDetail } from "@/lib/productDetails";
 import ClientProductDetail from "@/components/ClientProductDetail";
 import { dummyProducts } from "@/lib/dummyData";
+import { db } from "@/lib/db";
+import { users } from "@/lib/schema";
+import { eq } from "drizzle-orm";
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +14,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const { id } = resolvedParams;
 
   // Dapatkan user aktif (jika ada)
-  const user = await getUserFromSession();
+  const sessionUser = await getUserFromSession();
+  let user = null;
+  if (sessionUser) {
+    user = await db.select().from(users).where(eq(users.id, sessionUser.id)).get() || null;
+  }
 
   let productData;
 

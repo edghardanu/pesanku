@@ -14,6 +14,9 @@ import {
   RefreshCw,
   Truck,
   UserRound,
+  Phone,
+  StickyNote,
+  Wallet,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -213,6 +216,56 @@ export default function SellerPreorderCalendar({
     await Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Jadwal pengiriman tersimpan', showConfirmButton: false, timer: 2500 });
   };
 
+  const updateOrderStatus = async (orderId: string, status: string, title: string) => {
+    try {
+      Swal.fire({ title: 'Memproses...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      const res = await fetch('/api/orders/update-status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, status }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal mengubah status pesanan');
+      
+      setLocalOrders((current) => current.map((item) => item.id === orderId ? { ...item, status } : item));
+      Swal.fire('Berhasil', title, 'success');
+    } catch (e: any) {
+      Swal.fire('Gagal', e.message, 'error');
+    }
+  };
+
+  const konfirmasiPesanan = (order: OrderItem) => {
+    Swal.fire({
+      title: 'Konfirmasi Pesanan?',
+      text: 'Pesanan ini akan dikonfirmasi dan statusnya diteruskan ke pembeli.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Konfirmasi',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#10b981',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        updateOrderStatus(order.id, 'verified', 'Pesanan berhasil dikonfirmasi');
+      }
+    });
+  };
+
+  const batalkanPesanan = (order: OrderItem) => {
+    Swal.fire({
+      title: 'Batalkan Pesanan?',
+      text: 'Pesanan ini akan dibatalkan secara permanen.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Batalkan',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#ef4444',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        updateOrderStatus(order.id, 'cancelled', 'Pesanan berhasil dibatalkan');
+      }
+    });
+  };
+
   return (
     <section className="card mb-8 overflow-hidden border border-border" aria-labelledby="preorder-calendar-title">
       <div className="border-b border-border bg-surface/60 p-4 sm:p-5">
@@ -288,7 +341,18 @@ export default function SellerPreorderCalendar({
                   } ${isSelected ? 'z-10 ring-2 ring-inset ring-brand-primary' : ''}`}
                   aria-label={`${formatLongDate(dateKey)}, ${dayOrders.length} pengiriman`}
                 >
-                  <span className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full text-xs font-semibold ${isToday ? 'bg-brand-primary text-white' : 'text-text-primary'}`}>{date.getDate()}</span>
+                  <span 
+                    className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full text-xs font-semibold transition-all shadow-sm ${
+                      dayOrders.length > 0 
+                        ? fulfillmentStyles[dayOrders[0].fulfillmentStatus || 'scheduled'].dot + ' text-white' 
+                        : isToday 
+                          ? 'bg-brand-primary text-white' 
+                          : 'text-text-primary hover:bg-border/60'
+                    }`}
+                    title="Lihat Detail Jadwal"
+                  >
+                    {date.getDate()}
+                  </span>
                   <div className="mt-1 hidden space-y-1 sm:block">
                     {dayOrders.slice(0, 2).map((order) => {
                       const style = fulfillmentStyles[order.fulfillmentStatus || 'scheduled'];
@@ -339,10 +403,26 @@ export default function SellerPreorderCalendar({
                       <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${style.badge}`}>{style.label}</span>
                     </div>
                     <div className="mt-3 space-y-1.5 text-xs text-text-secondary">
-                      <p className="flex items-center gap-2"><UserRound className="h-3.5 w-3.5" />{order.buyerName || 'Pembeli'}</p>
+                      <p className="flex items-center gap-2"><UserRound className="h-3.5 w-3.5 shrink-0" /><span className="font-semibold text-text-primary">{order.buyerName || 'Pembeli'}</span></p>
+                      {order.buyerPhone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 shrink-0" />{order.buyerPhone}</p>}
                       {order.buyerAddress && <p className="flex items-start gap-2"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="line-clamp-2">{order.buyerAddress}</span></p>}
+                      {order.notes && (
+                        <div className="flex items-start gap-2 bg-brand-primary/5 p-2 rounded border border-brand-primary/10 mt-1">
+                          <StickyNote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
+                          <span className="italic text-brand-primary-dark line-clamp-3">{order.notes}</span>
+                        </div>
+                      )}
+                      <p className="flex items-center gap-2 font-bold text-text-primary pt-1"><Wallet className="h-4 w-4 shrink-0 text-status-success" />Rp {(order.totalPrice || 0).toLocaleString('id-ID')}</p>
                     </div>
-                    <button onClick={() => saveSchedule(order)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-xs font-semibold text-text-primary hover:border-brand-primary hover:text-brand-primary"><Pencil className="h-3.5 w-3.5" />Kelola Jadwal</button>
+                    <div className="mt-3 flex flex-col gap-2">
+                      {order.status === 'waiting_verification' && (
+                        <div className="flex gap-2 w-full">
+                          <button onClick={() => konfirmasiPesanan(order)} className="flex-1 rounded-lg bg-brand-primary py-2 text-xs font-semibold text-white hover:bg-brand-primary-hover">Konfirmasi</button>
+                          <button onClick={() => batalkanPesanan(order)} className="flex-1 rounded-lg bg-status-error py-2 text-xs font-semibold text-white hover:bg-red-600">Batalkan</button>
+                        </div>
+                      )}
+                      <button onClick={() => saveSchedule(order)} className="flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-xs font-semibold text-text-primary hover:border-brand-primary hover:text-brand-primary"><Pencil className="h-3.5 w-3.5" />Kelola Jadwal</button>
+                    </div>
                   </div>
                 );
               })}
@@ -367,13 +447,34 @@ export default function SellerPreorderCalendar({
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {unscheduledOrders.map((order) => (
-              <div key={order.id} className="flex flex-col justify-between gap-3 rounded-xl border border-border bg-surface p-4 sm:flex-row sm:items-center md:flex-col md:items-stretch 2xl:flex-row 2xl:items-center">
-                <div className="min-w-0">
+              <div key={order.id} className="flex flex-col justify-between gap-3 rounded-xl border border-border bg-surface p-4 sm:flex-row sm:items-start md:flex-col md:items-stretch 2xl:flex-row 2xl:items-start">
+                <div className="min-w-0 flex-1 space-y-1.5">
                   <p className="truncate text-sm font-bold text-text-primary">{order.productName}</p>
-                  {order.selectedVariant && <p className="mt-0.5 text-xs font-semibold text-brand-primary">Varian: {order.selectedVariant}{order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}` : ''}</p>}
-                  <p className="mt-1 text-xs text-text-secondary">{order.buyerName || 'Pembeli'} · {order.qty} porsi</p>
+                  <p className="text-xs text-text-secondary">{order.qty} porsi · {order.id}</p>
+                  {order.selectedVariant && <p className="text-xs font-semibold text-brand-primary">Varian: {order.selectedVariant}{order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}` : ''}</p>}
+                  
+                  <div className="mt-2 space-y-1 text-xs text-text-secondary pt-2 border-t border-border/50">
+                    <p className="flex items-center gap-1.5"><UserRound className="h-3 w-3 shrink-0" /><span className="font-semibold text-text-primary">{order.buyerName || 'Pembeli'}</span></p>
+                    {order.buyerPhone && <p className="flex items-center gap-1.5"><Phone className="h-3 w-3 shrink-0" />{order.buyerPhone}</p>}
+                    {order.buyerAddress && <p className="flex items-start gap-1.5"><MapPin className="mt-0.5 h-3 w-3 shrink-0" /><span className="line-clamp-1">{order.buyerAddress}</span></p>}
+                    {order.notes && (
+                        <div className="flex items-start gap-1.5 mt-1">
+                          <StickyNote className="mt-0.5 h-3 w-3 shrink-0 text-brand-primary" />
+                          <span className="italic text-brand-primary-dark line-clamp-2">{order.notes}</span>
+                        </div>
+                    )}
+                    <p className="flex items-center gap-1.5 font-bold text-text-primary"><Wallet className="h-3.5 w-3.5 shrink-0 text-status-success" />Rp {(order.totalPrice || 0).toLocaleString('id-ID')}</p>
+                  </div>
                 </div>
-                <button onClick={() => saveSchedule(order)} className="flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-brand-primary px-3 py-2 text-xs font-bold text-white hover:bg-brand-primary-hover"><Plus className="h-3.5 w-3.5" />Jadwalkan</button>
+                <div className="flex flex-col gap-2 shrink-0">
+                  {order.status === 'waiting_verification' && (
+                    <div className="flex md:flex-col lg:flex-row gap-2">
+                      <button onClick={() => konfirmasiPesanan(order)} className="flex-1 rounded-lg bg-brand-primary px-3 py-2 text-xs font-bold text-white hover:bg-brand-primary-hover">Konfirmasi</button>
+                      <button onClick={() => batalkanPesanan(order)} className="flex-1 rounded-lg bg-status-error px-3 py-2 text-xs font-bold text-white hover:bg-red-600">Batalkan</button>
+                    </div>
+                  )}
+                  <button onClick={() => saveSchedule(order)} className="flex items-center justify-center gap-1.5 rounded-lg bg-brand-primary px-3 py-2 text-xs font-bold text-white hover:bg-brand-primary-hover"><Plus className="h-3.5 w-3.5" />Jadwalkan</button>
+                </div>
               </div>
             ))}
           </div>

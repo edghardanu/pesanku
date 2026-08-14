@@ -22,9 +22,9 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const rawItems: CheckoutItemInput[] = Array.isArray(body.items)
+    const rawItems: any[] = Array.isArray(body.items)
       ? body.items
-      : [{ productId: body.productId, qty: body.qty, notes: body.notes, selectedVariant: body.selectedVariant }];
+      : [{ productId: body.productId, qty: body.qty, notes: body.notes, selectedVariant: body.selectedVariant, deliveryDate: body.deliveryDate, deliveryAddress: body.deliveryAddress }];
 
     if (rawItems.length < 1 || rawItems.length > 50) {
       return NextResponse.json({ error: 'Keranjang harus berisi 1 sampai 50 produk' }, { status: 400 });
@@ -35,10 +35,12 @@ export async function POST(req: Request) {
       qty: Number(item.qty),
       notes: typeof item.notes === 'string' ? item.notes.slice(0, 500) : '',
       selectedVariant: typeof item.selectedVariant === 'string' ? item.selectedVariant.trim() : '',
+      deliveryDate: typeof item.deliveryDate === 'string' ? item.deliveryDate : null,
+      deliveryAddress: typeof item.deliveryAddress === 'string' ? item.deliveryAddress : null,
     }));
 
-    if (items.some((item) => !item.productId || !Number.isInteger(item.qty) || item.qty < 1)) {
-      return NextResponse.json({ error: 'Data pesanan tidak lengkap' }, { status: 400 });
+    if (items.some((item) => !item.productId || !Number.isInteger(item.qty) || item.qty < 1 || !item.deliveryDate)) {
+      return NextResponse.json({ error: 'Data pesanan tidak lengkap atau tanggal belum diisi' }, { status: 400 });
     }
 
     if (new Set(items.map((item) => item.productId)).size !== items.length) {
@@ -66,24 +68,10 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: `Preorder ${product.name} telah ditutup` }, { status: 400 });
         }
 
-        const minimumOrder = product.minOrderQty || 1;
-        if (item.qty < minimumOrder) {
-          return NextResponse.json({ error: `Minimal pemesanan ${product.name} adalah ${minimumOrder} porsi` }, { status: 400 });
-        }
-
-        if (product.maxOrderQty && item.qty > product.maxOrderQty) {
-          return NextResponse.json({ error: `Maksimal pemesanan ${product.name} adalah ${product.maxOrderQty} porsi` }, { status: 400 });
-        }
-
+        // Limit checks removed as per requirement
         const availableVariants = parseStoredProductVariants(product.variantsJson);
         const selectedVariantDetails = findProductVariant(availableVariants, item.selectedVariant);
-        if (availableVariants.length > 0 && !selectedVariantDetails) {
-          return NextResponse.json({ error: `Pilih varian yang tersedia untuk ${product.name}` }, { status: 400 });
-        }
-
-        if (availableVariants.length === 0 && item.selectedVariant) {
-          return NextResponse.json({ error: `${product.name} tidak memiliki pilihan varian` }, { status: 400 });
-        }
+        // Variant is now optional
 
         const unitPrice = selectedVariantDetails?.price ?? product.price;
         validatedItems.push({ item, product, unitPrice, selectedVariantPrice: selectedVariantDetails?.price ?? null });
@@ -104,6 +92,8 @@ export async function POST(req: Request) {
           selectedVariant: item.selectedVariant || null,
           selectedVariantPrice,
           status: 'waiting_verification',
+          deliveryDate: item.deliveryDate,
+          deliveryAddress: item.deliveryAddress,
         });
 
         const nextCurrentQty = (product.currentQty || 0) + item.qty;

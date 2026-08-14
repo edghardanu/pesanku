@@ -44,15 +44,28 @@ export default async function AdminDashboard() {
   .where(eq(users.role, 'penjual'))
   .orderBy(desc(users.createdAt));
 
-  // Fetch Real Orders for Chart & Realtime analytics
+  // Fetch Real Orders for Chart, Realtime analytics, and Admin Order Menu
   const ordersList = await db.select({
     id: orders.id,
     qty: orders.qty,
     totalPrice: orders.totalPrice,
     status: orders.status,
+    notes: orders.notes,
+    selectedVariant: orders.selectedVariant,
+    deliveryDate: orders.deliveryDate,
+    deliveryAddress: orders.deliveryAddress,
+    adminSplitAmount: orders.adminSplitAmount,
+    sellerSplitAmount: orders.sellerSplitAmount,
     createdAt: orders.createdAt,
+    productName: products.name,
+    storeName: sellerProfiles.storeName,
+    buyerName: users.name,
+    buyerPhone: users.phone,
   })
   .from(orders)
+  .leftJoin(products, eq(orders.productId, products.id))
+  .leftJoin(sellerProfiles, eq(products.sellerId, sellerProfiles.userId))
+  .leftJoin(users, eq(orders.buyerId, users.id))
   .orderBy(desc(orders.createdAt));
 
   const adminPromotionOffers = await db.select({
@@ -91,7 +104,7 @@ export default async function AdminDashboard() {
       stats={stats}
       userName={user.name}
       umkmList={umkmList}
-      ordersList={ordersList}
+      ordersList={ordersList as any}
       promotionOffers={adminPromotionOffers}
       promotionRequests={promotionRequests}
     />

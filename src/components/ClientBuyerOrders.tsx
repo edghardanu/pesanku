@@ -414,6 +414,7 @@ export default function ClientBuyerOrders({
       const hasSellerOpening = chatHistory.some((m: ChatMessage) => m.role === 'penjual' || m.role === 'admin');
       if (!hasSellerOpening) {
         chatHistory.unshift({
+          sender: 'seller',
           role: 'penjual',
           text: `Halo kak! Tadi kakak melakukan pemesanan untuk <b>${productName}</b> ya?`,
           createdAt: chatHistory[0]?.createdAt 
@@ -423,8 +424,8 @@ export default function ClientBuyerOrders({
         });
       }
 
-    const renderMsgs = () => chatHistory.map((c: ChatMessage) => {
-      const isMe = c.sender === 'buyer';
+    const renderMsgs = () => chatHistory.map((c: any) => {
+      const isMe = c.sender === 'buyer' || c.role === 'pembeli';
       if (isMe) {
         const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
         const tickStyle = c.isRead ? "color: #60a5fa;" : "";
@@ -433,7 +434,7 @@ export default function ClientBuyerOrders({
             <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm">
               ${c.text}
               <div class="flex items-center justify-end gap-1 mt-1">
-                <span class="text-[10px] text-white/80">${c.time}</span>
+                <span class="text-[10px] text-white/80">${isMe ? 'Anda' : (storeName || 'Penjual')} • ${c.createdAt ? new Date(c.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', hour12: false}) : ''}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${tickClass}" style="${tickStyle}"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
               </div>
             </div>
@@ -444,7 +445,7 @@ export default function ClientBuyerOrders({
           <div class="flex justify-start mt-3">
             <div class="bg-surface border border-border rounded-xl rounded-tl-none px-4 py-2 max-w-[80%] text-sm text-text-primary text-left">
               ${c.text}
-              <div class="text-[10px] text-text-secondary mt-1">${c.time}</div>
+              <div class="text-[10px] text-text-secondary mt-1">${isMe ? 'Anda' : (storeName || 'Penjual')} • ${c.createdAt ? new Date(c.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', hour12: false}) : ''}</div>
             </div>
           </div>
         `;
@@ -547,7 +548,7 @@ export default function ClientBuyerOrders({
               <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm opacity-50" id="${msgId}-container">
                 <span id="msg-text-${msgId}">${msg}</span>
                 <div class="flex items-center justify-end gap-1 mt-1">
-                  <span class="text-[10px] text-white/80">${time}</span>
+                  <span class="text-[10px] text-white/80">Anda • ${time}</span>
                   <svg id="${msgId}-ticks" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-primary/60"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
                 </div>
               </div>

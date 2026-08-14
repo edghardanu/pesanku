@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders } from '@/lib/schema';
+import { orders, products, sellerBalances } from '@/lib/schema';
 import { getUserFromSession } from '@/lib/auth';
 import { eq } from 'drizzle-orm';
 
@@ -37,16 +37,35 @@ export async function PUT(req: Request) {
     }
 
     // Validasi Otoritas
-    if (user.role === 'pembeli') {
-      if (orderObj.buyerId !== user.id) {
-        return NextResponse.json({ error: 'Unauthorized. Ini bukan pesanan Anda.' }, { status: 403 });
+    if (user.role !== 'admin') {
+      if (user.role === 'pembeli') {
+        if (orderObj.buyerId !== user.id) {
+          return NextResponse.json({ error: 'Unauthorized. Ini bukan pesanan Anda.' }, { status: 403 });
+        }
+        if (status !== 'completed' && status !== 'cancelled') {
+          return NextResponse.json({ error: 'Pembeli hanya dapat menyelesaikan pesanan.' }, { status: 403 });
+        }
+      } else if (user.role !== 'penjual') {
+        return NextResponse.json({ error: 'Unauthorized. Role tidak dikenali.' }, { status: 403 });
       }
-      if (status !== 'completed') {
-        return NextResponse.json({ error: 'Pembeli hanya dapat menyelesaikan pesanan.' }, { status: 403 });
-      }
-    } else if (user.role !== 'penjual') {
-      return NextResponse.json({ error: 'Unauthorized. Hanya penjual atau pembeli terkait yang dapat mengubah status.' }, { status: 403 });
     }
+
+    // Ambil detail produk untuk mengetahui sellerId
+    const productObj = await db.select({ sellerId: products.sellerId }).from(products).where(eq(products.id, orderObj.productId)).get();
+    if (!productObj) {
+      return NextResponse.json({ error: 'Produk tidak ditemukan' }, { status: 404 });
+    }
+    const sellerId = productObj.sellerId;
+
+    // Fungsi upsert balance
+    const addBalance = async (sid: string, amount: number) => {
+      let balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, sid)).get();
+      if (!balanceObj) {
+        await db.insert(sellerBalances).values({ id: crypto.randomUUID(), sellerId: sid, availableBalance: amount, retainedBalance: 0 });
+      } else {
+        await db.update(sellerBalances).set({ availableBalance: (balanceObj.availableBalance || 0) + amount }).where(eq(sellerBalances.id, balanceObj.id));
+      }
+    };
 
     // Update status and optional delivery proof
     const updateFields: { status: OrderStatusUpdate; deliveryProofUrl?: string } = { status };
@@ -57,6 +76,17 @@ export async function PUT(req: Request) {
     await db.update(orders)
       .set(updateFields)
       .where(eq(orders.id, orderId));
+
+    // LOGIC PEMBAGIAN SALDO 
+    if (status === 'verified' && orderObj.status !== 'verified' && orderObj.status !== 'completed') {
+       // Saat pembayaran penuh: Admin 50%, Penjual 50% (sesuai db splitAmount, default 50%)
+       const currentSellerSplit = orderObj.sellerSplitAmount ?? ((orderObj.totalPrice || 0) * 0.5);
+       await addBalance(sellerId, currentSellerSplit);
+    } else if (status === 'completed' && orderObj.status !== 'completed') {
+       // Saat klik pesanan selesai: Admin melepaskan sisa 50% ke Penjual
+       const currentAdminHeld = orderObj.adminSplitAmount ?? ((orderObj.totalPrice || 0) * 0.5);
+       await addBalance(sellerId, currentAdminHeld);
+    }
 
     return NextResponse.json({ message: 'Status pesanan berhasil diperbarui' }, { status: 200 });
   } catch (error) {

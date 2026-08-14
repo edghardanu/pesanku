@@ -220,7 +220,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
                           onClick={() => {
                             setSearchQuery(product.name);
                             setIsSearchFocused(false);
-                            router.push(product.sellerId ? `/store/${product.sellerId}` : `/product/${product.id}`);
+                            router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${product.id}`);
                           }}
                           className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
                         >
@@ -284,9 +284,9 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
             </button>
 
             {greeting && (
-              <span className="text-body-small font-semibold text-brand-primary mr-2 hidden lg:inline-block">
+              <Link href="/profile" className="text-body-small font-semibold text-brand-primary mr-2 hidden lg:inline-block hover:underline transition-all" title="Buka Profil">
                 {greeting}
-              </span>
+              </Link>
             )}
             <Link href="/seller" className="text-body-small font-medium text-text-secondary hover:text-brand-primary transition-colors">
               Mulai Berjualan
@@ -294,6 +294,13 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
             
             {user ? (
               <div className="flex items-center gap-2">
+                <Link
+                  href="/profile"
+                  className="btn-outline border-transparent text-text-secondary hover:text-brand-primary hover:bg-brand-primary/5 flex items-center justify-center p-2 rounded-xl transition-all mr-1"
+                  title="Profil Akun"
+                >
+                  <User className="w-5 h-5" />
+                </Link>
                 <Link 
                   href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'} 
                   className="btn-primary flex items-center gap-2 shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40 relative"
@@ -430,7 +437,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
                                 setSearchQuery(product.name);
                                 setIsSearchFocused(false);
                                 setIsMobileSearchOpen(false);
-                                router.push(product.sellerId ? `/store/${product.sellerId}` : `/product/${product.id}`);
+                                router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${product.id}`);
                               }}
                               className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
                             >
@@ -505,7 +512,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
                               setSearchQuery(product.name);
                               setIsSearchFocused(false);
                               setIsMobileMenuOpen(false);
-                              router.push(product.sellerId ? `/store/${product.sellerId}` : `/product/${product.id}`);
+                              router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${product.id}`);
                             }}
                             className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
                           >
@@ -738,7 +745,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
 
                 return (
                   <motion.div variants={itemVariants} key={product.id}>
-                    <Link href={product.sellerId ? `/store/${product.sellerId}` : `/product/${product.id}`} className="card block group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                    <Link href={product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${product.id}`} className="card block group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                       <div className="relative aspect-[4/3] overflow-hidden bg-surface dark:bg-border rounded-t-2xl">
                         <Image 
                           src={productImageUrl} 
@@ -800,12 +807,8 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
 
                         <div className="space-y-4">
                           <div className="bg-surface/50 p-3 rounded-lg border border-border">
-                            <div className="flex justify-between text-caption mb-1.5 font-medium">
-                              <span className="text-text-secondary">Minimal Order:</span>
-                              <span className="text-text-primary">{product.minOrderQty} Porsi</span>
-                            </div>
                             {product.processingTime && (
-                              <div className="flex justify-between text-caption font-medium pt-1.5 border-t border-border/50">
+                              <div className="flex justify-between text-caption font-medium">
                                 <span className="text-text-secondary">Waktu Proses:</span>
                                 <span className="text-brand-primary">{product.processingTime}</span>
                               </div>
@@ -826,7 +829,7 @@ export default function ClientHome({ initialProducts, user }: { initialProducts:
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    router.push(product.sellerId ? `/store/${product.sellerId}` : `/product/${product.id}`);
+                                    router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${product.id}`);
                                   }}
                                   className="w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm font-semibold btn-primary hover:bg-brand-primary-hover"
                                 >

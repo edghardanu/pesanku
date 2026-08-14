@@ -4,19 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import {
-  ArrowLeft,
-  Clock,
-  MapPin,
-  Minus,
-  Package,
-  Plus,
-  ShieldCheck,
-  ShoppingBag,
-  ShoppingCart,
-  Store,
-  Trash2,
-} from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, ShoppingBag, Store, MapPin, X, Minus, Plus, Trash2, Info, User, Package, ShieldCheck, ShoppingCart } from "lucide-react";
 import Swal from 'sweetalert2';
 
 import { AuthUser, ProductItem } from '@/types';
@@ -85,15 +73,12 @@ export default function ClientStoreProfile({
 
     const availableVariants = product.variants || [];
     const selectedVariant = variantSelections[product.id] || '';
-    if (availableVariants.length > 0 && !findProductVariant(availableVariants, selectedVariant)) {
-      void Swal.fire('Pilih Varian', `Pilih salah satu varian ${product.name} terlebih dahulu.`, 'info');
-      return;
-    }
+    // Varian opsional
 
     setCart((current) => ({
       ...current,
       [product.id]: current[product.id] || {
-        qty: product.minOrderQty || 1,
+        qty: 1,
         notes: '',
         selectedVariant,
       },
@@ -112,12 +97,7 @@ export default function ClientStoreProfile({
       const line = current[product.id];
       if (!line) return current;
 
-      const minimum = product.minOrderQty || 1;
-      const nextQty = Math.max(minimum, line.qty + delta);
-      if (product.maxOrderQty && nextQty > product.maxOrderQty) {
-        void Swal.fire('Batas Maksimal', `Maksimal pemesanan ${product.name} adalah ${product.maxOrderQty} porsi.`, 'info');
-        return current;
-      }
+      const nextQty = Math.max(1, line.qty + delta);
 
       return { ...current, [product.id]: { ...line, qty: nextQty } };
     });
@@ -169,14 +149,7 @@ export default function ClientStoreProfile({
       return;
     }
 
-    const productWithoutVariant = cartProducts.find((product) => {
-      const variants = product.variants || [];
-      return variants.length > 0 && !findProductVariant(variants, cart[product.id].selectedVariant);
-    });
-    if (productWithoutVariant) {
-      await Swal.fire('Pilih Varian', `Pilih salah satu varian ${productWithoutVariant.name} terlebih dahulu.`, 'info');
-      return;
-    }
+    // Varian sekarang opsional
 
     const summary = cartProducts.map((product) => `
       <div class="flex justify-between gap-3 py-2 border-b border-gray-100 text-sm">
@@ -185,13 +158,21 @@ export default function ClientStoreProfile({
       </div>
     `).join('');
 
+    const defaultAddress = user?.address || '';
+
     const result = await Swal.fire({
       title: 'Konfirmasi Checkout',
       html: `
         <div class="text-left">
           <p class="text-sm text-gray-500 mb-3">${cartProducts.length} produk dari ${escapeHtml(seller.storeName)}</p>
           ${summary}
-          <div class="flex justify-between pt-4 text-base"><strong>Total</strong><strong style="color:#ff5c35">${formatRupiah(totalPrice)}</strong></div>
+          <div class="flex justify-between pt-4 text-base mb-4"><strong>Total</strong><strong style="color:#ff5c35">${formatRupiah(totalPrice)}</strong></div>
+          <div class="mt-4">
+            <label class="block text-sm font-semibold mb-1">Pilih Tanggal Pesanan <span class="text-red-500">*</span></label>
+            <input type="date" id="order-date" lang="id" class="w-full border p-2 rounded text-sm mb-3 focus:outline-none focus:border-[#ff5c35]" required>
+            <label class="block text-sm font-semibold mb-1">Alamat Pembeli <span class="text-xs font-normal text-gray-400 ml-1">(Opsional)</span></label>
+            <textarea id="order-address" class="w-full border p-2 rounded text-sm focus:outline-none focus:border-[#ff5c35]" rows="3">${escapeHtml(defaultAddress)}</textarea>
+          </div>
         </div>
       `,
       icon: 'question',
@@ -199,6 +180,20 @@ export default function ClientStoreProfile({
       confirmButtonText: 'Ya, Buat Pesanan',
       cancelButtonText: 'Periksa Lagi',
       confirmButtonColor: '#ff5c35',
+      preConfirm: () => {
+        const dateInput = document.getElementById('order-date') as HTMLInputElement;
+        const addressInput = document.getElementById('order-address') as HTMLTextAreaElement;
+        
+        const dateVal = dateInput?.value;
+        const addressVal = addressInput?.value?.trim() || '';
+        
+        if (!dateVal) {
+          Swal.showValidationMessage('Silakan pilih tanggal pesanan');
+          return false;
+        }
+        
+        return { orderDate: dateVal, shippingAddress: addressVal };
+      }
     });
 
     if (!result.isConfirmed) return;
@@ -208,6 +203,8 @@ export default function ClientStoreProfile({
       qty: cart[product.id].qty,
       notes: cart[product.id].notes,
       selectedVariant: cart[product.id].selectedVariant,
+      deliveryDate: result.value?.orderDate,
+      deliveryAddress: result.value?.shippingAddress,
     }));
     sessionStorage.setItem('pesanku-store-checkout', JSON.stringify(checkoutItems));
     router.push('/process-order?source=store');
@@ -226,9 +223,20 @@ export default function ClientStoreProfile({
               <span className="font-bold">pesanku</span>
             </div>
           </div>
-          <Link href={user?.role === 'pembeli' ? '/buyer/orders' : user ? '/profile' : '/login'} className="text-sm font-semibold text-brand-primary hover:underline">
-            {user?.role === 'pembeli' ? 'Pesanan Saya' : user ? 'Profil' : 'Masuk'}
-          </Link>
+          <div className="flex items-center gap-4">
+            {user && (
+              <Link
+                href="/profile"
+                className="btn-outline border-transparent text-text-secondary hover:text-brand-primary hover:bg-brand-primary/5 flex items-center justify-center p-2 rounded-xl transition-all"
+                title="Profil Akun"
+              >
+                <User className="w-5 h-5" />
+              </Link>
+            )}
+            <Link href={user?.role === 'pembeli' ? '/buyer/orders' : user ? '/profile' : '/login'} className="text-sm font-semibold text-brand-primary hover:underline">
+              {user?.role === 'pembeli' ? 'Pesanan Saya' : user ? 'Dashboard' : 'Masuk'}
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -310,15 +318,13 @@ export default function ClientStoreProfile({
                           <p className="mt-0.5 text-[11px] font-medium text-text-secondary">Harga varian {selectedVariantDetails.name}</p>
                         )}
                         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
-                          <span>Min. {product.minOrderQty || 1} porsi</span>
-                          {product.maxOrderQty && <span>Maks. {product.maxOrderQty} porsi</span>}
                           {product.processingTime && <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{product.processingTime}</span>}
                         </div>
 
                         {product.variants && product.variants.length > 0 && (
                           <fieldset className="mt-4">
                             <legend className="mb-2 text-xs font-semibold text-text-primary">
-                              Pilih Varian <span className="text-status-error">*</span>
+                              Pilih Tambahan Varian <span className="text-gray-400 font-normal">(Opsional)</span>
                             </legend>
                             <div className="flex flex-wrap gap-2">
                               {product.variants.map((variant) => {
@@ -347,14 +353,14 @@ export default function ClientStoreProfile({
 
                         {line ? (
                           <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-brand-primary/30 bg-brand-primary/5 p-2">
-                            <button onClick={() => changeQty(product, -1)} disabled={line.qty <= (product.minOrderQty || 1)} className="rounded-lg border border-border bg-surface p-2 disabled:opacity-40" aria-label={`Kurangi ${product.name}`}><Minus className="h-4 w-4" /></button>
+                            <button onClick={() => changeQty(product, -1)} disabled={line.qty <= 1} className="rounded-lg border border-border bg-surface p-2 disabled:opacity-40" aria-label={`Kurangi ${product.name}`}><Minus className="h-4 w-4" /></button>
                             <span className="font-bold text-text-primary">{line.qty}</span>
-                            <button onClick={() => changeQty(product, 1)} disabled={Boolean(product.maxOrderQty && line.qty >= product.maxOrderQty)} className="rounded-lg border border-border bg-surface p-2 disabled:opacity-40" aria-label={`Tambah ${product.name}`}><Plus className="h-4 w-4" /></button>
+                            <button onClick={() => changeQty(product, 1)} className="rounded-lg border border-border bg-surface p-2 disabled:opacity-40" aria-label={`Tambah ${product.name}`}><Plus className="h-4 w-4" /></button>
                             <button onClick={() => removeProduct(product.id)} className="ml-auto rounded-lg p-2 text-status-error hover:bg-status-error/10" aria-label={`Hapus ${product.name} dari keranjang`}><Trash2 className="h-4 w-4" /></button>
                           </div>
                         ) : (
                           <button onClick={() => addProduct(product)} disabled={closed} className="btn-primary mt-4 flex w-full items-center justify-center gap-2 py-2.5 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500">
-                            <Plus className="h-4 w-4" /> {closed ? 'Tidak Dapat Dipesan' : product.variants?.length && !selectedVariant ? 'Pilih Varian Dahulu' : 'Tambah ke Keranjang'}
+                            <Plus className="h-4 w-4" /> {closed ? 'Tidak Dapat Dipesan' : 'Tambah ke Keranjang'}
                           </button>
                         )}
                       </div>
