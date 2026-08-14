@@ -900,7 +900,9 @@ export default function ClientBuyerOrders({
               return (
                 <div key={order.orderId} className="card p-0 border border-border overflow-hidden bg-surface">
                   <div className="p-4 border-b border-border bg-base flex justify-between items-center">
-                    <span className="text-xs font-mono text-text-secondary">{order.orderId}</span>
+                    <span className="text-xs font-mono text-text-secondary">
+                      {order.status === 'chat_only' ? `Chat dengan ${order.storeName || 'Toko UMKM'}` : order.orderId}
+                    </span>
                     <span className="text-xs text-text-secondary font-medium">
                       {formatOrderDate(order.createdAt)}
                     </span>
