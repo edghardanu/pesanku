@@ -21,6 +21,7 @@ export default async function BuyerOrdersPage({
     : 0;
 
   let userOrders: BuyerOrderViewItem[] = [];
+  let unreadCounts: Record<string, number> = {};
   
   if (user && user.role === 'pembeli') {
     // Fetch orders with product details and payment records
@@ -55,6 +56,32 @@ export default async function BuyerOrdersPage({
       .leftJoin(payments, eq(orders.id, payments.orderId))
       .where(eq(orders.buyerId, user.id))
       .orderBy(desc(orders.createdAt));
+
+    // Fetch unread chat counts
+    const { chatMessages } = await import('@/lib/schema');
+    const { sql } = await import('drizzle-orm');
+    
+    const unreadChats = await db
+      .select({
+        orderId: chatMessages.orderId,
+        count: sql<number>`count(*)`.as('count'),
+      })
+      .from(chatMessages)
+      .where(and(
+        eq(chatMessages.isRead, false),
+        ne(chatMessages.senderId, user.id)
+      ))
+      .groupBy(chatMessages.orderId);
+
+    unreadCounts = unreadChats.reduce((acc, row) => {
+      acc[row.orderId] = Number(row.count);
+      return acc;
+    }, {} as Record<string, number>);
+
+    userOrders = userOrders.map(order => ({
+      ...order,
+      unreadCount: unreadCounts[order.orderId] || 0
+    }));
   }
 
   return <ClientBuyerOrders orders={userOrders} user={user} checkoutCount={checkoutCount} />;

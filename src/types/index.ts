@@ -194,6 +194,7 @@ export interface BuyerOrderViewItem {
   rating?: number | null;
   ratedAt?: string | Date | null;
   cancelReason?: string | null;
+  unreadCount?: number;
 }
 
 export interface InvoiceOrder {

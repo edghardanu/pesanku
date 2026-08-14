@@ -415,6 +415,9 @@ export default function ClientBuyerOrders({
   const escapeQuotes = (str: string) => str ? str.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
 
   const handleOpenChat = async (orderId: string, storeName: string, productName: string) => {
+    // Clear unread count optimistically
+    setLocalOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, unreadCount: 0 } : o));
+
     // Show loading state first
     Swal.fire({
       title: 'Memuat Obrolan...',
@@ -446,7 +449,7 @@ export default function ClientBuyerOrders({
       }
 
     const renderMsgs = () => chatHistory.map((c: ChatMessage) => {
-      const isMe = c.sender === 'buyer';
+      const isMe = (c.senderId && user?.id && c.senderId === user.id) || c.sender === 'buyer';
       if (isMe) {
         const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
         const tickStyle = c.isRead ? "color: #60a5fa;" : "";
@@ -614,6 +617,9 @@ export default function ClientBuyerOrders({
     }
   };
 
+  const unreadChatsCount = localOrders.filter(o => o.status === 'chat_only').reduce((acc, o) => acc + (o.unreadCount || 0), 0);
+  const unreadOrdersCount = localOrders.filter(o => o.status !== 'chat_only').reduce((acc, o) => acc + (o.unreadCount || 0), 0);
+
   return (
     <div className="min-h-screen bg-base pb-24">
       <header className="bg-surface/80 backdrop-blur-md border-b border-border sticky top-0 z-50 transition-all">
@@ -722,13 +728,18 @@ export default function ClientBuyerOrders({
           <div className="mb-6 flex space-x-2 border-b border-border">
             <button
               onClick={() => setActiveTab('orders')}
-              className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 ${
+              className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 flex items-center gap-2 ${
                 activeTab === 'orders'
                   ? 'border-brand-primary text-brand-primary'
                   : 'border-transparent text-text-secondary hover:text-text-primary'
               }`}
             >
               Pesanan Saya
+              {unreadOrdersCount > 0 && (
+                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-primary px-1.5 text-[10px] font-bold text-white shadow-sm">
+                  {unreadOrdersCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab('chats')}
@@ -739,9 +750,9 @@ export default function ClientBuyerOrders({
               }`}
             >
               Chat Internal
-              {localOrders.some(o => o.status === 'chat_only') && (
-                <span className="flex h-5 items-center justify-center rounded-full bg-brand-primary/10 px-2 text-[10px] font-bold text-brand-primary">
-                  {localOrders.filter(o => o.status === 'chat_only').length}
+              {unreadChatsCount > 0 && (
+                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-primary px-1.5 text-[10px] font-bold text-white shadow-sm">
+                  {unreadChatsCount}
                 </span>
               )}
             </button>
@@ -1123,9 +1134,14 @@ export default function ClientBuyerOrders({
                             <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto mt-1">
                               <button 
                                 onClick={() => handleOpenChat(order.orderId, order.storeName || 'Toko UMKM', order.productName)}
-                                className="btn-outline border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10 hover:border-brand-primary py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
+                                className="relative btn-outline border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10 hover:border-brand-primary py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
                               >
                                 <MessageCircle className="w-3.5 h-3.5" /> Chat
+                                {(order.unreadCount || 0) > 0 && (
+                                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-primary px-1 text-[9px] font-bold text-white shadow-sm ring-2 ring-surface">
+                                    {order.unreadCount}
+                                  </span>
+                                )}
                               </button>
                               
                               {!isChatOnly && (
