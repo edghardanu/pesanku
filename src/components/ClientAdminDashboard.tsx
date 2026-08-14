@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
-  ShoppingBag, 
-  Users, 
-  Store, 
-  CreditCard, 
-  CheckCircle, 
+import {
+  ShoppingBag,
+  Users,
+  Store,
+  CreditCard,
+  CheckCircle,
   Clock,
   ArrowRightLeft,
   Settings,
@@ -63,8 +63,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   const [feeAdmin, setFeeAdmin] = useState<number>(0);
   const [feeLoading, setFeeLoading] = useState(false);
   useEffect(() => {
-    fetch('/api/settings').then(r=>r.json()).then(d=>{
-      setFeeAplikasi(d.fee_aplikasi||0); setFeeJasa(d.fee_jasa||0); setFeeAdmin(d.fee_admin||0);
+    fetch('/api/settings').then(r => r.json()).then(d => {
+      setFeeAplikasi(d.fee_aplikasi || 0); setFeeJasa(d.fee_jasa || 0); setFeeAdmin(d.fee_admin || 0);
     }).catch(console.error);
   }, []);
 
@@ -152,7 +152,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
 
     if (selectedMonth === 'all') {
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-      
+
       return monthNames.map((month, i) => {
         const monthOrders = ordersInYear.filter(o => o.createdAt && new Date(o.createdAt).getMonth() === i);
         const count = monthOrders.length;
@@ -163,7 +163,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
     } else {
       const monthIndex = parseInt(selectedMonth, 10);
       const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][monthIndex - 1] || 30;
-      
+
       const periodLabels = [
         `Tgl 1-4`,
         `Tgl 5-8`,
@@ -175,7 +175,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
       ];
 
       const ordersInMonth = ordersInYear.filter(o => o.createdAt && new Date(o.createdAt).getMonth() + 1 === monthIndex);
-      
+
       const periodRanges = [
         [1, 4],
         [5, 8],
@@ -388,7 +388,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
     <div className="min-h-screen bg-base flex flex-col md:flex-row">
       {/* Mobile Sidebar Overlay */}
       {isMobileSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={() => setIsMobileSidebarOpen(false)}
         />
@@ -401,46 +401,43 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
             <ShoppingBag className="w-8 h-8 text-brand-primary" />
             <span className="text-h3 text-brand-primary font-bold tracking-tight">pesanku admin</span>
           </Link>
-          <button 
+          <button
             className="md:hidden text-text-secondary"
             onClick={() => setIsMobileSidebarOpen(false)}
           >
             <X className="w-6 h-6" />
           </button>
         </div>
-        
+
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          <button 
+          <button
             onClick={() => handleTabChange('overview')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
-              activeTab === 'overview' 
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'overview'
+                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <Settings className="w-5 h-5" />
             <span>Overview</span>
           </button>
 
-          <button 
+          <button
             onClick={() => handleTabChange('umkm')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
-              activeTab === 'umkm' 
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'umkm'
+                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <Store className="w-5 h-5" />
             <span>Daftar UMKM</span>
           </button>
 
-          <button 
+          <button
             onClick={() => handleTabChange('pesanan')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
-              activeTab === 'pesanan' 
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'pesanan'
+                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <ShoppingBag className="w-5 h-5" />
             <span>Pesanan Penjual</span>
@@ -448,11 +445,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
 
           <button
             onClick={() => handleTabChange('promosi')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
-              activeTab === 'promosi'
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'promosi'
                 ? 'bg-brand-primary/10 text-brand-primary font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <Megaphone className="w-5 h-5" />
             <span>Promosi Produk</span>
@@ -462,14 +458,13 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
               </span>
             )}
           </button>
-          
-          <button 
+
+          <button
             onClick={() => handleTabChange('verifikasi')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
-              activeTab === 'verifikasi' 
-                ? 'bg-status-warning/10 text-status-warning font-semibold' 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'verifikasi'
+                ? 'bg-status-warning/10 text-status-warning font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <CheckCircle className="w-5 h-5" />
             <span>Verifikasi Pembayaran</span>
@@ -478,13 +473,12 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
             )}
           </button>
 
-          <button 
+          <button
             onClick={() => handleTabChange('pencairan')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
-              activeTab === 'pencairan' 
-                ? 'bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary font-semibold' 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'pencairan'
+                ? 'bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <ArrowRightLeft className="w-5 h-5" />
             <span>Pencairan Dana (Payout)</span>
@@ -492,26 +486,24 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
               <span className="ml-auto bg-brand-secondary-dark text-white text-xs font-bold px-2 py-0.5 rounded-full">{mockPayouts.length}</span>
             )}
           </button>
-          
-          <button 
+
+          <button
             onClick={() => handleTabChange('qris')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
-              activeTab === 'qris' 
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'qris'
+                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <QrCode className="w-5 h-5" />
             <span>Pengaturan QRIS</span>
           </button>
 
-          <button 
+          <button
             onClick={() => handleTabChange('tickets')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
-              activeTab === 'tickets' 
-                ? 'bg-status-error/10 text-status-error font-semibold' 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'tickets'
+                ? 'bg-status-error/10 text-status-error font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <Settings className="w-5 h-5" />
             <span>Tiket Bantuan</span>
@@ -522,13 +514,12 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
             )}
           </button>
 
-          <button 
+          <button
             onClick={() => handleTabChange('settings')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${
-              activeTab === 'settings' 
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'settings'
+                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <Store className="w-5 h-5" />
             <span>Pengaturan Tarif & Jasa</span>
@@ -536,7 +527,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
         </nav>
 
         <div className="p-4 border-t border-border">
-          <button 
+          <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-status-error hover:bg-status-error/10 hover-btn transition-colors"
           >
@@ -551,7 +542,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
         {/* Topbar Mobile */}
         <header className="md:hidden bg-surface/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between sticky top-0 z-50 transition-all">
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={() => setIsMobileSidebarOpen(true)}
               className="p-1.5 rounded-lg hover:bg-border/60 text-text-primary mr-1 cursor-pointer"
               aria-label="Buka Menu Sidebar"
@@ -562,7 +553,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
             <span className="text-h3 text-brand-primary font-bold tracking-tight">pesanku admin</span>
           </div>
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={toggleDarkMode}
               className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors relative overflow-hidden flex items-center justify-center w-9 h-9 border border-border hover-btn cursor-pointer"
               aria-label="Toggle Dark Mode"
@@ -593,7 +584,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                 )}
               </AnimatePresence>
             </button>
-            <button 
+            <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-status-error border border-status-error/30 hover:bg-status-error/10 hover-btn transition-colors text-xs font-semibold cursor-pointer"
               aria-label="Logout"
@@ -607,281 +598,284 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
 
         <div className="p-4 md:p-8 pb-28 md:pb-8 flex-1 relative">
           {/* Loading Overlay */}
-        {isTransitioning && (
-          <div className="absolute inset-0 bg-base/60 backdrop-blur-sm z-50 flex items-center justify-center transition-all duration-300">
-            <div className="bg-surface p-4 rounded-full shadow-lg flex items-center justify-center border border-border">
-              <div className="w-8 h-8 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin"></div>
-            </div>
-          </div>
-        )}
-
-        <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-40' : 'opacity-100'}`}>
-          <header className="mb-8 flex justify-between items-end">
-            <div>
-              <h1 className="text-display-2 text-text-primary mb-1">Dashboard Admin</h1>
-              <p className="text-body-base text-text-secondary">Pantau aktivitas platform, verifikasi pembayaran, dan kelola pencairan dana UMKM.</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={toggleDarkMode}
-                className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border border-border hover-btn cursor-pointer shadow-sm"
-                aria-label="Toggle Dark Mode"
-                title={isDarkMode ? "Ganti ke Light Mode" : "Ganti ke Dark Mode"}
-              >
-                <AnimatePresence mode="wait" initial={false}>
-                  {isDarkMode ? (
-                    <motion.div
-                      key="moon"
-                      initial={{ y: -30, opacity: 0, rotate: -90 }}
-                      animate={{ y: 0, opacity: 1, rotate: 0 }}
-                      exit={{ y: 30, opacity: 0, rotate: 90 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute"
-                    >
-                      <Moon className="w-5 h-5 text-brand-secondary" />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="sun"
-                      initial={{ y: 30, opacity: 0, rotate: 90 }}
-                      animate={{ y: 0, opacity: 1, rotate: 0 }}
-                      exit={{ y: -30, opacity: 0, rotate: -90 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute"
-                    >
-                      <Sun className="w-5 h-5 text-brand-secondary" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </button>
-              <div className="hidden sm:block text-right">
-                <p className="text-caption text-text-secondary">Login sebagai</p>
-                <p className="font-semibold text-text-primary">{userName}</p>
+          {isTransitioning && (
+            <div className="absolute inset-0 bg-base/60 backdrop-blur-sm z-50 flex items-center justify-center transition-all duration-300">
+              <div className="bg-surface p-4 rounded-full shadow-lg flex items-center justify-center border border-border">
+                <div className="w-8 h-8 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin"></div>
               </div>
-              <button 
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-status-error border border-status-error/30 hover:bg-status-error/10 hover-btn transition-colors text-sm font-semibold shadow-sm cursor-pointer"
-                title="Keluar / Logout"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Keluar</span>
-              </button>
             </div>
-          </header>
+          )}
 
-          {activeTab === 'umkm' && (
-            <div className="card p-0 border border-border overflow-hidden">
-              <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
-                <h2 className="text-h3 w-full sm:w-auto">Daftar UMKM Terdaftar</h2>
-                <div className="flex gap-3 w-full sm:w-auto">
-                  <div className="relative w-full sm:w-64">
-                    <input
-                      type="text"
-                      placeholder="Cari nama toko..."
-                      value={searchQueryUmkm}
-                      onChange={(e) => setSearchQueryUmkm(e.target.value)}
-                      className="input-field pl-10 pr-4 py-2 text-sm w-full"
-                    />
-                    <Search className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
-                  </div>
-                  <button 
-                    onClick={handleAddUmkm}
-                    className="btn-primary py-2 px-4 whitespace-nowrap text-sm h-[38px]"
-                  >
-                    + Tambah UMKM
-                  </button>
-                </div>
+          <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-40' : 'opacity-100'}`}>
+            <header className="mb-8 flex justify-between items-end">
+              <div>
+                <h1 className="text-display-2 text-text-primary mb-1">Dashboard Admin</h1>
+                <p className="text-body-base text-text-secondary">Pantau aktivitas platform, verifikasi pembayaran, dan kelola pencairan dana UMKM.</p>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-surface text-caption text-text-secondary border-b border-border">
-                      <th className="p-4 font-medium">Nama Toko</th>
-                      <th className="p-4 font-medium">Pemilik / Kontak</th>
-                      <th className="p-4 font-medium">Kategori</th>
-                      <th className="p-4 font-medium">Alamat</th>
-                      <th className="p-4 font-medium">Status Akun</th>
-                      <th className="p-4 font-medium">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-body-small text-text-primary">
-                    {localUmkmList.filter(u => (u.storeName || '').toLowerCase().includes(searchQueryUmkm.toLowerCase())).length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="p-8 text-center text-text-secondary">
-                          {localUmkmList.length === 0 ? "Belum ada UMKM yang mendaftar." : "UMKM tidak ditemukan."}
-                        </td>
-                      </tr>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={toggleDarkMode}
+                  className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border border-border hover-btn cursor-pointer shadow-sm"
+                  aria-label="Toggle Dark Mode"
+                  title={isDarkMode ? "Ganti ke Light Mode" : "Ganti ke Dark Mode"}
+                >
+                  <AnimatePresence mode="wait" initial={false}>
+                    {isDarkMode ? (
+                      <motion.div
+                        key="moon"
+                        initial={{ y: -30, opacity: 0, rotate: -90 }}
+                        animate={{ y: 0, opacity: 1, rotate: 0 }}
+                        exit={{ y: 30, opacity: 0, rotate: 90 }}
+                        transition={{ duration: 0.3 }}
+                        className="absolute"
+                      >
+                        <Moon className="w-5 h-5 text-brand-secondary" />
+                      </motion.div>
                     ) : (
-                      localUmkmList
-                        .filter(u => (u.storeName || '').toLowerCase().includes(searchQueryUmkm.toLowerCase()))
-                        .map((umkm) => (
-                        <tr key={umkm.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                          <td className="p-4 font-semibold text-text-primary">
-                            {umkm.storeName || "Belum diatur"}
-                          </td>
-                          <td className="p-4">
-                            <p className="font-medium text-text-primary">{umkm.name}</p>
-                            <p className="text-text-secondary text-caption">{umkm.email}</p>
-                            <p className="text-text-secondary text-caption">{umkm.phone || '-'}</p>
-                          </td>
-                          <td className="p-4 text-text-secondary">{umkm.category || "-"}</td>
-                          <td className="p-4 text-text-secondary max-w-[200px] truncate" title={umkm.address || ""}>{umkm.address || "-"}</td>
-                          <td className="p-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                              umkm.status === 'active' 
-                                ? 'bg-status-success/10 text-status-success' 
-                                : umkm.status === 'inactive'
-                                ? 'bg-status-error/10 text-status-error'
-                                : 'bg-status-warning/10 text-status-warning'
-                            }`}>
-                              {umkm.status === 'active' ? 'Aktif' : umkm.status === 'inactive' ? 'Tidak Aktif' : 'Pending'}
-                            </span>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex gap-2 items-center">
-                              <select
-                                value={umkm.status ?? 'pending'}
-                                onChange={async (e) => {
-                                  const newStatus = e.target.value;
-                                  try {
-                                    const res = await fetch('/api/admin/umkm/status', {
-                                      method: 'PUT',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ userId: umkm.id, status: newStatus }),
-                                    });
-                                    if (!res.ok) throw new Error('Gagal memperbarui status');
-                                    
-                                    // Update local state
-                                    setLocalUmkmList(localUmkmList.map(u => u.id === umkm.id ? { ...u, status: newStatus } : u));
-                                    Swal.fire({
-                                      toast: true,
-                                      position: 'top-end',
-                                      icon: 'success',
-                                      title: 'Status berhasil diperbarui',
-                                      showConfirmButton: false,
-                                      timer: 3000
-                                    });
-                                  } catch (error) {
-                                    console.error(error);
-                                    Swal.fire('Error', 'Gagal memperbarui status', 'error');
-                                  }
-                                }}
-                                className="input-field py-1.5 px-3 text-sm min-w-[120px]"
-                              >
-                                <option value="active">Set Aktif</option>
-                                <option value="inactive">Set Tidak Aktif</option>
-                                <option value="pending">Set Pending</option>
-                              </select>
+                      <motion.div
+                        key="sun"
+                        initial={{ y: 30, opacity: 0, rotate: 90 }}
+                        animate={{ y: 0, opacity: 1, rotate: 0 }}
+                        exit={{ y: -30, opacity: 0, rotate: -90 }}
+                        transition={{ duration: 0.3 }}
+                        className="absolute"
+                      >
+                        <Sun className="w-5 h-5 text-brand-secondary" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </button>
+                <div className="hidden sm:block text-right">
+                  <p className="text-caption text-text-secondary">Login sebagai</p>
+                  <p className="font-semibold text-text-primary">{userName}</p>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-status-error border border-status-error/30 hover:bg-status-error/10 hover-btn transition-colors text-sm font-semibold shadow-sm cursor-pointer"
+                  title="Keluar / Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">Keluar</span>
+                </button>
+              </div>
+            </header>
 
-                              <button 
-                                onClick={() => {
-                                  Swal.fire({
-                                    title: 'Hapus UMKM?',
-                                    text: `Anda yakin ingin menghapus akun ${umkm.storeName}? Tindakan ini tidak bisa dibatalkan.`,
-                                    icon: 'warning',
-                                    showCancelButton: true,
-                                    confirmButtonColor: '#ef4444',
-                                    cancelButtonColor: '#94a3b8',
-                                    confirmButtonText: 'Ya, Hapus!',
-                                    cancelButtonText: 'Batal'
-                                  }).then(async (result) => {
-                                    if (result.isConfirmed) {
+            {activeTab === 'umkm' && (
+              <div className="card p-0 border border-border overflow-hidden">
+                <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
+                  <h2 className="text-h3 w-full sm:w-auto">Daftar UMKM Terdaftar</h2>
+                  <div className="flex gap-3 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-64">
+                      <input
+                        type="text"
+                        placeholder="Cari nama toko..."
+                        value={searchQueryUmkm}
+                        onChange={(e) => setSearchQueryUmkm(e.target.value)}
+                        className="input-field pl-10 pr-4 py-2 text-sm w-full"
+                      />
+                      <Search className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
+                    </div>
+                    <button
+                      onClick={handleAddUmkm}
+                      className="btn-primary py-2 px-4 whitespace-nowrap text-sm h-[38px]"
+                    >
+                      + Tambah UMKM
+                    </button>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-surface text-caption text-text-secondary border-b border-border">
+                        <th className="p-4 font-medium">Nama Toko</th>
+                        <th className="p-4 font-medium">Pemilik / Kontak</th>
+                        <th className="p-4 font-medium">Kategori</th>
+                        <th className="p-4 font-medium">Alamat</th>
+                        <th className="p-4 font-medium">Status Akun</th>
+                        <th className="p-4 font-medium">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-body-small text-text-primary">
+                      {localUmkmList.filter(u => (u.storeName || '').toLowerCase().includes(searchQueryUmkm.toLowerCase())).length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-text-secondary">
+                            {localUmkmList.length === 0 ? "Belum ada UMKM yang mendaftar." : "UMKM tidak ditemukan."}
+                          </td>
+                        </tr>
+                      ) : (
+                        localUmkmList
+                          .filter(u => (u.storeName || '').toLowerCase().includes(searchQueryUmkm.toLowerCase()))
+                          .map((umkm) => (
+                            <tr key={umkm.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                              <td className="p-4 font-semibold text-text-primary">
+                                {umkm.storeName || "Belum diatur"}
+                              </td>
+                              <td className="p-4">
+                                <p className="font-medium text-text-primary">{umkm.name}</p>
+                                <p className="text-text-secondary text-caption">{umkm.email}</p>
+                                <p className="text-text-secondary text-caption">{umkm.phone || '-'}</p>
+                              </td>
+                              <td className="p-4 text-text-secondary">{umkm.category || "-"}</td>
+                              <td className="p-4 text-text-secondary max-w-[200px] truncate" title={umkm.address || ""}>{umkm.address || "-"}</td>
+                              <td className="p-4">
+                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${umkm.status === 'active'
+                                    ? 'bg-status-success/10 text-status-success'
+                                    : umkm.status === 'inactive'
+                                      ? 'bg-status-error/10 text-status-error'
+                                      : 'bg-status-warning/10 text-status-warning'
+                                  }`}>
+                                  {umkm.status === 'active' ? 'Aktif' : umkm.status === 'inactive' ? 'Tidak Aktif' : 'Pending'}
+                                </span>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex gap-2 items-center">
+                                  <select
+                                    value={umkm.status ?? 'pending'}
+                                    onChange={async (e) => {
+                                      const newStatus = e.target.value;
                                       try {
-                                        const res = await fetch(`/api/admin/umkm?id=${umkm.id}`, { method: 'DELETE' });
-                                        if (!res.ok) throw new Error('Gagal menghapus UMKM');
-                                        
-                                        setLocalUmkmList(localUmkmList.filter(u => u.id !== umkm.id));
-                                        router.refresh();
+                                        const res = await fetch('/api/admin/umkm/status', {
+                                          method: 'PUT',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ userId: umkm.id, status: newStatus }),
+                                        });
+                                        if (!res.ok) throw new Error('Gagal memperbarui status');
+
+                                        // Update local state
+                                        setLocalUmkmList(localUmkmList.map(u => u.id === umkm.id ? { ...u, status: newStatus } : u));
                                         Swal.fire({
                                           toast: true,
                                           position: 'top-end',
                                           icon: 'success',
-                                          title: 'UMKM berhasil dihapus',
+                                          title: 'Status berhasil diperbarui',
                                           showConfirmButton: false,
                                           timer: 3000
                                         });
                                       } catch (error) {
                                         console.error(error);
-                                        Swal.fire('Error', 'Terjadi kesalahan saat menghapus', 'error');
+                                        Swal.fire('Error', 'Gagal memperbarui status', 'error');
                                       }
-                                    }
-                                  });
-                                }}
-                                className="btn-outline py-1.5 px-3 text-sm text-status-error border-status-error hover:bg-status-error/10"
-                              >
-                                Hapus
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+                                    }}
+                                    className="input-field py-1.5 px-3 text-sm min-w-[120px]"
+                                  >
+                                    <option value="active">Set Aktif</option>
+                                    <option value="inactive">Set Tidak Aktif</option>
+                                    <option value="pending">Set Pending</option>
+                                  </select>
 
-          {activeTab === 'pesanan' && (
-            <div className="card p-0 border border-border overflow-hidden">
-              <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
-                <h2 className="text-h3 w-full sm:w-auto">Semua Pesanan Penjual</h2>
+                                  <button
+                                    onClick={() => {
+                                      Swal.fire({
+                                        title: 'Hapus UMKM?',
+                                        text: `Anda yakin ingin menghapus akun ${umkm.storeName}? Tindakan ini tidak bisa dibatalkan.`,
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#ef4444',
+                                        cancelButtonColor: '#94a3b8',
+                                        confirmButtonText: 'Ya, Hapus!',
+                                        cancelButtonText: 'Batal'
+                                      }).then(async (result) => {
+                                        if (result.isConfirmed) {
+                                          try {
+                                            const res = await fetch(`/api/admin/umkm?id=${umkm.id}`, { method: 'DELETE' });
+                                            if (!res.ok) throw new Error('Gagal menghapus UMKM');
+
+                                            setLocalUmkmList(localUmkmList.filter(u => u.id !== umkm.id));
+                                            router.refresh();
+                                            Swal.fire({
+                                              toast: true,
+                                              position: 'top-end',
+                                              icon: 'success',
+                                              title: 'UMKM berhasil dihapus',
+                                              showConfirmButton: false,
+                                              timer: 3000
+                                            });
+                                          } catch (error) {
+                                            console.error(error);
+                                            Swal.fire('Error', 'Terjadi kesalahan saat menghapus', 'error');
+                                          }
+                                        }
+                                      });
+                                    }}
+                                    className="btn-outline py-1.5 px-3 text-sm text-status-error border-status-error hover:bg-status-error/10"
+                                  >
+                                    Hapus
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-surface text-caption text-text-secondary border-b border-border">
-                      <th className="p-4 font-medium">Toko</th>
-                      <th className="p-4 font-medium">Produk</th>
-                      <th className="p-4 font-medium">Tgl Pesanan</th>
-                      <th className="p-4 font-medium">Total Harga</th>
-                      <th className="p-4 font-medium">Saldo (Admin / Penjual)</th>
-                      <th className="p-4 font-medium">Status Produk</th>
-                      <th className="p-4 font-medium text-center">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-body-small text-text-primary">
-                    {liveOrders.length === 0 ? (
-                      <tr><td colSpan={7} className="p-8 text-center text-text-secondary">Tidak ada pesanan.</td></tr>
-                    ) : (
-                      liveOrders.map((order) => (
-                        <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                          <td className="p-4 font-semibold">{order.storeName || '-'}</td>
-                          <td className="p-4">
-                            <span className="block font-medium">{order.productName || '-'}</span>
-                            <span className="text-xs text-text-secondary block mt-1">{order.qty}x Pcs</span>
-                          </td>
-                          <td className="p-4 text-xs">
-                             {order.deliveryDate ? (order.deliveryDate.includes('-') ? new Date(order.deliveryDate).toLocaleDateString('id-ID') : order.deliveryDate) : '-'}
-                          </td>
-                          <td className="p-4 font-bold text-brand-primary whitespace-nowrap">
-                            Rp {(order.totalPrice || 0).toLocaleString('id-ID')}
-                          </td>
-                          <td className="p-4 text-xs">
-                            <span className="block text-status-warning"><span className="font-semibold">Admin:</span> Rp {(order.adminSplitAmount ?? ((order.totalPrice||0) * 0.5)).toLocaleString('id-ID')}</span>
-                            <span className="block text-status-success mt-1"><span className="font-semibold">Penjual:</span> Rp {(order.sellerSplitAmount ?? ((order.totalPrice||0) * 0.5)).toLocaleString('id-ID')}</span>
-                          </td>
-                          <td className="p-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                              ['waiting_verification', 'failed', 'cancelled'].includes(order.status || '') 
-                                ? 'bg-status-error/10 text-status-error'
-                                : order.status === 'completed'
-                                ? 'bg-status-success/10 text-status-success'
-                                : 'bg-status-warning/10 text-status-warning'
-                            }`}>
-                              {order.status === 'verified' ? 'Dibayar' : order.status === 'ongoing' ? 'Diproses' : order.status}
-                            </span>
-                          </td>
-                          <td className="p-4 text-center">
-                            <button
-                              onClick={() => {
-                                // Default split computation if not explicitly set
-                                const currentAdmin = order.adminSplitAmount ?? ((order.totalPrice || 0) * 0.5);
-                                const currentSeller = order.sellerSplitAmount ?? ((order.totalPrice || 0) * 0.5);
-                                
-                                Swal.fire({
-                                  title: 'Detail Pesanan & Saldo',
-                                  html: `
+            )}
+
+            {activeTab === 'pesanan' && (
+              <div className="card p-0 border border-border overflow-hidden">
+                <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
+                  <h2 className="text-h3 w-full sm:w-auto">Semua Pesanan Penjual</h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-surface text-caption text-text-secondary border-b border-border">
+                        <th className="p-4 font-medium">Toko</th>
+                        <th className="p-4 font-medium">Produk</th>
+                        <th className="p-4 font-medium">Tgl Pesanan</th>
+                        <th className="p-4 font-medium">Total Harga</th>
+                        <th className="p-4 font-medium">Saldo (Admin / Penjual)</th>
+                        <th className="p-4 font-medium">Status Produk</th>
+                        <th className="p-4 font-medium text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-body-small text-text-primary">
+                      {liveOrders.length === 0 ? (
+                        <tr><td colSpan={7} className="p-8 text-center text-text-secondary">Tidak ada pesanan.</td></tr>
+                      ) : (
+                        liveOrders.map((order) => (
+                          <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                            <td className="p-4 font-semibold">{order.storeName || '-'}</td>
+                            <td className="p-4">
+                              <span className="block font-medium">{order.productName || '-'}</span>
+                              <span className="text-xs text-text-secondary block mt-1">{order.qty}x Pcs</span>
+                            </td>
+                            <td className="p-4 text-xs">
+                              {order.deliveryDate ? (order.deliveryDate.includes('-') ? new Date(order.deliveryDate).toLocaleDateString('id-ID') : order.deliveryDate) : '-'}
+                            </td>
+                            <td className="p-4 font-bold text-brand-primary whitespace-nowrap">
+                              Rp {(order.totalPrice || 0).toLocaleString('id-ID')}
+                            </td>
+                            <td className="p-4 text-xs">
+                              <span className="block text-status-warning"><span className="font-semibold">Admin:</span> Rp {(order.adminSplitAmount ?? ((order.totalPrice || 0) * 0.5)).toLocaleString('id-ID')}</span>
+                              <span className="block text-status-success mt-1"><span className="font-semibold">Penjual:</span> Rp {(order.sellerSplitAmount ?? ((order.totalPrice || 0) * 0.5)).toLocaleString('id-ID')}</span>
+                            </td>
+                            <td className="p-4">
+                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${['waiting_verification', 'failed', 'cancelled'].includes(order.status || '')
+                                  ? 'bg-status-error/10 text-status-error'
+                                  : order.status === 'completed'
+                                    ? 'bg-status-success/10 text-status-success'
+                                    : 'bg-status-warning/10 text-status-warning'
+                                }`}>
+                                {order.status === 'verified' ? 'Sudah Dibayar oleh Pembeli' :
+                                  order.status === 'ongoing' ? 'Sedang Diproses oleh Penjual' :
+                                    order.status === 'completed' ? 'Selesai' :
+                                      order.status === 'waiting_verification' ? 'Sedang Menunggu Konfirmasi dari Penjual' :
+                                        order.status === 'cancelled' ? 'DiBatalkan' :
+                                          order.status}
+                              </span>
+                            </td>
+                            <td className="p-4 text-center">
+                              <button
+                                onClick={() => {
+                                  // Default split computation if not explicitly set
+                                  const currentAdmin = order.adminSplitAmount ?? ((order.totalPrice || 0) * 0.5);
+                                  const currentSeller = order.sellerSplitAmount ?? ((order.totalPrice || 0) * 0.5);
+
+                                  Swal.fire({
+                                    title: 'Detail Pesanan & Saldo',
+                                    html: `
                                     <div class="text-left text-sm space-y-4">
                                       <div class="p-3.5 bg-base border border-border rounded-xl space-y-2.5">
                                         <div class="grid grid-cols-3 gap-2 border-b border-border pb-2.5">
@@ -925,706 +919,701 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                       </div>
                                       <div class="flex items-center justify-between mt-2 pt-2 border-t border-border font-bold">
                                          <span class="text-text-primary">Total Order:</span>
-                                         <span id="swal-total-validation" class="text-brand-primary">Rp ${(order.totalPrice||0).toLocaleString('id-ID')}</span>
+                                         <span id="swal-total-validation" class="text-brand-primary">Rp ${(order.totalPrice || 0).toLocaleString('id-ID')}</span>
                                       </div>
                                     </div>
                                   `,
-                                  showCancelButton: true,
-                                  confirmButtonText: 'Simpan Saldo',
-                                  cancelButtonText: 'Tutup',
-                                  customClass: {
-                                    popup: 'bg-surface text-text-primary rounded-2xl w-[95%] max-w-lg border border-border shadow-xl',
-                                    title: 'text-h2 font-bold text-text-primary pt-6 border-b border-border pb-3 px-6',
-                                    htmlContainer: 'text-left px-6 py-4',
-                                    actions: 'flex items-center justify-end gap-3 px-6 pb-6 pt-2 w-full',
-                                    confirmButton: 'btn-primary py-2 px-5 text-sm font-semibold rounded-xl cursor-pointer',
-                                    cancelButton: 'btn-outline border-border hover:bg-base text-text-secondary py-2 px-5 text-sm font-semibold rounded-xl cursor-pointer'
-                                  },
-                                  buttonsStyling: false,
-                                  didOpen: () => {
-                                    const t = order.totalPrice || 0;
-                                    const adminInput = document.getElementById('swal-admin-split') as HTMLInputElement;
-                                    const sellerInput = document.getElementById('swal-seller-split') as HTMLInputElement;
-                                    const percentInput = document.getElementById('swal-admin-percent') as HTMLInputElement;
-                                    const validationEl = document.getElementById('swal-total-validation');
-                                    
-                                    // Initialize percent value based on current split
-                                    if (t > 0 && currentAdmin >= 0) {
-                                      percentInput.value = (Math.round((currentAdmin / t) * 100)).toString();
-                                    }
-                                    
-                                    const checkTotal = () => {
-                                      const sum = Number(adminInput.value) + Number(sellerInput.value);
-                                      if (validationEl) {
-                                        validationEl.innerHTML = `Jumlah: Rp ${sum.toLocaleString('id-ID')}`;
-                                        validationEl.className = sum === t ? 'text-brand-primary' : 'text-status-error';
-                                      }
-                                    };
-                                    
-                                    percentInput.addEventListener('input', () => {
-                                      const p = Number(percentInput.value);
-                                      if (!isNaN(p)) {
-                                        const constrainedP = Math.min(Math.max(p, 0), 100);
-                                        const adminVal = Math.round((constrainedP / 100) * t);
-                                        const sellerVal = t - adminVal;
-                                        adminInput.value = adminVal.toString();
-                                        sellerInput.value = sellerVal.toString();
-                                        checkTotal();
-                                      }
-                                    });
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Simpan Saldo',
+                                    cancelButtonText: 'Tutup',
+                                    customClass: {
+                                      popup: 'bg-surface text-text-primary rounded-2xl w-[95%] max-w-lg border border-border shadow-xl',
+                                      title: 'text-h2 font-bold text-text-primary pt-6 border-b border-border pb-3 px-6',
+                                      htmlContainer: 'text-left px-6 py-4',
+                                      actions: 'flex items-center justify-end gap-3 px-6 pb-6 pt-2 w-full',
+                                      confirmButton: 'btn-primary py-2 px-5 text-sm font-semibold rounded-xl cursor-pointer',
+                                      cancelButton: 'btn-outline border-border hover:bg-base text-text-secondary py-2 px-5 text-sm font-semibold rounded-xl cursor-pointer'
+                                    },
+                                    buttonsStyling: false,
+                                    didOpen: () => {
+                                      const t = order.totalPrice || 0;
+                                      const adminInput = document.getElementById('swal-admin-split') as HTMLInputElement;
+                                      const sellerInput = document.getElementById('swal-seller-split') as HTMLInputElement;
+                                      const percentInput = document.getElementById('swal-admin-percent') as HTMLInputElement;
+                                      const validationEl = document.getElementById('swal-total-validation');
 
-                                    adminInput.addEventListener('input', () => {
-                                      const adminVal = Number(adminInput.value);
-                                      if (adminVal <= t) {
-                                        const newSeller = t - adminVal;
-                                        sellerInput.value = newSeller.toString();
-                                        if (t > 0) percentInput.value = (Math.round((adminVal / t) * 100)).toString();
+                                      // Initialize percent value based on current split
+                                      if (t > 0 && currentAdmin >= 0) {
+                                        percentInput.value = (Math.round((currentAdmin / t) * 100)).toString();
                                       }
-                                      checkTotal();
-                                    });
-                                    
-                                    sellerInput.addEventListener('input', () => {
-                                      const sellerVal = Number(sellerInput.value);
-                                      if (sellerVal <= t) {
-                                        const newAdmin = t - sellerVal;
-                                        adminInput.value = newAdmin.toString();
-                                        if (t > 0) percentInput.value = (Math.round((newAdmin / t) * 100)).toString();
-                                      }
-                                      checkTotal();
-                                    });
-                                    checkTotal();
-                                  },
-                                  preConfirm: () => {
-                                    const adminSplit = Number((document.getElementById('swal-admin-split') as HTMLInputElement).value);
-                                    const sellerSplit = Number((document.getElementById('swal-seller-split') as HTMLInputElement).value);
-                                    if (adminSplit + sellerSplit !== (order.totalPrice || 0)) {
-                                      Swal.showValidationMessage('Total pembagian harus sama dengan total harga pesanan!');
-                                      return false;
-                                    }
-                                    return { adminSplit, sellerSplit };
-                                  }
-                                }).then(async (res) => {
-                                  if (res.isConfirmed) {
-                                    try {
-                                      const response = await fetch('/api/admin/orders/split', {
-                                        method: 'PUT',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ 
-                                          orderId: order.id, 
-                                          adminSplitAmount: res.value.adminSplit, 
-                                          sellerSplitAmount: res.value.sellerSplit 
-                                        })
+
+                                      const checkTotal = () => {
+                                        const sum = Number(adminInput.value) + Number(sellerInput.value);
+                                        if (validationEl) {
+                                          validationEl.innerHTML = `Jumlah: Rp ${sum.toLocaleString('id-ID')}`;
+                                          validationEl.className = sum === t ? 'text-brand-primary' : 'text-status-error';
+                                        }
+                                      };
+
+                                      percentInput.addEventListener('input', () => {
+                                        const p = Number(percentInput.value);
+                                        if (!isNaN(p)) {
+                                          const constrainedP = Math.min(Math.max(p, 0), 100);
+                                          const adminVal = Math.round((constrainedP / 100) * t);
+                                          const sellerVal = t - adminVal;
+                                          adminInput.value = adminVal.toString();
+                                          sellerInput.value = sellerVal.toString();
+                                          checkTotal();
+                                        }
                                       });
-                                      if(!response.ok) throw new Error('Gagal update');
-                                      
-                                      // Update in memory
-                                      setLiveOrders(prev => prev.map(o => o.id === order.id ? {
-                                        ...o,
-                                        adminSplitAmount: res.value.adminSplit,
-                                        sellerSplitAmount: res.value.sellerSplit
-                                      } : o));
-                                      
-                                      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Tersimpan', showConfirmButton: false, timer: 3000 });
-                                    } catch(err) {
-                                      Swal.fire('Error', 'Gagal memperbarui saldo.', 'error');
+
+                                      adminInput.addEventListener('input', () => {
+                                        const adminVal = Number(adminInput.value);
+                                        if (adminVal <= t) {
+                                          const newSeller = t - adminVal;
+                                          sellerInput.value = newSeller.toString();
+                                          if (t > 0) percentInput.value = (Math.round((adminVal / t) * 100)).toString();
+                                        }
+                                        checkTotal();
+                                      });
+
+                                      sellerInput.addEventListener('input', () => {
+                                        const sellerVal = Number(sellerInput.value);
+                                        if (sellerVal <= t) {
+                                          const newAdmin = t - sellerVal;
+                                          adminInput.value = newAdmin.toString();
+                                          if (t > 0) percentInput.value = (Math.round((newAdmin / t) * 100)).toString();
+                                        }
+                                        checkTotal();
+                                      });
+                                      checkTotal();
+                                    },
+                                    preConfirm: () => {
+                                      const adminSplit = Number((document.getElementById('swal-admin-split') as HTMLInputElement).value);
+                                      const sellerSplit = Number((document.getElementById('swal-seller-split') as HTMLInputElement).value);
+                                      if (adminSplit + sellerSplit !== (order.totalPrice || 0)) {
+                                        Swal.showValidationMessage('Total pembagian harus sama dengan total harga pesanan!');
+                                        return false;
+                                      }
+                                      return { adminSplit, sellerSplit };
                                     }
-                                  }
-                                });
-                              }}
-                              className="btn-outline px-3 py-1.5 text-xs inline-flex items-center gap-1 hover:bg-brand-primary hover:text-white transition-colors hover:border-brand-primary"
-                            >
-                              <Settings className="w-3 h-3" /> Edit Split
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+                                  }).then(async (res) => {
+                                    if (res.isConfirmed) {
+                                      try {
+                                        const response = await fetch('/api/admin/orders/split', {
+                                          method: 'PUT',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            orderId: order.id,
+                                            adminSplitAmount: res.value.adminSplit,
+                                            sellerSplitAmount: res.value.sellerSplit
+                                          })
+                                        });
+                                        if (!response.ok) throw new Error('Gagal update');
 
-          {activeTab === 'tickets' && (
-            <div className="card p-0 border border-border overflow-hidden">
-              <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
-                <h2 className="text-h3 w-full sm:w-auto">Daftar Tiket Bantuan</h2>
+                                        // Update in memory
+                                        setLiveOrders(prev => prev.map(o => o.id === order.id ? {
+                                          ...o,
+                                          adminSplitAmount: res.value.adminSplit,
+                                          sellerSplitAmount: res.value.sellerSplit
+                                        } : o));
+
+                                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Tersimpan', showConfirmButton: false, timer: 3000 });
+                                      } catch (err) {
+                                        Swal.fire('Error', 'Gagal memperbarui saldo.', 'error');
+                                      }
+                                    }
+                                  });
+                                }}
+                                className="btn-outline px-3 py-1.5 text-xs inline-flex items-center gap-1 hover:bg-brand-primary hover:text-white transition-colors hover:border-brand-primary"
+                              >
+                                <Settings className="w-3 h-3" /> Edit Split
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-surface text-caption text-text-secondary border-b border-border">
-                      <th className="p-4 font-medium">Tanggal</th>
-                      <th className="p-4 font-medium">Pengirim</th>
-                      <th className="p-4 font-medium">Kategori</th>
-                      <th className="p-4 font-medium max-w-xs">Catatan</th>
-                      <th className="p-4 font-medium">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-body-small text-text-primary">
-                    {ticketsList.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="p-8 text-center text-text-secondary">
-                          Belum ada tiket bantuan.
-                        </td>
+            )}
+
+            {activeTab === 'tickets' && (
+              <div className="card p-0 border border-border overflow-hidden">
+                <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
+                  <h2 className="text-h3 w-full sm:w-auto">Daftar Tiket Bantuan</h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-surface text-caption text-text-secondary border-b border-border">
+                        <th className="p-4 font-medium">Tanggal</th>
+                        <th className="p-4 font-medium">Pengirim</th>
+                        <th className="p-4 font-medium">Kategori</th>
+                        <th className="p-4 font-medium max-w-xs">Catatan</th>
+                        <th className="p-4 font-medium">Status</th>
                       </tr>
-                    ) : (
-                      ticketsList.map((ticket) => (
-                        <tr key={ticket.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                          <td className="p-4 text-text-secondary">
-                            {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
-                          </td>
-                          <td className="p-4">
-                            <p className="font-semibold text-text-primary">{ticket.userName || '-'}</p>
-                            <p className="text-caption text-text-secondary">{ticket.userPhone || '-'}</p>
-                            <span className="text-xs bg-border/50 px-2 py-0.5 rounded">{ticket.userRole}</span>
-                          </td>
-                          <td className="p-4 font-medium text-text-primary">
-                            {ticket.category === 'lainnya' ? ticket.customCategory : ticket.category.replace(/_/g, ' ').toUpperCase()}
-                          </td>
-                          <td className="p-4 text-text-secondary max-w-xs whitespace-pre-wrap">
-                            {ticket.notes}
-                          </td>
-                          <td className="p-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                              ticket.status === 'open' 
-                                ? 'bg-status-error/10 text-status-error' 
-                                : ticket.status === 'resolved'
-                                ? 'bg-status-success/10 text-status-success'
-                                : 'bg-status-warning/10 text-status-warning'
-                            }`}>
-                              {ticket.status.toUpperCase()}
-                            </span>
+                    </thead>
+                    <tbody className="text-body-small text-text-primary">
+                      {ticketsList.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="p-8 text-center text-text-secondary">
+                            Belum ada tiket bantuan.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'promosi' && (
-            <AdminPromotionManager
-              initialOffers={promotionOffers}
-              initialRequests={localPromotionRequests}
-              onRequestReviewed={(requestId, status, reviewedAt) => setLocalPromotionRequests((current) => current.map((request) => request.id === requestId ? { ...request, status, reviewedAt } : request))}
-            />
-          )}
-
-          {activeTab === 'overview' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="card p-6 border border-border">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                      <Users className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <p className="text-caption text-text-secondary">Total Pengguna</p>
-                      <p className="text-h2 text-text-primary">{stats.totalUsers}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="card p-6 border border-border">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-brand-secondary/20 flex items-center justify-center text-brand-secondary-dark">
-                      <Store className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <p className="text-caption text-text-secondary">UMKM Aktif</p>
-                      <p className="text-h2 text-text-primary">{stats.totalSellers}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="card p-6 border border-border">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-status-success/20 flex items-center justify-center text-status-success">
-                      <ShoppingBag className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <p className="text-caption text-text-secondary">Total Transaksi</p>
-                      <p className="text-h2 text-text-primary">{stats.totalOrders}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="card p-6 border border-border">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary">
-                      <CreditCard className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <p className="text-caption text-text-secondary">Saldo Escrow (Ditahan)</p>
-                      <p className="text-h2 text-text-primary">Rp {stats.escrowBalance.toLocaleString('id-ID')}</p>
-                    </div>
-                  </div>
+                      ) : (
+                        ticketsList.map((ticket) => (
+                          <tr key={ticket.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                            <td className="p-4 text-text-secondary">
+                              {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                            </td>
+                            <td className="p-4">
+                              <p className="font-semibold text-text-primary">{ticket.userName || '-'}</p>
+                              <p className="text-caption text-text-secondary">{ticket.userPhone || '-'}</p>
+                              <span className="text-xs bg-border/50 px-2 py-0.5 rounded">{ticket.userRole}</span>
+                            </td>
+                            <td className="p-4 font-medium text-text-primary">
+                              {ticket.category === 'lainnya' ? ticket.customCategory : ticket.category.replace(/_/g, ' ').toUpperCase()}
+                            </td>
+                            <td className="p-4 text-text-secondary max-w-xs whitespace-pre-wrap">
+                              {ticket.notes}
+                            </td>
+                            <td className="p-4">
+                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${ticket.status === 'open'
+                                  ? 'bg-status-error/10 text-status-error'
+                                  : ticket.status === 'resolved'
+                                    ? 'bg-status-success/10 text-status-success'
+                                    : 'bg-status-warning/10 text-status-warning'
+                                }`}>
+                                {ticket.status.toUpperCase()}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
+            )}
 
-              {/* Grafik Aktivitas & Transaksi Terbaru */}
-              <div className="card p-6 border border-border">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-border">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <BarChart3 className="w-5 h-5 text-brand-primary" />
-                      <h2 className="text-h3 text-text-primary">Aktivitas & Grafik Transaksi</h2>
-                      <span className="flex items-center gap-1.5 text-xs text-status-success font-semibold px-2.5 py-0.5 bg-status-success/10 rounded-full border border-status-success/20 ml-1">
-                        <span className="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
-                        Real-time Live
-                      </span>
+            {activeTab === 'promosi' && (
+              <AdminPromotionManager
+                initialOffers={promotionOffers}
+                initialRequests={localPromotionRequests}
+                onRequestReviewed={(requestId, status, reviewedAt) => setLocalPromotionRequests((current) => current.map((request) => request.id === requestId ? { ...request, status, reviewedAt } : request))}
+              />
+            )}
+
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="card p-6 border border-border">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <Users className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-caption text-text-secondary">Total Pengguna</p>
+                        <p className="text-h2 text-text-primary">{stats.totalUsers}</p>
+                      </div>
                     </div>
-                    <p className="text-body-small text-text-secondary">
-                      Statistik volume transaksi dan aktivitas platform terfilter secara otomatis.
-                    </p>
                   </div>
 
-                  {/* Filter Dropdowns */}
-                  <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                    <div className="flex items-center gap-1.5 bg-base px-3 py-2 rounded-xl border border-border">
-                      <Filter className="w-4 h-4 text-brand-primary" />
-                      <select 
-                        value={selectedMonth} 
-                        onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="bg-transparent text-text-primary text-sm font-semibold outline-none cursor-pointer"
-                      >
-                        <option value="all">Semua Bulan (1 Tahun)</option>
-                        <option value="1">Januari</option>
-                        <option value="2">Februari</option>
-                        <option value="3">Maret</option>
-                        <option value="4">April</option>
-                        <option value="5">Mei</option>
-                        <option value="6">Juni</option>
-                        <option value="7">Juli</option>
-                        <option value="8">Agustus</option>
-                        <option value="9">September</option>
-                        <option value="10">Oktober</option>
-                        <option value="11">November</option>
-                        <option value="12">Desember</option>
-                      </select>
+                  <div className="card p-6 border border-border">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-brand-secondary/20 flex items-center justify-center text-brand-secondary-dark">
+                        <Store className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-caption text-text-secondary">UMKM Aktif</p>
+                        <p className="text-h2 text-text-primary">{stats.totalSellers}</p>
+                      </div>
                     </div>
+                  </div>
 
-                    <div className="flex items-center gap-1.5 bg-base px-3 py-2 rounded-xl border border-border">
-                      <Calendar className="w-4 h-4 text-brand-secondary-dark dark:text-brand-secondary" />
-                      <select 
-                        value={selectedYear} 
-                        onChange={(e) => setSelectedYear(e.target.value)}
-                        className="bg-transparent text-text-primary text-sm font-semibold outline-none cursor-pointer"
-                      >
-                        <option value="2026">Tahun 2026</option>
-                        <option value="2025">Tahun 2025</option>
-                        <option value="2024">Tahun 2024</option>
-                      </select>
+                  <div className="card p-6 border border-border">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-status-success/20 flex items-center justify-center text-status-success">
+                        <ShoppingBag className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-caption text-text-secondary">Total Transaksi</p>
+                        <p className="text-h2 text-text-primary">{stats.totalOrders}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="card p-6 border border-border">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary">
+                        <CreditCard className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-caption text-text-secondary">Saldo Escrow (Ditahan)</p>
+                        <p className="text-h2 text-text-primary">Rp {stats.escrowBalance.toLocaleString('id-ID')}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Metric Summaries for the selected filter */}
-                {(() => {
-                  const chartData = getChartData();
-                  const totalCount = chartData.reduce((acc, curr) => acc + curr.count, 0);
-                  const totalAmount = chartData.reduce((acc, curr) => acc + curr.amount, 0);
-                  const maxCount = Math.max(...chartData.map(d => d.count), 1);
+                {/* Grafik Aktivitas & Transaksi Terbaru */}
+                <div className="card p-6 border border-border">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-border">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <BarChart3 className="w-5 h-5 text-brand-primary" />
+                        <h2 className="text-h3 text-text-primary">Aktivitas & Grafik Transaksi</h2>
+                        <span className="flex items-center gap-1.5 text-xs text-status-success font-semibold px-2.5 py-0.5 bg-status-success/10 rounded-full border border-status-success/20 ml-1">
+                          <span className="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
+                          Real-time Live
+                        </span>
+                      </div>
+                      <p className="text-body-small text-text-secondary">
+                        Statistik volume transaksi dan aktivitas platform terfilter secara otomatis.
+                      </p>
+                    </div>
 
-                  const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-                  const filterLabel = selectedMonth === 'all' 
-                    ? `Tahun ${selectedYear}` 
-                    : `${monthNames[parseInt(selectedMonth)-1]} ${selectedYear}`;
-
-                  return (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="bg-base p-4 rounded-xl border border-border flex items-center justify-between">
-                          <div>
-                            <p className="text-caption text-text-secondary">Total Transaksi ({filterLabel})</p>
-                            <p className="text-h2 font-bold text-brand-primary">{totalCount} <span className="text-sm font-normal text-text-secondary">Order</span></p>
-                          </div>
-                          <TrendingUp className="w-8 h-8 text-brand-primary/40" />
-                        </div>
-                        <div className="bg-base p-4 rounded-xl border border-border flex items-center justify-between">
-                          <div>
-                            <p className="text-caption text-text-secondary">Estimasi Perputaran Dana</p>
-                            <p className="text-h2 font-bold text-status-success">Rp {totalAmount.toLocaleString('id-ID')}</p>
-                          </div>
-                          <CreditCard className="w-8 h-8 text-status-success/40" />
-                        </div>
-                        <div className="bg-base p-4 rounded-xl border border-border flex items-center justify-between">
-                          <div>
-                            <p className="text-caption text-text-secondary">Filter Aktif Terpilih</p>
-                            <p className="text-body-base font-bold text-text-primary">{filterLabel}</p>
-                          </div>
-                          <Filter className="w-8 h-8 text-brand-secondary/40" />
-                        </div>
+                    {/* Filter Dropdowns */}
+                    <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                      <div className="flex items-center gap-1.5 bg-base px-3 py-2 rounded-xl border border-border">
+                        <Filter className="w-4 h-4 text-brand-primary" />
+                        <select
+                          value={selectedMonth}
+                          onChange={(e) => setSelectedMonth(e.target.value)}
+                          className="bg-transparent text-text-primary text-sm font-semibold outline-none cursor-pointer"
+                        >
+                          <option value="all">Semua Bulan (1 Tahun)</option>
+                          <option value="1">Januari</option>
+                          <option value="2">Februari</option>
+                          <option value="3">Maret</option>
+                          <option value="4">April</option>
+                          <option value="5">Mei</option>
+                          <option value="6">Juni</option>
+                          <option value="7">Juli</option>
+                          <option value="8">Agustus</option>
+                          <option value="9">September</option>
+                          <option value="10">Oktober</option>
+                          <option value="11">November</option>
+                          <option value="12">Desember</option>
+                        </select>
                       </div>
 
-                      {/* Bar Chart Visual Graphics */}
-                      <div className="relative pt-8 pb-3 px-3 bg-base/60 rounded-2xl border border-border/80">
-                        {/* Background Grid Lines */}
-                        <div className="absolute inset-x-4 top-10 bottom-12 flex flex-col justify-between pointer-events-none opacity-20">
-                          <div className="border-b border-dashed border-text-secondary w-full"></div>
-                          <div className="border-b border-dashed border-text-secondary w-full"></div>
-                          <div className="border-b border-dashed border-text-secondary w-full"></div>
-                          <div className="border-b border-dashed border-text-secondary w-full"></div>
+                      <div className="flex items-center gap-1.5 bg-base px-3 py-2 rounded-xl border border-border">
+                        <Calendar className="w-4 h-4 text-brand-secondary-dark dark:text-brand-secondary" />
+                        <select
+                          value={selectedYear}
+                          onChange={(e) => setSelectedYear(e.target.value)}
+                          className="bg-transparent text-text-primary text-sm font-semibold outline-none cursor-pointer"
+                        >
+                          <option value="2026">Tahun 2026</option>
+                          <option value="2025">Tahun 2025</option>
+                          <option value="2024">Tahun 2024</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Metric Summaries for the selected filter */}
+                  {(() => {
+                    const chartData = getChartData();
+                    const totalCount = chartData.reduce((acc, curr) => acc + curr.count, 0);
+                    const totalAmount = chartData.reduce((acc, curr) => acc + curr.amount, 0);
+                    const maxCount = Math.max(...chartData.map(d => d.count), 1);
+
+                    const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                    const filterLabel = selectedMonth === 'all'
+                      ? `Tahun ${selectedYear}`
+                      : `${monthNames[parseInt(selectedMonth) - 1]} ${selectedYear}`;
+
+                    return (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="bg-base p-4 rounded-xl border border-border flex items-center justify-between">
+                            <div>
+                              <p className="text-caption text-text-secondary">Total Transaksi ({filterLabel})</p>
+                              <p className="text-h2 font-bold text-brand-primary">{totalCount} <span className="text-sm font-normal text-text-secondary">Order</span></p>
+                            </div>
+                            <TrendingUp className="w-8 h-8 text-brand-primary/40" />
+                          </div>
+                          <div className="bg-base p-4 rounded-xl border border-border flex items-center justify-between">
+                            <div>
+                              <p className="text-caption text-text-secondary">Estimasi Perputaran Dana</p>
+                              <p className="text-h2 font-bold text-status-success">Rp {totalAmount.toLocaleString('id-ID')}</p>
+                            </div>
+                            <CreditCard className="w-8 h-8 text-status-success/40" />
+                          </div>
+                          <div className="bg-base p-4 rounded-xl border border-border flex items-center justify-between">
+                            <div>
+                              <p className="text-caption text-text-secondary">Filter Aktif Terpilih</p>
+                              <p className="text-body-base font-bold text-text-primary">{filterLabel}</p>
+                            </div>
+                            <Filter className="w-8 h-8 text-brand-secondary/40" />
+                          </div>
                         </div>
 
-                        {/* Bars Container */}
-                        <div className="relative z-10 flex items-end justify-between gap-2 sm:gap-4 h-64 pt-8 px-2">
-                          {chartData.map((item, index) => {
-                            const barHeightPercent = item.count === 0 ? 4 : Math.max((item.count / maxCount) * 100, 15);
-                            const isHovered = hoveredBarIndex === index;
-                            const hasOrders = item.count > 0;
+                        {/* Bar Chart Visual Graphics */}
+                        <div className="relative pt-8 pb-3 px-3 bg-base/60 rounded-2xl border border-border/80">
+                          {/* Background Grid Lines */}
+                          <div className="absolute inset-x-4 top-10 bottom-12 flex flex-col justify-between pointer-events-none opacity-20">
+                            <div className="border-b border-dashed border-text-secondary w-full"></div>
+                            <div className="border-b border-dashed border-text-secondary w-full"></div>
+                            <div className="border-b border-dashed border-text-secondary w-full"></div>
+                            <div className="border-b border-dashed border-text-secondary w-full"></div>
+                          </div>
 
-                            return (
-                              <div 
-                                key={index} 
-                                className="flex-1 flex flex-col items-center h-full justify-end group relative"
-                                onMouseEnter={() => setHoveredBarIndex(index)}
-                                onMouseLeave={() => setHoveredBarIndex(null)}
-                              >
-                                {/* Tooltip on Hover */}
-                                {isHovered && (
-                                  <div className="absolute -top-14 z-30 bg-slate-900 text-white text-xs py-2 px-3.5 rounded-xl shadow-2xl font-medium whitespace-nowrap border border-slate-700 animate-in fade-in zoom-in-95">
-                                    <div className="font-bold text-brand-secondary text-sm">{item.label}</div>
-                                    <div className="text-slate-300">{item.count} Transaksi (Rp {item.amount.toLocaleString('id-ID')})</div>
-                                  </div>
-                                )}
+                          {/* Bars Container */}
+                          <div className="relative z-10 flex items-end justify-between gap-2 sm:gap-4 h-64 pt-8 px-2">
+                            {chartData.map((item, index) => {
+                              const barHeightPercent = item.count === 0 ? 4 : Math.max((item.count / maxCount) * 100, 15);
+                              const isHovered = hoveredBarIndex === index;
+                              const hasOrders = item.count > 0;
 
-                                {/* Bar Element */}
-                                <div className="w-full flex items-end justify-center h-full pt-6">
-                                  <div 
-                                    className={`w-full max-w-[44px] rounded-t-xl transition-all duration-300 relative cursor-pointer ${
-                                      isHovered 
-                                        ? 'bg-gradient-to-t from-brand-primary via-brand-primary to-brand-secondary shadow-lg shadow-brand-primary/40 scale-105 ring-2 ring-brand-primary/40' 
-                                        : hasOrders
-                                        ? 'bg-gradient-to-t from-brand-primary/80 to-brand-primary shadow-sm'
-                                        : 'bg-border/60 dark:bg-slate-700/50 hover:bg-border'
-                                    }`}
-                                    style={{ height: `${barHeightPercent}%` }}
-                                  >
-                                    {/* Value label on top of bar */}
-                                    <div className={`absolute -top-6 inset-x-0 text-center text-xs font-bold transition-colors ${
-                                      isHovered ? 'text-brand-primary scale-110' : hasOrders ? 'text-text-primary font-bold' : 'text-text-secondary/60 font-normal'
-                                    }`}>
-                                      {item.count}
+                              return (
+                                <div
+                                  key={index}
+                                  className="flex-1 flex flex-col items-center h-full justify-end group relative"
+                                  onMouseEnter={() => setHoveredBarIndex(index)}
+                                  onMouseLeave={() => setHoveredBarIndex(null)}
+                                >
+                                  {/* Tooltip on Hover */}
+                                  {isHovered && (
+                                    <div className="absolute -top-14 z-30 bg-slate-900 text-white text-xs py-2 px-3.5 rounded-xl shadow-2xl font-medium whitespace-nowrap border border-slate-700 animate-in fade-in zoom-in-95">
+                                      <div className="font-bold text-brand-secondary text-sm">{item.label}</div>
+                                      <div className="text-slate-300">{item.count} Transaksi (Rp {item.amount.toLocaleString('id-ID')})</div>
+                                    </div>
+                                  )}
+
+                                  {/* Bar Element */}
+                                  <div className="w-full flex items-end justify-center h-full pt-6">
+                                    <div
+                                      className={`w-full max-w-[44px] rounded-t-xl transition-all duration-300 relative cursor-pointer ${isHovered
+                                          ? 'bg-gradient-to-t from-brand-primary via-brand-primary to-brand-secondary shadow-lg shadow-brand-primary/40 scale-105 ring-2 ring-brand-primary/40'
+                                          : hasOrders
+                                            ? 'bg-gradient-to-t from-brand-primary/80 to-brand-primary shadow-sm'
+                                            : 'bg-border/60 dark:bg-slate-700/50 hover:bg-border'
+                                        }`}
+                                      style={{ height: `${barHeightPercent}%` }}
+                                    >
+                                      {/* Value label on top of bar */}
+                                      <div className={`absolute -top-6 inset-x-0 text-center text-xs font-bold transition-colors ${isHovered ? 'text-brand-primary scale-110' : hasOrders ? 'text-text-primary font-bold' : 'text-text-secondary/60 font-normal'
+                                        }`}>
+                                        {item.count}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
 
-                                {/* X-axis Label */}
-                                <span className={`text-xs mt-3 font-medium transition-colors truncate max-w-full ${
-                                  isHovered ? 'text-brand-primary font-bold' : 'text-text-secondary'
-                                }`}>
-                                  {item.label}
-                                </span>
-                              </div>
-                            );
-                          })}
+                                  {/* X-axis Label */}
+                                  <span className={`text-xs mt-3 font-medium transition-colors truncate max-w-full ${isHovered ? 'text-brand-primary font-bold' : 'text-text-secondary'
+                                    }`}>
+                                    {item.label}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'qris' && (
-            <div className="card p-0 border border-border overflow-hidden max-w-2xl mx-auto">
-              <div className="p-6 border-b border-border bg-surface/50">
-                <h2 className="text-h3 mb-1">Pengaturan QRIS Admin</h2>
-                <p className="text-body-small text-text-secondary">Foto barcode QRIS ini akan ditampilkan kepada pembeli pada saat *checkout* pembayaran.</p>
-              </div>
-              <div className="p-8 flex flex-col items-center text-center">
-                <div className="w-64 h-64 border-4 border-border rounded-3xl overflow-hidden mb-6 relative shadow-inner bg-base flex items-center justify-center">
-                  {adminQrisUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={adminQrisUrl} alt="QRIS Admin" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-text-secondary text-sm">Belum ada QRIS</span>
-                  )}
+                    );
+                  })()}
                 </div>
-                
-                <div className="flex gap-4">
-                  <button 
-                    onClick={async () => {
-                      const { value: file } = await Swal.fire({
-                        title: 'Perbarui QRIS',
-                        input: 'file',
-                        inputAttributes: {
-                          'accept': 'image/*',
-                          'aria-label': 'Upload foto QRIS'
-                        },
-                        showCancelButton: true,
-                        confirmButtonText: 'Simpan',
-                        cancelButtonText: 'Batal',
-                        confirmButtonColor: '#ff5c35'
-                      });
+              </div>
+            )}
 
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                          const base64Url = e.target?.result as string;
-                          setAdminQrisUrl(base64Url);
-                          localStorage.setItem('adminQrisUrl', base64Url);
-                          Swal.fire({
-                            toast: true,
-                            position: 'top-end',
-                            icon: 'success',
-                            title: 'QRIS berhasil diperbarui',
-                            showConfirmButton: false,
-                            timer: 3000
-                          });
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                    className="btn-primary py-2 px-6 shadow-lg shadow-brand-primary/20"
-                  >
-                    Ganti Foto QRIS
-                  </button>
+            {activeTab === 'qris' && (
+              <div className="card p-0 border border-border overflow-hidden max-w-2xl mx-auto">
+                <div className="p-6 border-b border-border bg-surface/50">
+                  <h2 className="text-h3 mb-1">Pengaturan QRIS Admin</h2>
+                  <p className="text-body-small text-text-secondary">Foto barcode QRIS ini akan ditampilkan kepada pembeli pada saat *checkout* pembayaran.</p>
+                </div>
+                <div className="p-8 flex flex-col items-center text-center">
+                  <div className="w-64 h-64 border-4 border-border rounded-3xl overflow-hidden mb-6 relative shadow-inner bg-base flex items-center justify-center">
+                    {adminQrisUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={adminQrisUrl} alt="QRIS Admin" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-text-secondary text-sm">Belum ada QRIS</span>
+                    )}
+                  </div>
 
-                  {adminQrisUrl && (
-                    <button 
-                      onClick={() => {
-                        Swal.fire({
-                          title: 'Hapus QRIS?',
-                          text: "Foto QRIS saat ini akan dihapus.",
-                          icon: 'warning',
+                  <div className="flex gap-4">
+                    <button
+                      onClick={async () => {
+                        const { value: file } = await Swal.fire({
+                          title: 'Perbarui QRIS',
+                          input: 'file',
+                          inputAttributes: {
+                            'accept': 'image/*',
+                            'aria-label': 'Upload foto QRIS'
+                          },
                           showCancelButton: true,
-                          confirmButtonColor: '#ef4444',
-                          cancelButtonColor: '#94a3b8',
-                          confirmButtonText: 'Ya, Hapus',
-                          cancelButtonText: 'Batal'
-                        }).then((result) => {
-                          if (result.isConfirmed) {
-                            setAdminQrisUrl('');
-                            localStorage.removeItem('adminQrisUrl');
+                          confirmButtonText: 'Simpan',
+                          cancelButtonText: 'Batal',
+                          confirmButtonColor: '#ff5c35'
+                        });
+
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            const base64Url = e.target?.result as string;
+                            setAdminQrisUrl(base64Url);
+                            localStorage.setItem('adminQrisUrl', base64Url);
                             Swal.fire({
                               toast: true,
                               position: 'top-end',
                               icon: 'success',
-                              title: 'QRIS berhasil dihapus',
+                              title: 'QRIS berhasil diperbarui',
                               showConfirmButton: false,
                               timer: 3000
                             });
-                          }
-                        });
+                          };
+                          reader.readAsDataURL(file);
+                        }
                       }}
-                      className="btn-outline py-2 px-6 text-status-error border-status-error hover:bg-status-error/10"
+                      className="btn-primary py-2 px-6 shadow-lg shadow-brand-primary/20"
                     >
-                      Hapus
+                      Ganti Foto QRIS
                     </button>
-                  )}
+
+                    {adminQrisUrl && (
+                      <button
+                        onClick={() => {
+                          Swal.fire({
+                            title: 'Hapus QRIS?',
+                            text: "Foto QRIS saat ini akan dihapus.",
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#ef4444',
+                            cancelButtonColor: '#94a3b8',
+                            confirmButtonText: 'Ya, Hapus',
+                            cancelButtonText: 'Batal'
+                          }).then((result) => {
+                            if (result.isConfirmed) {
+                              setAdminQrisUrl('');
+                              localStorage.removeItem('adminQrisUrl');
+                              Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'QRIS berhasil dihapus',
+                                showConfirmButton: false,
+                                timer: 3000
+                              });
+                            }
+                          });
+                        }}
+                        className="btn-outline py-2 px-6 text-status-error border-status-error hover:bg-status-error/10"
+                      >
+                        Hapus
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {activeTab === 'verifikasi' && (
-            <div className="card p-0 border border-border overflow-hidden">
-              <div className="p-6 border-b border-border flex justify-between items-center bg-surface/50">
-                <h2 className="text-h3">Status Pembayaran Masuk</h2>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-surface text-caption text-text-secondary border-b border-border">
-                      <th className="p-4 font-medium">Order ID</th>
-                      <th className="p-4 font-medium">Total Bayar</th>
-                      <th className="p-4 font-medium">Status</th>
-                      <th className="p-4 font-medium">Waktu Pemesanan</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-body-small text-text-primary">
-                    {liveOrders.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="p-8 text-center text-text-secondary">Tidak ada data transaksi saat ini.</td>
+            {activeTab === 'verifikasi' && (
+              <div className="card p-0 border border-border overflow-hidden">
+                <div className="p-6 border-b border-border flex justify-between items-center bg-surface/50">
+                  <h2 className="text-h3">Status Pembayaran Masuk</h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-surface text-caption text-text-secondary border-b border-border">
+                        <th className="p-4 font-medium">Order ID</th>
+                        <th className="p-4 font-medium">Total Bayar</th>
+                        <th className="p-4 font-medium">Status</th>
+                        <th className="p-4 font-medium">Waktu Pemesanan</th>
                       </tr>
-                    ) : (
-                      liveOrders.map((order) => (
-                        <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                          <td className="p-4 font-mono font-medium">{order.id}</td>
-                          <td className="p-4 font-semibold text-brand-primary">Rp {(order.totalPrice || 0).toLocaleString('id-ID')}</td>
-                          <td className="p-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                              order.status === 'verified' || order.status === 'completed' 
-                                ? 'bg-status-success/10 text-status-success' 
-                                : order.status === 'waiting_verification'
-                                ? 'bg-status-warning/10 text-status-warning'
-                                : 'bg-border/50 text-text-secondary'
-                            }`}>
-                              {order.status === 'verified' ? 'Dibayar' : 
-                               order.status === 'completed' ? 'Selesai' :
-                               order.status === 'waiting_verification' ? 'Pending' : 'Batal'}
-                            </span>
-                          </td>
-                          <td className="p-4 text-text-secondary">
-                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                    </thead>
+                    <tbody className="text-body-small text-text-primary">
+                      {liveOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="p-8 text-center text-text-secondary">Tidak ada data transaksi saat ini.</td>
+                        </tr>
+                      ) : (
+                        liveOrders.map((order) => (
+                          <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                            <td className="p-4 font-mono font-medium">{order.id}</td>
+                            <td className="p-4 font-semibold text-brand-primary">Rp {(order.totalPrice || 0).toLocaleString('id-ID')}</td>
+                            <td className="p-4">
+                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${order.status === 'verified' || order.status === 'completed'
+                                  ? 'bg-status-success/10 text-status-success'
+                                  : order.status === 'waiting_verification'
+                                    ? 'bg-status-warning/10 text-status-warning'
+                                    : 'bg-border/50 text-text-secondary'
+                                }`}>
+                                {order.status === 'verified' ? 'Dibayar' :
+                                  order.status === 'completed' ? 'Selesai' :
+                                    order.status === 'waiting_verification' ? 'Pending' : 'Batal'}
+                              </span>
+                            </td>
+                            <td className="p-4 text-text-secondary">
+                              {order.createdAt ? new Date(order.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'pencairan' && (
+              <div className="card p-0 border border-border overflow-hidden">
+                <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
+                  <h2 className="text-h3">Permintaan Pencairan Dana (Payout)</h2>
+                  <div className="relative w-full sm:w-64">
+                    <input
+                      type="text"
+                      placeholder="Cari nama toko..."
+                      value={searchQueryPayout}
+                      onChange={(e) => setSearchQueryPayout(e.target.value)}
+                      className="input-field pl-10 pr-4 py-2 text-sm w-full"
+                    />
+                    <Search className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-surface text-caption text-text-secondary border-b border-border">
+                        <th className="p-4 font-medium">Toko / UMKM</th>
+                        <th className="p-4 font-medium">Rekening Tujuan</th>
+                        <th className="p-4 font-medium">Dana Diajukan</th>
+                        <th className="p-4 font-medium">Biaya (Admin)</th>
+                        <th className="p-4 font-medium">Total Ditransfer</th>
+                        <th className="p-4 font-medium">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-body-small text-text-primary">
+                      {mockPayouts.filter(p => p.storeName.toLowerCase().includes(searchQueryPayout.toLowerCase())).length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-text-secondary">
+                            {mockPayouts.length === 0 ? "Tidak ada permintaan pencairan dana saat ini." : "Pencairan tidak ditemukan."}
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+                      ) : (
+                        mockPayouts
+                          .filter(p => p.storeName.toLowerCase().includes(searchQueryPayout.toLowerCase()))
+                          .map((payout) => (
+                            <tr key={payout.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                              <td className="p-4">
+                                <p className="font-semibold text-text-primary">{payout.storeName}</p>
+                              </td>
+                              <td className="p-4 text-text-secondary">{payout.rekening}</td>
+                              <td className="p-4 text-text-primary">{payout.diajukan}</td>
+                              <td className="p-4 text-status-error">{payout.potongan}</td>
+                              <td className="p-4 font-bold text-status-success">{payout.total}</td>
+                              <td className="p-4">
+                                <div className="flex gap-2 items-center">
+                                  <button
+                                    onClick={() => {
+                                      Swal.fire({
+                                        title: 'Konfirmasi Pencairan',
+                                        text: `Apakah Anda sudah mentransfer sejumlah ${payout.total} ke ${payout.rekening}?`,
+                                        icon: 'question',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#10b981', // status-success
+                                        cancelButtonColor: '#94a3b8',
+                                        confirmButtonText: 'Ya, Sudah Ditransfer',
+                                        cancelButtonText: 'Batal'
+                                      }).then((result) => {
+                                        if (result.isConfirmed) {
+                                          updateMockPayouts(mockPayouts.filter(p => p.id !== payout.id));
+                                          Swal.fire({
+                                            toast: true,
+                                            position: 'top-end',
+                                            icon: 'success',
+                                            title: 'Pencairan ditandai selesai',
+                                            showConfirmButton: false,
+                                            timer: 3000
+                                          });
+                                        }
+                                      });
+                                    }}
+                                    className="btn-primary py-1.5 px-3 text-sm bg-status-success hover:bg-status-success/80 border-transparent text-white"
+                                  >
+                                    Tandai Selesai
+                                  </button>
 
-          {activeTab === 'pencairan' && (
-            <div className="card p-0 border border-border overflow-hidden">
-              <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
-                <h2 className="text-h3">Permintaan Pencairan Dana (Payout)</h2>
-                <div className="relative w-full sm:w-64">
-                  <input
-                    type="text"
-                    placeholder="Cari nama toko..."
-                    value={searchQueryPayout}
-                    onChange={(e) => setSearchQueryPayout(e.target.value)}
-                    className="input-field pl-10 pr-4 py-2 text-sm w-full"
-                  />
-                  <Search className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-surface text-caption text-text-secondary border-b border-border">
-                      <th className="p-4 font-medium">Toko / UMKM</th>
-                      <th className="p-4 font-medium">Rekening Tujuan</th>
-                      <th className="p-4 font-medium">Dana Diajukan</th>
-                      <th className="p-4 font-medium">Biaya (Admin)</th>
-                      <th className="p-4 font-medium">Total Ditransfer</th>
-                      <th className="p-4 font-medium">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-body-small text-text-primary">
-                    {mockPayouts.filter(p => p.storeName.toLowerCase().includes(searchQueryPayout.toLowerCase())).length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="p-8 text-center text-text-secondary">
-                          {mockPayouts.length === 0 ? "Tidak ada permintaan pencairan dana saat ini." : "Pencairan tidak ditemukan."}
-                        </td>
-                      </tr>
-                    ) : (
-                      mockPayouts
-                        .filter(p => p.storeName.toLowerCase().includes(searchQueryPayout.toLowerCase()))
-                        .map((payout) => (
-                        <tr key={payout.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                          <td className="p-4">
-                            <p className="font-semibold text-text-primary">{payout.storeName}</p>
-                          </td>
-                          <td className="p-4 text-text-secondary">{payout.rekening}</td>
-                          <td className="p-4 text-text-primary">{payout.diajukan}</td>
-                          <td className="p-4 text-status-error">{payout.potongan}</td>
-                          <td className="p-4 font-bold text-status-success">{payout.total}</td>
-                          <td className="p-4">
-                            <div className="flex gap-2 items-center">
-                              <button 
-                                onClick={() => {
-                                  Swal.fire({
-                                    title: 'Konfirmasi Pencairan',
-                                    text: `Apakah Anda sudah mentransfer sejumlah ${payout.total} ke ${payout.rekening}?`,
-                                    icon: 'question',
-                                    showCancelButton: true,
-                                    confirmButtonColor: '#10b981', // status-success
-                                    cancelButtonColor: '#94a3b8',
-                                    confirmButtonText: 'Ya, Sudah Ditransfer',
-                                    cancelButtonText: 'Batal'
-                                  }).then((result) => {
-                                    if (result.isConfirmed) {
-                                      updateMockPayouts(mockPayouts.filter(p => p.id !== payout.id));
+                                  <button
+                                    onClick={() => {
                                       Swal.fire({
-                                        toast: true,
-                                        position: 'top-end',
-                                        icon: 'success',
-                                        title: 'Pencairan ditandai selesai',
-                                        showConfirmButton: false,
-                                        timer: 3000
+                                        title: 'Hapus Permintaan?',
+                                        text: `Tolak dan hapus permintaan pencairan dari ${payout.storeName}?`,
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#ef4444',
+                                        cancelButtonColor: '#94a3b8',
+                                        confirmButtonText: 'Ya, Hapus!',
+                                        cancelButtonText: 'Batal'
+                                      }).then((result) => {
+                                        if (result.isConfirmed) {
+                                          updateMockPayouts(mockPayouts.filter(p => p.id !== payout.id));
+                                          Swal.fire({
+                                            toast: true,
+                                            position: 'top-end',
+                                            icon: 'success',
+                                            title: 'Permintaan pencairan dihapus',
+                                            showConfirmButton: false,
+                                            timer: 3000
+                                          });
+                                        }
                                       });
-                                    }
-                                  });
-                                }}
-                                className="btn-primary py-1.5 px-3 text-sm bg-status-success hover:bg-status-success/80 border-transparent text-white"
-                              >
-                                Tandai Selesai
-                              </button>
-                              
-                              <button 
-                                onClick={() => {
-                                  Swal.fire({
-                                    title: 'Hapus Permintaan?',
-                                    text: `Tolak dan hapus permintaan pencairan dari ${payout.storeName}?`,
-                                    icon: 'warning',
-                                    showCancelButton: true,
-                                    confirmButtonColor: '#ef4444',
-                                    cancelButtonColor: '#94a3b8',
-                                    confirmButtonText: 'Ya, Hapus!',
-                                    cancelButtonText: 'Batal'
-                                  }).then((result) => {
-                                    if (result.isConfirmed) {
-                                      updateMockPayouts(mockPayouts.filter(p => p.id !== payout.id));
-                                      Swal.fire({
-                                        toast: true,
-                                        position: 'top-end',
-                                        icon: 'success',
-                                        title: 'Permintaan pencairan dihapus',
-                                        showConfirmButton: false,
-                                        timer: 3000
-                                      });
-                                    }
-                                  });
-                                }}
-                                className="btn-outline py-1.5 px-3 text-sm text-status-error border-status-error hover:bg-status-error/10"
-                              >
-                                Hapus
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-          {activeTab === 'settings' && (
-            <div className="grid gap-6">
-              <div className="card md:p-6 border border-border">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h2 className="text-h3">Biaya Aplikasi</h2>
-                    <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli pada saat checkout (ditampilkan dalam struk pdf).</p>
-                  </div>
-                  <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Aplikasi', input: 'number', inputValue: feeAplikasi }); if(v){ setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_aplikasi: parseInt(v) }) }); setFeeAplikasi(parseInt(v)); setFeeLoading(false); Swal.fire({toast:true, position:'top-end', title:'Tersimpan', icon:'success', timer:2000, showConfirmButton:false});} }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                                    }}
+                                    className="btn-outline py-1.5 px-3 text-sm text-status-error border-status-error hover:bg-status-error/10"
+                                  >
+                                    Hapus
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-                <p className="text-4xl font-black text-brand-primary">Rp {feeAplikasi.toLocaleString('id-ID')}</p>
               </div>
-              <div className="card md:p-6 border border-border">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h2 className="text-h3">Biaya Jasa</h2>
-                    <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli untuk jasa layanan aplikasi.</p>
+            )}
+            {activeTab === 'settings' && (
+              <div className="grid gap-6">
+                <div className="card md:p-6 border border-border">
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h2 className="text-h3">Biaya Aplikasi</h2>
+                      <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli pada saat checkout (ditampilkan dalam struk pdf).</p>
+                    </div>
+                    <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Aplikasi', input: 'number', inputValue: feeAplikasi }); if (v) { setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_aplikasi: parseInt(v) }) }); setFeeAplikasi(parseInt(v)); setFeeLoading(false); Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); } }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
                   </div>
-                  <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Jasa', input: 'number', inputValue: feeJasa }); if(v){ setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_jasa: parseInt(v) }) }); setFeeJasa(parseInt(v)); setFeeLoading(false); Swal.fire({toast:true, position:'top-end', title:'Tersimpan', icon:'success', timer:2000, showConfirmButton:false});} }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                  <p className="text-4xl font-black text-brand-primary">Rp {feeAplikasi.toLocaleString('id-ID')}</p>
                 </div>
-                <p className="text-4xl font-black text-brand-primary">Rp {feeJasa.toLocaleString('id-ID')}</p>
-              </div>
-              <div className="card md:p-6 border border-border">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h2 className="text-h3">Biaya Admin</h2>
-                    <p className="text-sm text-text-secondary pr-4 mt-1">Dipotong secara tak terlihat dari hasil saldo bersih penjual per transaksi pembayaran.</p>
+                <div className="card md:p-6 border border-border">
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h2 className="text-h3">Biaya Jasa</h2>
+                      <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli untuk jasa layanan aplikasi.</p>
+                    </div>
+                    <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Jasa', input: 'number', inputValue: feeJasa }); if (v) { setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_jasa: parseInt(v) }) }); setFeeJasa(parseInt(v)); setFeeLoading(false); Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); } }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
                   </div>
-                  <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Admin', input: 'number', inputValue: feeAdmin }); if(v){ setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_admin: parseInt(v) }) }); setFeeAdmin(parseInt(v)); setFeeLoading(false); Swal.fire({toast:true, position:'top-end', title:'Tersimpan', icon:'success', timer:2000, showConfirmButton:false});} }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                  <p className="text-4xl font-black text-brand-primary">Rp {feeJasa.toLocaleString('id-ID')}</p>
                 </div>
-                <p className="text-4xl font-black text-status-error">-Rp {feeAdmin.toLocaleString('id-ID')}</p>
+                <div className="card md:p-6 border border-border">
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h2 className="text-h3">Biaya Admin</h2>
+                      <p className="text-sm text-text-secondary pr-4 mt-1">Dipotong secara tak terlihat dari hasil saldo bersih penjual per transaksi pembayaran.</p>
+                    </div>
+                    <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Admin', input: 'number', inputValue: feeAdmin }); if (v) { setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_admin: parseInt(v) }) }); setFeeAdmin(parseInt(v)); setFeeLoading(false); Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); } }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                  </div>
+                  <p className="text-4xl font-black text-status-error">-Rp {feeAdmin.toLocaleString('id-ID')}</p>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
         </div>
       </main>
 
@@ -1674,11 +1663,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
 
         <button
           onClick={() => setIsMobileSidebarOpen(true)}
-          className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 ${
-            ['promosi', 'qris', 'tickets', 'settings'].includes(activeTab)
+          className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 ${['promosi', 'qris', 'tickets', 'settings'].includes(activeTab)
               ? 'text-brand-primary font-semibold'
               : 'text-text-secondary hover:text-brand-primary'
-          }`}
+            }`}
         >
           <div className="relative">
             <MoreHorizontal className={`w-6 h-6 stroke-[1.5] ${['promosi', 'qris', 'tickets', 'settings'].includes(activeTab) ? 'stroke-brand-primary' : ''}`} />
