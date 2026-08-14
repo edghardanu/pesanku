@@ -413,8 +413,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           <button
             onClick={() => handleTabChange('overview')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'overview'
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-brand-primary/10 text-brand-primary font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <Settings className="w-5 h-5" />
@@ -424,8 +424,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           <button
             onClick={() => handleTabChange('umkm')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'umkm'
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-brand-primary/10 text-brand-primary font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <Store className="w-5 h-5" />
@@ -435,8 +435,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           <button
             onClick={() => handleTabChange('pesanan')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'pesanan'
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-brand-primary/10 text-brand-primary font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <ShoppingBag className="w-5 h-5" />
@@ -446,8 +446,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           <button
             onClick={() => handleTabChange('promosi')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'promosi'
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-brand-primary/10 text-brand-primary font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <Megaphone className="w-5 h-5" />
@@ -462,8 +462,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           <button
             onClick={() => handleTabChange('verifikasi')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'verifikasi'
-                ? 'bg-status-warning/10 text-status-warning font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-status-warning/10 text-status-warning font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <CheckCircle className="w-5 h-5" />
@@ -476,8 +476,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           <button
             onClick={() => handleTabChange('pencairan')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'pencairan'
-                ? 'bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <ArrowRightLeft className="w-5 h-5" />
@@ -490,8 +490,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           <button
             onClick={() => handleTabChange('qris')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'qris'
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-brand-primary/10 text-brand-primary font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <QrCode className="w-5 h-5" />
@@ -501,8 +501,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           <button
             onClick={() => handleTabChange('tickets')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'tickets'
-                ? 'bg-status-error/10 text-status-error font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-status-error/10 text-status-error font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <Settings className="w-5 h-5" />
@@ -517,8 +517,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           <button
             onClick={() => handleTabChange('settings')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'settings'
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-brand-primary/10 text-brand-primary font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <Store className="w-5 h-5" />
@@ -719,10 +719,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                               <td className="p-4 text-text-secondary max-w-[200px] truncate" title={umkm.address || ""}>{umkm.address || "-"}</td>
                               <td className="p-4">
                                 <span className={`px-2 py-1 rounded-full text-xs font-bold ${umkm.status === 'active'
-                                    ? 'bg-status-success/10 text-status-success'
-                                    : umkm.status === 'inactive'
-                                      ? 'bg-status-error/10 text-status-error'
-                                      : 'bg-status-warning/10 text-status-warning'
+                                  ? 'bg-status-success/10 text-status-success'
+                                  : umkm.status === 'inactive'
+                                    ? 'bg-status-error/10 text-status-error'
+                                    : 'bg-status-warning/10 text-status-warning'
                                   }`}>
                                   {umkm.status === 'active' ? 'Aktif' : umkm.status === 'inactive' ? 'Tidak Aktif' : 'Pending'}
                                 </span>
@@ -853,15 +853,15 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                             </td>
                             <td className="p-4">
                               <span className={`px-2 py-1 rounded-full text-xs font-bold ${['waiting_verification', 'failed', 'cancelled'].includes(order.status || '')
-                                  ? 'bg-status-error/10 text-status-error'
-                                  : order.status === 'completed'
-                                    ? 'bg-status-success/10 text-status-success'
-                                    : 'bg-status-warning/10 text-status-warning'
+                                ? 'bg-status-error/10 text-status-error'
+                                : order.status === 'completed'
+                                  ? 'bg-status-success/10 text-status-success'
+                                  : 'bg-status-warning/10 text-status-warning'
                                 }`}>
                                 {order.status === 'verified' ? 'Sudah Dibayar oleh Pembeli' :
                                   order.status === 'ongoing' ? 'Sedang Diproses oleh Penjual' :
                                     order.status === 'completed' ? 'Selesai' :
-                                      order.status === 'waiting_verification' ? 'Sedang Menunggu Konfirmasi dari Penjual' :
+                                      order.status === 'waiting_verification' ? 'Sedang Menunggu Konfirmasi Penjual' :
                                         order.status === 'cancelled' ? 'DiBatalkan' :
                                           order.status}
                               </span>
@@ -1081,10 +1081,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                             </td>
                             <td className="p-4">
                               <span className={`px-2 py-1 rounded-full text-xs font-bold ${ticket.status === 'open'
-                                  ? 'bg-status-error/10 text-status-error'
-                                  : ticket.status === 'resolved'
-                                    ? 'bg-status-success/10 text-status-success'
-                                    : 'bg-status-warning/10 text-status-warning'
+                                ? 'bg-status-error/10 text-status-error'
+                                : ticket.status === 'resolved'
+                                  ? 'bg-status-success/10 text-status-success'
+                                  : 'bg-status-warning/10 text-status-warning'
                                 }`}>
                                 {ticket.status.toUpperCase()}
                               </span>
@@ -1289,10 +1289,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                   <div className="w-full flex items-end justify-center h-full pt-6">
                                     <div
                                       className={`w-full max-w-[44px] rounded-t-xl transition-all duration-300 relative cursor-pointer ${isHovered
-                                          ? 'bg-gradient-to-t from-brand-primary via-brand-primary to-brand-secondary shadow-lg shadow-brand-primary/40 scale-105 ring-2 ring-brand-primary/40'
-                                          : hasOrders
-                                            ? 'bg-gradient-to-t from-brand-primary/80 to-brand-primary shadow-sm'
-                                            : 'bg-border/60 dark:bg-slate-700/50 hover:bg-border'
+                                        ? 'bg-gradient-to-t from-brand-primary via-brand-primary to-brand-secondary shadow-lg shadow-brand-primary/40 scale-105 ring-2 ring-brand-primary/40'
+                                        : hasOrders
+                                          ? 'bg-gradient-to-t from-brand-primary/80 to-brand-primary shadow-sm'
+                                          : 'bg-border/60 dark:bg-slate-700/50 hover:bg-border'
                                         }`}
                                       style={{ height: `${barHeightPercent}%` }}
                                     >
@@ -1440,10 +1440,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                             <td className="p-4 font-semibold text-brand-primary">Rp {(order.totalPrice || 0).toLocaleString('id-ID')}</td>
                             <td className="p-4">
                               <span className={`px-2 py-1 rounded-full text-xs font-bold ${order.status === 'verified' || order.status === 'completed'
-                                  ? 'bg-status-success/10 text-status-success'
-                                  : order.status === 'waiting_verification'
-                                    ? 'bg-status-warning/10 text-status-warning'
-                                    : 'bg-border/50 text-text-secondary'
+                                ? 'bg-status-success/10 text-status-success'
+                                : order.status === 'waiting_verification'
+                                  ? 'bg-status-warning/10 text-status-warning'
+                                  : 'bg-border/50 text-text-secondary'
                                 }`}>
                                 {order.status === 'verified' ? 'Dibayar' :
                                   order.status === 'completed' ? 'Selesai' :
@@ -1664,8 +1664,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
         <button
           onClick={() => setIsMobileSidebarOpen(true)}
           className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 ${['promosi', 'qris', 'tickets', 'settings'].includes(activeTab)
-              ? 'text-brand-primary font-semibold'
-              : 'text-text-secondary hover:text-brand-primary'
+            ? 'text-brand-primary font-semibold'
+            : 'text-text-secondary hover:text-brand-primary'
             }`}
         >
           <div className="relative">
