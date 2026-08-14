@@ -882,27 +882,27 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                 Swal.fire({
                                   title: 'Detail Pesanan & Saldo',
                                   html: `
-                                    <div class="text-left text-sm space-y-3">
-                                      <div class="p-3 bg-base border border-border rounded-lg">
-                                        <div class="flex justify-between border-b border-border pb-2 mb-2">
-                                          <span class="text-text-secondary">Pembeli:</span>
-                                          <strong class="text-text-primary">${order.buyerName || '-'}</strong>
+                                    <div class="text-left text-sm space-y-4">
+                                      <div class="p-3.5 bg-base border border-border rounded-xl space-y-2.5">
+                                        <div class="grid grid-cols-3 gap-2 border-b border-border pb-2.5">
+                                          <span class="text-text-secondary text-xs sm:text-sm font-medium">Pembeli:</span>
+                                          <strong class="text-text-primary col-span-2 text-right text-xs sm:text-sm break-words">${order.buyerName || '-'}</strong>
                                         </div>
-                                        <div class="flex justify-between border-b border-border pb-2 mb-2">
-                                          <span class="text-text-secondary">Kontak:</span>
-                                          <span class="text-text-primary">${order.buyerPhone || '-'}</span>
+                                        <div class="grid grid-cols-3 gap-2 border-b border-border pb-2.5">
+                                          <span class="text-text-secondary text-xs sm:text-sm font-medium">Kontak:</span>
+                                          <span class="text-text-primary col-span-2 text-right text-xs sm:text-sm break-all">${order.buyerPhone || '-'}</span>
                                         </div>
-                                        <div class="flex justify-between border-b border-border pb-2 mb-2">
-                                          <span class="text-text-secondary">Catatan:</span>
-                                          <span class="text-text-primary">${order.notes || '-'}</span>
+                                        <div class="grid grid-cols-3 gap-2 border-b border-border pb-2.5">
+                                          <span class="text-text-secondary text-xs sm:text-sm font-medium">Catatan:</span>
+                                          <span class="text-text-primary col-span-2 text-right text-xs sm:text-sm break-words">${order.notes || '-'}</span>
                                         </div>
-                                        <div class="flex justify-between">
-                                          <span class="text-text-secondary">Alamat:</span>
-                                          <span class="text-text-primary">${order.deliveryAddress || order.buyerAddress || '-'}</span>
+                                        <div class="grid grid-cols-3 gap-2">
+                                          <span class="text-text-secondary text-xs sm:text-sm font-medium">Alamat:</span>
+                                          <span class="text-text-primary col-span-2 text-right text-xs sm:text-sm break-words">${order.deliveryAddress || order.buyerAddress || '-'}</span>
                                         </div>
                                       </div>
                                       
-                                      <h3 class="font-bold border-b border-border pb-2 mt-4">Alokasi Saldo Pembagian</h3>
+                                      <h3 class="font-bold border-b border-border pb-2 mt-4 text-text-primary">Alokasi Saldo Pembagian</h3>
                                       <p class="text-xs text-text-secondary mb-2">Ubah manual pembagian saldo jika ada. Otomatis masuk ke penjual setelah pesanan selesai.</p>
                                       
                                       <div class="mb-3">
@@ -913,7 +913,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                         </div>
                                       </div>
                                       
-                                      <div class="flex items-center justify-between gap-4">
+                                      <div class="flex flex-col sm:flex-row items-stretch gap-3">
                                         <div class="flex-1">
                                           <label class="block text-xs font-semibold mb-1 text-status-warning">Saldo Admin (Rp)</label>
                                           <input type="number" id="swal-admin-split" class="input-field w-full text-right bg-base/50" value="${currentAdmin}" />
@@ -924,7 +924,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                         </div>
                                       </div>
                                       <div class="flex items-center justify-between mt-2 pt-2 border-t border-border font-bold">
-                                         <span>Total Order:</span>
+                                         <span class="text-text-primary">Total Order:</span>
                                          <span id="swal-total-validation" class="text-brand-primary">Rp ${(order.totalPrice||0).toLocaleString('id-ID')}</span>
                                       </div>
                                     </div>
@@ -932,7 +932,15 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                   showCancelButton: true,
                                   confirmButtonText: 'Simpan Saldo',
                                   cancelButtonText: 'Tutup',
-                                  confirmButtonColor: '#ff5c35',
+                                  customClass: {
+                                    popup: 'bg-surface text-text-primary rounded-2xl w-[95%] max-w-lg border border-border shadow-xl',
+                                    title: 'text-h2 font-bold text-text-primary pt-6 border-b border-border pb-3 px-6',
+                                    htmlContainer: 'text-left px-6 py-4',
+                                    actions: 'flex items-center justify-end gap-3 px-6 pb-6 pt-2 w-full',
+                                    confirmButton: 'btn-primary py-2 px-5 text-sm font-semibold rounded-xl cursor-pointer',
+                                    cancelButton: 'btn-outline border-border hover:bg-base text-text-secondary py-2 px-5 text-sm font-semibold rounded-xl cursor-pointer'
+                                  },
+                                  buttonsStyling: false,
                                   didOpen: () => {
                                     const t = order.totalPrice || 0;
                                     const adminInput = document.getElementById('swal-admin-split') as HTMLInputElement;
