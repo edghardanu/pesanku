@@ -52,23 +52,46 @@ export async function GET() {
     .orderBy(desc(chatMessages.createdAt));
     
     // 3. Get all chat threads for the "Chat Pembeli" menu
-    const chatThreads = await db.select({
-      orderId: orders.id,
+    // We use JS grouping to avoid unsupported raw SQL subquery bugs and schema inconsistencies
+    const allChats = await db.select({
+      id: chatMessages.id,
+      orderId: chatMessages.orderId,
+      text: chatMessages.text,
+      isRead: chatMessages.isRead,
+      senderId: chatMessages.senderId,
+      createdAt: chatMessages.createdAt,
       productName: products.name,
       buyerName: users.name,
       qty: orders.qty,
       totalPrice: orders.totalPrice,
-      latestMessage: sql<string>`(SELECT text FROM chat_messages WHERE chat_messages.order_id = orders.id ORDER BY chat_messages.created_at DESC LIMIT 1)`,
-      latestMessageAt: sql<string>`(SELECT created_at FROM chat_messages WHERE chat_messages.order_id = orders.id ORDER BY chat_messages.created_at DESC LIMIT 1)`,
-      unreadCount: sql<number>`SUM(CASE WHEN chat_messages.is_read = 0 AND chat_messages.sender_id != ${user.id} THEN 1 ELSE 0 END)`,
     })
-    .from(orders)
+    .from(chatMessages)
+    .innerJoin(orders, eq(chatMessages.orderId, orders.id))
     .innerJoin(products, eq(orders.productId, products.id))
     .innerJoin(users, eq(orders.buyerId, users.id))
-    .innerJoin(chatMessages, eq(orders.id, chatMessages.orderId))
     .where(eq(products.sellerId, user.id))
-    .groupBy(orders.id)
-    .orderBy(desc(sql`MAX(${chatMessages.createdAt})`));
+    .orderBy(desc(chatMessages.createdAt));
+
+    const threadsMap = new Map();
+    allChats.forEach(chat => {
+      if (!threadsMap.has(chat.orderId)) {
+        threadsMap.set(chat.orderId, {
+          orderId: chat.orderId,
+          productName: chat.productName,
+          buyerName: chat.buyerName,
+          qty: chat.qty,
+          totalPrice: chat.totalPrice,
+          latestMessage: chat.text,
+          latestMessageAt: chat.createdAt,
+          unreadCount: 0
+        });
+      }
+      if (!chat.isRead && chat.senderId !== user.id) {
+        threadsMap.get(chat.orderId).unreadCount++;
+      }
+    });
+
+    const chatThreads = Array.from(threadsMap.values());
 
     return NextResponse.json({
       newOrders,
