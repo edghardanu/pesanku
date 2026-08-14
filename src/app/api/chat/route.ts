@@ -28,6 +28,9 @@ export async function GET(request: Request) {
     const orderId = searchParams.get("orderId");
     if (!orderId) return NextResponse.json({ error: "orderId required" }, { status: 400 });
 
+    const user = await getUserFromSession();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     if (user) {
       // Mark messages not sent by standard user as read automatically
       const { and, not } = await import("drizzle-orm");

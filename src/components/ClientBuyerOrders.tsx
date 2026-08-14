@@ -414,7 +414,7 @@ export default function ClientBuyerOrders({
 
   const escapeQuotes = (str: string) => str ? str.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
 
-  const handleOpenChat = async (orderId: string, productName: string) => {
+  const handleOpenChat = async (orderId: string, storeName: string, productName: string) => {
     // Show loading state first
     Swal.fire({
       title: 'Memuat Obrolan...',
@@ -1122,7 +1122,7 @@ export default function ClientBuyerOrders({
 
                             <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto mt-1">
                               <button 
-                                onClick={() => handleOpenChat(order.orderId, order.productName)}
+                                onClick={() => handleOpenChat(order.orderId, order.storeName || 'Toko UMKM', order.productName)}
                                 className="btn-outline border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10 hover:border-brand-primary py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
                               >
                                 <MessageCircle className="w-3.5 h-3.5" /> Chat
