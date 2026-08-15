@@ -1078,7 +1078,7 @@ export default function ClientSellerDashboard({
             <div className="relative">
               <button 
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
-                className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors relative overflow-hidden flex items-center justify-center w-9 h-9 border border-border hover-btn cursor-pointer shadow-sm"
+                className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors relative flex items-center justify-center w-9 h-9 border border-border hover-btn cursor-pointer shadow-sm"
                 title="Notifikasi"
               >
                 <motion.div initial={{ rotate: 0 }} whileHover={{ rotate: 15 }} className="flex items-center">
