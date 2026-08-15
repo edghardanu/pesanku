@@ -1293,7 +1293,7 @@ export default function ClientHome({
         </section>
 
         {/* Alur Pemesanan Section */}
-        <section className="px-4 container mx-auto pb-24">
+        <section id="alur-pemesanan" className="px-4 container mx-auto pb-24">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1308,8 +1308,8 @@ export default function ClientHome({
             onViewportEnter={() => setFlowInView(true)}
             className="grid grid-cols-1 md:grid-cols-4 gap-8 relative max-w-5xl mx-auto"
           >
-            {/* Connecting Line for Desktop */}
-            <div className="hidden md:block absolute top-[2.5rem] left-0 w-full h-1 bg-border -translate-y-1/2 z-0 rounded-full overflow-hidden">
+            {/* Connecting Line for Tablet and Desktop */}
+            <div data-flow-connector="desktop" className="hidden md:block absolute top-[2.5rem] left-0 w-full h-1 bg-border -translate-y-1/2 z-0 rounded-full overflow-hidden">
               <motion.div 
                 animate={{ width: activeStep >= 0 ? `${(activeStep * 25) + 12.5}%` : "0%" }}
                 transition={{ duration: 0.8, ease: "easeInOut" }}
@@ -1375,6 +1375,19 @@ export default function ClientHome({
                   </motion.div>
                   <h3 className={`text-lg font-bold mb-3 transition-colors cursor-default ${isActive ? 'text-brand-primary' : 'text-text-primary group-hover:text-brand-primary'}`}>{step.title}</h3>
                   <p className="text-sm text-text-secondary leading-relaxed max-w-[200px] cursor-default">{step.desc}</p>
+                  {idx < 3 && (
+                    <div
+                      aria-hidden="true"
+                      data-flow-connector="mobile"
+                      className="md:hidden absolute left-1/2 top-full h-8 w-1 -translate-x-1/2 overflow-hidden rounded-full bg-border"
+                    >
+                      <motion.div
+                        animate={{ height: activeStep > idx ? '100%' : '0%' }}
+                        transition={{ duration: 0.8, ease: 'easeInOut' }}
+                        className="absolute left-0 top-0 w-full rounded-full bg-brand-primary"
+                      />
+                    </div>
+                  )}
                 </motion.div>
               );
             })}
