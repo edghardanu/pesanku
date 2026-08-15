@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { chatMessages, orders, products, users } from "@/lib/schema";
-import { and, asc, eq, ne } from "drizzle-orm";
+import { and, asc, eq, ne, inArray, not } from "drizzle-orm";
 import { getUserFromSession } from "@/lib/auth";
 import crypto from "crypto";
 
@@ -11,6 +11,7 @@ async function getChatOrder(orderId: string) {
       buyerId: orders.buyerId,
       productName: products.name,
       sellerId: products.sellerId,
+      status: orders.status,
     })
     .from(orders)
     .innerJoin(products, eq(orders.productId, products.id))
@@ -31,53 +32,58 @@ export async function GET(request: Request) {
     const user = await getUserFromSession();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (user) {
-      // Mark messages not sent by standard user as read automatically
-      const { and, not } = await import("drizzle-orm");
-      await db.update(chatMessages)
-        .set({ isRead: true })
-        .where(
-          and(
-            eq(chatMessages.orderId, orderId),
-            not(eq(chatMessages.senderId, user.id)),
-            eq(chatMessages.isRead, false)
-          )
-        ).catch(() => {});
-    }
-
     const orderData = await getChatOrder(orderId);
     if (!orderData) return NextResponse.json({ error: "Order not found" }, { status: 404 });
     if (!canAccessChat(user.id, orderData)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Get all orders between this buyer and this seller to unify the chat
+    const allBuyerOrders = await db
+      .select({ id: orders.id })
+      .from(orders)
+      .innerJoin(products, eq(orders.productId, products.id))
+      .where(and(
+        eq(orders.buyerId, orderData.buyerId),
+        eq(products.sellerId, orderData.sellerId)
+      ));
+    
+    const orderIds = allBuyerOrders.map(o => o.id);
+
+    // Membuka chat hanya menandai pesan dari lawan bicara sebagai telah dibaca.
+    if (user && orderIds.length > 0) {
+      await db
+        .update(chatMessages)
+        .set({ isRead: true })
+        .where(
+          and(
+            inArray(chatMessages.orderId, orderIds),
+            ne(chatMessages.senderId, user.id),
+            eq(chatMessages.isRead, false)
+          )
+        ).catch(() => {});
+    }
+
     const existingMessage = await db
       .select({ id: chatMessages.id })
       .from(chatMessages)
-      .where(eq(chatMessages.orderId, orderId))
+      .where(inArray(chatMessages.orderId, orderIds))
       .get();
 
     if (!existingMessage) {
       // Auto-initialize chat with seller template!
       const msgId = `msg_${crypto.randomBytes(8).toString('hex')}`;
+      const isChatOnly = orderData.status === 'chat_only';
       await db.insert(chatMessages).values({
         id: msgId,
         orderId,
         senderId: orderData.sellerId,
-        text: `Halo kak! Tadi kakak melakukan pemesanan untuk <b>${orderData.productName}</b> ya?`,
+        text: isChatOnly 
+          ? `Halo kak! Apakah ada yang bisa kami bantu seputar produk <b>${orderData.productName}</b>?`
+          : `Halo kak! Tadi kakak melakukan pemesanan untuk <b>${orderData.productName}</b> ya?`,
         isRead: false,
       });
     }
-
-    // Membuka chat hanya menandai pesan dari lawan bicara sebagai telah dibaca.
-    await db
-      .update(chatMessages)
-      .set({ isRead: true })
-      .where(and(
-        eq(chatMessages.orderId, orderId),
-        ne(chatMessages.senderId, user.id),
-        eq(chatMessages.isRead, false),
-      ));
 
     const messages = await db
       .select({
@@ -90,10 +96,10 @@ export async function GET(request: Request) {
       })
       .from(chatMessages)
       .innerJoin(users, eq(chatMessages.senderId, users.id))
-      .where(eq(chatMessages.orderId, orderId))
+      .where(inArray(chatMessages.orderId, orderIds))
       .orderBy(asc(chatMessages.createdAt));
 
-    return NextResponse.json({ messages });
+    return NextResponse.json({ messages, status: orderData.status });
   } catch (error) {
     console.error("Failed to load chat:", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

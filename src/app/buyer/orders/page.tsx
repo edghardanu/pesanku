@@ -38,6 +38,7 @@ export default async function BuyerOrdersPage({
         productName: products.name,
         productImageUrl: products.imageUrl,
         storeName: sellerProfiles.storeName,
+        sellerId: products.sellerId,
         minQty: products.minOrderQty,
         maxQty: products.maxOrderQty,
         processingTime: products.processingTime,

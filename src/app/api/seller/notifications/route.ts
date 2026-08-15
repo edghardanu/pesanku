@@ -64,6 +64,7 @@ export async function GET() {
       buyerName: users.name,
       qty: orders.qty,
       totalPrice: orders.totalPrice,
+      buyerId: orders.buyerId,
     })
     .from(chatMessages)
     .innerJoin(orders, eq(chatMessages.orderId, orders.id))
@@ -74,8 +75,8 @@ export async function GET() {
 
     const threadsMap = new Map();
     allChats.forEach(chat => {
-      if (!threadsMap.has(chat.orderId)) {
-        threadsMap.set(chat.orderId, {
+      if (!threadsMap.has(chat.buyerId)) {
+        threadsMap.set(chat.buyerId, {
           orderId: chat.orderId,
           productName: chat.productName,
           buyerName: chat.buyerName,
@@ -87,7 +88,7 @@ export async function GET() {
         });
       }
       if (!chat.isRead && chat.senderId !== user.id) {
-        threadsMap.get(chat.orderId).unreadCount++;
+        threadsMap.get(chat.buyerId).unreadCount++;
       }
     });
 

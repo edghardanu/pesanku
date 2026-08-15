@@ -17,6 +17,7 @@ type Product = {
   name: string;
   price: number;
   imageUrl: string | null;
+  description: string | null;
   preorderMinQty: number | null;
   currentQty: number | null;
   status: string | null;
@@ -430,16 +431,19 @@ export default function ClientSellerDashboard({
     try {
       const res = await fetch(`/api/chat?orderId=${orderId}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Gagal memuat obrolan');
-      const { messages } = await res.json();
+      const { messages, status } = await res.json();
       
       const chatHistory: ChatMessage[] = messages || [];
 
       const hasSellerOpening = chatHistory.some((m: ChatMessage) => m.sender === 'seller' || m.role === 'penjual' || m.role === 'admin');
       if (!hasSellerOpening) {
+        const isChatOnly = status === 'chat_only';
         chatHistory.unshift({
           sender: 'seller', // Add this to render on the right side
           role: 'penjual',
-          text: `Halo kak! Tadi kakak melakukan pemesanan untuk <b>${productName}</b> ya?`,
+          text: isChatOnly 
+            ? `Halo kak! Apakah ada yang bisa kami bantu seputar produk <b>${productName}</b>?`
+            : `Halo kak! Tadi kakak melakukan pemesanan untuk <b>${productName}</b> ya?`,
           createdAt: chatHistory[0]?.createdAt 
             ? new Date(new Date(chatHistory[0].createdAt).getTime() - 60000).toISOString() 
             : new Date().toISOString(),
@@ -447,15 +451,55 @@ export default function ClientSellerDashboard({
         });
       }
 
+    const renderSingleOfferCard = (pId: string, pName: string, pPrice: string, pImage: string, isMe: boolean) => {
+      const cleanImg = pImage || "/street-food-festival.jpg";
+      const bgCard = isMe ? 'bg-white/10' : 'bg-surface border border-border';
+      const textTitle = isMe ? 'text-white' : 'text-text-primary';
+      const textPrice = isMe ? 'text-yellow-200' : 'text-brand-primary';
+      const buttonBg = isMe ? 'bg-white text-brand-primary hover:bg-white/95' : 'bg-brand-primary text-white hover:bg-brand-primary-hover';
+      
+      return `
+        <div class="flex flex-col gap-2.5 p-2.5 rounded-xl ${bgCard} w-full min-w-0 max-w-[260px] shadow-sm text-left">
+          <div class="flex gap-3 items-center">
+            <div class="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-base relative border border-white/10">
+              <img src="${cleanImg}" alt="${pName}" class="w-full h-full object-cover" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-bold ${textTitle} line-clamp-2 leading-tight" title="${pName}">${pName}</p>
+              <p class="text-xs font-bold mt-1 ${textPrice}">${pPrice}</p>
+            </div>
+          </div>
+          <a href="/product/${pId}" target="_blank" class="w-full ${buttonBg} text-xs font-bold py-1.5 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1 active:scale-95 decoration-none hover:no-underline">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+            Lihat Produk
+          </a>
+        </div>
+      `;
+    };
+
     const renderMsgs = () => chatHistory.map((c: ChatMessage) => {
       const isMe = c.sender === 'seller';
+      
+      const trimmedText = (c.text || '').trim();
+      let bubbleContent = c.text;
+      if (trimmedText.startsWith('[PRODUK_OFFER|') && trimmedText.endsWith(']')) {
+        const parts = trimmedText.slice(1, -1).split('|');
+        if (parts.length >= 5) {
+          const pId = parts[1];
+          const pName = parts[2];
+          const pPrice = parts[3];
+          const pImage = parts.slice(4).join('|');
+          bubbleContent = renderSingleOfferCard(pId, pName, pPrice, pImage, isMe);
+        }
+      }
+
       if (isMe) {
         const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
         const tickStyle = c.isRead ? "color: #60a5fa;" : "";
         return `
           <div class="flex justify-end mt-3">
             <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm">
-              ${c.text}
+              ${bubbleContent}
               <div class="flex items-center justify-end gap-1 mt-1">
                 <span class="text-[10px] text-white/80">${isMe ? 'Anda' : (buyerName || 'Pembeli')} • ${c.createdAt ? new Date(c.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', hour12: false}) : ''}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${tickClass}" style="${tickStyle}"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
@@ -467,7 +511,7 @@ export default function ClientSellerDashboard({
         return `
           <div class="flex justify-start mt-3">
             <div class="bg-surface border border-border rounded-xl rounded-tl-none px-4 py-2 max-w-[80%] text-sm text-text-primary text-left">
-              ${c.text}
+              ${bubbleContent}
               <div class="text-[10px] text-text-secondary mt-1">${isMe ? 'Anda' : (buyerName || 'Pembeli')} • ${c.createdAt ? new Date(c.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', hour12: false}) : ''}</div>
             </div>
           </div>
@@ -475,28 +519,99 @@ export default function ClientSellerDashboard({
       }
     }).join('');
 
+    const renderProductList = () => {
+      const activeProducts = localProducts.filter(p => p.status === 'active');
+      if (activeProducts.length === 0) {
+        return `<div class="text-xs text-text-secondary text-center py-8">Tidak ada produk aktif di toko Anda.</div>`;
+      }
+      return activeProducts.map(p => {
+        const imageUrl = p.imageUrl || "/street-food-festival.jpg";
+        const priceStr = `Rp ${p.price.toLocaleString('id-ID')}`;
+        const cleanName = p.name.replace(/"/g, '&quot;');
+        const cleanDesc = (p.description || '').replace(/"/g, '&quot;');
+        return `
+          <div class="flex gap-3 p-3 bg-surface hover:bg-brand-primary/5 border border-border rounded-xl transition-all group duration-200 text-left">
+            <div class="w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden shrink-0 bg-base relative border border-border/50">
+              <img src="${imageUrl}" alt="${cleanName}" class="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+            </div>
+            <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+              <div>
+                <p class="text-sm font-bold text-text-primary truncate" title="${cleanName}">${p.name}</p>
+                <p class="text-xs text-text-secondary mt-1 line-clamp-1 leading-tight">${cleanDesc}</p>
+              </div>
+              <div class="flex justify-between items-center mt-2">
+                <span class="text-sm font-bold text-brand-primary">${priceStr}</span>
+                <button class="offer-product-btn text-xs bg-brand-primary hover:bg-brand-primary-hover text-white font-bold py-1 px-3 rounded-lg transition-colors flex items-center gap-1 active:scale-95 whitespace-nowrap" data-id="${p.id}" data-name="${cleanName}" data-price="${priceStr}" data-img="${imageUrl}">
+                  Tawarkan
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
+
     Swal.fire({
       title: `Chat: ${buyerName}`,
+      width: 'min(95vw, 950px)',
       html: `
-        <div class="flex flex-col h-[300px] bg-base border border-border rounded-xl p-4 overflow-y-auto mb-4" id="chat-box">
-          <div class="text-xs text-text-secondary text-center mb-4">Hari ini</div>
-          <div id="chat-messages" class="flex flex-col gap-3">
-            ${renderMsgs()}
+        <style>
+          #store-products-list::-webkit-scrollbar {
+            width: 8px !important;
+            display: block !important;
+          }
+          #store-products-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05) !important;
+            border-radius: 4px !important;
+          }
+          #store-products-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1 !important;
+            border-radius: 4px !important;
+          }
+          #store-products-list::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8 !important;
+          }
+        </style>
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 text-left">
+          <!-- Column 1: Chat -->
+          <div class="md:col-span-7 flex flex-col justify-between">
+            <div class="flex flex-col h-[200px] md:h-[300px] bg-base border border-border rounded-xl p-4 overflow-y-auto mb-4" id="chat-box">
+              <div class="text-xs text-text-secondary text-center mb-4">Hari ini</div>
+              <div id="chat-messages" class="flex flex-col gap-3">
+                ${renderMsgs()}
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <input type="text" id="chat-input" class="input-field flex-1 text-sm bg-base border-border rounded-xl px-3 outline-none focus:border-brand-primary" placeholder="Ketik pesan di sini...">
+              <button id="send-chat" class="btn-primary py-2 px-4 rounded-xl flex items-center justify-center transition-transform active:scale-95 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              </button>
+            </div>
           </div>
-        </div>
-        <div class="flex gap-2">
-          <input type="text" id="chat-input" class="input-field flex-1 text-sm bg-base border-border rounded-xl px-3 outline-none focus:border-brand-primary" placeholder="Ketik pesan di sini...">
-          <button id="send-chat" class="btn-primary py-2 px-4 rounded-xl flex items-center justify-center transition-transform active:scale-95">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-          </button>
+          
+          <!-- Column 2: Products Showcase -->
+          <div class="md:col-span-5 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-4 flex flex-col h-[220px] md:h-[350px] transition-all duration-300 overflow-hidden" id="products-column">
+            <div class="flex flex-col h-full w-full">
+              <button id="toggle-products-btn" class="w-full text-xs font-bold text-text-primary mb-2 flex items-center justify-between shrink-0 uppercase tracking-wider bg-transparent hover:bg-black/5 p-2 -mx-2 rounded-lg transition-colors cursor-pointer outline-none select-none">
+                <div class="flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-primary"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                  Tawarkan Produk Toko
+                </div>
+                <svg id="toggle-products-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300 transform"><polyline points="18 15 12 9 6 15"></polyline></svg>
+              </button>
+              <div class="flex-1 overflow-y-scroll pr-2 space-y-2 max-h-[170px] md:max-h-[310px] transition-all duration-300" id="store-products-list">
+                ${renderProductList()}
+              </div>
+            </div>
+          </div>
         </div>
       `,
       showConfirmButton: false,
       showCloseButton: true,
       customClass: {
-        popup: 'bg-surface text-text-primary rounded-2xl w-[90%] max-w-md border border-border shadow-2xl',
+        popup: 'bg-surface text-text-primary rounded-2xl border border-border shadow-2xl',
         title: 'text-lg font-bold border-b border-border pb-3 mb-0 text-left w-full text-text-primary',
-        htmlContainer: 'mt-4',
+        htmlContainer: 'mt-4 w-full px-0',
         closeButton: 'focus:outline-none'
       },
       didOpen: () => {
@@ -504,9 +619,101 @@ export default function ClientSellerDashboard({
         const sendBtn = document.getElementById('send-chat');
         const chatBox = document.getElementById('chat-box');
         const chatMessages = document.getElementById('chat-messages');
+        const productsList = document.getElementById('store-products-list');
         
         let editingId: string | null = null;
         if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+
+        const toggleBtn = document.getElementById('toggle-products-btn');
+        const toggleIcon = document.getElementById('toggle-products-icon');
+        const productsColumn = document.getElementById('products-column');
+        
+        let isProductsOpen = true;
+        
+        toggleBtn?.addEventListener('click', () => {
+          isProductsOpen = !isProductsOpen;
+          if (isProductsOpen) {
+            productsList!.style.display = 'block';
+            toggleIcon!.style.transform = 'rotate(0deg)';
+            productsColumn!.classList.remove('h-auto', 'md:h-auto');
+            productsColumn!.classList.add('h-[220px]', 'md:h-[350px]');
+          } else {
+            productsList!.style.display = 'none';
+            toggleIcon!.style.transform = 'rotate(180deg)';
+            productsColumn!.classList.remove('h-[220px]', 'md:h-[350px]');
+            productsColumn!.classList.add('h-auto', 'md:h-auto');
+          }
+        });
+
+        const sendProductOffer = async (pId: string, pName: string, pPrice: string, pImage: string) => {
+          const offerCode = `[PRODUK_OFFER|${pId}|${pName}|${pPrice}|${pImage}]`;
+          const now = new Date();
+          const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} WIB`;
+          const msgId = 'msg-' + Date.now();
+          
+          chatMessages?.insertAdjacentHTML('beforeend', `
+            <div class="flex justify-end mt-3 group" id="msg-bubble-${msgId}">
+              <div class="flex flex-col items-end justify-center mr-2 gap-1.5 opacity-80" id="${msgId}-actions" style="display:none;">
+                <button class="chat-del-btn text-[10px] text-status-error flex items-center gap-1 hover:text-red-700 transition-colors bg-status-error/5 px-2 py-0.5 rounded-full" data-id="${msgId}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Hapus
+                </button>
+              </div>
+              <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm opacity-50" id="${msgId}-container">
+                <span id="msg-text-${msgId}">${renderSingleOfferCard(pId, pName, pPrice, pImage, true)}</span>
+                <div class="flex items-center justify-end gap-1 mt-1">
+                  <span class="text-[10px] text-white/80">Anda • ${time}</span>
+                  <svg id="${msgId}-ticks" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-primary/60"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
+                </div>
+              </div>
+            </div>
+          `);
+          if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+
+          try {
+            const sendRes = await fetch('/api/chat', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ orderId, text: offerCode })
+            });
+            const { id: realId } = await sendRes.json();
+            
+            const delBtn = document.querySelector(`.chat-del-btn[data-id="${msgId}"]`);
+            if (delBtn) delBtn.setAttribute('data-id', realId);
+            
+            const msgBubble = document.getElementById(`msg-bubble-${msgId}`);
+            if (msgBubble) msgBubble.id = `msg-bubble-${realId}`;
+            
+            const msgText = document.getElementById(`msg-text-${msgId}`);
+            if (msgText) msgText.id = `msg-text-${realId}`;
+            
+            const actionsBlock = document.getElementById(`${msgId}-actions`);
+            if (actionsBlock) actionsBlock.style.display = 'flex';
+
+            const containerBlock = document.getElementById(`${msgId}-container`);
+            if (containerBlock) containerBlock.classList.remove('opacity-50');
+
+            const ticks = document.getElementById(`${msgId}-ticks`);
+            if (ticks) {
+              ticks.classList.remove('text-text-primary/60');
+              ticks.classList.add('text-white');
+            }
+          } catch (err) {
+            console.error(err);
+          }
+        };
+
+        productsList?.addEventListener('click', (e) => {
+          const btn = (e.target as HTMLElement).closest('.offer-product-btn');
+          if (btn) {
+            const pId = btn.getAttribute('data-id');
+            const pName = btn.getAttribute('data-name');
+            const pPrice = btn.getAttribute('data-price');
+            const pImage = btn.getAttribute('data-img');
+            if (pId && pName && pPrice) {
+              sendProductOffer(pId, pName, pPrice, pImage || '');
+            }
+          }
+        });
         
         chatBox?.addEventListener('click', async (e) => {
           const target = e.target as HTMLElement;
@@ -645,6 +852,18 @@ export default function ClientSellerDashboard({
 
   const totalNotifs = notifications.newOrders.length + notifications.unreadChats.length;
 
+  const formatMessageSnippet = (msg: string | null) => {
+    if (!msg) return '-';
+    const trimmedText = msg.trim();
+    if (trimmedText.startsWith('[PRODUK_OFFER|') && trimmedText.endsWith(']')) {
+      const parts = trimmedText.slice(1, -1).split('|');
+      if (parts.length >= 5) {
+        return `📦 Tanyakan Produk: ${parts[2]}`;
+      }
+    }
+    return msg;
+  };
+
   const renderNotificationsDropdown = (isDesktop: boolean) => (
     <>
       <div className={`fixed inset-0 z-40 ${isDesktop ? 'md:block hidden bg-transparent' : ''}`} onClick={() => isDesktop ? setIsNotifDesktopOpen(false) : setIsNotifOpen(false)} />
@@ -692,7 +911,7 @@ export default function ClientSellerDashboard({
                 <div className="mt-1 text-blue-500"><MessageCircle className="w-4 h-4" /></div>
                 <div>
                   <p className="text-sm font-semibold">{chat.senderName} mengirim pesan</p>
-                  <p className="text-xs text-text-secondary line-clamp-1">"{chat.text}"</p>
+                  <p className="text-xs text-text-secondary line-clamp-1">"{formatMessageSnippet(chat.text)}"</p>
                   <p className="text-[10px] text-text-secondary/60 mt-1">{chat.productName}</p>
                 </div>
               </div>
@@ -1204,7 +1423,7 @@ export default function ClientSellerDashboard({
                                 <div className="text-xs text-status-success font-medium">Rp {thread.totalPrice?.toLocaleString('id-ID')}</div>
                               </td>
                               <td className="p-4">
-                                <div className="text-sm line-clamp-1 text-text-secondary w-64">{thread.latestMessage || '-'}</div>
+                                <div className="text-sm line-clamp-1 text-text-secondary w-64">{formatMessageSnippet(thread.latestMessage)}</div>
                                 <div className="text-[10px] text-text-secondary/60 mt-1">{thread.latestMessageAt ? new Date(thread.latestMessageAt).toLocaleString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : ''}</div>
                               </td>
                               <td className="p-4">

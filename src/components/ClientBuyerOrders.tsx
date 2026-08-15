@@ -502,7 +502,7 @@ export default function ClientBuyerOrders({
 
   const escapeQuotes = (str: string) => str ? str.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
 
-  const handleOpenChat = async (orderId: string, storeName: string, productName: string) => {
+  const handleOpenChat = async (orderId: string, storeName: string, productName: string, sellerId?: string) => {
     // Clear unread count optimistically
     setLocalOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, unreadCount: 0 } : o));
 
@@ -518,17 +518,33 @@ export default function ClientBuyerOrders({
     try {
       const res = await fetch(`/api/chat?orderId=${orderId}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Gagal memuat obrolan');
-      const { messages } = await res.json();
+      const { messages, status } = await res.json();
       
       const chatHistory: ChatMessage[] = messages || [];
+
+      let storeProducts: any[] = [];
+      if (sellerId) {
+        try {
+          const prodRes = await fetch(`/api/products/public?sellerId=${sellerId}`);
+          if (prodRes.ok) {
+            const prodData = await prodRes.json();
+            storeProducts = prodData.products || [];
+          }
+        } catch (err) {
+          console.error('Failed to fetch store products:', err);
+        }
+      }
 
       // Virtual fallback: Ensure the seller always has an opening message on the frontend!
       const hasSellerOpening = chatHistory.some((m: ChatMessage) => m.role === 'penjual' || m.role === 'admin');
       if (!hasSellerOpening) {
+        const isChatOnly = status === 'chat_only';
         chatHistory.unshift({
           sender: 'seller',
           role: 'penjual',
-          text: `Halo kak! Tadi kakak melakukan pemesanan untuk <b>${productName}</b> ya?`,
+          text: isChatOnly 
+            ? `Halo kak! Apakah ada yang bisa kami bantu seputar produk <b>${productName}</b>?`
+            : `Halo kak! Tadi kakak melakukan pemesanan untuk <b>${productName}</b> ya?`,
           createdAt: chatHistory[0]?.createdAt 
             ? new Date(new Date(chatHistory[0].createdAt).getTime() - 60000).toISOString() 
             : new Date().toISOString(),
@@ -536,15 +552,55 @@ export default function ClientBuyerOrders({
         });
       }
 
+    const renderSingleOfferCard = (pId: string, pName: string, pPrice: string, pImage: string, isMe: boolean) => {
+      const cleanImg = pImage || "/street-food-festival.jpg";
+      const bgCard = isMe ? 'bg-white/10' : 'bg-surface border border-border';
+      const textTitle = isMe ? 'text-white' : 'text-text-primary';
+      const textPrice = isMe ? 'text-yellow-200' : 'text-brand-primary';
+      const buttonBg = isMe ? 'bg-white text-brand-primary hover:bg-white/95' : 'bg-brand-primary text-white hover:bg-brand-primary-hover';
+      
+      return `
+        <div class="flex flex-col gap-2.5 p-2.5 rounded-xl ${bgCard} w-full min-w-0 max-w-[260px] shadow-sm text-left">
+          <div class="flex gap-3 items-center">
+            <div class="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-base relative border border-white/10">
+              <img src="${cleanImg}" alt="${pName}" class="w-full h-full object-cover" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-bold ${textTitle} line-clamp-2 leading-tight" title="${pName}">${pName}</p>
+              <p class="text-xs font-bold mt-1 ${textPrice}">${pPrice}</p>
+            </div>
+          </div>
+          <a href="/product/${pId}" target="_blank" class="w-full ${buttonBg} text-xs font-bold py-1.5 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1 active:scale-95 decoration-none hover:no-underline">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+            Lihat Produk
+          </a>
+        </div>
+      `;
+    };
+
     const renderMsgs = () => chatHistory.map((c: ChatMessage) => {
       const isMe = (c.senderId && user?.id && c.senderId === user.id) || c.sender === 'buyer';
+      
+      const trimmedText = (c.text || '').trim();
+      let bubbleContent = c.text;
+      if (trimmedText.startsWith('[PRODUK_OFFER|') && trimmedText.endsWith(']')) {
+        const parts = trimmedText.slice(1, -1).split('|');
+        if (parts.length >= 5) {
+          const pId = parts[1];
+          const pName = parts[2];
+          const pPrice = parts[3];
+          const pImage = parts.slice(4).join('|');
+          bubbleContent = renderSingleOfferCard(pId, pName, pPrice, pImage, isMe);
+        }
+      }
+
       if (isMe) {
         const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
         const tickStyle = c.isRead ? "color: #60a5fa;" : "";
         return `
           <div class="flex justify-end mt-3">
             <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm">
-              ${c.text}
+              ${bubbleContent}
               <div class="flex items-center justify-end gap-1 mt-1">
                 <span class="text-[10px] text-white/80">${isMe ? 'Anda' : (storeName || 'Penjual')} • ${c.createdAt ? new Date(c.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', hour12: false}) : ''}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${tickClass}" style="${tickStyle}"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
@@ -556,7 +612,7 @@ export default function ClientBuyerOrders({
         return `
           <div class="flex justify-start mt-3">
             <div class="bg-surface border border-border rounded-xl rounded-tl-none px-4 py-2 max-w-[80%] text-sm text-text-primary text-left">
-              ${c.text}
+              ${bubbleContent}
               <div class="text-[10px] text-text-secondary mt-1">${isMe ? 'Anda' : (storeName || 'Penjual')} • ${c.createdAt ? new Date(c.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', hour12: false}) : ''}</div>
             </div>
           </div>
@@ -564,28 +620,93 @@ export default function ClientBuyerOrders({
       }
     }).join('');
 
-    Swal.fire({
-      title: 'Chat dengan Penjual',
-      html: `
-        <div class="flex flex-col h-[300px] bg-base border border-border rounded-xl p-4 overflow-y-auto mb-4" id="chat-box">
-          <div class="text-xs text-text-secondary text-center mb-4">Hari ini</div>
-          <div id="chat-messages" class="flex flex-col gap-3">
-            ${renderMsgs()}
+    const renderProductList = () => {
+      if (storeProducts.length === 0) {
+        return `<div class="text-xs text-text-secondary text-center py-4 bg-base rounded-xl border border-border">Belum ada produk aktif</div>`;
+      }
+      return storeProducts.map(p => {
+        const pImage = p.imageUrl || "/street-food-festival.jpg";
+        const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(p.price);
+        return `
+          <div class="flex flex-col gap-2 p-2.5 bg-base border border-border rounded-xl hover:border-brand-primary/50 transition-colors w-full">
+            <div class="flex gap-2.5 items-center">
+              <div class="w-14 h-14 shrink-0 rounded-lg overflow-hidden bg-surface relative">
+                <img src="${pImage}" alt="${p.name}" class="w-full h-full object-cover" />
+              </div>
+              <div class="flex-1 min-w-0 text-left">
+                <p class="text-sm font-bold text-text-primary line-clamp-2 leading-tight" title="${p.name}">${p.name}</p>
+                <p class="text-xs font-bold text-brand-primary mt-1">${formattedPrice}</p>
+              </div>
+            </div>
+            <button class="w-full bg-brand-primary text-white hover:bg-brand-primary-hover text-xs font-bold py-1.5 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1 mt-0.5 active:scale-95 btn-ask-product" data-pid="${p.id}" data-pname="${p.name}" data-pprice="${formattedPrice}" data-pimg="${pImage}">
+              Tanyakan
+            </button>
           </div>
-        </div>
-        <div class="flex gap-2">
-          <input type="text" id="chat-input" class="input-field flex-1 text-sm bg-base border-border rounded-xl px-3 outline-none focus:border-brand-primary" placeholder="Ketik pesan di sini...">
-          <button id="send-chat" class="btn-primary py-2 px-4 rounded-xl flex items-center justify-center transition-transform active:scale-95">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-          </button>
+        `;
+      }).join('');
+    };
+
+    Swal.fire({
+      title: `Chat dengan ${storeName}`,
+      width: 'min(95vw, 950px)',
+      html: `
+        <style>
+          #store-products-list::-webkit-scrollbar {
+            width: 8px !important;
+            display: block !important;
+          }
+          #store-products-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05) !important;
+            border-radius: 4px !important;
+          }
+          #store-products-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1 !important;
+            border-radius: 4px !important;
+          }
+          #store-products-list::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8 !important;
+          }
+        </style>
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 text-left">
+          <!-- Column 1: Chat -->
+          <div class="md:col-span-7 flex flex-col justify-between">
+            <div class="flex flex-col h-[160px] md:h-[300px] bg-base border border-border rounded-xl p-3 md:p-4 overflow-y-auto mb-3 md:mb-4" id="chat-box">
+              <div class="text-[10px] md:text-xs text-text-secondary text-center mb-3">Hari ini</div>
+              <div id="chat-messages" class="flex flex-col gap-2 md:gap-3">
+                ${renderMsgs()}
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <input type="text" id="chat-input" class="input-field flex-1 text-sm bg-base border-border rounded-xl px-3 outline-none focus:border-brand-primary" placeholder="Ketik pesan di sini...">
+              <button id="send-chat" class="btn-primary py-2 px-4 rounded-xl flex items-center justify-center transition-transform active:scale-95 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Column 2: Products Showcase -->
+          <div class="md:col-span-5 border-t md:border-t-0 md:border-l border-border pt-3 md:pt-0 md:pl-4 flex flex-col h-[180px] md:h-[350px] transition-all duration-300 overflow-hidden" id="products-column">
+            <div class="flex flex-col h-full w-full">
+              <button id="toggle-products-btn" class="w-full text-[11px] md:text-xs font-bold text-text-primary mb-2 flex items-center justify-between shrink-0 uppercase tracking-wider bg-transparent hover:bg-black/5 p-2 -mx-2 rounded-lg transition-colors cursor-pointer outline-none select-none">
+                <div class="flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-primary"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                  Produk dari Toko Ini
+                </div>
+                <svg id="toggle-products-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300 transform"><polyline points="18 15 12 9 6 15"></polyline></svg>
+              </button>
+              <div class="flex-1 overflow-y-scroll pr-1.5 space-y-2 max-h-[140px] md:max-h-[310px] transition-all duration-300" id="store-products-list">
+                ${renderProductList()}
+              </div>
+            </div>
+          </div>
         </div>
       `,
       showConfirmButton: false,
       showCloseButton: true,
       customClass: {
-        popup: 'bg-surface text-text-primary rounded-2xl w-[90%] max-w-md border border-border shadow-2xl',
+        popup: 'bg-surface text-text-primary rounded-2xl border border-border shadow-2xl',
         title: 'text-lg font-bold border-b border-border pb-3 mb-0 text-left w-full text-text-primary',
-        htmlContainer: 'mt-4',
+        htmlContainer: 'mt-4 w-full px-0',
         closeButton: 'focus:outline-none'
       },
       didOpen: () => {
@@ -593,10 +714,79 @@ export default function ClientBuyerOrders({
         const sendBtn = document.getElementById('send-chat');
         const chatBox = document.getElementById('chat-box');
         const chatMessages = document.getElementById('chat-messages');
+        const productsList = document.getElementById('store-products-list');
         
         let editingId: string | null = null;
-
         if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+
+        const toggleBtn = document.getElementById('toggle-products-btn');
+        const toggleIcon = document.getElementById('toggle-products-icon');
+        const productsColumn = document.getElementById('products-column');
+        
+        let isProductsOpen = true;
+        
+        toggleBtn?.addEventListener('click', () => {
+          isProductsOpen = !isProductsOpen;
+          if (isProductsOpen) {
+            productsList!.style.display = 'block';
+            toggleIcon!.style.transform = 'rotate(0deg)';
+            productsColumn!.classList.remove('h-auto', 'md:h-auto');
+            productsColumn!.classList.add('h-[180px]', 'md:h-[350px]');
+          } else {
+            productsList!.style.display = 'none';
+            toggleIcon!.style.transform = 'rotate(180deg)';
+            productsColumn!.classList.remove('h-[180px]', 'md:h-[350px]');
+            productsColumn!.classList.add('h-auto', 'md:h-auto');
+          }
+        });
+
+        const sendProductAsk = async (pId: string, pName: string, pPrice: string, pImage: string) => {
+          const offerCode = `[PRODUK_OFFER|${pId}|${pName}|${pPrice}|${pImage}]`;
+          const now = new Date();
+          const tempMsg: ChatMessage = {
+            id: 'temp-' + Date.now(),
+            text: offerCode,
+            senderId: user?.id,
+            isRead: false,
+            createdAt: now.toISOString()
+          };
+          chatHistory.push(tempMsg);
+          if (chatMessages) {
+            chatMessages.innerHTML = renderMsgs();
+          }
+          if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+
+          try {
+            const sendRes = await fetch('/api/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orderId, text: offerCode }),
+            });
+            if (sendRes.ok) {
+              const resData = await sendRes.json();
+              const idx = chatHistory.findIndex((m: ChatMessage) => m.id === tempMsg.id);
+              if (idx !== -1) {
+                chatHistory[idx].id = resData.id;
+              }
+            }
+          } catch (err) {
+            console.error('Failed to send product ask:', err);
+          }
+        };
+
+        const attachAskListeners = () => {
+          document.querySelectorAll('.btn-ask-product').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const target = e.currentTarget as HTMLButtonElement;
+              const pId = target.getAttribute('data-pid')!;
+              const pName = target.getAttribute('data-pname')!;
+              const pPrice = target.getAttribute('data-pprice')!;
+              const pImage = target.getAttribute('data-pimg')!;
+              sendProductAsk(pId, pName, pPrice, pImage);
+            });
+          });
+        };
+        attachAskListeners();
         
         chatBox?.addEventListener('click', async (e) => {
           const target = e.target as HTMLElement;
@@ -1241,7 +1431,7 @@ export default function ClientBuyerOrders({
 
                             <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto mt-1">
                               <button 
-                                onClick={() => handleOpenChat(order.orderId, order.storeName || 'Toko UMKM', order.productName)}
+                                onClick={() => handleOpenChat(order.orderId, order.storeName || 'Toko UMKM', order.productName, order.sellerId)}
                                 className="relative btn-outline border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10 hover:border-brand-primary py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
                               >
                                 <MessageCircle className="w-3.5 h-3.5" /> Chat

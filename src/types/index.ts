@@ -184,6 +184,7 @@ export interface BuyerOrderViewItem {
   productName: string;
   productImageUrl?: string | null;
   storeName?: string | null;
+  sellerId?: string;
   minQty?: number | null;
   maxQty?: number | null;
   processingTime?: string | null;
