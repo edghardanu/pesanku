@@ -1066,49 +1066,63 @@ export default function ClientBuyerOrders({
 
         {/* Navigation Tabs */}
         {user && (
-          <div className="mb-6 flex space-x-2 border-b border-border">
+          <div className="mb-6 grid w-full grid-cols-3 border-b border-border" role="tablist" aria-label="Navigasi pesanan">
             <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'orders'}
               onClick={() => setActiveTab('orders')}
-              className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+              className={`relative flex min-w-0 items-center justify-center gap-1 border-b-2 px-1 py-3 text-[11px] font-semibold transition-colors sm:gap-2 sm:px-4 sm:text-sm ${
                 activeTab === 'orders'
                   ? 'border-brand-primary text-brand-primary'
                   : 'border-transparent text-text-secondary hover:text-text-primary'
               }`}
             >
-              Pesanan Saya
+              <ShoppingBag className="h-4 w-4 shrink-0" />
+              <span className="whitespace-nowrap sm:hidden">Pesanan</span>
+              <span className="hidden whitespace-nowrap sm:inline">Pesanan Saya</span>
               {ordersCount > 0 && (
-                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-primary px-1.5 text-[10px] font-bold text-white shadow-sm">
+                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-primary px-1 text-[9px] font-bold text-white shadow-sm sm:static sm:h-5 sm:min-w-[20px] sm:px-1.5 sm:text-[10px]">
                   {ordersCount}
                 </span>
               )}
             </button>
             <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'chats'}
               onClick={() => setActiveTab('chats')}
-              className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+              className={`relative flex min-w-0 items-center justify-center gap-1 border-b-2 px-1 py-3 text-[11px] font-semibold transition-colors sm:gap-2 sm:px-4 sm:text-sm ${
                 activeTab === 'chats'
                   ? 'border-brand-primary text-brand-primary'
                   : 'border-transparent text-text-secondary hover:text-text-primary'
               }`}
             >
-              Chat dengan Penjual
+              <MessageCircle className="h-4 w-4 shrink-0" />
+              <span className="whitespace-nowrap sm:hidden">Chat Penjual</span>
+              <span className="hidden whitespace-nowrap sm:inline">Chat dengan Penjual</span>
               {chatsCount > 0 && (
-                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-primary px-1.5 text-[10px] font-bold text-white shadow-sm">
+                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-primary px-1 text-[9px] font-bold text-white shadow-sm sm:static sm:h-5 sm:min-w-[20px] sm:px-1.5 sm:text-[10px]">
                   {chatsCount}
                 </span>
               )}
             </button>
             <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'tracking'}
               onClick={() => setActiveTab('tracking')}
-              className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+              className={`relative flex min-w-0 items-center justify-center gap-1 border-b-2 px-1 py-3 text-[11px] font-semibold transition-colors sm:gap-2 sm:px-4 sm:text-sm ${
                 activeTab === 'tracking'
                   ? 'border-brand-primary text-brand-primary'
                   : 'border-transparent text-text-secondary hover:text-text-primary'
               }`}
             >
-              <Truck className="w-4 h-4" />
-              Lacak Pesanan Anda
+              <Truck className="h-4 w-4 shrink-0" />
+              <span className="whitespace-nowrap sm:hidden">Lacak</span>
+              <span className="hidden whitespace-nowrap sm:inline">Lacak Pesanan Anda</span>
               {trackingCount > 0 && (
-                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-primary px-1.5 text-[10px] font-bold text-white shadow-sm">
+                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-primary px-1 text-[9px] font-bold text-white shadow-sm sm:static sm:h-5 sm:min-w-[20px] sm:px-1.5 sm:text-[10px]">
                   {trackingCount}
                 </span>
               )}
