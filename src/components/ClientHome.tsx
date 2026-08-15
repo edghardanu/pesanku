@@ -10,6 +10,11 @@ import { DotLottieReact } from "@/lib/dotlottie";
 import Swal from "sweetalert2";
 import { ProductItem, AuthUser } from "@/types";
 import ProductRating from "@/components/ProductRating";
+import makananBeratImage from "../../public/categories/makanan-berat.png";
+import minumanImage from "../../public/categories/minuman.png";
+import cemilanImage from "../../public/categories/cemilan.png";
+import kueImage from "../../public/categories/kue.png";
+import cepatSajiImage from "../../public/categories/cepat-saji.png";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -951,14 +956,14 @@ export default function ClientHome({
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
               {[
-                { name: 'Makanan Berat', image: '/categories/makanan-berat.png', keyword: 'nasi' },
-                { name: 'Minuman Segar', image: '/categories/minuman.png', keyword: 'minum' },
-                { name: 'Jajanan & Cemilan', image: '/categories/cemilan.png', keyword: 'cemilan' },
-                { name: 'Kue & Roti', image: '/categories/kue.png', keyword: 'kue' },
-                { name: 'Cepat Saji', image: '/categories/cepat-saji.png', keyword: 'ayam' },
+                { name: 'Makanan Berat', image: makananBeratImage, keyword: 'nasi' },
+                { name: 'Minuman Segar', image: minumanImage, keyword: 'minum' },
+                { name: 'Jajanan & Cemilan', image: cemilanImage, keyword: 'cemilan' },
+                { name: 'Kue & Roti', image: kueImage, keyword: 'kue' },
+                { name: 'Cepat Saji', image: cepatSajiImage, keyword: 'ayam' },
               ].map((category, idx) => (
                 <motion.div
-                  key={idx}
+                  key={category.name}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -969,9 +974,12 @@ export default function ClientHome({
                   className="group cursor-pointer flex flex-col items-center gap-3"
                 >
                   <div className="w-full aspect-square rounded-2xl overflow-hidden shadow-sm border border-border bg-surface relative transition-transform duration-300 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-brand-primary/20">
-                    <img 
-                      src={category.image} 
-                      alt={category.name} 
+                    <Image
+                      src={category.image}
+                      alt={category.name}
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                      unoptimized
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                   </div>
