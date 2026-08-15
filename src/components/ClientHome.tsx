@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, Store, LayoutDashboard, Sparkles, MessageCircle } from "lucide-react";
 import { motion, Variants, AnimatePresence } from "framer-motion";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { DotLottieReact } from "@/lib/dotlottie";
 import Swal from "sweetalert2";
 import { ProductItem, AuthUser } from "@/types";
 import ProductRating from "@/components/ProductRating";

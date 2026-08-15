@@ -6,7 +6,7 @@ import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, 
 import Swal from "sweetalert2";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { DotLottieReact } from "@/lib/dotlottie";
 import { AuthUser, BuyerOrderViewItem, ChatMessage } from "@/types";
 
 export default function ClientBuyerOrders({
