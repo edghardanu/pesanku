@@ -12,6 +12,7 @@ type FulfillmentStatus = (typeof validFulfillmentStatuses)[number];
 type ScheduleValue = {
   deliveryDate: string;
   fulfillmentStatus: FulfillmentStatus;
+  scheduleReason: string | null;
   updatedAt: string;
 };
 
@@ -33,6 +34,9 @@ const parseSchedule = (value: string): ScheduleValue | null => {
     return {
       deliveryDate: parsed.deliveryDate,
       fulfillmentStatus: parsed.fulfillmentStatus as FulfillmentStatus,
+      scheduleReason: typeof parsed.scheduleReason === 'string' && parsed.scheduleReason.trim()
+        ? parsed.scheduleReason.trim()
+        : null,
       updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : '',
     };
   } catch {
@@ -73,6 +77,8 @@ export async function PUT(req: Request) {
       orderId?: unknown;
       deliveryDate?: unknown;
       fulfillmentStatus?: unknown;
+      scheduleReason?: unknown;
+      confirmOrder?: unknown;
     };
 
     if (typeof body.orderId !== 'string' || !isValidDate(body.deliveryDate)) {
@@ -81,6 +87,15 @@ export async function PUT(req: Request) {
 
     if (!validFulfillmentStatuses.includes(body.fulfillmentStatus as FulfillmentStatus)) {
       return NextResponse.json({ error: 'Status pengiriman tidak valid.' }, { status: 400 });
+    }
+
+    if (body.scheduleReason !== undefined && body.scheduleReason !== null && typeof body.scheduleReason !== 'string') {
+      return NextResponse.json({ error: 'Alasan jadwal tidak valid.' }, { status: 400 });
+    }
+
+    const scheduleReason = typeof body.scheduleReason === 'string' ? body.scheduleReason.trim() : '';
+    if (scheduleReason.length > 500) {
+      return NextResponse.json({ error: 'Alasan jadwal maksimal 500 karakter.' }, { status: 400 });
     }
 
     const order = await db
@@ -98,18 +113,38 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Pesanan yang dibatalkan atau gagal tidak dapat dijadwalkan.' }, { status: 400 });
     }
 
+    const confirmOrder = body.confirmOrder === true;
+    if (confirmOrder && order.status !== 'waiting_verification') {
+      return NextResponse.json({ error: 'Hanya pesanan yang menunggu konfirmasi yang dapat dikonfirmasi.' }, { status: 400 });
+    }
+
     const schedule: ScheduleValue = {
       deliveryDate: body.deliveryDate,
       fulfillmentStatus: body.fulfillmentStatus as FulfillmentStatus,
+      scheduleReason: scheduleReason || null,
       updatedAt: new Date().toISOString(),
     };
     const key = `${schedulePrefix(user.id)}${body.orderId}`;
 
-    await db.insert(settings)
-      .values({ key, value: JSON.stringify(schedule) })
-      .onConflictDoUpdate({ target: settings.key, set: { value: JSON.stringify(schedule) } });
+    await db.transaction(async (tx) => {
+      await tx.insert(settings)
+        .values({ key, value: JSON.stringify(schedule) })
+        .onConflictDoUpdate({ target: settings.key, set: { value: JSON.stringify(schedule) } });
 
-    return NextResponse.json({ message: 'Jadwal pengiriman berhasil disimpan.', schedule });
+      if (confirmOrder) {
+        await tx.update(orders)
+          .set({ status: 'verified' })
+          .where(eq(orders.id, body.orderId as string));
+      }
+    });
+
+    return NextResponse.json({
+      message: confirmOrder
+        ? 'Pesanan berhasil dikonfirmasi dan jadwal pengiriman disimpan.'
+        : 'Jadwal pengiriman berhasil disimpan.',
+      schedule,
+      status: confirmOrder ? 'verified' : order.status,
+    });
   } catch (error) {
     console.error('Update preorder schedule error:', error);
     return NextResponse.json({ error: 'Gagal menyimpan jadwal pengiriman.' }, { status: 500 });

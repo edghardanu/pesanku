@@ -42,7 +42,7 @@ export default async function ScheduleDetailPage({ params }: { params: Promise<{
   const scheduleRows = await db.select().from(settings).where(like(settings.key, `${prefix}%`));
   
   // 2. Parse and filter for the target date
-  const targetDateSchedules: { orderId: string; fulfillmentStatus: string }[] = [];
+  const targetDateSchedules: { orderId: string; fulfillmentStatus: string; scheduleReason: string | null }[] = [];
   
   for (const row of scheduleRows) {
     try {
@@ -50,7 +50,10 @@ export default async function ScheduleDetailPage({ params }: { params: Promise<{
       if (parsed.deliveryDate === date) {
         targetDateSchedules.push({
           orderId: row.key.slice(prefix.length),
-          fulfillmentStatus: parsed.fulfillmentStatus || 'scheduled'
+          fulfillmentStatus: parsed.fulfillmentStatus || 'scheduled',
+          scheduleReason: typeof parsed.scheduleReason === 'string' && parsed.scheduleReason.trim()
+            ? parsed.scheduleReason.trim()
+            : null,
         });
       }
     } catch {}
@@ -64,7 +67,7 @@ export default async function ScheduleDetailPage({ params }: { params: Promise<{
     status: orders.status,
     selectedVariant: orders.selectedVariant,
     selectedVariantPrice: orders.selectedVariantPrice,
-    deliveryDate: orders.deliveryDate,
+    requestedDeliveryDate: orders.deliveryDate,
     deliveryAddress: orders.deliveryAddress,
     notes: orders.notes,
     productName: products.name,
@@ -80,7 +83,8 @@ export default async function ScheduleDetailPage({ params }: { params: Promise<{
   // Merge fulfillment status
   const finalOrders: any[] = scheduledOrders.map(order => ({
     ...order,
-    fulfillmentStatus: targetDateSchedules.find(s => s.orderId === order.id)?.fulfillmentStatus || 'scheduled'
+    fulfillmentStatus: targetDateSchedules.find(s => s.orderId === order.id)?.fulfillmentStatus || 'scheduled',
+    scheduleReason: targetDateSchedules.find(s => s.orderId === order.id)?.scheduleReason || null,
   }));
 
   return (
@@ -134,6 +138,12 @@ export default async function ScheduleDetailPage({ params }: { params: Promise<{
                       <div className="flex items-start gap-2 bg-brand-primary/5 p-2 rounded border border-brand-primary/10 mt-2">
                         <StickyNote className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
                         <span className="italic text-brand-primary-dark line-clamp-3">{order.notes}</span>
+                      </div>
+                    )}
+                    {order.scheduleReason && (
+                      <div className="flex items-start gap-2 rounded border border-amber-500/20 bg-amber-500/10 p-2 text-amber-700 dark:text-amber-300">
+                        <StickyNote className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>Alasan jadwal: {order.scheduleReason}</span>
                       </div>
                     )}
                     <p className="flex items-center gap-2 font-bold text-text-primary pt-1"><Wallet className="h-4 w-4 shrink-0 text-status-success" />Rp {(order.totalPrice || 0).toLocaleString('id-ID')}</p>

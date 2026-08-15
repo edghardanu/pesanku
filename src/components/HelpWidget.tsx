@@ -19,6 +19,7 @@ export default function HelpWidget() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [isOverOrange, setIsOverOrange] = useState(false);
 
   useEffect(() => {
     const u = localStorage.getItem("user");
@@ -27,6 +28,45 @@ export default function HelpWidget() {
         setUser(JSON.parse(u));
       }, 0);
     }
+  }, []);
+
+  useEffect(() => {
+    let ticking = false;
+    const checkOverlap = () => {
+      const btn = document.getElementById("help-btn");
+      if (btn) {
+        const rect = btn.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        
+        const elements = document.elementsFromPoint(x, y);
+        const overOrange = elements.some(el => 
+          el.classList && 
+          el.classList.contains('bg-brand-primary') && 
+          el.id !== 'help-btn' &&
+          !el.closest('#help-widget-container')
+        );
+        
+        setIsOverOrange(overOrange);
+      }
+      ticking = false;
+    };
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(checkOverlap);
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
+    setTimeout(checkOverlap, 500);
+    
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
   }, []);
 
   if (pathname !== "/") {
@@ -85,7 +125,7 @@ export default function HelpWidget() {
   };
 
   return (
-    <div className="fixed md:bottom-6 bottom-44 md:right-6 right-4 z-[60] flex flex-col items-end gap-3">
+    <div id="help-widget-container" className="fixed md:bottom-6 bottom-44 md:right-6 right-4 z-[60] flex flex-col items-end gap-3">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -175,11 +215,16 @@ export default function HelpWidget() {
       </AnimatePresence>
 
       <button
+        id="help-btn"
         onClick={() => {
           setIsOpen(!isOpen);
           if (isOpen) setShowTicketForm(false);
         }}
-        className="px-5 h-12 bg-brand-primary text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 hover:bg-brand-primary-hover transition-all z-50 font-semibold"
+        className={`px-5 h-12 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all z-50 font-semibold ${
+          isOverOrange
+            ? 'bg-white text-black hover:bg-gray-100'
+            : 'bg-brand-primary text-white hover:bg-brand-primary-hover'
+        }`}
       >
         {isOpen ? <X className="w-6 h-6" /> : "Butuh Bantuan?"}
       </button>

@@ -125,6 +125,67 @@ body {
   }
 }
 
+/* Seller order confirmation: compact desktop layout that fits in the viewport */
+@media (min-width: 769px) {
+  .seller-confirm-popup {
+    width: min(460px, calc(100vw - 2rem)) !important;
+    max-height: calc(100vh - 2rem) !important;
+    padding: 0.9rem 1.15rem 1rem !important;
+  }
+
+  .seller-confirm-icon {
+    width: 3.25rem !important;
+    height: 3.25rem !important;
+    margin: 0.15rem auto 0.45rem !important;
+  }
+
+  .seller-confirm-icon .swal2-icon-content {
+    font-size: 2.25rem !important;
+  }
+
+  .seller-confirm-title {
+    padding: 0.15rem 0.75rem 0 !important;
+    font-size: 1.4rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .seller-confirm-content {
+    margin: 0.55rem 0 0 !important;
+    padding: 0 0.25rem !important;
+    overflow-y: visible !important;
+    font-size: 0.875rem !important;
+  }
+
+  .seller-confirm-form {
+    gap: 0.65rem !important;
+    padding-top: 0 !important;
+  }
+
+  .seller-confirm-form #confirmation-delivery-date {
+    height: 2.5rem !important;
+    padding: 0.45rem 0.7rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  .seller-confirm-form #confirmation-schedule-reason {
+    min-height: 4.25rem !important;
+    max-height: 6rem !important;
+    padding: 0.6rem 0.7rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  .seller-confirm-actions {
+    gap: 0.5rem !important;
+    margin: 0.75rem auto 0 !important;
+  }
+
+  .seller-confirm-button {
+    margin: 0 !important;
+    padding: 0.6rem 1rem !important;
+    font-size: 0.875rem !important;
+  }
+}
+
 /* Checkout modal body: auto height, scroll only if needed */
 .swal-checkout-body {
   overflow-y: auto !important;

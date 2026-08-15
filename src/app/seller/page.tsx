@@ -43,7 +43,7 @@ export default async function SellerDashboard() {
     buyerName: users.name,
     buyerPhone: users.phone,
     buyerAddress: sql<string>`COALESCE(${orders.deliveryAddress}, ${users.address})`.as('buyerAddress'),
-    deliveryDate: orders.deliveryDate,
+    requestedDeliveryDate: orders.deliveryDate,
     proofUrl: payments.proofUrl,
     deliveryProofUrl: orders.deliveryProofUrl,
     dispatchReceiptUrl: orders.dispatchReceiptUrl,
@@ -66,7 +66,7 @@ export default async function SellerDashboard() {
   });
 
   const schedulePrefix = `preorder_schedule:${user.id}:`;
-  const scheduleByOrder = new Map<string, Pick<OrderItem, 'deliveryDate' | 'fulfillmentStatus' | 'scheduleUpdatedAt'>>();
+  const scheduleByOrder = new Map<string, Pick<OrderItem, 'deliveryDate' | 'fulfillmentStatus' | 'scheduleReason' | 'scheduleUpdatedAt'>>();
   feeSettings.forEach((setting) => {
     if (!setting.key.startsWith(schedulePrefix)) return;
 
@@ -74,6 +74,7 @@ export default async function SellerDashboard() {
       const parsed = JSON.parse(setting.value) as {
         deliveryDate?: unknown;
         fulfillmentStatus?: unknown;
+        scheduleReason?: unknown;
         updatedAt?: unknown;
       };
       const validStatuses = ['scheduled', 'preparing', 'ready', 'shipped', 'delivered'];
@@ -82,6 +83,9 @@ export default async function SellerDashboard() {
       scheduleByOrder.set(setting.key.slice(schedulePrefix.length), {
         deliveryDate: parsed.deliveryDate,
         fulfillmentStatus: parsed.fulfillmentStatus as OrderItem['fulfillmentStatus'],
+        scheduleReason: typeof parsed.scheduleReason === 'string' && parsed.scheduleReason.trim()
+          ? parsed.scheduleReason.trim()
+          : null,
         scheduleUpdatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : null,
       });
     } catch {

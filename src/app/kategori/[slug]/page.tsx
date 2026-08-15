@@ -9,14 +9,12 @@ export const dynamic = 'force-dynamic';
 
 import { ProductItem } from "@/types";
 
-export default async function Home() {
+export default async function CategoryPage({ params }: { params: { slug: string } }) {
+  const { slug } = await params;
+  const decodedSlug = decodeURIComponent(slug).replace(/-/g, ' '); // E.g., 'Makanan Berat'
+  
   const user = await getUserFromSession();
   let dbProducts: ProductItem[] = [];
-  let fallbackPopularSellers: Array<{
-    sellerId: string;
-    storeName: string;
-    sellerAvatar: string | null;
-  }> = [];
 
   try {
     // Fetch real products from database with seller details
@@ -68,7 +66,7 @@ export default async function Home() {
         ratingCount: Number(item.ratingCount) || 0,
       }));
     } catch (error) {
-      console.error('Database error while fetching homepage ratings:', error);
+      console.error('Database error while fetching category ratings:', error);
     }
 
     const promotionsByProduct = new Map<string, { expiresAt: Date }>();
@@ -86,7 +84,7 @@ export default async function Home() {
         )));
       activePromotions.forEach((promotion) => promotionsByProduct.set(promotion.productId, promotion));
     } catch (error) {
-      console.error('Database error while fetching homepage promotions:', error);
+      console.error('Database error while fetching category promotions:', error);
     }
 
     // Provide a fallback avatar for sellers without a profile image.
@@ -100,26 +98,8 @@ export default async function Home() {
       promotionExpiresAt: promotionsByProduct.get(p.id)?.expiresAt ?? null,
     })).sort((first, second) => Number(Boolean(second.isPromoted)) - Number(Boolean(first.isPromoted)));
   } catch (error) {
-    console.error("Database error while fetching products on homepage:", error);
-    // Fallback gracefully without breaking the UI
+    console.error("Database error while fetching products on category page:", error);
   }
 
-  if (dbProducts.length === 0) {
-    try {
-      fallbackPopularSellers = await retryDatabaseRead(async () => db
-        .select({
-          sellerId: sellerProfiles.userId,
-          storeName: sellerProfiles.storeName,
-          sellerAvatar: sellerProfiles.logoUrl,
-        })
-        .from(sellerProfiles)
-        .innerJoin(products, eq(products.sellerId, sellerProfiles.userId))
-        .groupBy(sellerProfiles.userId, sellerProfiles.storeName, sellerProfiles.logoUrl)
-        .limit(10));
-    } catch (error) {
-      console.error('Database error while fetching fallback popular sellers:', error);
-    }
-  }
-
-  return <ClientHome initialProducts={dbProducts} initialPopularSellers={fallbackPopularSellers} user={user} />;
+  return <ClientHome initialProducts={dbProducts} user={user} categoryFilter={decodedSlug} />;
 }

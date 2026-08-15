@@ -38,8 +38,10 @@ export interface OrderItem {
   productName?: string;
   productPrice?: number;
   productImageUrl?: string | null;
+  requestedDeliveryDate?: string | null;
   deliveryDate?: string | null;
   fulfillmentStatus?: 'scheduled' | 'preparing' | 'ready' | 'shipped' | 'delivered' | null;
+  scheduleReason?: string | null;
   scheduleUpdatedAt?: string | null;
   deliveryAddress?: string | null;
   storeName?: string | null;

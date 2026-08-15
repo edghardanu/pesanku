@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star, Trash2 } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star, Trash2, Truck } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -36,25 +36,26 @@ export default function ClientBuyerOrders({
   }, [searchParams, orders]);
   const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [prevOrders, setPrevOrders] = useState<BuyerOrderViewItem[]>(orders);
   const [localOrders, setLocalOrders] = useState<BuyerOrderViewItem[]>(orders);
   const [bottomNavLoading, setBottomNavLoading] = useState<'home' | 'catalog' | null>(null);
   const [checkoutNoticeCount, setCheckoutNoticeCount] = useState(checkoutCount);
   const [ratingLoadingOrderId, setRatingLoadingOrderId] = useState<string | null>(null);
   const hasShownCheckoutNotice = useRef(false);
-  const [activeTab, setActiveTab] = useState<'orders' | 'chats'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'chats' | 'tracking'>('orders');
 
-  const filteredLocalOrders = localOrders.filter(o => 
-    activeTab === 'chats' ? o.status === 'chat_only' : o.status !== 'chat_only'
-  );
+  const filteredLocalOrders = localOrders.filter(o => {
+    if (activeTab === 'chats') return o.status === 'chat_only';
+    if (activeTab === 'tracking') return o.status !== 'chat_only' && o.status !== 'cancelled';
+    return o.status !== 'chat_only';
+  });
 
-  if (orders !== prevOrders) {
-    setPrevOrders(orders);
+  useEffect(() => {
     setLocalOrders(orders);
-  }
+  }, [orders]);
 
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
+  const [qtyDrafts, setQtyDrafts] = useState<Record<string, string>>({});
 
   // Load the active QRIS from localStorage
   useEffect(() => {
@@ -66,11 +67,33 @@ export default function ClientBuyerOrders({
     }
   }, []);
 
-  // Mark all orders as read when viewing this page
   useEffect(() => {
     if (user?.role === 'pembeli') {
       fetch('/api/orders', { method: 'PATCH' }).catch(err => console.error(err));
     }
+  }, [user]);
+
+  // Poll for real-time order updates
+  useEffect(() => {
+    if (!user || user.role !== 'pembeli') return;
+
+    const fetchRealtimeOrders = async () => {
+      try {
+        const res = await fetch(`/api/buyer/orders?t=${Date.now()}`, { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.orders) {
+            setLocalOrders(data.orders);
+          }
+        }
+      } catch (err) {
+        console.error('Error polling real-time orders:', err);
+      }
+    };
+
+    // Initial fetch not needed as server passes initial orders, just start interval
+    const interval = setInterval(fetchRealtimeOrders, 3000);
+    return () => clearInterval(interval);
   }, [user]);
 
   useEffect(() => {
@@ -895,11 +918,51 @@ export default function ClientBuyerOrders({
     }
   };
 
-  const unreadChatsCount = localOrders.filter(o => o.status === 'chat_only').reduce((acc, o) => acc + (o.unreadCount || 0), 0);
-  const unreadOrdersCount = localOrders.filter(o => o.status !== 'chat_only').reduce((acc, o) => acc + (o.unreadCount || 0), 0);
+  const chatsCount = localOrders.filter(o => o.status === 'chat_only').reduce((acc, o) => acc + (o.unreadCount || 0), 0);
+  const ordersCount = localOrders.filter(o => o.status !== 'chat_only').reduce((acc, o) => acc + (o.unreadCount || 0), 0);
+  const trackingCount = localOrders.filter(o => o.status !== 'chat_only' && o.status !== 'cancelled').reduce((acc, o) => acc + (o.unreadCount || 0), 0);
+  const totalUnreadCount = localOrders.reduce((acc, o) => acc + (o.unreadCount || 0), 0);
 
   return (
     <div className="min-h-screen bg-base pb-24">
+      <style>{`
+        @keyframes flow-horizontal {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes flow-vertical {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(100%); }
+        }
+        .animate-flow-horizontal {
+          background: linear-gradient(90deg, transparent, rgba(255, 92, 53, 0.8), transparent);
+          animation: flow-horizontal 2.5s infinite linear;
+        }
+        .animate-flow-vertical {
+          background: linear-gradient(180deg, transparent, rgba(255, 92, 53, 0.8), transparent);
+          animation: flow-vertical 2.5s infinite linear;
+        }
+        @keyframes drive-horizontal {
+          0% { left: 0%; opacity: 0; transform: scale(0.8); }
+          10% { opacity: 1; transform: scale(1); }
+          90% { opacity: 1; transform: scale(1); }
+          100% { left: calc(100% - 24px); opacity: 0; transform: scale(0.8); }
+        }
+        @keyframes drive-vertical {
+          0% { top: 0%; opacity: 0; transform: scale(0.8); }
+          10% { opacity: 1; transform: scale(1); }
+          90% { opacity: 1; transform: scale(1); }
+          100% { top: calc(100% - 24px); opacity: 0; transform: scale(0.8); }
+        }
+        .animate-drive-horizontal {
+          position: absolute;
+          animation: drive-horizontal 2.5s infinite linear;
+        }
+        .animate-drive-vertical {
+          position: absolute;
+          animation: drive-vertical 2.5s infinite linear;
+        }
+      `}</style>
       <header className="bg-surface/80 backdrop-blur-md border-b border-border sticky top-0 z-50 transition-all">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
@@ -907,13 +970,13 @@ export default function ClientBuyerOrders({
               <ArrowLeft className="w-5 h-5 text-text-primary" />
             </Link>
             <span className="truncate font-semibold text-base text-text-primary sm:text-lg"><span className="hidden sm:inline">Daftar </span>Pesanan Saya</span>
-            {checkoutNoticeCount > 0 && (
+            {totalUnreadCount > 0 && (
               <span
                 className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-full bg-brand-primary px-2 py-1 text-xs font-bold text-white shadow-sm"
-                aria-label={`${checkoutNoticeCount} pesanan baru`}
-                title={`${checkoutNoticeCount} pesanan baru`}
+                aria-label={`${totalUnreadCount} notifikasi baru`}
+                title={`${totalUnreadCount} notifikasi baru`}
               >
-                {checkoutNoticeCount}
+                {totalUnreadCount}
               </span>
             )}
           </div>
@@ -1013,9 +1076,9 @@ export default function ClientBuyerOrders({
               }`}
             >
               Pesanan Saya
-              {unreadOrdersCount > 0 && (
+              {ordersCount > 0 && (
                 <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-primary px-1.5 text-[10px] font-bold text-white shadow-sm">
-                  {unreadOrdersCount}
+                  {ordersCount}
                 </span>
               )}
             </button>
@@ -1028,9 +1091,25 @@ export default function ClientBuyerOrders({
               }`}
             >
               Chat dengan Penjual
-              {unreadChatsCount > 0 && (
+              {chatsCount > 0 && (
                 <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-primary px-1.5 text-[10px] font-bold text-white shadow-sm">
-                  {unreadChatsCount}
+                  {chatsCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('tracking')}
+              className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+                activeTab === 'tracking'
+                  ? 'border-brand-primary text-brand-primary'
+                  : 'border-transparent text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              <Truck className="w-4 h-4" />
+              Lacak Pesanan Anda
+              {trackingCount > 0 && (
+                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-primary px-1.5 text-[10px] font-bold text-white shadow-sm">
+                  {trackingCount}
                 </span>
               )}
             </button>
@@ -1090,7 +1169,7 @@ export default function ClientBuyerOrders({
                 <div
                   className="relative h-36 w-48 overflow-hidden rounded-3xl md:h-48 md:w-64"
                   role="img"
-                  aria-label={activeTab === 'chats' ? "Belum ada riwayat obrolan" : "Belum ada riwayat pesanan"}
+                  aria-label={activeTab === 'chats' ? "Belum ada riwayat obrolan" : activeTab === 'tracking' ? "Belum ada pesanan untuk dilacak" : "Belum ada riwayat pesanan"}
                 >
                   <DotLottieReact
                     src="/animations/no-history.lottie"
@@ -1101,11 +1180,13 @@ export default function ClientBuyerOrders({
                 </div>
               </div>
               <h3 className="text-h3 text-text-primary mb-2">
-                {activeTab === 'chats' ? "Belum Ada Percakapan" : "Anda Belum Membuat Pesanan"}
+                {activeTab === 'chats' ? "Belum Ada Percakapan" : activeTab === 'tracking' ? "Belum Ada Pesanan yang Dilacak" : "Anda Belum Membuat Pesanan"}
               </h3>
               <p className="text-text-secondary mb-6">
                 {activeTab === 'chats' 
                   ? "Hubungi penjual untuk bertanya tentang produk atau melakukan pemesanan pre-sales." 
+                  : activeTab === 'tracking'
+                  ? "Pantau status pesanan aktif Anda di sini mulai dari pembayaran hingga barang sampai."
                   : "Mulai pesan makanan dan minuman UMKM favoritmu sekarang!"}
               </p>
               <Link href="/" className="btn-primary py-2.5 px-8 font-medium">
@@ -1113,6 +1194,110 @@ export default function ClientBuyerOrders({
               </Link>
             </div>
           )
+        ) : activeTab === 'tracking' ? (
+          <div className="flex flex-col gap-6">
+            {filteredLocalOrders.map((order) => {
+              const steps = [
+                { label: 'Pesanan Dibuat', completed: true, date: order.createdAt },
+                { label: 'Menunggu Konfirmasi Penjual', completed: order.status !== 'waiting_verification', active: order.status === 'waiting_verification', date: '' },
+                { label: 'Menunggu Pembayaran', completed: !!order.paymentId, active: order.status === 'verified' && !order.paymentId, date: order.paymentId ? 'Telah Dibayar' : '' },
+                { label: 'Verifikasi Pembayaran', completed: order.status === 'processing' || order.status === 'completed', active: order.status === 'verified' && !!order.paymentId, date: '' },
+                { label: 'Diproses Penjual', completed: order.status === 'processing' || order.status === 'completed', active: order.status === 'processing', date: '' },
+                { label: 'Barang sedang Dikirim', completed: order.status === 'completed', active: order.status === 'processing', date: '' },
+                { label: 'Pesanan Selesai / Sampai', completed: order.status === 'completed', active: false, date: order.ratedAt || '' }
+              ];
+
+              return (
+                <div key={order.orderId} className="bg-base border border-border rounded-2xl overflow-hidden shadow-sm p-5 hover:border-brand-primary/30 transition-colors">
+                  <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+                    <div>
+                      <h3 className="font-semibold text-text-primary text-base sm:text-lg">{order.productName}</h3>
+                      <p className="text-xs sm:text-sm text-text-secondary mt-1">Toko: <span className="font-medium text-text-primary">{order.storeName || 'Toko UMKM'}</span></p>
+                    </div>
+                    <span className="text-[10px] sm:text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full">
+                      {order.orderId}
+                    </span>
+                  </div>
+                  
+                  {/* MOBILE & TABLET: Vertical Timeline */}
+                  <div className="relative lg:hidden pb-4 pt-4">
+                    <div className="flex flex-col gap-6 sm:gap-8 relative z-10">
+                      {steps.map((step, idx) => {
+                        const isLast = idx === steps.length - 1;
+                        const nextStep = steps[idx + 1];
+                        const isLineActive = nextStep?.active;
+                        const isLineCompleted = nextStep?.completed;
+                        
+                        return (
+                          <div key={idx} className={`relative flex items-start gap-4 sm:gap-6 ${!step.completed && !step.active ? 'opacity-50 grayscale' : ''}`}>
+                            {!isLast && (
+                              <>
+                                <div className={`absolute top-[32px] sm:top-[40px] left-[14px] sm:left-[18px] w-1 -bottom-6 sm:-bottom-8 rounded-full overflow-hidden ${isLineCompleted ? 'bg-brand-primary' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                                  {isLineActive && <div className="w-full h-full animate-flow-vertical"></div>}
+                                </div>
+                                {isLineActive && nextStep?.label === 'Barang sedang Dikirim' && (
+                                  <div className="absolute top-[32px] sm:top-[40px] left-[14px] sm:left-[18px] w-1 -bottom-6 sm:-bottom-8 z-20 pointer-events-none">
+                                    <div className="w-5 h-5 sm:w-6 sm:h-6 animate-drive-vertical text-brand-primary bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-md border border-border absolute -left-[8px] sm:-left-[10px]">
+                                      <Truck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            <div className={`relative z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 ring-4 ring-base transition-all ${step.completed ? 'bg-brand-primary text-white shadow-md' : step.active ? 'bg-brand-primary/10 border-2 border-brand-primary text-brand-primary ring-brand-primary/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
+                              {step.completed ? <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" /> : <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-current"></div>}
+                            </div>
+                            <div className="flex flex-col pt-1 sm:pt-1.5">
+                              <span className={`text-sm sm:text-base font-bold ${step.active ? 'text-brand-primary' : step.completed ? 'text-text-primary' : 'text-text-secondary'}`}>{step.label}</span>
+                              {step.date && <span className="text-[11px] sm:text-xs text-text-secondary mt-1">{typeof step.date === 'string' ? step.date : new Date(step.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* DESKTOP: Horizontal Timeline */}
+                  <div className="hidden lg:block w-full pb-8 pt-4 relative">
+                    <div className="flex flex-row justify-between w-full relative z-10">
+                      {steps.map((step, idx) => {
+                        const isLast = idx === steps.length - 1;
+                        const nextStep = steps[idx + 1];
+                        const isLineActive = nextStep?.active;
+                        const isLineCompleted = nextStep?.completed;
+                        
+                        return (
+                          <div key={idx} className={`relative flex flex-col items-center flex-1 ${!step.completed && !step.active ? 'opacity-50 grayscale' : ''}`}>
+                            {!isLast && (
+                              <>
+                                <div className={`absolute top-[18px] left-[50%] w-full h-1 rounded-full overflow-hidden ${isLineCompleted ? 'bg-brand-primary' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                                  {isLineActive && <div className="w-full h-full animate-flow-horizontal"></div>}
+                                </div>
+                                {isLineActive && nextStep?.label === 'Barang sedang Dikirim' && (
+                                  <div className="absolute top-[18px] left-[50%] w-full h-1 z-20 pointer-events-none">
+                                    <div className="w-6 h-6 animate-drive-horizontal text-brand-primary bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-md border border-border absolute -top-[10px]">
+                                      <Truck className="w-3.5 h-3.5" />
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 ring-4 ring-base transition-all ${step.completed ? 'bg-brand-primary text-white shadow-md' : step.active ? 'bg-brand-primary/10 border-2 border-brand-primary text-brand-primary ring-brand-primary/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
+                              {step.completed ? <CheckCircle className="w-5 h-5" /> : <div className="w-2.5 h-2.5 rounded-full bg-current"></div>}
+                            </div>
+                            <div className="flex flex-col items-center mt-4 text-center px-2">
+                              <span className={`text-sm font-bold ${step.active ? 'text-brand-primary' : step.completed ? 'text-text-primary' : 'text-text-secondary'}`}>{step.label}</span>
+                              {step.date && <span className="text-xs text-text-secondary mt-1.5">{typeof step.date === 'string' ? step.date : new Date(step.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <div className="space-y-4">
             {filteredLocalOrders.map((order) => {
@@ -1120,11 +1305,32 @@ export default function ClientBuyerOrders({
               const isPendingVerif = order.paymentId && order.paymentStatus === 'pending';
               const isVerified = order.paymentId && order.paymentStatus === 'approved';
               
-              const updateQty = async (delta: number) => {
+              const clearQtyDraft = () => {
+                setQtyDrafts(prev => {
+                  if (!(order.orderId in prev)) return prev;
+
+                  const next = { ...prev };
+                  delete next[order.orderId];
+                  return next;
+                });
+              };
+
+              const updateQty = async (requestedQty: number) => {
                 const minAllowed = order.minQty || 1;
-                const newQty = order.qty + delta;
+                const newQty = requestedQty;
+
+                if (!Number.isSafeInteger(newQty)) {
+                  clearQtyDraft();
+                  return;
+                }
+
+                if (newQty === order.qty) {
+                  clearQtyDraft();
+                  return;
+                }
 
                 if (newQty < minAllowed) {
+                  clearQtyDraft();
                   Swal.fire({
                     icon: 'warning',
                     title: 'Batas Minimal',
@@ -1138,6 +1344,7 @@ export default function ClientBuyerOrders({
                 }
 
                 if (order.maxQty && newQty > order.maxQty) {
+                  clearQtyDraft();
                   Swal.fire({
                     icon: 'warning',
                     title: 'Batas Maksimal',
@@ -1161,6 +1368,7 @@ export default function ClientBuyerOrders({
                   }
                   return o;
                 }));
+                clearQtyDraft();
 
                 try {
                   const res = await fetch('/api/orders/update-qty', {
@@ -1192,6 +1400,10 @@ export default function ClientBuyerOrders({
                   });
                 }
               };
+
+              const quantityInputValue = qtyDrafts[order.orderId] ?? String(order.qty);
+              const quantityBaseValue = quantityInputValue ? Number(quantityInputValue) : order.qty;
+              const isQuantityLocked = order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId;
               
               return (
                 <div key={order.orderId} className="card p-0 border border-border overflow-hidden bg-surface">
@@ -1236,19 +1448,50 @@ export default function ClientBuyerOrders({
                             <p className="text-sm text-brand-primary font-semibold mb-2">Rp {(order.totalPrice / order.qty).toLocaleString('id-ID')} / Porsi</p>
                             <div className="flex items-center gap-3 mt-1.5">
                               <p className="text-sm font-medium">Jumlah:</p>
-                              <div className={`flex items-center border border-border rounded-lg bg-base overflow-hidden ${order.status === 'completed' || order.status === 'cancelled' || order.paymentId ? 'opacity-50 pointer-events-none bg-gray-100 dark:bg-gray-800' : ''}`}>
-                                <button 
-                                  onClick={() => updateQty(-1)}
-                                  disabled={order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId}
+                              <div className={`flex items-center border border-border rounded-lg bg-base overflow-hidden focus-within:border-brand-primary focus-within:ring-2 focus-within:ring-brand-primary/20 ${isQuantityLocked ? 'opacity-50 bg-gray-100 dark:bg-gray-800' : ''}`}>
+                                <button
+                                  type="button"
+                                  onMouseDown={(event) => event.preventDefault()}
+                                  onClick={() => void updateQty(quantityBaseValue - 1)}
+                                  disabled={isQuantityLocked}
                                   className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                  aria-label={`Kurangi jumlah ${order.productName}`}
                                 >
                                   -
                                 </button>
-                                <span className="text-sm font-semibold w-8 text-center">{order.qty}</span>
-                                <button 
-                                  onClick={() => updateQty(1)}
-                                  disabled={order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId}
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  autoComplete="off"
+                                  value={quantityInputValue}
+                                  disabled={isQuantityLocked}
+                                  onChange={(event) => {
+                                    const digitsOnly = event.target.value.replace(/\D/g, '');
+                                    setQtyDrafts(prev => ({ ...prev, [order.orderId]: digitsOnly }));
+                                  }}
+                                  onBlur={(event) => {
+                                    const value = event.currentTarget.value;
+                                    if (!value) {
+                                      clearQtyDraft();
+                                      return;
+                                    }
+
+                                    void updateQty(Number(value));
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter') event.currentTarget.blur();
+                                  }}
+                                  className="w-12 border-x border-border bg-transparent px-1 py-1 text-center text-sm font-semibold text-text-primary outline-none disabled:cursor-not-allowed"
+                                  aria-label={`Jumlah porsi ${order.productName}`}
+                                />
+                                <button
+                                  type="button"
+                                  onMouseDown={(event) => event.preventDefault()}
+                                  onClick={() => void updateQty(quantityBaseValue + 1)}
+                                  disabled={isQuantityLocked}
                                   className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                  aria-label={`Tambah jumlah ${order.productName}`}
                                 >
                                   +
                                 </button>

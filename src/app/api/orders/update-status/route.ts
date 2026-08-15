@@ -23,7 +23,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Order ID dan status wajib diisi' }, { status: 400 });
     }
 
-    const validStatuses = ['waiting_verification', 'verified', 'completed', 'cancelled'] as const;
+    const validStatuses = ['waiting_verification', 'verified', 'processing', 'completed', 'cancelled', 'failed', 'preorder_running'] as const;
     type OrderStatusUpdate = (typeof validStatuses)[number];
     const isValidStatus = (value: unknown): value is OrderStatusUpdate =>
       typeof value === 'string' && validStatuses.includes(value as OrderStatusUpdate);
@@ -59,9 +59,13 @@ export async function PUT(req: Request) {
     }
     const sellerId = productObj.sellerId;
 
+    if (user.role === 'penjual' && sellerId !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized. Pesanan ini bukan milik toko Anda.' }, { status: 403 });
+    }
+
     // Fungsi upsert balance
     const addBalance = async (sid: string, amount: number) => {
-      let balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, sid)).get();
+      const balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, sid)).get();
       if (!balanceObj) {
         await db.insert(sellerBalances).values({ id: crypto.randomUUID(), sellerId: sid, availableBalance: amount, retainedBalance: 0 });
       } else {
@@ -86,7 +90,7 @@ export async function PUT(req: Request) {
       .where(eq(orders.id, orderId));
 
     // LOGIC PEMBAGIAN SALDO 
-    if (status === 'verified' && orderObj.status !== 'verified' && orderObj.status !== 'completed') {
+    if (status === 'processing' && orderObj.status !== 'processing' && orderObj.status !== 'completed') {
        // Saat pembayaran penuh: Admin 50%, Penjual 50% (sesuai db splitAmount, default 50%)
        const currentSellerSplit = orderObj.sellerSplitAmount ?? ((orderObj.totalPrice || 0) * 0.5);
        await addBalance(sellerId, currentSellerSplit);

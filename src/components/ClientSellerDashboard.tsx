@@ -60,7 +60,7 @@ export default function ClientSellerDashboard({
   completedCount,
   userName,
   userEmail = '',
-  sellerOrders = [],
+  sellerOrders: initialSellerOrders = [],
   feeAdmin = 0,
   promotionOffers = [],
   promotionRequests = []
@@ -70,6 +70,12 @@ export default function ClientSellerDashboard({
   const [selectedProductIdFilter, setSelectedProductIdFilter] = useState<string | undefined>(undefined);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [sellerOrders, setSellerOrders] = useState<OrderItem[]>(initialSellerOrders);
+
+  useEffect(() => {
+    const syncTimer = window.setTimeout(() => setSellerOrders(initialSellerOrders), 0);
+    return () => window.clearTimeout(syncTimer);
+  }, [initialSellerOrders]);
   
   const incomingCount = sellerOrders.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length;
   
@@ -107,6 +113,7 @@ export default function ClientSellerDashboard({
 
   // Poll for real-time updates on products and notifications
   useEffect(() => {
+    let initialLoad = true;
     const fetchData = async () => {
       try {
         const [prodRes, notifRes] = await Promise.all([
@@ -121,16 +128,58 @@ export default function ClientSellerDashboard({
         
         if (notifRes.ok) {
           const data = await notifRes.json();
-          setNotifications({
-             newOrders: data.newOrders || [],
-             unreadChats: data.unreadChats || [],
-             chatThreads: data.chatThreads || []
+          setNotifications(prev => {
+             const newOrders = data.newOrders || [];
+             const unreadChats = data.unreadChats || [];
+             
+             if (!initialLoad) {
+               if (newOrders.length > prev.newOrders.length) {
+                 if ('Notification' in window && Notification.permission === 'granted') {
+                   new Notification('Pesanan Baru Masuk!', { body: 'Anda mendapat pesanan baru.' });
+                 }
+                 Swal.fire({
+                   toast: true,
+                   position: 'top-end',
+                   icon: 'info',
+                   title: 'Pesanan Baru Masuk!',
+                   showConfirmButton: false,
+                   timer: 4000,
+                   timerProgressBar: true
+                 });
+               }
+               
+               if (unreadChats.length > prev.unreadChats.length) {
+                 if ('Notification' in window && Notification.permission === 'granted') {
+                   new Notification('Pesan Baru!', { body: 'Ada pesan baru dari pembeli.' });
+                 }
+                 Swal.fire({
+                   toast: true,
+                   position: 'top-end',
+                   icon: 'info',
+                   title: 'Pesan Baru dari Pembeli!',
+                   showConfirmButton: false,
+                   timer: 4000,
+                   timerProgressBar: true
+                 });
+               }
+             }
+             
+             return {
+                newOrders,
+                unreadChats,
+                chatThreads: data.chatThreads || []
+             };
           });
+          initialLoad = false;
         }
       } catch (err) {
         console.error('Error polling data:', err);
       }
     };
+
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
 
     fetchData();
     const interval = setInterval(fetchData, 3000);
@@ -1216,7 +1265,8 @@ export default function ClientSellerDashboard({
                         <thead>
                           <tr className="border-b border-border text-body-small text-text-secondary bg-surface/50 whitespace-nowrap">
                             <th className="p-4 font-medium">Order ID</th>
-                            <th className="p-4 font-medium">Produk & Pembeli</th>
+                            <th className="p-4 font-medium">Produk</th>
+                            <th className="p-4 font-medium">Pembeli</th>
                             <th className="p-4 font-medium">Total Bayar</th>
                             <th className="p-4 font-medium">Bukti Bayar</th>
                             <th className="p-4 font-medium">Bukti Delivery</th>
@@ -1231,7 +1281,7 @@ export default function ClientSellerDashboard({
                                 {order.id}
                                 <div className="text-[10px] text-text-secondary font-sans mt-1">{new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} WIB</div>
                               </td>
-                              <td className="p-4">
+                              <td className="p-4 min-w-[200px]">
                                 <p className="font-semibold text-text-primary line-clamp-1">{order.productName}</p>
                                 {order.selectedVariant && (
                                   <p className="mt-1 text-[10px] font-semibold text-brand-primary">
@@ -1241,15 +1291,18 @@ export default function ClientSellerDashboard({
                                       : ''}
                                   </p>
                                 )}
-                                <p className="text-xs text-text-secondary mt-1">Pembeli: {order.buyerName}</p>
-                                {order.buyerPhone && (
-                                  <p className="text-xs text-text-secondary mt-0.5">No. HP: {order.buyerPhone}</p>
-                                )}
-                                {order.buyerAddress && (
-                                  <p className="text-xs text-text-secondary mt-0.5 max-w-[260px] line-clamp-2">Alamat: {order.buyerAddress}</p>
-                                )}
+                                <p className="text-xs text-text-secondary mt-1">{order.qty} porsi</p>
                                 {order.notes && (
                                   <p className="text-[10px] text-brand-secondary-dark dark:text-brand-secondary mt-1 italic">Catatan: "{order.notes}"</p>
+                                )}
+                              </td>
+                              <td className="p-4 min-w-[200px]">
+                                <p className="text-sm font-semibold text-text-primary">{order.buyerName}</p>
+                                {order.buyerPhone && (
+                                  <p className="text-xs text-text-secondary mt-0.5">{order.buyerPhone}</p>
+                                )}
+                                {order.buyerAddress && (
+                                  <p className="text-xs text-text-secondary mt-0.5 max-w-[220px] line-clamp-2">{order.buyerAddress}</p>
                                 )}
                               </td>
                               <td className="p-4">
@@ -1358,14 +1411,18 @@ export default function ClientSellerDashboard({
                                   <select
                                     className={`text-xs font-semibold rounded-lg border px-2 py-1.5 outline-none cursor-pointer text-center w-[160px] ${
                                       order.status === 'completed' ? 'bg-status-success/10 text-status-success border-status-success/20' : 
+                                      order.status === 'processing' ? 'bg-brand-primary/10 text-brand-primary border-brand-primary/20' : 
+                                      order.status === 'preorder_running' ? 'bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-300' :
                                       order.status === 'verified' ? 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20' : 
                                       order.status === 'waiting_verification' ? 'bg-status-warning/10 text-status-warning border-status-warning/20' : 
-                                      order.status === 'cancelled' ? 'bg-status-error/10 text-status-error border-status-error/20' : 
+                                      order.status === 'cancelled' || order.status === 'failed' ? 'bg-status-error/10 text-status-error border-status-error/20' : 
                                       'bg-border/60 text-text-secondary border-border'
                                     }`}
                                     defaultValue={order.status ?? 'waiting_verification'}
                                     onChange={async (e) => {
                                       const newStatus = e.target.value;
+                                      const statusSelect = e.currentTarget;
+                                      const previousStatus = order.status ?? 'waiting_verification';
                                       try {
                                         Swal.fire({
                                           title: 'Loading...',
@@ -1379,19 +1436,29 @@ export default function ClientSellerDashboard({
                                         });
                                         const data = await res.json();
                                         if (!res.ok) throw new Error(data.error || 'Gagal memperbarui status');
+                                        setSellerOrders(current => current.map(item => item.id === order.id
+                                          ? { ...item, status: newStatus }
+                                          : item));
+                                        router.refresh();
                                         Swal.fire({
                                           icon: 'success', title: 'Berhasil', text: 'Status pesanan diperbarui!', timer: 1500, showConfirmButton: false
-                                        }).then(() => window.location.reload());
+                                        });
                                       } catch (error: unknown) {
+                                        statusSelect.value = previousStatus;
                                         const errMsg = error instanceof Error ? error.message : 'Gagal memperbarui status';
                                         Swal.fire('Error', errMsg, 'error');
                                       }
                                     }}
                                   >
-                                    <option value="waiting_verification" className="text-text-primary bg-base">Pending</option>
-                                    <option value="verified" className="text-text-primary bg-base">Diproses (Verifikasi)</option>
-                                    <option value="completed" className="text-text-primary bg-base">Selesai</option>
-                                    <option value="cancelled" className="text-status-error bg-base">Batalkan</option>
+                                    <option value="waiting_verification" className="text-text-primary bg-base">Menunggu Konfirmasi</option>
+                                    <option value="verified" className="text-text-primary bg-base">
+                                      {!order.proofUrl ? 'Menunggu Pembayaran' : 'Pesanan Dibayar (Verifikasi)'}
+                                    </option>
+                                    <option value="preorder_running" className="text-text-primary bg-base">Preorder Berjalan</option>
+                                    <option value="processing" className="text-text-primary bg-base">Barang Sedang Dikirim</option>
+                                    <option value="completed" className="text-status-success bg-base">Selesai</option>
+                                    <option value="failed" className="text-status-error bg-base">Gagal</option>
+                                    <option value="cancelled" className="text-status-error bg-base">Dibatalkan</option>
                                   </select>
                                 </div>
                               </td>
@@ -1425,8 +1492,6 @@ export default function ClientSellerDashboard({
                         <thead>
                           <tr className="border-b border-border text-body-small text-text-secondary bg-surface/50">
                             <th className="p-4 font-medium">Pembeli</th>
-                            <th className="p-4 font-medium">Produk Pesanan</th>
-                            <th className="p-4 font-medium">Jumlah & Harga</th>
                             <th className="p-4 font-medium">Pesan Terakhir</th>
                             <th className="p-4 font-medium">Aksi</th>
                           </tr>
@@ -1444,13 +1509,6 @@ export default function ClientSellerDashboard({
                                     {thread.unreadCount > 0 && <span className="ml-2 inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-brand-primary text-[10px] font-bold text-white px-1.5">{thread.unreadCount}</span>}
                                   </div>
                                 </div>
-                              </td>
-                              <td className="p-4">
-                                <span className="font-medium text-brand-secondary">{thread.productName}</span>
-                              </td>
-                              <td className="p-4">
-                                <div className="font-semibold">{thread.qty} Porsi</div>
-                                <div className="text-xs text-status-success font-medium">Rp {thread.totalPrice?.toLocaleString('id-ID')}</div>
                               </td>
                               <td className="p-4">
                                 <div className="text-sm line-clamp-1 text-text-secondary w-64">{formatMessageSnippet(thread.latestMessage)}</div>
@@ -1481,6 +1539,9 @@ export default function ClientSellerDashboard({
                 orders={sellerOrders}
                 products={localProducts.map((product) => ({ id: product.id, name: product.name }))}
                 productIdFilter={selectedProductIdFilter}
+                onOrderStatusChange={(orderId, status, cancelReason) => {
+                  setSellerOrders(current => current.map(order => order.id === orderId ? { ...order, status, cancelReason } : order));
+                }}
               />
 
               {/* Product List */}
@@ -1587,6 +1648,17 @@ export default function ClientSellerDashboard({
                                               <input id="swal-edit-name" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.name}">
                                             </div>
                                             <div>
+                                              <label class="text-caption text-text-secondary mb-1 block">Kategori Produk</label>
+                                              <select id="swal-edit-category" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none appearance-none bg-no-repeat bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%24%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.5em_1.5em] bg-[right_0.5rem_center] pr-10">
+                                                <option value="">Pilih Kategori</option>
+                                                <option value="Makanan Berat" ${product.batchCategory === 'Makanan Berat' ? 'selected' : ''}>Makanan Berat</option>
+                                                <option value="Minuman Segar" ${product.batchCategory === 'Minuman Segar' ? 'selected' : ''}>Minuman Segar</option>
+                                                <option value="Jajanan & Cemilan" ${product.batchCategory === 'Jajanan & Cemilan' ? 'selected' : ''}>Jajanan & Cemilan</option>
+                                                <option value="Kue & Roti" ${product.batchCategory === 'Kue & Roti' ? 'selected' : ''}>Kue & Roti</option>
+                                                <option value="Cepat Saji" ${product.batchCategory === 'Cepat Saji' ? 'selected' : ''}>Cepat Saji</option>
+                                              </select>
+                                            </div>
+                                            <div>
                                               <label class="text-caption text-text-secondary mb-1 block">Harga (Rp)</label>
                                               <input id="swal-edit-price" type="number" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.price}">
                                             </div>
@@ -1611,6 +1683,7 @@ export default function ClientSellerDashboard({
                                         cancelButtonText: 'Batal',
                                         confirmButtonColor: '#ff5c35',
                                         cancelButtonColor: '#94a3b8',
+                                        width: '450px',
                                         customClass: {
                                           popup: 'bg-surface text-text-primary rounded-xl border border-border shadow-2xl',
                                           title: 'text-text-primary text-h3',
@@ -1655,6 +1728,7 @@ export default function ClientSellerDashboard({
                                         },
                                         preConfirm: async () => {
                                           const name = (document.getElementById('swal-edit-name') as HTMLInputElement).value;
+                                          const batchCategory = (document.getElementById('swal-edit-category') as HTMLSelectElement).value;
                                           const price = (document.getElementById('swal-edit-price') as HTMLInputElement).value;
                                           const minOrder = (document.getElementById('swal-edit-minorder') as HTMLInputElement).value;
                                           const processingTime = (document.getElementById('swal-edit-processingtime') as HTMLInputElement).value;
@@ -1697,6 +1771,7 @@ export default function ClientSellerDashboard({
                                             imageUrl,
                                             minOrderQty: parseInt(minOrder),
                                             processingTime,
+                                            batchCategory,
                                             variants: variantResult.variants
                                           };
                                         }
@@ -1724,6 +1799,7 @@ export default function ClientSellerDashboard({
                                                 imageUrl: result.value.imageUrl,
                                                 minOrderQty: result.value.minOrderQty,
                                                 processingTime: result.value.processingTime,
+                                                batchCategory: result.value.batchCategory,
                                                 variants: result.value.variants
                                               })
                                             });

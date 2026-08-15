@@ -48,7 +48,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       buyerName: users.name,
       buyerPhone: users.phone,
       buyerAddress: sql<string>`COALESCE(${orders.deliveryAddress}, ${users.address})`.as('buyerAddress'),
-      deliveryDate: orders.deliveryDate,
+      requestedDeliveryDate: orders.deliveryDate,
       proofUrl: payments.proofUrl,
       deliveryProofUrl: orders.deliveryProofUrl,
       dispatchReceiptUrl: orders.dispatchReceiptUrl,
