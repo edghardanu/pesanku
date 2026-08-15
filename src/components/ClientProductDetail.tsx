@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Clock, Store, MapPin, CheckCircle, ShieldCheck, LogOut, User } from "lucide-react";
+import { ArrowLeft, Clock, Store, MapPin, CheckCircle, ShieldCheck, LogOut, User, Calendar, Truck, UserRound, Phone, Wallet } from "lucide-react";
 
 import Swal from "sweetalert2";
-import { ProductItem, AuthUser } from "@/types";
+import { ProductItem, AuthUser, OrderItem } from "@/types";
 import { findProductVariant, getProductUnitPrice } from "@/lib/productVariants";
 
 const escapeHtml = (value: string) => value
@@ -17,7 +17,23 @@ const escapeHtml = (value: string) => value
   .replaceAll('"', '&quot;')
   .replaceAll("'", '&#039;');
 
-export default function ClientProductDetail({ product: initialProduct, user }: { product: ProductItem, user: AuthUser | null }) {
+const fulfillmentStyles: Record<string, { label: string; badge: string }> = {
+  scheduled: { label: 'Terjadwal', badge: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20' },
+  preparing: { label: 'Disiapkan', badge: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20' },
+  ready: { label: 'Siap Dikirim', badge: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-500/20' },
+  shipped: { label: 'Dalam Pengiriman', badge: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20' },
+  delivered: { label: 'Terkirim', badge: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20' },
+};
+
+export default function ClientProductDetail({ 
+  product: initialProduct, 
+  user,
+  orders = []
+}: { 
+  product: ProductItem; 
+  user: AuthUser | null;
+  orders?: OrderItem[];
+}) {
   const router = useRouter();
   const productId = initialProduct.id;
   const [product, setProduct] = useState(initialProduct);
@@ -26,6 +42,8 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
   const [selectedVariant, setSelectedVariant] = useState("");
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  const isSeller = user && user.role === 'penjual' && product.sellerId === user.id;
 
   useEffect(() => {
     if (productId.startsWith("dummy-")) return;
@@ -338,108 +356,209 @@ export default function ClientProductDetail({ product: initialProduct, user }: {
             </div>
           </div>
 
-          {/* Kanan: Panel Pemesanan (Sticky) */}
+          {/* Kanan: Panel Pemesanan / Jadwal Pesanan (Sticky) */}
           <div className="lg:col-span-4">
-            <div className="card p-6 border border-border sticky top-24 shadow-xl">
-              <h3 className="font-bold text-lg mb-4 border-b border-border pb-4">Atur Pesanan</h3>
-              
-              <div className="space-y-6">
-                {product.variants && product.variants.length > 0 && (
-                  <fieldset>
-                    <legend className="mb-2 text-sm font-semibold text-text-primary">
-                      Pilih Tambah Varian <span className="text-xs font-normal text-gray-400 ml-1">(Opsional)</span>
-                    </legend>
-                    <div className="flex flex-wrap gap-2">
-                      {product.variants.map((variant) => {
-                        const isSelected = selectedVariant === variant.name;
+            {isSeller ? (
+              <div className="card p-6 border border-border sticky top-24 shadow-xl bg-surface dark:bg-zinc-900">
+                <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+                  <h3 className="font-bold text-lg text-text-primary flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-brand-primary" />
+                    Jadwal Pesanan
+                  </h3>
+                  <span className="bg-brand-primary/10 text-brand-primary px-2.5 py-1 rounded-full text-xs font-bold">
+                    {orders.length} Pesanan
+                  </span>
+                </div>
+
+                {orders.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Truck className="mx-auto mb-3 h-10 w-10 text-text-secondary/30" />
+                    <p className="text-sm font-semibold text-text-primary">Belum Ada Pesanan</p>
+                    <p className="mt-1 text-xs text-text-secondary">Produk ini belum memiliki pesanan dari pembeli.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+                    {/* Urutkan pesanan: yang terjadwal dulu, lalu belum terjadwal */}
+                    {(() => {
+                      const scheduled = orders.filter(o => o.deliveryDate).sort((a, b) => new Date(a.deliveryDate!).getTime() - new Date(b.deliveryDate!).getTime());
+                      const unscheduled = orders.filter(o => !o.deliveryDate);
+                      const allSorted = [...scheduled, ...unscheduled];
+
+                      return allSorted.map((order) => {
+                        const isScheduled = !!order.deliveryDate;
+                        const statusKey = order.fulfillmentStatus || 'scheduled';
+                        const statusStyle = fulfillmentStyles[statusKey] || { label: 'Terjadwal', badge: 'bg-blue-500/10 text-blue-700' };
+
                         return (
-                          <button
-                            key={variant.name}
-                            type="button"
-                            onClick={() => setSelectedVariant(variant.name)}
-                            aria-pressed={isSelected}
-                            className={`min-h-10 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${isSelected
-                              ? 'border-brand-primary bg-brand-primary text-white shadow-sm'
-                              : 'border-border bg-surface text-text-primary hover:border-brand-primary hover:text-brand-primary'
-                            }`}
-                          >
-                            {variant.name}
-                            {variant.price !== null && variant.price !== undefined && (
-                              <span className={`ml-1 ${isSelected ? 'text-white/90' : 'text-brand-primary'}`}>· Rp {variant.price.toLocaleString('id-ID')}</span>
-                            )}
-                          </button>
+                          <div key={order.id} className="p-4 rounded-xl border border-border bg-base/50 dark:bg-zinc-800/30 hover:border-brand-primary/30 transition-all flex flex-col gap-2 shadow-sm group text-left">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <span className="font-mono text-xs font-semibold text-text-secondary block truncate">
+                                  {order.id}
+                                </span>
+                                {order.selectedVariant && (
+                                  <span className="inline-block mt-1 text-[10px] font-bold bg-brand-primary/15 text-brand-primary px-2 py-0.5 rounded-full">
+                                    Varian: {order.selectedVariant}
+                                  </span>
+                                )}
+                              </div>
+                              <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${isScheduled ? statusStyle.badge : 'bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/20'}`}>
+                                {isScheduled ? statusStyle.label : 'Belum Dijadwalkan'}
+                              </span>
+                            </div>
+
+                            <div className="text-sm font-semibold text-text-primary mt-1">
+                              {order.qty} porsi · <span className="text-status-success font-bold">Rp {order.totalPrice.toLocaleString('id-ID')}</span>
+                            </div>
+
+                            <div className="text-xs text-text-secondary space-y-1 mt-1 pt-2 border-t border-border/50">
+                              <div className="flex items-center gap-1.5">
+                                <User className="w-3.5 h-3.5 text-text-secondary" />
+                                <span className="font-medium text-text-primary truncate">{order.buyerName}</span>
+                              </div>
+                              {order.buyerPhone && (
+                                <div className="flex items-center gap-1.5">
+                                  <Phone className="w-3.5 h-3.5 text-text-secondary" />
+                                  <span>{order.buyerPhone}</span>
+                                </div>
+                              )}
+                              <div className="flex items-start gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-text-secondary mt-0.5 shrink-0" />
+                                <span className="line-clamp-1 text-left" title={order.buyerAddress || undefined}>{order.buyerAddress}</span>
+                              </div>
+                              {order.notes && (
+                                <div className="bg-brand-primary/5 p-2 rounded-lg text-[11px] text-brand-primary italic mt-1.5 border border-brand-primary/10 text-left">
+                                  Catatan: "{order.notes}"
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="mt-2 pt-2 border-t border-border/50 flex items-center justify-between text-[11px] font-semibold text-text-secondary">
+                              <span>Tanggal Kirim:</span>
+                              <span className={isScheduled ? 'text-brand-primary font-bold' : 'text-amber-500 italic'}>
+                                {isScheduled 
+                                  ? new Date(order.deliveryDate!).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+                                  : 'Belum ditentukan'
+                                }
+                              </span>
+                            </div>
+                          </div>
                         );
-                      })}
-                    </div>
-                  </fieldset>
+                      });
+                    })()}
+                  </div>
                 )}
-
-                {/* Input Qty */}
-                <div>
-                  <label className="text-sm font-semibold text-text-primary block mb-2">Jumlah Porsi</label>
-                  <div className="flex items-center border border-border rounded-xl overflow-hidden w-full max-w-[200px]">
-                    <button 
-                      onClick={() => setQty(Math.max(minimumOrder, selectedQty - 1))}
-                      className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-r border-border disabled:cursor-not-allowed"
-                    >-</button>
-                    <input 
-                      type="number" 
-                      value={selectedQty}
-                      readOnly
-                      className="w-full text-center py-2 font-semibold bg-surface text-text-primary outline-none"
-                    />
-                    <button 
-                      onClick={() => {
-                        const maxQty = maximumOrder;
-                        if (selectedQty < maxQty) {
-                          setQty(selectedQty + 1);
-                        } else {
-                          Swal.fire('Batas Maksimal', `Maksimal pesanan adalah ${maxQty} porsi.`, 'warning');
-                        }
-                      }}
-                      className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-l border-border disabled:cursor-not-allowed"
-                    >+</button>
-                  </div>
-                </div>
-
-                {/* Catatan Tambahan */}
-                <div>
-                  <label className="text-sm font-semibold text-text-primary block mb-2">Catatan Tambahan <span className="text-text-secondary font-normal">(Opsional)</span></label>
-                  <textarea 
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Contoh: Jangan terlalu pedas ya kak..."
-                    className="w-full text-sm bg-base border border-border rounded-xl px-4 py-3 outline-none focus:border-brand-primary placeholder:text-text-secondary/50 min-h-[80px] resize-y"
-                  />
-                </div>
-
-                {/* Ringkasan */}
-                <div className="border-t border-border pt-4">
-                  <div className="flex justify-between items-center mb-6">
-                    <span className="text-text-secondary font-medium">Total Harga</span>
-                    <span className="text-h2 font-bold text-brand-primary">Rp {(selectedQty * unitPrice).toLocaleString('id-ID')}</span>
-                  </div>
-                  
-                  <button 
-                    onClick={handleCheckout}
-                    disabled={hasActiveOrder || isOrderUnavailable}
-                    className={`w-full py-3.5 text-lg transition-all rounded-xl ${
-                      isOrderUnavailable
-                        ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none'
-                        : hasActiveOrder
-                        ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none'
-                        : 'btn-primary shadow-lg shadow-brand-primary/20 hover:scale-[1.02]'
-                    }`}
+                {orders.length > 0 && (
+                  <Link 
+                    href="/seller?tab=produk" 
+                    className="mt-4 w-full py-2.5 bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-bold rounded-xl transition-all text-center flex items-center justify-center gap-1.5 shadow-md shadow-brand-primary/10 active:scale-95 hover:scale-[1.02]"
                   >
-                    {isPreorderClosed
-                        ? 'Preorder Sudah Ditutup'
-                        : hasActiveOrder
-                          ? 'Selesaikan dulu pesanan anda'
-                          : 'Pesan Sekarang'}
-                  </button>
+                    Kelola Semua Jadwal
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="card p-6 border border-border sticky top-24 shadow-xl">
+                <h3 className="font-bold text-lg mb-4 border-b border-border pb-4">Atur Pesanan</h3>
+                
+                <div className="space-y-6">
+                  {product.variants && product.variants.length > 0 && (
+                    <fieldset>
+                      <legend className="mb-2 text-sm font-semibold text-text-primary">
+                        Pilih Tambah Varian <span className="text-xs font-normal text-gray-400 ml-1">(Opsional)</span>
+                      </legend>
+                      <div className="flex flex-wrap gap-2">
+                        {product.variants.map((variant) => {
+                          const isSelected = selectedVariant === variant.name;
+                          return (
+                            <button
+                              key={variant.name}
+                              type="button"
+                              onClick={() => setSelectedVariant(variant.name)}
+                              aria-pressed={isSelected}
+                              className={`min-h-10 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${isSelected
+                                ? 'border-brand-primary bg-brand-primary text-white shadow-sm'
+                                : 'border-border bg-surface text-text-primary hover:border-brand-primary hover:text-brand-primary'
+                              }`}
+                            >
+                              {variant.name}
+                              {variant.price !== null && variant.price !== undefined && (
+                                <span className={`ml-1 ${isSelected ? 'text-white/90' : 'text-brand-primary'}`}>· Rp {variant.price.toLocaleString('id-ID')}</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+                  )}
+
+                  {/* Input Qty */}
+                  <div>
+                    <label className="text-sm font-semibold text-text-primary block mb-2">Jumlah Porsi</label>
+                    <div className="flex items-center border border-border rounded-xl overflow-hidden w-full max-w-[200px]">
+                      <button 
+                        onClick={() => setQty(Math.max(minimumOrder, selectedQty - 1))}
+                        className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-r border-border disabled:cursor-not-allowed"
+                      >-</button>
+                      <input 
+                        type="number" 
+                        value={selectedQty}
+                        readOnly
+                        className="w-full text-center py-2 font-semibold bg-surface text-text-primary outline-none"
+                      />
+                      <button 
+                        onClick={() => {
+                          const maxQty = maximumOrder;
+                          if (selectedQty < maxQty) {
+                            setQty(selectedQty + 1);
+                          } else {
+                            Swal.fire('Batas Maksimal', `Maksimal pesanan adalah ${maxQty} porsi.`, 'warning');
+                          }
+                        }}
+                        className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-l border-border disabled:cursor-not-allowed"
+                      >+</button>
+                    </div>
+                  </div>
+
+                  {/* Catatan Tambahan */}
+                  <div>
+                    <label className="text-sm font-semibold text-text-primary block mb-2">Catatan Tambahan <span className="text-text-secondary font-normal">(Opsional)</span></label>
+                    <textarea 
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Contoh: Jangan terlalu pedas ya kak..."
+                      className="w-full text-sm bg-base border border-border rounded-xl px-4 py-3 outline-none focus:border-brand-primary placeholder:text-text-secondary/50 min-h-[80px] resize-y"
+                    />
+                  </div>
+
+                  {/* Ringkasan */}
+                  <div className="border-t border-border pt-4">
+                    <div className="flex justify-between items-center mb-6">
+                      <span className="text-text-secondary font-medium">Total Harga</span>
+                      <span className="text-h2 font-bold text-brand-primary">Rp {(selectedQty * unitPrice).toLocaleString('id-ID')}</span>
+                    </div>
+                    
+                    <button 
+                      onClick={handleCheckout}
+                      disabled={hasActiveOrder || isOrderUnavailable}
+                      className={`w-full py-3.5 text-lg transition-all rounded-xl ${
+                        isOrderUnavailable
+                          ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none'
+                          : hasActiveOrder
+                          ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none'
+                          : 'btn-primary shadow-lg shadow-brand-primary/20 hover:scale-[1.02]'
+                      }`}
+                    >
+                      {isPreorderClosed
+                          ? 'Preorder Sudah Ditutup'
+                          : hasActiveOrder
+                            ? 'Selesaikan dulu pesanan anda'
+                            : 'Pesan Sekarang'}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </main>

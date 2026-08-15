@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   CalendarDays,
@@ -79,9 +79,11 @@ const buildCalendarDays = (year: number, month: number) => {
 export default function SellerPreorderCalendar({
   orders,
   products,
+  productIdFilter,
 }: {
   orders: OrderItem[];
   products: ProductOption[];
+  productIdFilter?: string;
 }) {
   const router = useRouter();
   const todayKey = toDateKey(new Date());
@@ -93,6 +95,12 @@ export default function SellerPreorderCalendar({
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [productFilter, setProductFilter] = useState('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (productIdFilter) {
+      setProductFilter(productIdFilter);
+    }
+  }, [productIdFilter]);
 
   const filteredOrders = useMemo(() => localOrders.filter((order) => (
     productFilter === 'all' || order.productId === productFilter
@@ -280,6 +288,28 @@ export default function SellerPreorderCalendar({
 
   return (
     <section className="card mb-8 overflow-hidden border border-border" aria-labelledby="preorder-calendar-title">
+      {/* Product Filter Header */}
+      <div className="px-4 py-3 border-b border-border bg-base flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 id="preorder-calendar-title" className="font-bold text-sm text-text-secondary flex items-center gap-1.5">
+          <CalendarDays className="w-4 h-4 text-brand-primary" />
+          Jadwal & Agenda Preorder
+        </h2>
+        <div className="flex items-center gap-2">
+          <label htmlFor="calendar-product-filter" className="text-xs font-semibold text-text-secondary whitespace-nowrap">Filter Produk:</label>
+          <select
+            id="calendar-product-filter"
+            value={productFilter}
+            onChange={(e) => setProductFilter(e.target.value)}
+            className="text-xs font-semibold rounded-lg border border-border bg-surface px-2.5 py-1.5 outline-none cursor-pointer text-text-primary focus:border-brand-primary min-w-[160px]"
+          >
+            <option value="all">Semua Produk</option>
+            {products.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-3 border-b border-border p-4 sm:grid-cols-3 sm:p-5">
         <div className="rounded-xl border border-border bg-base p-4">
           <p className="text-xs font-medium text-text-secondary">Terjadwal Bulan Ini</p>

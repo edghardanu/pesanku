@@ -67,6 +67,7 @@ export default function ClientSellerDashboard({
 }: ClientSellerDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'pesanan_masuk' | 'chat_pembeli' | 'produk' | 'promosi' | 'keuangan' | 'pengaturan'>('produk');
+  const [selectedProductIdFilter, setSelectedProductIdFilter] = useState<string | undefined>(undefined);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   
@@ -431,7 +432,7 @@ export default function ClientSellerDashboard({
     try {
       const res = await fetch(`/api/chat?orderId=${orderId}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Gagal memuat obrolan');
-      const { messages, status } = await res.json();
+      const { messages, status, productId } = await res.json();
       
       const chatHistory: ChatMessage[] = messages || [];
 
@@ -469,10 +470,10 @@ export default function ClientSellerDashboard({
               <p class="text-xs font-bold mt-1 ${textPrice}">${pPrice}</p>
             </div>
           </div>
-          <a href="/product/${encodeURIComponent((pName || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${pId}" target="_blank" class="w-full ${buttonBg} text-xs font-bold py-1.5 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1 active:scale-95 decoration-none hover:no-underline">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-            Lihat Produk
-          </a>
+          <button data-product-id="${pId}" class="view-product-calendar-btn w-full ${buttonBg} text-xs font-bold py-1.5 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1 active:scale-95 cursor-pointer border-none outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Lihat Jadwal Produk
+          </button>
         </div>
       `;
     };
@@ -575,6 +576,13 @@ export default function ClientSellerDashboard({
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 text-left">
           <!-- Column 1: Chat -->
           <div class="md:col-span-7 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3 bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-3">
+              <div class="text-xs text-text-primary font-semibold truncate max-w-[65%]">Produk: ${productName}</div>
+              <button data-product-id="${productId || ''}" class="view-product-calendar-btn text-[10px] font-bold text-brand-primary hover:text-brand-primary-hover bg-brand-primary/10 hover:bg-brand-primary/20 transition-all border border-brand-primary/35 px-2.5 py-1.5 rounded-lg cursor-pointer flex items-center gap-1 shrink-0 select-none">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Lihat Jadwal Produk
+              </button>
+            </div>
             <div class="flex flex-col h-[320px] md:h-[500px] bg-base border border-border rounded-xl p-4 overflow-y-auto mb-4" id="chat-box">
               <div class="text-xs text-text-secondary text-center mb-4">Hari ini</div>
               <div id="chat-messages" class="flex flex-col gap-3">
@@ -620,6 +628,28 @@ export default function ClientSellerDashboard({
         const chatBox = document.getElementById('chat-box');
         const chatMessages = document.getElementById('chat-messages');
         const productsList = document.getElementById('store-products-list');
+        
+        const popup = Swal.getPopup();
+        popup?.addEventListener('click', (e) => {
+          const target = e.target as HTMLElement;
+          const viewCalendarBtn = target.closest('.view-product-calendar-btn');
+          if (viewCalendarBtn) {
+            const pId = viewCalendarBtn.getAttribute('data-product-id');
+            if (pId) {
+              Swal.close();
+              setSelectedProductIdFilter(pId);
+              setActiveTab('produk');
+              
+              // Scroll to calendar
+              setTimeout(() => {
+                const calendarEl = document.getElementById('preorder-calendar-title');
+                if (calendarEl) {
+                  calendarEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }, 150);
+            }
+          }
+        });
         
         let editingId: string | null = null;
         if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
@@ -1447,9 +1477,10 @@ export default function ClientSellerDashboard({
             {activeTab === 'produk' && (
               <>
               <SellerPreorderCalendar
-                key={sellerOrders.map((order) => `${order.id}:${order.deliveryDate || ''}:${order.fulfillmentStatus || ''}`).join('|')}
+                key={`${selectedProductIdFilter || 'all'}-${sellerOrders.map((order) => `${order.id}:${order.deliveryDate || ''}:${order.fulfillmentStatus || ''}`).join('|')}`}
                 orders={sellerOrders}
                 products={localProducts.map((product) => ({ id: product.id, name: product.name }))}
+                productIdFilter={selectedProductIdFilter}
               />
 
               {/* Product List */}
@@ -1513,6 +1544,19 @@ export default function ClientSellerDashboard({
                               </td>
                               <td className="p-4 text-right">
                                 <div className="flex justify-end gap-3 items-center">
+                                  <button 
+                                    onClick={() => {
+                                      setSelectedProductIdFilter(product.id);
+                                      // Scroll to calendar
+                                      const calendarEl = document.getElementById('preorder-calendar-title');
+                                      if (calendarEl) {
+                                        calendarEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                      }
+                                    }}
+                                    className="text-brand-secondary hover:text-brand-primary font-medium text-sm transition-colors cursor-pointer mr-1 bg-transparent border-none outline-none"
+                                  >
+                                    Lihat Jadwal
+                                  </button>
                                   <button 
                                     onClick={() => {
                                       const variantRows = (product.variants || []).map((variant) => `

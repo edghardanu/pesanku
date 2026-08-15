@@ -9,6 +9,7 @@ async function getChatOrder(orderId: string) {
   return db
     .select({
       buyerId: orders.buyerId,
+      productId: orders.productId,
       productName: products.name,
       sellerId: products.sellerId,
       status: orders.status,
@@ -99,7 +100,7 @@ export async function GET(request: Request) {
       .where(inArray(chatMessages.orderId, orderIds))
       .orderBy(asc(chatMessages.createdAt));
 
-    return NextResponse.json({ messages, status: orderData.status });
+    return NextResponse.json({ messages, status: orderData.status, productId: orderData.productId });
   } catch (error) {
     console.error("Failed to load chat:", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
