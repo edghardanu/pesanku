@@ -570,7 +570,7 @@ export default function ClientBuyerOrders({
               <p class="text-xs font-bold mt-1 ${textPrice}">${pPrice}</p>
             </div>
           </div>
-          <a href="/product/${pId}" target="_blank" class="w-full ${buttonBg} text-xs font-bold py-1.5 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1 active:scale-95 decoration-none hover:no-underline">
+          <a href="/product/${encodeURIComponent((pName || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${pId}" target="_blank" class="w-full ${buttonBg} text-xs font-bold py-1.5 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1 active:scale-95 decoration-none hover:no-underline">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
             Lihat Produk
           </a>
@@ -670,7 +670,7 @@ export default function ClientBuyerOrders({
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 text-left">
           <!-- Column 1: Chat -->
           <div class="md:col-span-7 flex flex-col justify-between">
-            <div class="flex flex-col h-[160px] md:h-[300px] bg-base border border-border rounded-xl p-3 md:p-4 overflow-y-auto mb-3 md:mb-4" id="chat-box">
+            <div class="flex flex-col h-[320px] md:h-[500px] bg-base border border-border rounded-xl p-3 md:p-4 overflow-y-auto mb-3 md:mb-4" id="chat-box">
               <div class="text-[10px] md:text-xs text-text-secondary text-center mb-3">Hari ini</div>
               <div id="chat-messages" class="flex flex-col gap-2 md:gap-3">
                 ${renderMsgs()}
@@ -685,7 +685,7 @@ export default function ClientBuyerOrders({
           </div>
           
           <!-- Column 2: Products Showcase -->
-          <div class="md:col-span-5 border-t md:border-t-0 md:border-l border-border pt-3 md:pt-0 md:pl-4 flex flex-col h-[180px] md:h-[350px] transition-all duration-300 overflow-hidden" id="products-column">
+          <div class="md:col-span-5 border-t md:border-t-0 md:border-l border-border pt-3 md:pt-0 md:pl-4 flex flex-col h-[340px] md:h-[550px] transition-all duration-300 overflow-hidden" id="products-column">
             <div class="flex flex-col h-full w-full">
               <button id="toggle-products-btn" class="w-full text-[11px] md:text-xs font-bold text-text-primary mb-2 flex items-center justify-between shrink-0 uppercase tracking-wider bg-transparent hover:bg-black/5 p-2 -mx-2 rounded-lg transition-colors cursor-pointer outline-none select-none">
                 <div class="flex items-center gap-1.5">
@@ -694,7 +694,7 @@ export default function ClientBuyerOrders({
                 </div>
                 <svg id="toggle-products-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300 transform"><polyline points="18 15 12 9 6 15"></polyline></svg>
               </button>
-              <div class="flex-1 overflow-y-scroll pr-1.5 space-y-2 max-h-[140px] md:max-h-[310px] transition-all duration-300" id="store-products-list">
+              <div class="flex-1 overflow-y-scroll pr-1.5 space-y-2 max-h-[300px] md:max-h-[510px] transition-all duration-300" id="store-products-list">
                 ${renderProductList()}
               </div>
             </div>
@@ -731,11 +731,11 @@ export default function ClientBuyerOrders({
             productsList!.style.display = 'block';
             toggleIcon!.style.transform = 'rotate(0deg)';
             productsColumn!.classList.remove('h-auto', 'md:h-auto');
-            productsColumn!.classList.add('h-[180px]', 'md:h-[350px]');
+            productsColumn!.classList.add('h-[340px]', 'md:h-[550px]');
           } else {
             productsList!.style.display = 'none';
             toggleIcon!.style.transform = 'rotate(180deg)';
-            productsColumn!.classList.remove('h-[180px]', 'md:h-[350px]');
+            productsColumn!.classList.remove('h-[340px]', 'md:h-[550px]');
             productsColumn!.classList.add('h-auto', 'md:h-auto');
           }
         });

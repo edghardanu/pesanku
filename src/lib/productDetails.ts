@@ -1,11 +1,21 @@
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { products, sellerProfiles, users } from "@/lib/schema";
 import { ProductItem } from "@/types";
 import { parseStoredProductVariants } from "@/lib/productVariants";
 
-export async function getProductDetail(productId: string): Promise<ProductItem | undefined> {
+export async function getProductDetail(productIdOrSlug: string): Promise<ProductItem | undefined> {
+  let targetId = productIdOrSlug;
+  const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const match = productIdOrSlug.match(uuidRegex);
+  
+  if (match) {
+    targetId = match[0];
+  } else {
+    targetId = decodeURIComponent(productIdOrSlug);
+  }
+
   const product = await db
     .select({
       id: products.id,
@@ -35,7 +45,7 @@ export async function getProductDetail(productId: string): Promise<ProductItem |
     .from(products)
     .innerJoin(users, eq(products.sellerId, users.id))
     .leftJoin(sellerProfiles, eq(users.id, sellerProfiles.userId))
-    .where(eq(products.id, productId))
+    .where(or(eq(products.id, targetId), eq(products.name, targetId)))
     .get();
 
   if (!product) return undefined;
