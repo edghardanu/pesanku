@@ -1403,6 +1403,11 @@ export default function ClientBuyerOrders({
 
               const quantityInputValue = qtyDrafts[order.orderId] ?? String(order.qty);
               const quantityBaseValue = quantityInputValue ? Number(quantityInputValue) : order.qty;
+              const orderUnitPrice = order.qty > 0 ? order.totalPrice / order.qty : 0;
+              const draftQuantity = Number(quantityInputValue);
+              const displayedTotalPrice = quantityInputValue && Number.isSafeInteger(draftQuantity) && draftQuantity > 0
+                ? orderUnitPrice * draftQuantity
+                : order.totalPrice;
               const isQuantityLocked = order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId;
               
               return (
@@ -1445,7 +1450,7 @@ export default function ClientBuyerOrders({
                         )}
                         {order.status !== 'chat_only' && (
                           <>
-                            <p className="text-sm text-brand-primary font-semibold mb-2">Rp {(order.totalPrice / order.qty).toLocaleString('id-ID')} / Porsi</p>
+                            <p className="text-sm text-brand-primary font-semibold mb-2">Rp {orderUnitPrice.toLocaleString('id-ID')} / Porsi</p>
                             <div className="flex items-center gap-3 mt-1.5">
                               <p className="text-sm font-medium">Jumlah:</p>
                               <div className={`flex items-center border border-border rounded-lg bg-base overflow-hidden focus-within:border-brand-primary focus-within:ring-2 focus-within:ring-brand-primary/20 ${isQuantityLocked ? 'opacity-50 bg-gray-100 dark:bg-gray-800' : ''}`}>
@@ -1623,7 +1628,7 @@ export default function ClientBuyerOrders({
                     {order.status !== 'chat_only' && (
                       <div>
                         <p className="text-xs text-text-secondary font-medium">Total Harga</p>
-                        <p className="font-bold text-lg text-brand-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</p>
+                        <p className="font-bold text-lg text-brand-primary">Rp {displayedTotalPrice.toLocaleString('id-ID')}</p>
                       </div>
                     )}
                     

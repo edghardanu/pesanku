@@ -37,7 +37,7 @@ export default function ClientProductDetail({
   const router = useRouter();
   const productId = initialProduct.id;
   const [product, setProduct] = useState(initialProduct);
-  const [qty, setQty] = useState(product.minOrderQty || 1);
+  const [qtyInput, setQtyInput] = useState(String(product.minOrderQty || 1));
   const [notes, setNotes] = useState("");
   const [selectedVariant, setSelectedVariant] = useState("");
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
@@ -124,8 +124,11 @@ export default function ClientProductDetail({
 
   const isFull = (product.currentQty || 0) >= (product.minQty || 1);
   const minimumOrder = 1;
-  const maximumOrder = Number.MAX_SAFE_INTEGER;
-  const selectedQty = Math.min(Math.max(qty, minimumOrder), maximumOrder);
+  const maximumOrder = product.maxOrderQty || Number.MAX_SAFE_INTEGER;
+  const parsedQty = Number(qtyInput);
+  const selectedQty = Number.isSafeInteger(parsedQty) && parsedQty >= minimumOrder
+    ? Math.min(parsedQty, maximumOrder)
+    : minimumOrder;
   const deadline = product.deadlineDate ? new Date(product.deadlineDate) : null;
   const hasValidDeadline = Boolean(deadline && !Number.isNaN(deadline.getTime()));
   const isDeadlinePassed = Boolean(deadline && hasValidDeadline && deadline.getTime() < currentTime);
@@ -497,20 +500,30 @@ export default function ClientProductDetail({
                     <label className="text-sm font-semibold text-text-primary block mb-2">Jumlah Porsi</label>
                     <div className="flex items-center border border-border rounded-xl overflow-hidden w-full max-w-[200px]">
                       <button 
-                        onClick={() => setQty(Math.max(minimumOrder, selectedQty - 1))}
+                        type="button"
+                        onClick={() => setQtyInput(String(Math.max(minimumOrder, selectedQty - 1)))}
                         className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-r border-border disabled:cursor-not-allowed"
                       >-</button>
                       <input 
-                        type="number" 
-                        value={selectedQty}
-                        readOnly
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        autoComplete="off"
+                        value={qtyInput}
+                        onChange={(event) => {
+                          const digitsOnly = event.target.value.replace(/\D/g, '');
+                          setQtyInput(digitsOnly);
+                        }}
+                        onBlur={() => setQtyInput(String(selectedQty))}
                         className="w-full text-center py-2 font-semibold bg-surface text-text-primary outline-none"
+                        aria-label="Jumlah porsi"
                       />
                       <button 
+                        type="button"
                         onClick={() => {
                           const maxQty = maximumOrder;
                           if (selectedQty < maxQty) {
-                            setQty(selectedQty + 1);
+                            setQtyInput(String(selectedQty + 1));
                           } else {
                             Swal.fire('Batas Maksimal', `Maksimal pesanan adalah ${maxQty} porsi.`, 'warning');
                           }
