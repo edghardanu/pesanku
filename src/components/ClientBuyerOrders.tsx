@@ -39,6 +39,7 @@ export default function ClientBuyerOrders({
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [localOrders, setLocalOrders] = useState<BuyerOrderViewItem[]>(orders);
   const [bottomNavLoading, setBottomNavLoading] = useState<'home' | 'catalog' | null>(null);
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const [checkoutNoticeCount, setCheckoutNoticeCount] = useState(checkoutCount);
   const [ratingLoadingOrderId, setRatingLoadingOrderId] = useState<string | null>(null);
   const hasShownCheckoutNotice = useRef(false);
