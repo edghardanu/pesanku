@@ -1130,7 +1130,10 @@ export default function ClientHome({
 
                 return (
                   <motion.div variants={itemVariants} key={product.id}>
-                    <Link href={product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`} className="card block group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                    <div onClick={(e) => {
+  if((e.target as HTMLElement).closest('button')) return;
+  router.push(product.sellerId ? `/store/${encodeURIComponent((product.storeName || product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
+}} className="card block group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-surface dark:bg-border rounded-2xl relative">
                       <div className="relative aspect-[4/3] overflow-hidden bg-surface dark:bg-border rounded-t-2xl">
                         <Image 
                           src={productImageUrl} 
@@ -1240,7 +1243,7 @@ export default function ClientHome({
                           </div>
                         </div>
                       </div>
-                    </Link>
+                    </div>
                   </motion.div>
                 )
               })}

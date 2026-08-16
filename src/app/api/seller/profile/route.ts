@@ -19,6 +19,11 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Nama toko wajib diisi' }, { status: 400 });
     }
 
+    const normalizedDescription = typeof description === 'string' ? description.trim() : '';
+    if (normalizedDescription.length > 500) {
+      return NextResponse.json({ error: 'Deskripsi toko maksimal 500 karakter' }, { status: 400 });
+    }
+
     let finalLogoUrl = undefined;
     
     // Jika logoUrl adalah base64, upload ke Cloudinary
@@ -48,7 +53,7 @@ export async function PUT(request: Request) {
         address,
         category,
         bankAccount,
-        description
+        description: normalizedDescription || null
     };
 
     if (finalLogoUrl !== undefined) {

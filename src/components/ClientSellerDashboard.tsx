@@ -2044,7 +2044,30 @@ export default function ClientSellerDashboard({
                       placeholder="Masukkan alamat lengkap toko"
                     ></textarea>
                   </div>
-                  
+
+                  <div>
+                    <div className="mb-1 flex items-center justify-between gap-3">
+                      <label htmlFor="store-description" className="block text-body-small font-medium text-text-secondary">
+                        Deskripsi Toko
+                      </label>
+                      <span className="text-caption text-text-secondary">
+                        {formData.description.length}/500
+                      </span>
+                    </div>
+                    <textarea
+                      id="store-description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      maxLength={500}
+                      rows={4}
+                      className="input-field w-full resize-y py-3"
+                      placeholder="Ceritakan tentang toko dan produk unggulan Anda"
+                    />
+                    <p className="text-caption text-text-secondary mt-1">
+                      Deskripsi ini akan ditampilkan pada halaman toko yang dilihat pembeli.
+                    </p>
+                  </div>
+
                   <div>
                     <label className="block text-body-small font-medium text-text-secondary mb-1">Kategori Produk</label>
                     <select 

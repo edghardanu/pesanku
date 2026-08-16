@@ -57,6 +57,7 @@ export default function ClientStoreProfile({
   const router = useRouter();
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [variantSelections, setVariantSelections] = useState<Record<string, string>>({});
+  const storeDescription = seller.description?.trim();
 
   const cartProducts = useMemo(
     () => products.filter((product) => cart[product.id]),
@@ -307,8 +308,8 @@ export default function ClientStoreProfile({
                   {seller.createdAt && <span className="flex items-center gap-2"><Calendar className="h-4 w-4 text-brand-primary" />Bergabung {new Date(seller.createdAt).getFullYear()}</span>}
                 </div>
                 <div className="mt-4 p-4 rounded-xl bg-surface border border-border/60">
-                  <p className={`text-sm leading-relaxed whitespace-pre-line ${seller.description ? 'text-text-primary' : 'text-text-secondary/50 italic'}`}>
-                    {seller.description || 'belum ada deskripsi'}
+                  <p className={`text-sm leading-relaxed whitespace-pre-line ${storeDescription ? 'text-text-primary' : 'text-text-secondary/50 italic'}`}>
+                    {storeDescription || 'Belum ada deskripsi toko.'}
                   </p>
                 </div>
               </div>
