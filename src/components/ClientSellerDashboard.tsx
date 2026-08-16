@@ -191,6 +191,7 @@ export default function ClientSellerDashboard({
     address: profile?.address || '',
     category: profile?.category || '',
     bankAccount: profile?.bankAccount || '',
+    description: profile?.description || '',
     logoUrl: profile?.logoUrl || '',
     email: userEmail || '',
     oldPassword: '',

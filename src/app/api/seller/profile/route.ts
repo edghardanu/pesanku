@@ -13,7 +13,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { storeName, address, category, bankAccount, logoUrl, email, oldPassword, password } = body;
+    const { storeName, address, category, bankAccount, logoUrl, description, email, oldPassword, password } = body;
 
     if (!storeName) {
       return NextResponse.json({ error: 'Nama toko wajib diisi' }, { status: 400 });
@@ -42,11 +42,13 @@ export async function PUT(request: Request) {
       category?: string | null;
       bankAccount?: string | null;
       logoUrl?: string | null;
+      description?: string | null;
     } = {
         storeName,
         address,
         category,
-        bankAccount
+        bankAccount,
+        description
     };
 
     if (finalLogoUrl !== undefined) {

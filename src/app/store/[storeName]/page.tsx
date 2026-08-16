@@ -44,7 +44,9 @@ export default async function StoreProfilePage({
         address: sellerProfiles.address,
         category: sellerProfiles.category,
         logoUrl: sellerProfiles.logoUrl,
+        description: sellerProfiles.description,
         approvalStatus: sellerProfiles.approvalStatus,
+        createdAt: users.createdAt,
       })
       .from(users)
       .innerJoin(sellerProfiles, eq(users.id, sellerProfiles.userId))
@@ -64,7 +66,9 @@ export default async function StoreProfilePage({
         address: sellerProfiles.address,
         category: sellerProfiles.category,
         logoUrl: sellerProfiles.logoUrl,
+        description: sellerProfiles.description,
         approvalStatus: sellerProfiles.approvalStatus,
+        createdAt: users.createdAt,
       })
       .from(users)
       .innerJoin(sellerProfiles, eq(users.id, sellerProfiles.userId))

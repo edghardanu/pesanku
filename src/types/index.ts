@@ -10,6 +10,7 @@ export interface SellerProfile {
   category?: string | null;
   bankAccount?: string | null;
   logoUrl?: string | null;
+  description?: string | null;
   phone?: string | null;
   approvalStatus?: string | null;
 }

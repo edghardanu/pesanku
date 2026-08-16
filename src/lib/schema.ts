@@ -30,6 +30,7 @@ export const sellerProfiles = sqliteTable('seller_profiles', {
   category: text('category'),
   bankAccount: text('bank_account'),
   logoUrl: text('logo_url'),
+  description: text('description'),
   approvalStatus: text('approval_status', { enum: ['pending', 'approved', 'rejected'] }).default('pending'),
 });
 

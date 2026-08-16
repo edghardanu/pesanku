@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle, Clock, ShoppingBag, Store, MapPin, X, Minus, Plus, Trash2, Info, User, Package, ShieldCheck, ShoppingCart } from "lucide-react";
+import { ArrowLeft, CheckCircle, Clock, ShoppingBag, Store, MapPin, X, Minus, Plus, Trash2, Info, User, Package, ShieldCheck, ShoppingCart, Calendar } from "lucide-react";
 import Swal from 'sweetalert2';
 
 import { AuthUser, ProductItem } from '@/types';
@@ -19,7 +19,9 @@ type StoreView = {
   address: string | null;
   category: string | null;
   logoUrl: string | null;
+  description?: string | null;
   approvalStatus: string | null;
+  createdAt?: Date | null;
 };
 
 type CartLine = {
@@ -302,6 +304,12 @@ export default function ClientStoreProfile({
                 <div className="flex flex-col gap-2 text-sm text-text-secondary sm:flex-row sm:flex-wrap sm:gap-5">
                   <span className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />{seller.address || 'Alamat toko belum ditambahkan'}</span>
                   {seller.category && <span className="flex items-center gap-2"><Package className="h-4 w-4 text-brand-primary" />{seller.category}</span>}
+                  {seller.createdAt && <span className="flex items-center gap-2"><Calendar className="h-4 w-4 text-brand-primary" />Bergabung {new Date(seller.createdAt).getFullYear()}</span>}
+                </div>
+                <div className="mt-4 p-4 rounded-xl bg-surface border border-border/60">
+                  <p className={`text-sm leading-relaxed whitespace-pre-line ${seller.description ? 'text-text-primary' : 'text-text-secondary/50 italic'}`}>
+                    {seller.description || 'belum ada deskripsi'}
+                  </p>
                 </div>
               </div>
             </div>
