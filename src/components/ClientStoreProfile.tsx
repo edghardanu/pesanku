@@ -57,6 +57,7 @@ export default function ClientStoreProfile({
   const router = useRouter();
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [variantSelections, setVariantSelections] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState<'katalog' | 'profil'>('katalog');
   const storeDescription = seller.description?.trim();
 
   const cartProducts = useMemo(
@@ -283,8 +284,8 @@ export default function ClientStoreProfile({
 
       <main>
         <section className="border-b border-border bg-surface">
-          <div className="container mx-auto max-w-6xl px-4 py-8 md:py-12">
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+          <div className="container mx-auto max-w-6xl px-4 pt-8 pb-0 md:pt-12">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center mb-8">
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-3xl border border-border bg-brand-primary/10 shadow-sm md:h-28 md:w-28">
                 {seller.logoUrl ? (
                   <Image src={seller.logoUrl} alt={seller.storeName} fill sizes="112px" className="object-cover" priority />
@@ -301,27 +302,83 @@ export default function ClientStoreProfile({
                     </span>
                   )}
                 </div>
-                <p className="mb-3 text-sm text-text-secondary">Dikelola oleh {seller.ownerName}</p>
-                <div className="flex flex-col gap-2 text-sm text-text-secondary sm:flex-row sm:flex-wrap sm:gap-5">
-                  <span className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />{seller.address || 'Alamat toko belum ditambahkan'}</span>
-                  {seller.category && <span className="flex items-center gap-2"><Package className="h-4 w-4 text-brand-primary" />{seller.category}</span>}
-                  {seller.createdAt && <span className="flex items-center gap-2"><Calendar className="h-4 w-4 text-brand-primary" />Bergabung {new Date(seller.createdAt).getFullYear()}</span>}
-                </div>
-                <div className="mt-4 p-4 rounded-xl bg-surface border border-border/60">
-                  <p className={`text-sm leading-relaxed whitespace-pre-line ${storeDescription ? 'text-text-primary' : 'text-text-secondary/50 italic'}`}>
-                    {storeDescription || 'Belum ada deskripsi toko.'}
-                  </p>
-                </div>
+                <p className="text-sm text-text-secondary">Dikelola oleh {seller.ownerName}</p>
               </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex items-center gap-6 overflow-x-auto scollbar-hide border-b-2 border-transparent">
+              <button 
+                onClick={() => setActiveTab('katalog')}
+                className={`pb-3 text-sm font-bold whitespace-nowrap transition-all border-b-2 ${activeTab === 'katalog' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
+              >
+                Katalog Produk
+              </button>
+              <button 
+                onClick={() => setActiveTab('profil')}
+                className={`pb-3 text-sm font-bold whitespace-nowrap transition-all border-b-2 ${activeTab === 'profil' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
+              >
+                Profil Detail Toko
+              </button>
             </div>
           </div>
         </section>
 
         <section className="container mx-auto max-w-6xl px-4 py-8">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-text-primary">Katalog Produk</h2>
-            <p className="mt-1 text-sm text-text-secondary">Pilih beberapa produk dari toko ini dan checkout sekaligus.</p>
-          </div>
+          {activeTab === 'profil' ? (
+            <div className="card max-w-3xl p-6 border border-border shadow-sm">
+              <h2 className="text-xl font-bold text-text-primary mb-6">Informasi Toko</h2>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-text-primary mb-3">Detail & Kontak</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex items-start gap-3 p-3 bg-surface rounded-xl border border-border/50">
+                      <MapPin className="h-5 w-5 text-brand-primary shrink-0 mt-0.5" />
+                      <div>
+                         <p className="text-xs text-text-secondary mb-0.5">Alamat</p>
+                         <p className="text-sm font-medium text-text-primary">{seller.address || 'Belum ditambahkan'}</p>
+                      </div>
+                    </div>
+                    {seller.category && (
+                      <div className="flex items-start gap-3 p-3 bg-surface rounded-xl border border-border/50">
+                        <Package className="h-5 w-5 text-brand-primary shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-text-secondary mb-0.5">Kategori</p>
+                          <p className="text-sm font-medium text-text-primary">{seller.category}</p>
+                        </div>
+                      </div>
+                    )}
+                    {seller.createdAt && (
+                      <div className="flex items-start gap-3 p-3 bg-surface rounded-xl border border-border/50">
+                        <Calendar className="h-5 w-5 text-brand-primary shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-text-secondary mb-0.5">Tahun Bergabung</p>
+                          <p className="text-sm font-medium text-text-primary">{new Date(seller.createdAt).getFullYear()}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-border/60">
+                  <h3 className="text-sm font-semibold text-text-primary mb-3">Deskripsi Utama</h3>
+                  <div className="bg-surface rounded-xl p-4 border border-border/50 relative">
+                     <div className="absolute top-4 right-4 text-text-secondary/20 h-10 w-10">
+                       <Info className="w-full h-full" />
+                     </div>
+                     <p className={`text-sm leading-relaxed whitespace-pre-line relative z-10 ${storeDescription ? 'text-text-primary' : 'text-text-secondary/50 italic'}`}>
+                       {storeDescription || 'belum ada deskripsi'}
+                     </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+            <div className="mb-6">
+               <p className="text-sm text-text-secondary">Pilih beberapa produk dari toko ini dan checkout sekaligus.</p>
+            </div>
+            
 
           <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
             {products.length === 0 ? (
@@ -480,6 +537,8 @@ export default function ClientStoreProfile({
               </div>
             </aside>
           </div>
+                  </>
+          )}
         </section>
       </main>
 
