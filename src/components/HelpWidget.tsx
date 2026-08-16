@@ -22,6 +22,20 @@ export default function HelpWidget() {
   const [isOverOrange, setIsOverOrange] = useState(false);
 
   useEffect(() => {
+    if (pathname === '/') {
+      const hasAutoOpened = sessionStorage.getItem('helpWidgetAutoOpened');
+      if (!hasAutoOpened) {
+        const timer = setTimeout(() => {
+          setIsOpen(true);
+          sessionStorage.setItem('helpWidgetAutoOpened', 'true');
+        }, 1200);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [pathname]);
+
+
+  useEffect(() => {
     const u = localStorage.getItem("user");
     if (u) {
       setTimeout(() => {

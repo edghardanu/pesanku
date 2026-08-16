@@ -111,7 +111,7 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
         {/* We use global styling via tailwind arbitrary variants to force the video to cover the area */}
         <div 
           id="qris-reader" 
-          className="w-full h-full absolute inset-0 [&>video]:object-cover [&>video]:w-full [&>video]:h-full [&>div]:opacity-0 [&>#qr-shaded-region]:opacity-100"
+          className="w-full h-full absolute inset-0 [&_video]:object-cover [&_video]:w-full [&_video]:h-full [&_#qr-shaded-region]:border-brand-primary"
         ></div>
         
         {/* Decorative corner brackets for a native scanner feel */}
