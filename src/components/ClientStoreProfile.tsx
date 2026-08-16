@@ -5,6 +5,8 @@ import Link from 'next/link';
 import {
   ArrowLeft,
   Calendar,
+  ChevronRight,
+  Clock,
   Info,
   MapPin,
   Package,
@@ -15,7 +17,8 @@ import {
   UserRound,
 } from 'lucide-react';
 
-import { AuthUser } from '@/types';
+import ProductRating from '@/components/ProductRating';
+import { AuthUser, ProductItem } from '@/types';
 
 type StoreView = {
   id: string;
@@ -31,9 +34,13 @@ type StoreView = {
 
 export default function ClientStoreProfile({
   seller,
+  products,
+  showCatalog,
   user,
 }: {
   seller: StoreView;
+  products: ProductItem[];
+  showCatalog: boolean;
   user: AuthUser | null;
 }) {
   const storeDescription = seller.description?.trim();
@@ -114,7 +121,7 @@ export default function ClientStoreProfile({
           </div>
         </section>
 
-        <section className="container mx-auto max-w-4xl px-4 py-8">
+        <section className={`container mx-auto px-4 py-8 ${showCatalog ? 'max-w-6xl' : 'max-w-4xl'}`}>
           <div className="card border border-border p-5 shadow-sm sm:p-7">
             <div className="mb-6">
               <p className="text-xs font-bold uppercase tracking-wider text-brand-primary">Profil Toko</p>
@@ -146,6 +153,75 @@ export default function ClientStoreProfile({
               </div>
             </div>
           </div>
+
+          {showCatalog && (
+            <div className="mt-10">
+              <div className="mb-6">
+                <p className="text-xs font-bold uppercase tracking-wider text-brand-primary">Katalog Toko</p>
+                <h2 className="mt-1 text-2xl font-bold text-text-primary">Katalog Produk</h2>
+                <p className="mt-1 text-sm text-text-secondary">Pilih produk untuk melihat detail dan melakukan pemesanan.</p>
+              </div>
+
+              {products.length === 0 ? (
+                <div className="card flex min-h-56 flex-col items-center justify-center border border-border p-8 text-center">
+                  <Package className="mb-4 h-12 w-12 text-text-secondary/40" />
+                  <h3 className="font-bold text-text-primary">Katalog masih kosong</h3>
+                  <p className="mt-1 text-sm text-text-secondary">Toko ini belum menambahkan produk.</p>
+                </div>
+              ) : (
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {products.map((product) => {
+                    const productSlug = (product.name || 'produk')
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, '-')
+                      .replace(/^-|-$/g, '');
+
+                    return (
+                      <article key={product.id} className="card group overflow-hidden border border-border transition-all hover:-translate-y-1 hover:shadow-lg">
+                        <Link href={`/product/${encodeURIComponent(productSlug)}-${product.id}`} className="block h-full">
+                          <div className="relative aspect-[4/3] bg-base">
+                            <Image
+                              src={product.imageUrl || '/street-food-festival.jpg'}
+                              alt={product.name}
+                              fill
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                              className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                          </div>
+
+                          <div className="p-4">
+                            {product.batchCategory && (
+                              <span className="mb-2 inline-flex rounded bg-brand-secondary/15 px-2 py-0.5 text-[10px] font-bold text-brand-secondary-dark">
+                                {product.batchCategory}
+                              </span>
+                            )}
+                            <h3 className="line-clamp-2 text-lg font-bold text-text-primary transition-colors group-hover:text-brand-primary">{product.name}</h3>
+                            <ProductRating
+                              averageRating={product.averageRating}
+                              ratingCount={product.ratingCount}
+                              className="mt-1.5"
+                            />
+                            <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-relaxed text-text-secondary">
+                              {product.description || 'Tidak ada deskripsi produk.'}
+                            </p>
+                            <p className="mt-3 text-xl font-bold text-brand-primary">Rp {product.price.toLocaleString('id-ID')}</p>
+
+                            <div className="mt-3 flex items-center justify-between gap-3 border-t border-border/60 pt-3">
+                              <span className="flex items-center gap-1 text-xs text-text-secondary">
+                                <Clock className="h-3.5 w-3.5" />
+                                {product.processingTime || 'Waktu proses belum tersedia'}
+                              </span>
+                              <ChevronRight className="h-4 w-4 shrink-0 text-brand-primary" />
+                            </div>
+                          </div>
+                        </Link>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </section>
       </main>
     </div>
