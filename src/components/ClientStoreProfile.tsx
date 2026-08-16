@@ -113,6 +113,28 @@ export default function ClientStoreProfile({
     });
   };
 
+  const setDirectQty = (productId: string, value: string) => {
+    if (value !== '' && !/^\d+$/.test(value)) return;
+
+    setCart((current) => {
+      const line = current[productId];
+      if (!line) return current;
+      const qty = value === '' ? 0 : Number.parseInt(value, 10);
+      return {
+        ...current,
+        [productId]: { ...line, qty: Number.isNaN(qty) ? line.qty : qty },
+      };
+    });
+  };
+
+  const normalizeQty = (productId: string) => {
+    setCart((current) => {
+      const line = current[productId];
+      if (!line || line.qty >= 1) return current;
+      return { ...current, [productId]: { ...line, qty: 1 } };
+    });
+  };
+
   const removeProduct = (productId: string) => {
     setCart((current) => {
       const next = { ...current };
@@ -131,6 +153,17 @@ export default function ClientStoreProfile({
   const checkout = async () => {
     if (cartProducts.length === 0) {
       await Swal.fire('Keranjang Kosong', 'Tambahkan produk sebelum melanjutkan checkout.', 'info');
+      return;
+    }
+
+    if (cartProducts.some((product) => cart[product.id].qty < 1)) {
+      setCart((current) => Object.fromEntries(
+        Object.entries(current).map(([productId, line]) => [
+          productId,
+          line.qty < 1 ? { ...line, qty: 1 } : line,
+        ]),
+      ));
+      await Swal.fire('Jumlah Tidak Valid', 'Jumlah setiap produk minimal 1.', 'warning');
       return;
     }
 
@@ -411,7 +444,16 @@ export default function ClientStoreProfile({
                                 <button type="button" onClick={() => changeQty(product.id, -1)} disabled={line.qty <= 1} className="rounded-lg border border-border bg-surface p-2 disabled:opacity-40" aria-label={`Kurangi ${product.name}`}>
                                   <Minus className="h-4 w-4" />
                                 </button>
-                                <span className="min-w-8 text-center font-bold text-text-primary">{line.qty}</span>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  value={line.qty === 0 ? '' : line.qty}
+                                  onChange={(event) => setDirectQty(product.id, event.target.value)}
+                                  onBlur={() => normalizeQty(product.id)}
+                                  aria-label={`Jumlah ${product.name}`}
+                                  className="w-12 rounded-lg border border-border bg-surface px-1 py-2 text-center font-bold text-text-primary outline-none transition-colors focus:border-brand-primary"
+                                />
                                 <button type="button" onClick={() => changeQty(product.id, 1)} className="rounded-lg border border-border bg-surface p-2" aria-label={`Tambah ${product.name}`}>
                                   <Plus className="h-4 w-4" />
                                 </button>
