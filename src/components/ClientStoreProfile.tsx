@@ -86,9 +86,9 @@ export default function ClientStoreProfile({
       </header>
 
       <main>
-        <section className="border-b border-border bg-surface">
-          <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+        <section className={`container mx-auto px-4 py-8 md:py-12 ${showCatalog ? 'max-w-6xl' : 'max-w-4xl'}`}>
+          <div className="card border border-border p-5 shadow-sm sm:p-7">
+            <div className="mb-7 flex flex-col gap-6 border-b border-border/60 pb-7 sm:flex-row sm:items-center">
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-3xl border border-border bg-brand-primary/10 shadow-sm md:h-28 md:w-28">
                 {seller.logoUrl ? (
                   <Image
@@ -118,11 +118,7 @@ export default function ClientStoreProfile({
                 <p className="text-sm text-text-secondary">Dikelola oleh {seller.ownerName}</p>
               </div>
             </div>
-          </div>
-        </section>
 
-        <section className={`container mx-auto px-4 py-8 ${showCatalog ? 'max-w-6xl' : 'max-w-4xl'}`}>
-          <div className="card border border-border p-5 shadow-sm sm:p-7">
             <div className="mb-6">
               <p className="text-xs font-bold uppercase tracking-wider text-brand-primary">Profil Toko</p>
               <h2 className="mt-1 text-xl font-bold text-text-primary">Informasi Detail Toko</h2>
