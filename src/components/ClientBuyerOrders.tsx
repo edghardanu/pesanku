@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star, Trash2, Truck } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star, Trash2, Truck, ScanLine, Search } from "lucide-react";
 import Swal from "sweetalert2";
+import QRScannerModal from "@/components/QRScannerModal";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { DotLottieReact } from "@/lib/dotlottie";
@@ -1791,78 +1792,80 @@ export default function ClientBuyerOrders({
           </div>
         )}
       </main>
+      <QRScannerModal isOpen={isQRScannerOpen} onClose={() => setIsQRScannerOpen(false)} />
 
       {/* Mobile Bottom Navigation Bar (Orders Page) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-4 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
-        <Link 
-          href="/" 
-          prefetch={true}
-          onNavigate={() => setBottomNavLoading('home')}
-          aria-busy={bottomNavLoading === 'home'}
-          className={`flex flex-col items-center gap-1.5 w-1/4 transition-colors pb-2 ${
-            bottomNavLoading === 'home'
-              ? 'text-brand-primary font-semibold'
-              : 'text-text-secondary hover:text-brand-primary'
-          }`}
-        >
-          {bottomNavLoading === 'home' ? (
-            <Loader2 className="w-6 h-6 stroke-[1.8] animate-spin" />
-          ) : (
-            <Home className="w-6 h-6 stroke-[1.5]" />
-          )}
-          <span>{bottomNavLoading === 'home' ? 'Membuka' : 'Beranda'}</span>
-        </Link>
-        
-        <div className="w-1/4 flex flex-col justify-end items-center relative pb-2 h-full">
-          <Link
-            href="/#katalog"
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-2 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
+        <div className="flex w-[40%] justify-around">
+          <Link 
+            href="/" 
+            prefetch={true}
+            onNavigate={() => setBottomNavLoading('home')}
+            aria-busy={bottomNavLoading === 'home'}
+            className={`flex flex-col items-center gap-1.5 w-1/2 transition-colors pb-2 ${bottomNavLoading === 'home' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+          >
+            {bottomNavLoading === 'home' ? (
+              <Loader2 className="w-6 h-6 stroke-[1.8] animate-spin" />
+            ) : (
+              <Home className="w-6 h-6 stroke-[1.5]" />
+            )}
+            <span>{bottomNavLoading === 'home' ? 'Membuka' : 'Beranda'}</span>
+          </Link>
+          
+          <Link 
+            href="/#katalog" 
             prefetch={true}
             onNavigate={() => setBottomNavLoading('catalog')}
             aria-busy={bottomNavLoading === 'catalog'}
-            className="absolute bottom-6 flex justify-center w-full"
-            aria-label="Buka katalog produk"
+            className={`flex flex-col items-center gap-1.5 w-1/2 transition-colors pb-2 ${bottomNavLoading === 'catalog' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
           >
-            <span className={`w-14 h-14 rounded-full text-white flex items-center justify-center shadow-lg transition-all transform hover:scale-105 ${
-              bottomNavLoading === 'catalog'
-                ? 'bg-brand-primary-hover scale-105'
-                : 'bg-brand-primary hover:bg-brand-primary-hover'
-            }`}>
-              {bottomNavLoading === 'catalog' ? (
-                <Loader2 className="w-7 h-7 stroke-[1.8] animate-spin" />
-              ) : (
-                <ShoppingBag className="w-7 h-7 stroke-[1.5]" />
-              )}
-            </span>
+            {bottomNavLoading === 'catalog' ? (
+              <Loader2 className="w-6 h-6 stroke-[1.8] animate-spin" />
+            ) : (
+              <ShoppingBag className="w-6 h-6 stroke-[1.5]" />
+            )}
+            <span>{bottomNavLoading === 'catalog' ? 'Membuka' : 'Belanja'}</span>
           </Link>
-          <span className={`mt-1 ${bottomNavLoading === 'catalog' ? 'text-brand-primary font-semibold' : 'text-text-secondary'}`}>
-            {bottomNavLoading === 'catalog' ? 'Membuka' : 'Belanja'}
-          </span>
         </div>
         
-        <button 
-          className="flex flex-col items-center gap-1.5 w-1/4 text-brand-primary font-semibold pb-2"
-        >
-          <FileText className="w-6 h-6 stroke-[1.5] fill-brand-primary/10 stroke-brand-primary" />
-          <span>Pesanan</span>
-        </button>
+        <div className="w-[20%] flex flex-col justify-end items-center relative pb-2 h-full">
+          <div className="absolute bottom-6 flex justify-center w-full">
+            <button 
+              onClick={() => setIsQRScannerOpen(true)}
+              className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105"
+            >
+              <ScanLine className="w-7 h-7 stroke-[1.5]" />
+            </button>
+          </div>
+          <span className="text-text-secondary mt-1">QRIS</span>
+        </div>
         
-        {user ? (
-          <Link 
-            href="/profile"
-            className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
+        <div className="flex w-[40%] justify-around">
+          <button 
+            className="flex flex-col items-center gap-1.5 w-1/2 text-brand-primary font-semibold pb-2"
           >
-            <User className="w-6 h-6 stroke-[1.5]" />
-            <span>Akun</span>
-          </Link>
-        ) : (
-          <Link 
-            href="/login"
-            className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
-          >
-            <User className="w-6 h-6 stroke-[1.5]" />
-            <span>Masuk</span>
-          </Link>
-        )}
+            <FileText className="w-6 h-6 stroke-[1.5] fill-brand-primary/10 stroke-brand-primary" />
+            <span>Pesanan</span>
+          </button>
+          
+          {user ? (
+            <Link 
+              href="/profile"
+              className="flex flex-col items-center gap-1.5 w-1/2 text-text-secondary hover:text-brand-primary transition-colors pb-2"
+            >
+              <User className="w-6 h-6 stroke-[1.5]" />
+              <span>Akun</span>
+            </Link>
+          ) : (
+            <Link 
+              href="/login"
+              className="flex flex-col items-center gap-1.5 w-1/2 text-text-secondary hover:text-brand-primary transition-colors pb-2"
+            >
+              <User className="w-6 h-6 stroke-[1.5]" />
+              <span>Masuk</span>
+            </Link>
+          )}
+        </div>
       </nav>
     </div>
   );

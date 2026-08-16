@@ -4,10 +4,11 @@ import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, Store, LayoutDashboard, Sparkles, MessageCircle } from "lucide-react";
+import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, Store, LayoutDashboard, Sparkles, MessageCircle, ScanLine } from "lucide-react";
 import { motion, Variants, AnimatePresence } from "framer-motion";
 import { DotLottieReact } from "@/lib/dotlottie";
 import Swal from "sweetalert2";
+import QRScannerModal from "@/components/QRScannerModal";
 import { ProductItem, AuthUser } from "@/types";
 import ProductRating from "@/components/ProductRating";
 import makananBeratImage from "../../public/categories/makanan-berat.png";
@@ -65,6 +66,7 @@ export default function ClientHome({
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const [greeting, setGreeting] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
@@ -1394,6 +1396,7 @@ export default function ClientHome({
           </motion.div>
         </section>
       </main>
+      <QRScannerModal isOpen={isQRScannerOpen} onClose={() => setIsQRScannerOpen(false)} />
 
       {/* Static Back to Top Button */}
       <motion.div 
@@ -1456,30 +1459,24 @@ export default function ClientHome({
           </button>
           
           <button 
-            onClick={() => {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-              setTimeout(() => {
-                setIsMobileSearchOpen(true);
-                setTimeout(() => document.querySelector<HTMLInputElement>('#mobile-search')?.focus(), 100);
-              }, 300);
-            }} 
+            onClick={scrollToCatalog} 
             className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 w-1/2"
           >
-            <Search className="w-6 h-6 stroke-[1.5]" />
-            <span>Cari</span>
+            <ShoppingBag className="w-6 h-6 stroke-[1.5]" />
+            <span>Belanja</span>
           </button>
         </div>
         
         <div className="w-[20%] flex flex-col justify-end items-center relative pb-2 h-full">
           <div className="absolute bottom-6 flex justify-center w-full">
             <button 
-              onClick={scrollToCatalog}
+              onClick={() => setIsQRScannerOpen(true)}
               className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105"
             >
-              <ShoppingBag className="w-7 h-7 stroke-[1.5]" />
+              <ScanLine className="w-7 h-7 stroke-[1.5]" />
             </button>
           </div>
-          <span className="text-text-secondary mt-1">Belanja</span>
+          <span className="text-text-secondary mt-1">QRIS</span>
         </div>
         
         <div className="flex w-[40%] justify-around">
