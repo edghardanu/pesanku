@@ -17,14 +17,50 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
   const pathname = usePathname();
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleSafeClose = async (decodedText?: string) => {
+    if (isClosing) return;
+    setIsClosing(true);
+
+    try {
+      if (scannerRef.current) {
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop().catch(() => {});
+        }
+        scannerRef.current.clear();
+        scannerRef.current = null;
+      }
+    } catch (e) {
+      console.warn("Error gracefully stopping scanner", e);
+    }
+
+    setIsClosing(false);
+
+    if (decodedText) {
+      if (onScan) {
+        onScan(decodedText);
+      } else {
+        onClose();
+        if (pathname !== "/") router.push("/");
+        Swal.fire({
+          title: "QRIS Terdeteksi",
+          text: "Data QRIS: " + decodedText.substring(0, 30) + "... \n Fitur pembayaran sedang dalam pengembangan.",
+          icon: "success",
+          confirmButtonColor: "#ff5c35"
+        });
+      }
+    } else {
+      // Normal close
+      onClose();
+      if (pathname !== "/") router.push("/");
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) {
       if (scannerRef.current) {
-        scannerRef.current.stop().catch(console.error).finally(() => {
-          scannerRef.current?.clear();
-          scannerRef.current = null;
-        });
+        handleSafeClose();
       }
       return;
     }
@@ -42,31 +78,10 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
         qrbox: { width: 250, height: 250 },
       },
       (decodedText) => {
-        // Handle successful scan
-        if (scannerRef.current) {
-          scannerRef.current.stop().catch(console.error).finally(() => {
-            scannerRef.current?.clear();
-            scannerRef.current = null;
-          });
-        }
-        
-        if (onScan) {
-          onScan(decodedText);
-        } else {
-          onClose();
-          if (pathname !== "/") {
-            router.push("/");
-          }
-          Swal.fire({
-            title: 'QRIS Terdeteksi',
-            text: `Data QRIS: ${decodedText.substring(0, 30)}... \n Fitur pembayaran sedang dalam pengembangan.`,
-            icon: 'success',
-            confirmButtonColor: '#ff5c35'
-          });
-        }
+        handleSafeClose(decodedText);
       },
       (errorMessage) => {
-        // Ignored to avoid spamming the console for every frame without a QR code
+        // Ignored
       }
     ).catch((err) => {
       // Intentionally not logging err to console.error to avoid Next.js red dev overlay.
@@ -75,13 +90,11 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
 
     return () => {
       if (scannerRef.current) {
-        scannerRef.current.stop().catch(console.error).finally(() => {
-          scannerRef.current?.clear();
-          scannerRef.current = null;
-        });
+        handleSafeClose();
       }
     };
-  }, [isOpen, onScan, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -98,13 +111,9 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
           <p className="text-xs text-white/80">Arahkan kamera ke kode QR</p>
         </div>
         <button 
-          onClick={() => {
-            onClose();
-            if (pathname !== "/") {
-              router.push("/");
-            }
-          }}
-          className="p-2 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-md transition-colors border border-white/10 pointer-events-auto"
+          onClick={() => handleSafeClose()}
+          disabled={isClosing}
+          className="p-2 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-md transition-colors border border-white/10 pointer-events-auto disabled:opacity-50"
         >
           <X className="w-6 h-6" />
         </button>
@@ -118,13 +127,11 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
           </div>
         )}
         
-        {/* We use global styling via tailwind arbitrary variants to force the video to cover the area */}
         <div 
           id="qris-reader" 
           className="w-full h-full absolute inset-0 [&_video]:object-cover [&_video]:w-full [&_video]:h-full [&_#qr-shaded-region]:border-brand-primary"
         ></div>
         
-        {/* Decorative corner brackets for a native scanner feel */}
         <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
           <div className="w-[280px] h-[280px] relative">
             <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-brand-primary rounded-tl-xl"></div>
@@ -132,7 +139,6 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
             <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-brand-primary rounded-bl-xl"></div>
             <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-brand-primary rounded-br-xl"></div>
             
-            {/* Animated scanning line */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-brand-primary animate-[scan_2s_ease-in-out_infinite] shadow-[0_0_8px_2px_rgba(255,92,53,0.5)]"></div>
           </div>
         </div>

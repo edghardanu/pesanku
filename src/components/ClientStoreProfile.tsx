@@ -98,8 +98,31 @@ export default function ClientStoreProfile({
       if (!line) return current;
 
       const nextQty = Math.max(1, line.qty + delta);
-
       return { ...current, [product.id]: { ...line, qty: nextQty } };
+    });
+  };
+
+  const setDirectQty = (product: ProductItem, val: string) => {
+    setCart((current) => {
+      const line = current[product.id];
+      if (!line) return current;
+      let nextQty = 0;
+      if (val !== '') {
+        nextQty = parseInt(val, 10);
+        if (isNaN(nextQty)) nextQty = line.qty;
+      }
+      return { ...current, [product.id]: { ...line, qty: nextQty } };
+    });
+  };
+
+  const handleQtyBlur = (product: ProductItem) => {
+    setCart((current) => {
+      const line = current[product.id];
+      if (!line) return current;
+      if (line.qty < 1) {
+        return { ...current, [product.id]: { ...line, qty: 1 } };
+      }
+      return current;
     });
   };
 
@@ -369,7 +392,15 @@ export default function ClientStoreProfile({
                         {line ? (
                           <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-brand-primary/30 bg-brand-primary/5 p-2">
                             <button onClick={() => changeQty(product, -1)} disabled={line.qty <= 1} className="rounded-lg border border-border bg-surface p-2 disabled:opacity-40" aria-label={`Kurangi ${product.name}`}><Minus className="h-4 w-4" /></button>
-                            <span className="font-bold text-text-primary">{line.qty}</span>
+                            <input 
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              value={line.qty === 0 ? '' : line.qty}
+                              onChange={(e) => setDirectQty(product, e.target.value)}
+                              onBlur={() => handleQtyBlur(product)}
+                              className="w-12 bg-transparent text-center font-bold text-text-primary outline-none"
+                            />
                             <button onClick={() => changeQty(product, 1)} className="rounded-lg border border-border bg-surface p-2 disabled:opacity-40" aria-label={`Tambah ${product.name}`}><Plus className="h-4 w-4" /></button>
                             <button onClick={() => removeProduct(product.id)} className="ml-auto rounded-lg p-2 text-status-error hover:bg-status-error/10" aria-label={`Hapus ${product.name} dari keranjang`}><Trash2 className="h-4 w-4" /></button>
                           </div>
