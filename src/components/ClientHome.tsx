@@ -1152,7 +1152,25 @@ export default function ClientHome({
                       </div>
                       
                       <div className="p-5">
-                        <div className="flex items-center gap-3 mb-3">
+                        <button
+                          type="button"
+                          disabled={!product.sellerId}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            if (!product.sellerId) return;
+
+                            const storeName = product.storeName || product.sellerName || 'toko';
+                            const storeSlug = storeName
+                              .toLowerCase()
+                              .replace(/[^a-z0-9]+/g, '-')
+                              .replace(/^-|-$/g, '');
+                            router.push(`/store/${encodeURIComponent(storeSlug)}-${product.sellerId}`);
+                          }}
+                          className="group/store mb-3 flex w-full items-center gap-3 rounded-xl p-1.5 text-left transition-colors hover:bg-brand-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 disabled:cursor-default disabled:hover:bg-transparent"
+                          aria-label={`Lihat profil lengkap toko ${product.storeName || product.sellerName || 'penjual'}`}
+                          title="Lihat profil lengkap toko"
+                        >
                           <div className="relative w-10 h-10 rounded-full overflow-hidden border border-border shrink-0 bg-surface dark:bg-border">
                             {product.sellerAvatar && (
                               <Image 
@@ -1168,7 +1186,7 @@ export default function ClientHome({
                             <p className="text-body-small font-semibold text-text-primary leading-tight line-clamp-1">{product.sellerName}</p>
                             <p className="text-caption text-text-secondary mt-0.5 leading-snug">{product.sellerAddress}</p>
                           </div>
-                        </div>
+                        </button>
 
                         <h3 className="text-h3 mb-1 line-clamp-2 leading-tight group-hover:text-brand-primary transition-colors">{product.name}</h3>
                         <ProductRating

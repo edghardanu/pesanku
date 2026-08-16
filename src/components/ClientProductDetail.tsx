@@ -44,6 +44,12 @@ export default function ClientProductDetail({
   const [currentTime, setCurrentTime] = useState(() => Date.now());
 
   const isSeller = user && user.role === 'penjual' && product.sellerId === user.id;
+  const storeName = product.storeName || product.sellerName || 'toko';
+  const storeSlug = storeName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  const storeProfilePath = `/store/${encodeURIComponent(storeSlug)}-${product.sellerId}`;
 
   useEffect(() => {
     if (productId.startsWith("dummy-")) return;
@@ -334,9 +340,13 @@ export default function ClientProductDetail({
               </div>
             </div>
 
-            <div className="card p-6 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <Link
+              href={storeProfilePath}
+              aria-label={`Lihat profil lengkap toko ${storeName}`}
+              className="card group/store flex flex-col items-start justify-between gap-4 border border-border p-6 transition-all hover:border-brand-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 sm:flex-row sm:items-center"
+            >
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary overflow-hidden border border-border">
+                <div className="w-12 h-12 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary overflow-hidden border border-border transition-colors group-hover/store:border-brand-primary/40">
                   {product.sellerLogoUrl || product.sellerAvatar ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={product.sellerLogoUrl || product.sellerAvatar || undefined} alt={product.storeName || product.sellerName || 'Toko'} className="w-full h-full object-cover" />
@@ -345,7 +355,7 @@ export default function ClientProductDetail({
                   )}
                 </div>
                 <div>
-                  <h3 className="font-bold text-text-primary text-lg">{product.storeName || product.sellerName}</h3>
+                  <h3 className="font-bold text-text-primary text-lg transition-colors group-hover/store:text-brand-primary">{product.storeName || product.sellerName}</h3>
                   <div className="flex items-center gap-1 text-text-secondary text-sm">
                     <MapPin className="w-3 h-3" />
                     <span>{product.storeAddress || 'Alamat tidak diketahui'}</span>
@@ -356,7 +366,7 @@ export default function ClientProductDetail({
                 <ShieldCheck className="w-4 h-4" />
                 {product.sellerApprovalStatus === 'approved' ? 'UMKM Terverifikasi' : 'Profil UMKM'}
               </div>
-            </div>
+            </Link>
           </div>
 
           {/* Kanan: Panel Pemesanan / Jadwal Pesanan (Sticky) */}
