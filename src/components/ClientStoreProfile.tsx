@@ -371,6 +371,7 @@ export default function ClientStoreProfile({
                     const line = cart[product.id];
                     const selectedVariant = line?.selectedVariant || variantSelections[product.id] || '';
                     const displayedPrice = getProductUnitPrice(product.price, product.variants, selectedVariant);
+                    const productSubtotal = displayedPrice * (line?.qty || 1);
                     const closed = isProductClosed(product);
 
                     return (
@@ -404,7 +405,14 @@ export default function ClientStoreProfile({
                           <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-relaxed text-text-secondary">
                             {product.description || 'Tidak ada deskripsi produk.'}
                           </p>
-                          <p className="mt-3 text-xl font-bold text-brand-primary">{formatRupiah(displayedPrice)}</p>
+                          <div className="mt-3">
+                            <p className="text-xl font-bold text-brand-primary">{formatRupiah(productSubtotal)}</p>
+                            {line && line.qty > 1 && (
+                              <p className="mt-0.5 text-xs text-text-secondary">
+                                {line.qty} × {formatRupiah(displayedPrice)}
+                              </p>
+                            )}
+                          </div>
 
                           {product.variants && product.variants.length > 0 && (
                             <fieldset className="mt-4">
