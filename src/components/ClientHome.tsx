@@ -1241,7 +1241,7 @@ export default function ClientHome({
                                     className="w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm font-semibold btn-primary hover:bg-brand-primary-hover"
                                   >
                                     <Store className="w-4 h-4" />
-                                    Lihat Toko &amp; Katalog
+                                    Lihat Profil Toko
                                   </button>
                                   
                                   <button

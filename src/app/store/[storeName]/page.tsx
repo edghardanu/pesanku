@@ -1,11 +1,10 @@
-import { desc, eq, isNotNull, sql, like } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 
 import ClientStoreProfile from '@/components/ClientStoreProfile';
 import { getUserFromSession } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { orders, products, sellerProfiles, users } from '@/lib/schema';
-import { parseStoredProductVariants } from '@/lib/productVariants';
+import { sellerProfiles, users } from '@/lib/schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +14,6 @@ export default async function StoreProfilePage({
   params: Promise<{ storeName: string }>;
 }) {
   const { storeName } = await params;
-  const decodedStoreName = decodeURIComponent(storeName);
   const sessionUser = await getUserFromSession();
   let user = null;
   if (sessionUser) {
@@ -24,7 +22,6 @@ export default async function StoreProfilePage({
   
   // storeName param can be: "nama-toko-{uuid}" or just "{uuid}"
   // We extract the UUID from the last 36-char segment
-  console.log('[store page] Raw param:', JSON.stringify(storeName));
   const decodedParam = decodeURIComponent(storeName);
   
   // UUID regex (with or without prefix slug)
@@ -39,7 +36,6 @@ export default async function StoreProfilePage({
       .select({
         id: users.id,
         ownerName: users.name,
-        phone: users.phone,
         storeName: sellerProfiles.storeName,
         address: sellerProfiles.address,
         category: sellerProfiles.category,
@@ -61,7 +57,6 @@ export default async function StoreProfilePage({
       .select({
         id: users.id,
         ownerName: users.name,
-        phone: users.phone,
         storeName: sellerProfiles.storeName,
         address: sellerProfiles.address,
         category: sellerProfiles.category,
@@ -74,57 +69,9 @@ export default async function StoreProfilePage({
       .innerJoin(sellerProfiles, eq(users.id, sellerProfiles.userId))
       .where(sql`lower(${sellerProfiles.storeName}) = lower(${decodedStoreName})`)
       .get() || null;
-    console.log('[store page] Fallback by name, found:', !!seller);
   }
 
   if (!seller) notFound();
   
-  const foundSellerId = seller.id;
-
-  const rawCatalog = await db
-    .select({
-      id: products.id,
-      sellerId: products.sellerId,
-      name: products.name,
-      description: products.description,
-      price: products.price,
-      imageUrl: products.imageUrl,
-      minQty: products.preorderMinQty,
-      currentQty: products.currentQty,
-      minOrderQty: products.minOrderQty,
-      maxOrderQty: products.maxOrderQty,
-      processingTime: products.processingTime,
-      batchCategory: products.batchCategory,
-      variantsJson: products.variantsJson,
-      deadlineDate: products.deadlineDate,
-      status: products.status,
-      createdAt: products.createdAt,
-    })
-    .from(products)
-    .where(eq(products.sellerId, foundSellerId))
-    .orderBy(desc(products.createdAt));
-
-  const productRatings = await db
-    .select({
-      productId: orders.productId,
-      averageRating: sql<number>`AVG(${orders.rating})`,
-      ratingCount: sql<number>`COUNT(${orders.rating})`,
-    })
-    .from(orders)
-    .where(isNotNull(orders.rating))
-    .groupBy(orders.productId);
-
-  const ratingsByProduct = new Map(productRatings.map((item) => [item.productId, {
-    averageRating: Number(item.averageRating) || 0,
-    ratingCount: Number(item.ratingCount) || 0,
-  }]));
-
-  const catalog = rawCatalog.map(({ variantsJson, ...product }) => ({
-    ...product,
-    variants: parseStoredProductVariants(variantsJson),
-    averageRating: ratingsByProduct.get(product.id)?.averageRating || 0,
-    ratingCount: ratingsByProduct.get(product.id)?.ratingCount || 0,
-  }));
-
-  return <ClientStoreProfile seller={seller} products={catalog} user={user} />;
+  return <ClientStoreProfile seller={seller} user={user} />;
 }
