@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { X, Camera, CreditCard, Zap } from "lucide-react";
 import Swal from "sweetalert2";
+import { useRouter, usePathname } from "next/navigation";
 
 interface QRScannerModalProps {
   isOpen: boolean;
@@ -12,6 +13,8 @@ interface QRScannerModalProps {
 }
 
 export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerModalProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
 
@@ -51,6 +54,9 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
           onScan(decodedText);
         } else {
           onClose();
+          if (pathname !== "/") {
+            router.push("/");
+          }
           Swal.fire({
             title: 'QRIS Terdeteksi',
             text: `Data QRIS: ${decodedText.substring(0, 30)}... \n Fitur pembayaran sedang dalam pengembangan.`,
@@ -63,8 +69,8 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
         // Ignored to avoid spamming the console for every frame without a QR code
       }
     ).catch((err) => {
-      console.error(err);
-      setInitError("Gagal mengakses kamera. Pastikan Anda telah memberikan izin.");
+      // Intentionally not logging err to console.error to avoid Next.js red dev overlay.
+      setInitError("Gagal mengakses kamera. Pastikan Anda telah memberikan izin pada browser Anda, lalu muat ulang halaman.");
     });
 
     return () => {
@@ -92,7 +98,12 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
           <p className="text-xs text-white/80">Arahkan kamera ke kode QR</p>
         </div>
         <button 
-          onClick={onClose}
+          onClick={() => {
+            onClose();
+            if (pathname !== "/") {
+              router.push("/");
+            }
+          }}
           className="p-2 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-md transition-colors border border-white/10 pointer-events-auto"
         >
           <X className="w-6 h-6" />

@@ -9,6 +9,7 @@ import { motion, Variants, AnimatePresence } from "framer-motion";
 import { DotLottieReact } from "@/lib/dotlottie";
 import Swal from "sweetalert2";
 import QRScannerModal from "@/components/QRScannerModal";
+import HelpWidget from "@/components/HelpWidget";
 import { ProductItem, AuthUser } from "@/types";
 import ProductRating from "@/components/ProductRating";
 import makananBeratImage from "../../public/categories/makanan-berat.png";
@@ -1514,6 +1515,7 @@ export default function ClientHome({
           )}
         </div>
       </nav>
+      <HelpWidget />
     </>
   );
 }
