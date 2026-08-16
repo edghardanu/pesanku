@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Html5QrcodeScanner, Html5QrcodeScanType } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import { X, Camera, CreditCard, Zap } from "lucide-react";
 import Swal from "sweetalert2";
 
@@ -12,50 +12,44 @@ interface QRScannerModalProps {
 }
 
 export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerModalProps) {
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
       if (scannerRef.current) {
-        scannerRef.current.clear().catch(console.error);
-        scannerRef.current = null;
+        scannerRef.current.stop().catch(console.error).finally(() => {
+          scannerRef.current?.clear();
+          scannerRef.current = null;
+        });
       }
       return;
     }
 
     setInitError(null);
 
-    // Initialize scanner with slightly better config for mobile full screen
-    const scanner = new Html5QrcodeScanner(
-      "qris-reader",
-      { 
-        fps: 10, 
+    const html5QrCode = new Html5Qrcode("qris-reader");
+    scannerRef.current = html5QrCode;
+
+    // Directly start scanning to trigger permission prompt immediately
+    html5QrCode.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
         qrbox: { width: 250, height: 250 },
-        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-        rememberLastUsedCamera: true,
-        showTorchButtonIfSupported: true,
-        videoConstraints: {
-          facingMode: "environment"
-        }
       },
-      false
-    );
-
-    scannerRef.current = scanner;
-
-    scanner.render(
       (decodedText) => {
         // Handle successful scan
         if (scannerRef.current) {
-          scannerRef.current.clear().catch(console.error);
-          scannerRef.current = null;
+          scannerRef.current.stop().catch(console.error).finally(() => {
+            scannerRef.current?.clear();
+            scannerRef.current = null;
+          });
         }
         
         if (onScan) {
           onScan(decodedText);
         } else {
-          // Default behavior if not handled
           onClose();
           Swal.fire({
             title: 'QRIS Terdeteksi',
@@ -65,15 +59,20 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
           });
         }
       },
-      (error) => {
+      (errorMessage) => {
         // Ignored to avoid spamming the console for every frame without a QR code
       }
-    );
+    ).catch((err) => {
+      console.error(err);
+      setInitError("Gagal mengakses kamera. Pastikan Anda telah memberikan izin.");
+    });
 
     return () => {
       if (scannerRef.current) {
-        scannerRef.current.clear().catch(console.error);
-        scannerRef.current = null;
+        scannerRef.current.stop().catch(console.error).finally(() => {
+          scannerRef.current?.clear();
+          scannerRef.current = null;
+        });
       }
     };
   }, [isOpen, onScan, onClose]);
@@ -84,7 +83,7 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
     <div className="fixed inset-0 z-[100] flex flex-col bg-black overflow-hidden animate-in fade-in duration-300">
       
       {/* Header Overlay */}
-      <div className="absolute top-0 left-0 right-0 z-10 flex items-start justify-between px-4 pt-6 pb-12 bg-gradient-to-b from-black/80 to-transparent text-white">
+      <div className="absolute top-0 left-0 right-0 z-10 flex items-start justify-between px-4 pt-6 pb-12 bg-gradient-to-b from-black/80 to-transparent text-white pointer-events-none">
         <div className="flex flex-col gap-1 drop-shadow-md">
           <div className="flex items-center gap-2">
             <Camera className="w-5 h-5 text-brand-primary" />
@@ -94,7 +93,7 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
         </div>
         <button 
           onClick={onClose}
-          className="p-2 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-md transition-colors border border-white/10"
+          className="p-2 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-md transition-colors border border-white/10 pointer-events-auto"
         >
           <X className="w-6 h-6" />
         </button>
@@ -129,7 +128,7 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
       </div>
 
       {/* Footer/Info Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 p-6 pt-16 bg-gradient-to-t from-black via-black/80 to-transparent text-white safe-area-bottom">
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-6 pt-16 bg-gradient-to-t from-black via-black/80 to-transparent text-white safe-area-bottom pointer-events-none">
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 border border-white/20 flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-brand-primary flex items-center justify-center shrink-0 shadow-lg shadow-brand-primary/40">
             <CreditCard className="w-6 h-6 text-white" />
