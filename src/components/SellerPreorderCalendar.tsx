@@ -67,6 +67,7 @@ const formatLongDate = (dateKey: string) => fromDateKey(dateKey).toLocaleDateStr
   day: 'numeric',
   month: 'long',
   year: 'numeric',
+  timeZone: 'Asia/Jakarta',
 });
 
 const buildCalendarDays = (year: number, month: number) => {
@@ -440,7 +441,7 @@ export default function SellerPreorderCalendar({
           <div className="mb-4 flex items-center justify-between gap-3">
             <button onClick={() => goToMonth(-1)} className="rounded-full border border-border p-2 text-text-secondary hover:text-brand-primary" aria-label="Bulan sebelumnya"><ChevronLeft className="h-5 w-5" /></button>
             <h3 className="text-center text-base font-bold capitalize text-text-primary sm:text-lg">
-              {visibleMonth.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+              {visibleMonth.toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}
             </h3>
             <button onClick={() => goToMonth(1)} className="rounded-full border border-border p-2 text-text-secondary hover:text-brand-primary" aria-label="Bulan berikutnya"><ChevronRight className="h-5 w-5" /></button>
           </div>

@@ -12,6 +12,7 @@ import QRScannerModal from "@/components/QRScannerModal";
 import HelpWidget from "@/components/HelpWidget";
 import { ProductItem, AuthUser } from "@/types";
 import ProductRating from "@/components/ProductRating";
+import { WIB_TIMEZONE } from "@/lib/promotionFormatting";
 import makananBeratImage from "../../public/categories/makanan-berat.png";
 import minumanImage from "../../public/categories/minuman.png";
 import cemilanImage from "../../public/categories/cemilan.png";
@@ -1157,7 +1158,8 @@ export default function ClientHome({
                   deadlineText = new Date(product.deadlineDate).toLocaleDateString('id-ID', {
                     day: 'numeric',
                     month: 'short',
-                    year: 'numeric'
+                    year: 'numeric',
+                    timeZone: WIB_TIMEZONE,
                   });
                 }
 

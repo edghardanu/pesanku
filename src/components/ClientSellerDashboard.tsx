@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import SellerPreorderCalendar from "@/components/SellerPreorderCalendar";
 import SellerPromotionCenter from "@/components/SellerPromotionCenter";
 import { validateProductVariants } from "@/lib/productVariants";
+import { formatChatTimeWIB, formatShortDateTimeWIB, WIB_TIMEZONE } from "@/lib/promotionFormatting";
 
 import Swal from 'sweetalert2';
 
@@ -569,7 +570,7 @@ export default function ClientSellerDashboard({
             <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm">
               ${bubbleContent}
               <div class="flex items-center justify-end gap-1 mt-1">
-                <span class="text-[10px] text-white/80">${isMe ? 'Anda' : (buyerName || 'Pembeli')} • ${c.createdAt ? new Date(c.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', hour12: false}) : ''}</span>
+                <span class="text-[10px] text-white/80">${isMe ? 'Anda' : (buyerName || 'Pembeli')} • ${c.createdAt ? formatChatTimeWIB(c.createdAt) : ''}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${tickClass}" style="${tickStyle}"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
               </div>
             </div>
@@ -580,7 +581,7 @@ export default function ClientSellerDashboard({
           <div class="flex justify-start mt-3">
             <div class="bg-surface border border-border rounded-xl rounded-tl-none px-4 py-2 max-w-[80%] text-sm text-text-primary text-left">
               ${bubbleContent}
-              <div class="text-[10px] text-text-secondary mt-1">${isMe ? 'Anda' : (buyerName || 'Pembeli')} • ${c.createdAt ? new Date(c.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', hour12: false}) : ''}</div>
+              <div class="text-[10px] text-text-secondary mt-1">${isMe ? 'Anda' : (buyerName || 'Pembeli')} • ${c.createdAt ? formatChatTimeWIB(c.createdAt) : ''}</div>
             </div>
           </div>
         `;
@@ -745,7 +746,7 @@ export default function ClientSellerDashboard({
         const sendProductOffer = async (pId: string, pName: string, pPrice: string, pImage: string) => {
           const offerCode = `[PRODUK_OFFER|${pId}|${pName}|${pPrice}|${pImage}]`;
           const now = new Date();
-          const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} WIB`;
+          const time = formatChatTimeWIB(now);
           const msgId = 'msg-' + Date.now();
           
           chatMessages?.insertAdjacentHTML('beforeend', `
@@ -856,7 +857,7 @@ export default function ClientSellerDashboard({
           }
 
           const now = new Date();
-          const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} WIB`;
+          const time = formatChatTimeWIB(now);
           const msgId = 'msg-' + Date.now();
           
           input.value = '';
@@ -1297,7 +1298,7 @@ export default function ClientSellerDashboard({
                             <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
                               <td className="p-4 font-mono font-medium text-sm text-text-secondary">
                                 {order.id}
-                                <div className="text-[10px] text-text-secondary font-sans mt-1">{new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} WIB</div>
+                                <div className="text-[10px] text-text-secondary font-sans mt-1">{new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })} WIB</div>
                               </td>
                               <td className="p-4 min-w-[200px]">
                                 <p className="font-semibold text-text-primary line-clamp-1">{order.productName}</p>
@@ -1530,7 +1531,7 @@ export default function ClientSellerDashboard({
                               </td>
                               <td className="p-4">
                                 <div className="text-sm line-clamp-1 text-text-secondary w-64">{formatMessageSnippet(thread.latestMessage)}</div>
-                                <div className="text-[10px] text-text-secondary/60 mt-1">{thread.latestMessageAt ? new Date(thread.latestMessageAt).toLocaleString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : ''}</div>
+                                <div className="text-[10px] text-text-secondary/60 mt-1">{thread.latestMessageAt ? formatShortDateTimeWIB(thread.latestMessageAt) : ''}</div>
                               </td>
                               <td className="p-4">
                                 <button
@@ -1920,7 +1921,7 @@ export default function ClientSellerDashboard({
                           <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
                             <td className="p-4 font-mono font-medium text-sm text-text-secondary">
                               {order.id}
-                              <div className="text-[10px] text-text-secondary font-sans mt-1">{new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} WIB</div>
+                              <div className="text-[10px] text-text-secondary font-sans mt-1">{new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })} WIB</div>
                             </td>
                             <td className="p-4">
                               <p className="font-semibold text-text-primary line-clamp-1">{order.productName}</p>

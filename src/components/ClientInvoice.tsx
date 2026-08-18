@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Printer, ArrowLeft, CheckCircle2, Clock, Package, Truck, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { InvoiceOrder } from "@/types";
+import { WIB_TIMEZONE } from "@/lib/promotionFormatting";
 
 export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, feeAdmin = 0 }: { order: InvoiceOrder, feeAplikasi?: number, feeJasa?: number, feeAdmin?: number }) {
   const router = useRouter();
@@ -13,7 +14,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
 
   useEffect(() => {
     setTimeout(() => {
-      setPrintDate(new Date().toLocaleString('id-ID'));
+      setPrintDate(new Date().toLocaleString('id-ID', { timeZone: WIB_TIMEZONE }));
     }, 0);
   }, []);
   
@@ -23,7 +24,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
       document.title = originalTitle;
     };
 
-    setPrintDate(new Date().toLocaleString('id-ID'));
+    setPrintDate(new Date().toLocaleString('id-ID', { timeZone: WIB_TIMEZONE }));
     document.title = `Invoice-${order.id}`;
     window.addEventListener('afterprint', restoreTitle, { once: true });
     window.setTimeout(() => window.print(), 50);
@@ -39,6 +40,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: WIB_TIMEZONE,
     }) + ' WIB';
   };
 

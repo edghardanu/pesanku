@@ -25,6 +25,7 @@ const formatLongDate = (dateKey: string) => {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+    timeZone: 'Asia/Jakarta',
   });
 };
 

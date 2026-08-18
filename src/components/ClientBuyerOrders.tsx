@@ -8,6 +8,7 @@ import QRScannerModal from "@/components/QRScannerModal";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { DotLottieReact } from "@/lib/dotlottie";
+import { formatOrderDateTimeWIB, formatChatTimeWIB, WIB_TIMEZONE } from "@/lib/promotionFormatting";
 import { AuthUser, BuyerOrderViewItem, ChatMessage } from "@/types";
 
 export default function ClientBuyerOrders({
@@ -155,18 +156,7 @@ export default function ClientBuyerOrders({
 
   const formatOrderDate = (date: string | Date | null) => {
     if (!date) return 'Tanggal tidak tersedia';
-
-    const orderDate = new Date(date);
-    const formattedDate = orderDate.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-    const formattedTime = orderDate
-      .toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-      .replace('.', ':');
-
-    return `${formattedDate}, ${formattedTime} WIB`;
+    return formatOrderDateTimeWIB(date);
   };
 
   const handleLogout = async () => {
@@ -661,7 +651,7 @@ export default function ClientBuyerOrders({
             <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm">
               ${bubbleContent}
               <div class="flex items-center justify-end gap-1 mt-1">
-                <span class="text-[10px] text-white/80">${isMe ? 'Anda' : (storeName || 'Penjual')} • ${c.createdAt ? new Date(c.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', hour12: false}) : ''}</span>
+                <span class="text-[10px] text-white/80">${isMe ? 'Anda' : (storeName || 'Penjual')} • ${c.createdAt ? formatChatTimeWIB(c.createdAt) : ''}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${tickClass}" style="${tickStyle}"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
               </div>
             </div>
@@ -672,7 +662,7 @@ export default function ClientBuyerOrders({
           <div class="flex justify-start mt-3">
             <div class="bg-surface border border-border rounded-xl rounded-tl-none px-4 py-2 max-w-[80%] text-sm text-text-primary text-left">
               ${bubbleContent}
-              <div class="text-[10px] text-text-secondary mt-1">${isMe ? 'Anda' : (storeName || 'Penjual')} • ${c.createdAt ? new Date(c.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', hour12: false}) : ''}</div>
+              <div class="text-[10px] text-text-secondary mt-1">${isMe ? 'Anda' : (storeName || 'Penjual')} • ${c.createdAt ? formatChatTimeWIB(c.createdAt) : ''}</div>
             </div>
           </div>
         `;
@@ -891,7 +881,7 @@ export default function ClientBuyerOrders({
           }
 
           const now = new Date();
-          const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} WIB`;
+          const time = formatChatTimeWIB(now);
           const msgId = 'msg-' + Date.now();
           
           input.value = '';
@@ -1247,14 +1237,20 @@ export default function ClientBuyerOrders({
         ) : activeTab === 'tracking' ? (
           <div className="flex flex-col gap-6">
             {filteredLocalOrders.map((order) => {
+              const isCompleted = order.status === 'completed';
+              const isCancelled = order.status === 'cancelled';
+              const isProcessing = order.status === 'processing';
+              const isPreorderRunning = order.status === 'preorder_running';
+              const isVerified = order.status === 'verified';
+              const isWaitingPayment = order.status === 'waiting_verification';
+
               const steps = [
                 { label: 'Pesanan Dibuat', completed: true, date: order.createdAt },
-                { label: 'Menunggu Konfirmasi Penjual', completed: order.status !== 'waiting_verification', active: order.status === 'waiting_verification', date: '' },
-                { label: 'Menunggu Pembayaran', completed: !!order.paymentId, active: order.status === 'verified' && !order.paymentId, date: order.paymentId ? 'Telah Dibayar' : '' },
-                { label: 'Verifikasi Pembayaran', completed: order.status === 'processing' || order.status === 'completed', active: order.status === 'verified' && !!order.paymentId, date: '' },
-                { label: 'Diproses Penjual', completed: order.status === 'processing' || order.status === 'completed', active: order.status === 'processing', date: '' },
-                { label: 'Barang sedang Dikirim', completed: order.status === 'completed', active: order.status === 'processing', date: '' },
-                { label: 'Pesanan Selesai / Sampai', completed: order.status === 'completed', active: false, date: order.ratedAt || '' }
+                { label: 'Menunggu Pembayaran', completed: isVerified || isPreorderRunning || isProcessing || isCompleted, active: isWaitingPayment && !order.paymentId, date: order.paymentId ? 'Telah Dibayar' : '' },
+                { label: 'Verifikasi Pembayaran', completed: isPreorderRunning || isProcessing || isCompleted, active: isVerified || (isWaitingPayment && !!order.paymentId), date: '' },
+                { label: 'Preorder Berjalan', completed: isProcessing || isCompleted, active: isPreorderRunning, date: '' },
+                { label: 'Diproses Penjual', completed: isCompleted, active: isProcessing, date: '' },
+                { label: 'Pesanan Selesai', completed: isCompleted, active: false, date: order.ratedAt || '' }
               ];
 
               return (
@@ -1281,25 +1277,16 @@ export default function ClientBuyerOrders({
                         return (
                           <div key={idx} className={`relative flex items-start gap-4 sm:gap-6 ${!step.completed && !step.active ? 'opacity-50 grayscale' : ''}`}>
                             {!isLast && (
-                              <>
-                                <div className={`absolute top-[32px] sm:top-[40px] left-[14px] sm:left-[18px] w-1 -bottom-6 sm:-bottom-8 rounded-full overflow-hidden ${isLineCompleted ? 'bg-brand-primary' : 'bg-gray-200 dark:bg-gray-700'}`}>
-                                  {isLineActive && <div className="w-full h-full animate-flow-vertical"></div>}
-                                </div>
-                                {isLineActive && nextStep?.label === 'Barang sedang Dikirim' && (
-                                  <div className="absolute top-[32px] sm:top-[40px] left-[14px] sm:left-[18px] w-1 -bottom-6 sm:-bottom-8 z-20 pointer-events-none">
-                                    <div className="w-5 h-5 sm:w-6 sm:h-6 animate-drive-vertical text-brand-primary bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-md border border-border absolute -left-[8px] sm:-left-[10px]">
-                                      <Truck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                    </div>
-                                  </div>
-                                )}
-                              </>
+                              <div className={`absolute top-[32px] sm:top-[40px] left-[14px] sm:left-[18px] w-1 -bottom-6 sm:-bottom-8 rounded-full overflow-hidden ${isLineCompleted ? 'bg-brand-primary' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                                {isLineActive && <div className="w-full h-full animate-flow-vertical"></div>}
+                              </div>
                             )}
                             <div className={`relative z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 ring-4 ring-base transition-all ${step.completed ? 'bg-brand-primary text-white shadow-md' : step.active ? 'bg-brand-primary/10 border-2 border-brand-primary text-brand-primary ring-brand-primary/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
                               {step.completed ? <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" /> : <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-current"></div>}
                             </div>
                             <div className="flex flex-col pt-1 sm:pt-1.5">
                               <span className={`text-sm sm:text-base font-bold ${step.active ? 'text-brand-primary' : step.completed ? 'text-text-primary' : 'text-text-secondary'}`}>{step.label}</span>
-                              {step.date && <span className="text-[11px] sm:text-xs text-text-secondary mt-1">{typeof step.date === 'string' ? step.date : new Date(step.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
+                              {step.date && <span className="text-[11px] sm:text-xs text-text-secondary mt-1">{typeof step.date === 'string' ? step.date : new Date(step.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })}</span>}
                             </div>
                           </div>
                         );
@@ -1319,25 +1306,16 @@ export default function ClientBuyerOrders({
                         return (
                           <div key={idx} className={`relative flex flex-col items-center flex-1 ${!step.completed && !step.active ? 'opacity-50 grayscale' : ''}`}>
                             {!isLast && (
-                              <>
-                                <div className={`absolute top-[18px] left-[50%] w-full h-1 rounded-full overflow-hidden ${isLineCompleted ? 'bg-brand-primary' : 'bg-gray-200 dark:bg-gray-700'}`}>
-                                  {isLineActive && <div className="w-full h-full animate-flow-horizontal"></div>}
-                                </div>
-                                {isLineActive && nextStep?.label === 'Barang sedang Dikirim' && (
-                                  <div className="absolute top-[18px] left-[50%] w-full h-1 z-20 pointer-events-none">
-                                    <div className="w-6 h-6 animate-drive-horizontal text-brand-primary bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-md border border-border absolute -top-[10px]">
-                                      <Truck className="w-3.5 h-3.5" />
-                                    </div>
-                                  </div>
-                                )}
-                              </>
+                              <div className={`absolute top-[18px] left-[50%] w-full h-1 rounded-full overflow-hidden ${isLineCompleted ? 'bg-brand-primary' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                                {isLineActive && <div className="w-full h-full animate-flow-horizontal"></div>}
+                              </div>
                             )}
                             <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 ring-4 ring-base transition-all ${step.completed ? 'bg-brand-primary text-white shadow-md' : step.active ? 'bg-brand-primary/10 border-2 border-brand-primary text-brand-primary ring-brand-primary/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
                               {step.completed ? <CheckCircle className="w-5 h-5" /> : <div className="w-2.5 h-2.5 rounded-full bg-current"></div>}
                             </div>
                             <div className="flex flex-col items-center mt-4 text-center px-2">
                               <span className={`text-sm font-bold ${step.active ? 'text-brand-primary' : step.completed ? 'text-text-primary' : 'text-text-secondary'}`}>{step.label}</span>
-                              {step.date && <span className="text-xs text-text-secondary mt-1.5">{typeof step.date === 'string' ? step.date : new Date(step.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
+                              {step.date && <span className="text-xs text-text-secondary mt-1.5">{typeof step.date === 'string' ? step.date : new Date(step.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })}</span>}
                             </div>
                           </div>
                         );
@@ -1351,10 +1329,6 @@ export default function ClientBuyerOrders({
         ) : (
           <div className="space-y-4">
             {filteredLocalOrders.map((order) => {
-              const isWaitingPayment = !order.paymentId;
-              const isPendingVerif = order.paymentId && order.paymentStatus === 'pending';
-              const isVerified = order.paymentId && order.paymentStatus === 'approved';
-              
               const clearQtyDraft = () => {
                 setQtyDrafts(prev => {
                   if (!(order.orderId in prev)) return prev;
@@ -1697,7 +1671,9 @@ export default function ClientBuyerOrders({
                               <span className="inline-block px-3 py-1 bg-brand-primary/10 text-brand-primary rounded-full text-xs font-bold w-full sm:w-auto text-center">Tanya Produk / Pre-sales</span>
                             )}
                             {isWaitingPayment && !isChatOnly && (
-                              <span className="inline-block px-3 py-1 bg-status-error/10 text-status-error rounded-full text-xs font-bold w-full sm:w-auto text-center">Menunggu Pembayaran</span>
+                              <span className="px-3 py-1 bg-status-warning/10 text-status-warning rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
+                                <Clock className="w-3.5 h-3.5" /> Menunggu Pembayaran
+                              </span>
                             )}
                             {isPendingVerif && (
                               <span className="px-3 py-1 bg-status-warning/10 text-status-warning rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
@@ -1705,8 +1681,18 @@ export default function ClientBuyerOrders({
                               </span>
                             )}
                             {isVerified && (
+                              <span className="px-3 py-1 bg-status-success/10 text-status-success rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
+                                <CheckCircle className="w-3.5 h-3.5" /> Sudah Dibayar
+                              </span>
+                            )}
+                            {order.status === 'processing' && (
                               <span className="px-3 py-1 bg-brand-secondary/10 text-brand-secondary-dark dark:text-brand-secondary rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                <CheckCircle className="w-3.5 h-3.5" /> Pesanan Diproses
+                                <Clock className="w-3.5 h-3.5" /> Sedang Diproses
+                              </span>
+                            )}
+                            {order.status === 'preorder_running' && (
+                              <span className="px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
+                                <Clock className="w-3.5 h-3.5" /> Preorder Berjalan
                               </span>
                             )}
                             {isCompleted && (
@@ -1786,8 +1772,8 @@ export default function ClientBuyerOrders({
                                 </div>
                               )}
                               
-                              {/* Selesai Pesanan button - only if verified or pending verification */}
-                              {(isPendingVerif || isVerified) && (
+                              {/* Selesai Pesanan button - only if processing or preorder_running */}
+                              {(order.status === 'processing' || order.status === 'preorder_running') && (
                                 <button 
                                   onClick={() => handleCompleteOrder(order.orderId, order.productName)}
                                   className="btn-primary bg-emerald-500 hover:bg-emerald-600 text-white py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
@@ -1797,7 +1783,7 @@ export default function ClientBuyerOrders({
                               )}
                               
                               {/* Only show Batalkan if not yet completed or cancelled */}
-                              {(isWaitingPayment || isPendingVerif || isVerified) && (
+                              {(isWaitingPayment || isPendingVerif || isVerified || order.status === 'processing') && (
                                 <button 
                                   onClick={() => handleCancelOrder(order.orderId, order.productName)}
                                   className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
