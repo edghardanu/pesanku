@@ -9,7 +9,6 @@ import {
   CreditCard,
   CheckCircle,
   Clock,
-  ArrowRightLeft,
   Settings,
   LogOut,
   Search,
@@ -30,7 +29,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { UmkmItem, OrderItem, TicketItem, PayoutItem, VerificationItem, PromotionOfferItem, PromotionRequestItem } from "@/types";
+import { UmkmItem, OrderItem, TicketItem, VerificationItem, PromotionOfferItem, PromotionRequestItem } from "@/types";
 import AdminPromotionManager from "@/components/AdminPromotionManager";
 
 type ClientAdminDashboardProps = {
@@ -49,13 +48,12 @@ type ClientAdminDashboardProps = {
 
 export default function ClientAdminDashboard({ stats, userName, umkmList, ordersList = [], promotionOffers = [], promotionRequests = [] }: ClientAdminDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'pesanan' | 'verifikasi' | 'pencairan' | 'umkm' | 'promosi' | 'qris' | 'settings' | 'tickets'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'pesanan' | 'verifikasi' | 'umkm' | 'promosi' | 'qris' | 'settings' | 'tickets'>('overview');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [localUmkmList, setLocalUmkmList] = useState(umkmList);
   const [localPromotionRequests, setLocalPromotionRequests] = useState(promotionRequests);
   const [searchQueryUmkm, setSearchQueryUmkm] = useState('');
-  const [searchQueryPayout, setSearchQueryPayout] = useState('');
 
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [feeAplikasi, setFeeAplikasi] = useState<number>(0);
@@ -202,28 +200,11 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
     }
   };
 
-  const [mockPayouts, setMockPayouts] = useState<PayoutItem[]>([]);
   const [mockVerifications, setMockVerifications] = useState<VerificationItem[]>([]);
   const [adminQrisUrl, setAdminQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS'); // Mock initial QRIS
 
   useEffect(() => {
     setTimeout(() => {
-      const savedPayouts = localStorage.getItem('mockPayouts');
-      if (savedPayouts) {
-        setMockPayouts(JSON.parse(savedPayouts));
-      } else {
-        setMockPayouts([
-          {
-            id: '1',
-            storeName: 'Toko Roti Ibu Ana',
-            rekening: 'BCA - 8921831923 (Ana)',
-            diajukan: 'Rp 500.000',
-            potongan: '-Rp 9.000',
-            total: 'Rp 491.000'
-          }
-        ]);
-      }
-
       const savedVerifications = localStorage.getItem('mockVerifications');
       if (savedVerifications) {
         setMockVerifications(JSON.parse(savedVerifications));
@@ -244,11 +225,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
       }
     }, 0);
   }, []);
-
-  const updateMockPayouts = (newPayouts: PayoutItem[]) => {
-    setMockPayouts(newPayouts);
-    localStorage.setItem('mockPayouts', JSON.stringify(newPayouts));
-  };
 
   const updateMockVerifications = (newVerifications: VerificationItem[]) => {
     setMockVerifications(newVerifications);
@@ -356,7 +332,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
     }
   };
 
-  const handleTabChange = (tab: 'overview' | 'pesanan' | 'verifikasi' | 'pencairan' | 'umkm' | 'promosi' | 'qris' | 'settings' | 'tickets') => {
+  const handleTabChange = (tab: 'overview' | 'pesanan' | 'verifikasi' | 'umkm' | 'promosi' | 'qris' | 'settings' | 'tickets') => {
     if (tab === activeTab) return;
     setActiveTab(tab);
     setIsMobileSidebarOpen(false);
@@ -470,20 +446,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
             <span>Verifikasi Pembayaran</span>
             {mockVerifications.length > 0 && (
               <span className="ml-auto bg-status-warning text-white text-xs font-bold px-2 py-0.5 rounded-full">{mockVerifications.length}</span>
-            )}
-          </button>
-
-          <button
-            onClick={() => handleTabChange('pencairan')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'pencairan'
-              ? 'bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary font-semibold'
-              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-              }`}
-          >
-            <ArrowRightLeft className="w-5 h-5" />
-            <span>Pencairan Dana (Payout)</span>
-            {mockPayouts.length > 0 && (
-              <span className="ml-auto bg-brand-secondary-dark text-white text-xs font-bold px-2 py-0.5 rounded-full">{mockPayouts.length}</span>
             )}
           </button>
 
@@ -610,7 +572,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
             <header className="mb-8 flex justify-between items-end">
               <div>
                 <h1 className="text-display-2 text-text-primary mb-1">Dashboard Admin</h1>
-                <p className="text-body-base text-text-secondary">Pantau aktivitas platform, verifikasi pembayaran, dan kelola pencairan dana UMKM.</p>
+                <p className="text-body-base text-text-secondary">Pantau aktivitas platform, verifikasi pembayaran, dan kelola UMKM.</p>
               </div>
               <div className="flex items-center gap-4">
                 <button
@@ -1461,124 +1423,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                 </div>
               </div>
             )}
-
-            {activeTab === 'pencairan' && (
-              <div className="card p-0 border border-border overflow-hidden">
-                <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
-                  <h2 className="text-h3">Permintaan Pencairan Dana (Payout)</h2>
-                  <div className="relative w-full sm:w-64">
-                    <input
-                      type="text"
-                      placeholder="Cari nama toko..."
-                      value={searchQueryPayout}
-                      onChange={(e) => setSearchQueryPayout(e.target.value)}
-                      className="input-field pl-10 pr-4 py-2 text-sm w-full"
-                    />
-                    <Search className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
-                  </div>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-surface text-caption text-text-secondary border-b border-border">
-                        <th className="p-4 font-medium">Toko / UMKM</th>
-                        <th className="p-4 font-medium">Rekening Tujuan</th>
-                        <th className="p-4 font-medium">Dana Diajukan</th>
-                        <th className="p-4 font-medium">Biaya (Admin)</th>
-                        <th className="p-4 font-medium">Total Ditransfer</th>
-                        <th className="p-4 font-medium">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-body-small text-text-primary">
-                      {mockPayouts.filter(p => p.storeName.toLowerCase().includes(searchQueryPayout.toLowerCase())).length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="p-8 text-center text-text-secondary">
-                            {mockPayouts.length === 0 ? "Tidak ada permintaan pencairan dana saat ini." : "Pencairan tidak ditemukan."}
-                          </td>
-                        </tr>
-                      ) : (
-                        mockPayouts
-                          .filter(p => p.storeName.toLowerCase().includes(searchQueryPayout.toLowerCase()))
-                          .map((payout) => (
-                            <tr key={payout.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                              <td className="p-4">
-                                <p className="font-semibold text-text-primary">{payout.storeName}</p>
-                              </td>
-                              <td className="p-4 text-text-secondary">{payout.rekening}</td>
-                              <td className="p-4 text-text-primary">{payout.diajukan}</td>
-                              <td className="p-4 text-status-error">{payout.potongan}</td>
-                              <td className="p-4 font-bold text-status-success">{payout.total}</td>
-                              <td className="p-4">
-                                <div className="flex gap-2 items-center">
-                                  <button
-                                    onClick={() => {
-                                      Swal.fire({
-                                        title: 'Konfirmasi Pencairan',
-                                        text: `Apakah Anda sudah mentransfer sejumlah ${payout.total} ke ${payout.rekening}?`,
-                                        icon: 'question',
-                                        showCancelButton: true,
-                                        confirmButtonColor: '#10b981', // status-success
-                                        cancelButtonColor: '#94a3b8',
-                                        confirmButtonText: 'Ya, Sudah Ditransfer',
-                                        cancelButtonText: 'Batal'
-                                      }).then((result) => {
-                                        if (result.isConfirmed) {
-                                          updateMockPayouts(mockPayouts.filter(p => p.id !== payout.id));
-                                          Swal.fire({
-                                            toast: true,
-                                            position: 'top-end',
-                                            icon: 'success',
-                                            title: 'Pencairan ditandai selesai',
-                                            showConfirmButton: false,
-                                            timer: 3000
-                                          });
-                                        }
-                                      });
-                                    }}
-                                    className="btn-primary py-1.5 px-3 text-sm bg-status-success hover:bg-status-success/80 border-transparent text-white"
-                                  >
-                                    Tandai Selesai
-                                  </button>
-
-                                  <button
-                                    onClick={() => {
-                                      Swal.fire({
-                                        title: 'Hapus Permintaan?',
-                                        text: `Tolak dan hapus permintaan pencairan dari ${payout.storeName}?`,
-                                        icon: 'warning',
-                                        showCancelButton: true,
-                                        confirmButtonColor: '#ef4444',
-                                        cancelButtonColor: '#94a3b8',
-                                        confirmButtonText: 'Ya, Hapus!',
-                                        cancelButtonText: 'Batal'
-                                      }).then((result) => {
-                                        if (result.isConfirmed) {
-                                          updateMockPayouts(mockPayouts.filter(p => p.id !== payout.id));
-                                          Swal.fire({
-                                            toast: true,
-                                            position: 'top-end',
-                                            icon: 'success',
-                                            title: 'Permintaan pencairan dihapus',
-                                            showConfirmButton: false,
-                                            timer: 3000
-                                          });
-                                        }
-                                      });
-                                    }}
-                                    className="btn-outline py-1.5 px-3 text-sm text-status-error border-status-error hover:bg-status-error/10"
-                                  >
-                                    Hapus
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
             {activeTab === 'settings' && (
               <div className="grid gap-6">
                 <div className="card md:p-6 border border-border">
@@ -1646,19 +1490,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
             )}
           </div>
           <span>Verifikasi</span>
-        </button>
-
-        <button
-          onClick={() => handleTabChange('pencairan')}
-          className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 relative ${activeTab === 'pencairan' ? 'text-brand-secondary-dark font-semibold' : 'text-text-secondary hover:text-brand-secondary-dark'}`}
-        >
-          <div className="relative">
-            <ArrowRightLeft className={`w-6 h-6 stroke-[1.5] ${activeTab === 'pencairan' ? 'fill-brand-secondary/10 stroke-brand-secondary-dark' : ''}`} />
-            {mockPayouts.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-brand-secondary-dark text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{mockPayouts.length}</span>
-            )}
-          </div>
-          <span>Pencairan</span>
         </button>
 
         <button
