@@ -456,11 +456,42 @@ export default function ClientBuyerOrders({
       html: `
         <div class="flex flex-col items-center">
           <p class="text-sm mb-4">Silakan scan kode QRIS berikut untuk membayar sejumlah <strong>Rp ${totalHarga.toLocaleString('id-ID')}</strong></p>
-          <div class="w-48 h-48 border border-gray-200 rounded-xl overflow-hidden mb-4 shadow-sm">
-            <img src="${qrisUrl}" alt="QRIS Admin" class="w-full h-full object-cover" />
+          <div class="w-48 h-48 border border-gray-200 rounded-xl overflow-hidden mb-3 shadow-sm">
+            <img id="qris-preview-img" src="${qrisUrl}" alt="QRIS Admin" class="w-full h-full object-cover" />
           </div>
+          <button
+            id="btn-download-qris"
+            style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:999px;font-size:12px;font-weight:600;color:#ff5c35;border:1.5px solid #ff5c35;background:transparent;cursor:pointer;margin-bottom:12px;transition:background 0.2s,color 0.2s;"
+            onmouseover="this.style.background='#ff5c35';this.style.color='#fff';"
+            onmouseout="this.style.background='transparent';this.style.color='#ff5c35';"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Unduh Gambar QRIS
+          </button>
         </div>
       `,
+      didOpen: () => {
+        const btn = document.getElementById('btn-download-qris');
+        if (btn) {
+          btn.addEventListener('click', async () => {
+            try {
+              const response = await fetch(`${qrisUrl}`);
+              const blob = await response.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'qris-pesanku.png';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            } catch {
+              // fallback: open in new tab
+              window.open(`${qrisUrl}`, '_blank');
+            }
+          });
+        }
+      },
       input: 'file',
       inputAttributes: {
         'accept': 'image/*',
