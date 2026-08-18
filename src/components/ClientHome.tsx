@@ -852,7 +852,7 @@ export default function ClientHome({
       <main className="flex-1 bg-white dark:bg-base">
         {/* Hero Section */}
         {!categoryFilter && (
-          <section className="relative flex min-h-[500px] items-start overflow-hidden px-6 pt-28 pb-10 sm:px-8 sm:pt-32 sm:pb-12 md:min-h-[550px] md:pt-40 lg:min-h-[620px] lg:px-12 lg:pt-40 lg:pb-12 xl:items-center xl:pt-0 xl:py-28">
+          <section className="relative flex min-h-[560px] items-end overflow-hidden px-6 pt-28 pb-16 sm:min-h-[580px] sm:px-8 sm:pt-32 sm:pb-20 md:min-h-[600px] md:pt-40 md:pb-20 lg:min-h-[640px] lg:px-12 lg:pt-40 lg:pb-24 xl:min-h-[680px] xl:pb-28 xl:pt-0">
             {/* Video Background */}
             <video
               autoPlay
