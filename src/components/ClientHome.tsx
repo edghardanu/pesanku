@@ -30,8 +30,8 @@ const containerVariants: Variants = {
 
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 30 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: [0, -8, 0],
     transition: {
       opacity: { duration: 0.5 },
@@ -150,7 +150,7 @@ export default function ClientHome({
       const now = new Date();
       const utcHours = now.getUTCHours();
       const wibHours = (utcHours + 7) % 24;
-      
+
       let text = "Selamat malam";
       if (wibHours >= 5 && wibHours < 11) {
         text = "Selamat pagi";
@@ -159,7 +159,7 @@ export default function ClientHome({
       } else if (wibHours >= 15 && wibHours < 18) {
         text = "Selamat sore";
       }
-      
+
       setGreeting(`${text}, ${user?.name || 'Pengunjung'}`);
     }, 0);
   }, [user?.name]);
@@ -200,7 +200,7 @@ export default function ClientHome({
       }
     }
   };
-  
+
   const escapeQuotes = (str: string) => str ? str.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
 
   const handleInternalPresalesChat = (storeName: string, productId: string, productName: string, sellerAvatarUrl?: string | null) => {
@@ -243,11 +243,11 @@ export default function ClientHome({
       didOpen: () => {
         const input = document.getElementById('wa-chat-input') as HTMLInputElement;
         const sendBtn = document.getElementById('send-chat-internal');
-        
+
         const openInternalChat = async () => {
           if (!input.value.trim()) return;
           const message = input.value.trim();
-          
+
           Swal.fire({
             title: 'Mengirim Pesan...',
             allowOutsideClick: false,
@@ -261,7 +261,7 @@ export default function ClientHome({
               body: JSON.stringify({ productId, text: message })
             });
             const data = await res.json();
-            
+
             if (!res.ok) {
               Swal.fire('Akses Ditolak!', data.error || 'Terjadi kesalahan jaringan.', 'error');
               return;
@@ -309,7 +309,7 @@ export default function ClientHome({
         }
       }
     });
-    
+
     const sellersFromProducts = Array.from(popularSellersMap.values()).map(seller => ({
       ...seller,
       averageRating: seller.totalCount > 0 ? seller.totalRating / seller.totalCount : 0
@@ -334,9 +334,9 @@ export default function ClientHome({
       const productName = product.name || '';
       const sellerName = product.sellerName || '';
       const query = searchQuery || '';
-      
-      return productName.toLowerCase().includes(query.toLowerCase()) || 
-             sellerName.toLowerCase().includes(query.toLowerCase());
+
+      return productName.toLowerCase().includes(query.toLowerCase()) ||
+        sellerName.toLowerCase().includes(query.toLowerCase());
     });
   }, [initialProducts, categoryFilter, searchQuery]);
 
@@ -344,7 +344,7 @@ export default function ClientHome({
     return [...filteredProducts].filter((product) => {
       if (!localCategoryFilter) return true;
       const searchStr = ((product.name || '') + " " + (product.description || "") + " " + (product.batchCategory || "")).toLowerCase();
-      
+
       if (localCategoryFilter === 'Makanan Manis') {
         return searchStr.includes('manis') || searchStr.includes('cokelat') || searchStr.includes('kue') || searchStr.includes('roti') || searchStr.includes('pisang') || searchStr.includes('pancake');
       }
@@ -364,257 +364,360 @@ export default function ClientHome({
 
   return (
     <>
-      <div className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled ? 'pt-4 px-4 sm:px-6' : 'pt-0 px-0'}`}>
-        <header className={`mx-auto w-full transition-all duration-300 ${
-          isScrolled
-            ? 'bg-white/85 dark:bg-surface/85 backdrop-blur-md border border-border/50 shadow-lg rounded-2xl max-w-7xl'
-            : 'bg-brand-primary'
-        }`}>
+      <div className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'pt-4 px-4 sm:px-6' : 'pt-0 px-0'}`}>
+        <header className={`mx-auto w-full transition-all duration-300 ${isScrolled
+          ? 'bg-white/85 dark:bg-surface/85 backdrop-blur-md border border-border/50 shadow-lg rounded-2xl max-w-7xl'
+          : 'bg-transparent'
+          }`}>
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 hover:scale-105 transition-transform">
-            <motion.div
-              className="flex items-center gap-2"
-              animate={{ y: [0, -3, 0] }}
-              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-            >
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm transition-colors duration-300 ${isScrolled ? 'bg-brand-primary' : 'bg-white'}`}>
-                <ShoppingBag className={`w-5 h-5 transition-colors duration-300 ${isScrolled ? 'text-white' : 'text-brand-primary'}`} />
-              </div>
-              <span className={`text-h2 font-bold tracking-tight transition-colors duration-300 ${isScrolled ? 'text-brand-primary' : 'text-white'}`}>pesanku</span>
-            </motion.div>
-          </Link>
-          
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full group">
-              <input 
-                type="text" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                placeholder="Cari makanan atau minuman..." 
-                className={`input-field pl-10 pr-10 rounded-full focus:bg-surface transition-all duration-300 border-transparent focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/10 ${isScrolled ? 'bg-base' : 'bg-white/95'}`}
-              />
-              <Search className="w-5 h-5 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-brand-primary transition-colors" />
-              {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary p-1 rounded-full hover:bg-gray-100 transition-colors"
-                  aria-label="Clear search"
+              <motion.div
+                className="flex items-center gap-2"
+                animate={{ y: [0, -3, 0] }}
+                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm transition-colors duration-300 ${isScrolled ? 'bg-brand-primary' : 'bg-white'}`}>
+                  <ShoppingBag className={`w-5 h-5 transition-colors duration-300 ${isScrolled ? 'text-white' : 'text-brand-primary'}`} />
+                </div>
+                <span className={`text-h2 font-bold tracking-tight transition-colors duration-300 ${isScrolled ? 'text-brand-primary' : 'text-white'}`}>pesanku</span>
+              </motion.div>
+            </Link>
+
+            <AnimatePresence>
+              {isMobileSearchOpen && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="hidden md:flex flex-1 max-w-md mx-4 lg:mx-8"
                 >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-              
-              {/* Desktop Search Dropdown */}
-              {searchQuery && isSearchFocused && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
-                  <div className="max-h-60 overflow-y-auto">
-                    {filteredProducts.length > 0 ? (
-                      filteredProducts.slice(0, 5).map(product => (
-                        <button
-                          key={product.id}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            setSearchQuery(product.name);
-                            setIsSearchFocused(false);
-                            router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
-                        >
-                          {product.imageUrl ? (
-                            <div className="w-10 h-10 rounded-lg bg-base overflow-hidden shrink-0">
-                              <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                            </div>
+                  <div className="relative w-full group">
+                    <input
+                      id="desktop-search"
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onFocus={() => setIsSearchFocused(true)}
+                      onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                      placeholder="Cari makanan atau minuman..."
+                      className={`input-field pl-10 pr-10 rounded-full focus:bg-surface transition-all duration-300 border-transparent focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/10 ${isScrolled ? 'bg-base' : 'bg-white/95'}`}
+                    />
+                    <Search className="w-5 h-5 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-brand-primary transition-colors" />
+                    
+                    <button
+                      onClick={() => {
+                        if (searchQuery) {
+                          setSearchQuery("");
+                        } else {
+                          setIsMobileSearchOpen(false);
+                        }
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary p-1 rounded-full hover:bg-gray-100 transition-colors"
+                      aria-label="Close search"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+
+                    {/* Desktop Search Dropdown */}
+                    {searchQuery && isSearchFocused && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
+                        <div className="max-h-60 overflow-y-auto">
+                          {filteredProducts.length > 0 ? (
+                            filteredProducts.slice(0, 5).map(product => (
+                              <button
+                                key={product.id}
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setSearchQuery(product.name);
+                                  setIsSearchFocused(false);
+                                  setIsMobileSearchOpen(false);
+                                  router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
+                                }}
+                                className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
+                              >
+                                {product.imageUrl ? (
+                                  <div className="w-10 h-10 rounded-lg bg-base overflow-hidden shrink-0">
+                                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                  </div>
+                                ) : (
+                                  <div className="w-10 h-10 rounded-lg bg-base flex items-center justify-center shrink-0">
+                                    <ShoppingBag className="w-5 h-5 text-text-secondary" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
+                                  <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
+                                </div>
+                              </button>
+                            ))
                           ) : (
-                            <div className="w-10 h-10 rounded-lg bg-base flex items-center justify-center shrink-0">
-                              <ShoppingBag className="w-5 h-5 text-text-secondary" />
+                            <div className="px-4 py-4 text-center text-sm text-text-secondary">
+                              Pencarian tidak ditemukan
                             </div>
                           )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
-                            <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
-                          </div>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-4 py-4 text-center text-sm text-text-secondary">
-                        Pencarian tidak ditemukan
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className={`hidden md:flex items-center gap-4 ${!isMobileSearchOpen ? 'ml-auto' : ''}`}>
+              {!isMobileSearchOpen && (
+                <button
+                  onClick={() => {
+                    setIsMobileSearchOpen(true);
+                    setTimeout(() => document.querySelector<HTMLInputElement>('#desktop-search')?.focus(), 100);
+                  }}
+                  className={`p-2 rounded-full transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border ${isScrolled ? 'border-border hover:bg-gray-100 dark:hover:bg-border' : 'border-white/40 bg-white/10 hover:bg-white/20'}`}
+                  aria-label="Toggle Search"
+                >
+                  <Search className={`w-5 h-5 ${isScrolled ? 'text-text-primary' : 'text-white'}`} />
+                </button>
+              )}
+              <button
+                onClick={toggleDarkMode}
+                className={`p-2 rounded-full transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border ${isScrolled ? 'border-border hover:bg-gray-100 dark:hover:bg-border' : 'border-white/40 bg-white/10 hover:bg-white/20'}`}
+                aria-label="Toggle Dark Mode"
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {isDarkMode ? (
+                    <motion.div
+                      key="moon"
+                      initial={{ y: -30, opacity: 0, rotate: -90 }}
+                      animate={{ y: 0, opacity: 1, rotate: 0 }}
+                      exit={{ y: 30, opacity: 0, rotate: 90 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute"
+                    >
+                      <Moon className={`w-5 h-5 ${isScrolled ? 'text-brand-secondary' : 'text-white'}`} />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="sun"
+                      initial={{ y: 30, opacity: 0, rotate: 90 }}
+                      animate={{ y: 0, opacity: 1, rotate: 0 }}
+                      exit={{ y: -30, opacity: 0, rotate: -90 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute"
+                    >
+                      <Sun className={`w-5 h-5 ${isScrolled ? 'text-brand-secondary' : 'text-white'}`} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </button>
+
+              {greeting && (
+                <Link href="/profile" className={`text-body-small font-semibold mr-2 hidden lg:inline-block hover:underline transition-all ${isScrolled ? 'text-brand-primary' : 'text-white'}`} title="Buka Profil">
+                  {greeting}
+                </Link>
+              )}
+              <Link href="/seller" className={`text-body-small font-medium transition-colors ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'}`}>
+                Mulai Berjualan
+              </Link>
+
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/profile"
+                    className={`flex items-center justify-center p-2 rounded-xl transition-all mr-1 border ${isScrolled ? 'border-transparent text-text-secondary hover:text-brand-primary hover:bg-brand-primary/5' : 'border-white/30 text-white hover:bg-white/15'}`}
+                    title="Profil Akun"
+                  >
+                    <User className="w-5 h-5" />
+                  </Link>
+                  <Link
+                    href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'}
+                    className={`flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-all duration-200 shadow-lg active:scale-95 hover:-translate-y-0.5 relative ${isScrolled ? 'bg-brand-primary text-white shadow-brand-primary/20 hover:bg-brand-primary-hover hover:shadow-brand-primary/40' : 'bg-white text-brand-primary shadow-black/10 hover:bg-white/90 hover:shadow-black/20'}`}
+                  >
+                    {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard' : 'Lihat Pesanan Saya'}
+                    {user.role === 'pembeli' && orderCount > 0 && (
+                      <span className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center absolute -top-2 -right-2 border-2 border-white shadow-sm">
+                        {orderCount}
+                      </span>
+                    )}
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className={`border flex items-center gap-1.5 py-2 px-3 text-sm font-semibold rounded-xl transition-all ${isScrolled ? 'border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error' : 'border-white/50 text-white hover:bg-white/15 hover:border-white'}`}
+                    title="Keluar / Logout"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden lg:inline">Keluar</span>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Link href="/login" className={`px-4 py-2 rounded-lg font-medium transition-all border ${isScrolled ? 'border-border bg-surface text-text-primary hover:bg-brand-primary/5' : 'border-white/50 text-white hover:bg-white/15'}`}>
+                    Masuk
+                  </Link>
+                  <Link href="/register" className={`px-4 py-2 rounded-lg font-medium transition-all shadow-lg ${isScrolled ? 'bg-brand-primary text-white shadow-brand-primary/20 hover:bg-brand-primary-hover hover:shadow-brand-primary/40' : 'bg-white text-brand-primary shadow-black/10 hover:bg-white/90'}`}>
+                    Daftar
+                  </Link>
+                </>
+              )}
+            </div>
+
+            <div className="md:hidden flex items-center gap-1 relative right-2">
+              {user && (user.role === 'admin' || user.role === 'penjual') && (
+                <Link
+                  href={user.role === 'admin' ? '/admin' : '/seller'}
+                  className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 group ${isScrolled ? 'hover:bg-brand-primary/10' : 'hover:bg-white/15'}`}
+                  aria-label="Dashboard"
+                  title="Buka Dashboard"
+                >
+                  <LayoutDashboard className={`w-5 h-5 transition-colors ${isScrolled ? 'text-text-primary group-hover:text-brand-primary' : 'text-white'}`} />
+                </Link>
+              )}
+
+              {/* Mobile Search Toggle */}
+              <button
+                onClick={() => {
+                  setIsMobileSearchOpen(!isMobileSearchOpen);
+                  if (!isMobileSearchOpen) setTimeout(() => document.querySelector<HTMLInputElement>('#mobile-search')?.focus(), 100);
+                }}
+                className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 ${isScrolled ? 'hover:bg-brand-primary/10' : 'hover:bg-white/15'}`}
+                aria-label="Toggle Search"
+              >
+                <Search className={`w-5 h-5 ${isScrolled ? (isMobileSearchOpen ? 'text-brand-primary' : 'text-text-primary') : 'text-white'}`} />
+              </button>
+
+              {/* Mobile Theme Toggle */}
+              <button
+                onClick={toggleDarkMode}
+                className={`p-2 rounded-full transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 ${isScrolled ? 'hover:bg-brand-primary/10' : 'hover:bg-white/15'}`}
+                aria-label="Toggle Dark Mode"
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {isDarkMode ? (
+                    <motion.div
+                      key="moon"
+                      initial={{ y: -30, opacity: 0, rotate: -90 }}
+                      animate={{ y: 0, opacity: 1, rotate: 0 }}
+                      exit={{ y: 30, opacity: 0, rotate: 90 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute"
+                    >
+                      <Moon className={`w-5 h-5 ${isScrolled ? 'text-brand-primary' : 'text-white'}`} />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="sun"
+                      initial={{ y: 30, opacity: 0, rotate: 90 }}
+                      animate={{ y: 0, opacity: 1, rotate: 0 }}
+                      exit={{ y: -30, opacity: 0, rotate: -90 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute"
+                    >
+                      <Sun className={`w-5 h-5 ${isScrolled ? 'text-brand-primary' : 'text-white'}`} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Search Input Dropdown */}
+          <AnimatePresence>
+            {isMobileSearchOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="md:hidden bg-surface border-b border-border shadow-sm absolute w-full left-0 top-[64px] z-40"
+              >
+                <div className="p-4">
+                  <div className="relative w-full">
+                    <input
+                      id="mobile-search"
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onFocus={() => setIsSearchFocused(true)}
+                      onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                      placeholder="Cari makanan atau minuman..."
+                      className="input-field pl-10 pr-10 rounded-xl w-full border-brand-primary/20 focus:border-brand-primary"
+                    />
+                    <Search className="w-5 h-5 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary p-1"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    {/* Mobile Search Dropdown */}
+                    {searchQuery && isSearchFocused && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
+                        <div className="max-h-60 overflow-y-auto">
+                          {filteredProducts.length > 0 ? (
+                            filteredProducts.slice(0, 5).map(product => (
+                              <button
+                                key={product.id}
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setSearchQuery(product.name);
+                                  setIsSearchFocused(false);
+                                  setIsMobileSearchOpen(false);
+                                  router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
+                                }}
+                                className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
+                              >
+                                {product.imageUrl ? (
+                                  <div className="w-10 h-10 rounded-lg bg-base overflow-hidden shrink-0">
+                                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                  </div>
+                                ) : (
+                                  <div className="w-10 h-10 rounded-lg bg-base flex items-center justify-center shrink-0">
+                                    <ShoppingBag className="w-5 h-5 text-text-secondary" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
+                                  <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-4 py-4 text-center text-sm text-text-secondary">
+                              Pencarian tidak ditemukan
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          <div className="hidden md:flex items-center gap-4">
-            <button 
-              onClick={toggleDarkMode}
-              className={`p-2 rounded-full transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border ${isScrolled ? 'border-border hover:bg-gray-100 dark:hover:bg-border' : 'border-white/40 bg-white/10 hover:bg-white/20'}`}
-              aria-label="Toggle Dark Mode"
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                {isDarkMode ? (
-                  <motion.div
-                    key="moon"
-                    initial={{ y: -30, opacity: 0, rotate: -90 }}
-                    animate={{ y: 0, opacity: 1, rotate: 0 }}
-                    exit={{ y: 30, opacity: 0, rotate: 90 }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute"
-                  >
-                    <Moon className={`w-5 h-5 ${isScrolled ? 'text-brand-secondary' : 'text-white'}`} />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="sun"
-                    initial={{ y: 30, opacity: 0, rotate: 90 }}
-                    animate={{ y: 0, opacity: 1, rotate: 0 }}
-                    exit={{ y: -30, opacity: 0, rotate: -90 }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute"
-                  >
-                    <Sun className={`w-5 h-5 ${isScrolled ? 'text-brand-secondary' : 'text-white'}`} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </button>
-
-            {greeting && (
-              <Link href="/profile" className={`text-body-small font-semibold mr-2 hidden lg:inline-block hover:underline transition-all ${isScrolled ? 'text-brand-primary' : 'text-white'}`} title="Buka Profil">
-                {greeting}
-              </Link>
+              </motion.div>
             )}
-            <Link href="/seller" className={`text-body-small font-medium transition-colors ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'}`}>
-              Mulai Berjualan
-            </Link>
-            
-            {user ? (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/profile"
-                  className={`flex items-center justify-center p-2 rounded-xl transition-all mr-1 border ${isScrolled ? 'border-transparent text-text-secondary hover:text-brand-primary hover:bg-brand-primary/5' : 'border-white/30 text-white hover:bg-white/15'}`}
-                  title="Profil Akun"
-                >
-                  <User className="w-5 h-5" />
-                </Link>
-                <Link 
-                  href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'} 
-                  className={`flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-all duration-200 shadow-lg active:scale-95 hover:-translate-y-0.5 relative ${isScrolled ? 'bg-brand-primary text-white shadow-brand-primary/20 hover:bg-brand-primary-hover hover:shadow-brand-primary/40' : 'bg-white text-brand-primary shadow-black/10 hover:bg-white/90 hover:shadow-black/20'}`}
-                >
-                  {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard' : 'Lihat Pesanan Saya'}
-                  {user.role === 'pembeli' && orderCount > 0 && (
-                    <span className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center absolute -top-2 -right-2 border-2 border-white shadow-sm">
-                      {orderCount}
-                    </span>
-                  )}
-                </Link>
-                <button 
-                  onClick={handleLogout}
-                  className={`border flex items-center gap-1.5 py-2 px-3 text-sm font-semibold rounded-xl transition-all ${isScrolled ? 'border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error' : 'border-white/50 text-white hover:bg-white/15 hover:border-white'}`}
-                  title="Keluar / Logout"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden lg:inline">Keluar</span>
-                </button>
-              </div>
-            ) : (
-              <>
-                <Link href="/login" className={`px-4 py-2 rounded-lg font-medium transition-all border ${isScrolled ? 'border-border bg-surface text-text-primary hover:bg-brand-primary/5' : 'border-white/50 text-white hover:bg-white/15'}`}>
-                  Masuk
-                </Link>
-                <Link href="/register" className={`px-4 py-2 rounded-lg font-medium transition-all shadow-lg ${isScrolled ? 'bg-brand-primary text-white shadow-brand-primary/20 hover:bg-brand-primary-hover hover:shadow-brand-primary/40' : 'bg-white text-brand-primary shadow-black/10 hover:bg-white/90'}`}>
-                  Daftar
-                </Link>
-              </>
-            )}
-          </div>
-          
-          <div className="md:hidden flex items-center gap-1 relative right-2">
-            {user && (user.role === 'admin' || user.role === 'penjual') && (
-              <Link
-                href={user.role === 'admin' ? '/admin' : '/seller'}
-                className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 group ${isScrolled ? 'hover:bg-brand-primary/10' : 'hover:bg-white/15'}`}
-                aria-label="Dashboard"
-                title="Buka Dashboard"
-              >
-                <LayoutDashboard className={`w-5 h-5 transition-colors ${isScrolled ? 'text-text-primary group-hover:text-brand-primary' : 'text-white'}`} />
-              </Link>
-            )}
-            
-            {/* Mobile Search Toggle */}
-            <button 
-              onClick={() => {
-                setIsMobileSearchOpen(!isMobileSearchOpen);
-                if (!isMobileSearchOpen) setTimeout(() => document.querySelector<HTMLInputElement>('#mobile-search')?.focus(), 100);
-              }}
-              className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 ${isScrolled ? 'hover:bg-brand-primary/10' : 'hover:bg-white/15'}`}
-              aria-label="Toggle Search"
-            >
-              <Search className={`w-5 h-5 ${isScrolled ? (isMobileSearchOpen ? 'text-brand-primary' : 'text-text-primary') : 'text-white'}`} />
-            </button>
-            
-            {/* Mobile Theme Toggle */}
-            <button 
-              onClick={toggleDarkMode}
-              className={`p-2 rounded-full transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 ${isScrolled ? 'hover:bg-brand-primary/10' : 'hover:bg-white/15'}`}
-              aria-label="Toggle Dark Mode"
-            >
-            <AnimatePresence mode="wait" initial={false}>
-              {isDarkMode ? (
-                <motion.div
-                  key="moon"
-                  initial={{ y: -30, opacity: 0, rotate: -90 }}
-                  animate={{ y: 0, opacity: 1, rotate: 0 }}
-                  exit={{ y: 30, opacity: 0, rotate: 90 }}
-                  transition={{ duration: 0.3 }}
-                  className="absolute"
-                >
-                  <Moon className={`w-5 h-5 ${isScrolled ? 'text-brand-primary' : 'text-white'}`} />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="sun"
-                  initial={{ y: 30, opacity: 0, rotate: 90 }}
-                  animate={{ y: 0, opacity: 1, rotate: 0 }}
-                  exit={{ y: -30, opacity: 0, rotate: -90 }}
-                  transition={{ duration: 0.3 }}
-                  className="absolute"
-                >
-                  <Sun className={`w-5 h-5 ${isScrolled ? 'text-brand-primary' : 'text-white'}`} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-            </button>
-          </div>
-        </div>
+          </AnimatePresence>
 
-        {/* Mobile Search Input Dropdown */}
-        <AnimatePresence>
-          {isMobileSearchOpen && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="md:hidden bg-surface border-b border-border shadow-sm absolute w-full left-0 top-[64px] z-40"
+          {/* Mobile Menu */}
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute top-16 left-0 right-0 bg-surface border-b border-border shadow-lg md:hidden z-40 p-4"
             >
-              <div className="p-4">
-                <div className="relative w-full">
-                  <input 
-                    id="mobile-search"
-                    type="text" 
+              <div className="flex flex-col gap-4">
+                <div className="relative w-full mb-4">
+                  <input
+                    type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsSearchFocused(true)}
                     onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                    placeholder="Cari makanan atau minuman..." 
-                    className="input-field pl-10 pr-10 rounded-xl w-full border-brand-primary/20 focus:border-brand-primary"
+                    placeholder="Cari makanan atau minuman..."
+                    className="input-field pl-10 pr-10 rounded-full w-full"
                   />
                   <Search className="w-5 h-5 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
                   {searchQuery && (
-                    <button 
+                    <button
                       onClick={() => setSearchQuery("")}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary p-1"
                     >
@@ -622,7 +725,7 @@ export default function ClientHome({
                     </button>
                   )}
 
-                  {/* Mobile Search Dropdown */}
+                  {/* Mobile Menu Search Dropdown */}
                   {searchQuery && isSearchFocused && (
                     <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
                       <div className="max-h-60 overflow-y-auto">
@@ -634,7 +737,7 @@ export default function ClientHome({
                               onClick={() => {
                                 setSearchQuery(product.name);
                                 setIsSearchFocused(false);
-                                setIsMobileSearchOpen(false);
+                                setIsMobileMenuOpen(false);
                                 router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
                               }}
                               className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
@@ -663,228 +766,159 @@ export default function ClientHome({
                     </div>
                   )}
                 </div>
+                <div className="flex justify-center mb-2">
+                  <button
+                    onClick={toggleDarkMode}
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-border transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border border-border"
+                    aria-label="Toggle Dark Mode"
+                  >
+                    <AnimatePresence mode="wait" initial={false}>
+                      {isDarkMode ? (
+                        <motion.div
+                          key="moon"
+                          initial={{ y: -30, opacity: 0, rotate: -90 }}
+                          animate={{ y: 0, opacity: 1, rotate: 0 }}
+                          exit={{ y: 30, opacity: 0, rotate: 90 }}
+                          transition={{ duration: 0.3 }}
+                          className="absolute"
+                        >
+                          <Moon className="w-5 h-5 text-brand-secondary" />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="sun"
+                          initial={{ y: 30, opacity: 0, rotate: 90 }}
+                          animate={{ y: 0, opacity: 1, rotate: 0 }}
+                          exit={{ y: -30, opacity: 0, rotate: -90 }}
+                          transition={{ duration: 0.3 }}
+                          className="absolute"
+                        >
+                          <Sun className="w-5 h-5 text-brand-secondary" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </button>
+                </div>
+                {greeting && (
+                  <div className="text-center font-semibold text-brand-primary pb-2 border-b border-border">
+                    {greeting}
+                  </div>
+                )}
+                <Link href="/seller" onClick={() => setIsMobileMenuOpen(false)} className="block py-2 text-center font-medium text-text-secondary hover:text-brand-primary">
+                  Mulai Berjualan
+                </Link>
+
+                {user ? (
+                  <div className="flex flex-col gap-2 w-full">
+                    <Link
+                      href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="btn-primary w-full text-center flex items-center justify-center gap-2 relative"
+                    >
+                      {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard Saya' : 'Lihat Pesanan Saya'}
+                      {user.role === 'pembeli' && orderCount > 0 && (
+                        <span className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
+                          {orderCount}
+                        </span>
+                      )}
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 w-full flex items-center justify-center gap-2 py-2.5 font-semibold rounded-xl transition-all"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Keluar</span>
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="btn-outline w-full text-center">
+                      Masuk
+                    </Link>
+                    <Link href="/register" onClick={() => setIsMobileMenuOpen(false)} className="btn-primary w-full text-center">
+                      Daftar
+                    </Link>
+                  </>
+                )}
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
-
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="absolute top-16 left-0 right-0 bg-surface border-b border-border shadow-lg md:hidden z-40 p-4"
-          >
-            <div className="flex flex-col gap-4">
-              <div className="relative w-full mb-4">
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                  placeholder="Cari makanan atau minuman..." 
-                  className="input-field pl-10 pr-10 rounded-full w-full"
-                />
-                <Search className="w-5 h-5 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
-                {searchQuery && (
-                  <button 
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary p-1"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-
-                {/* Mobile Menu Search Dropdown */}
-                {searchQuery && isSearchFocused && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
-                    <div className="max-h-60 overflow-y-auto">
-                      {filteredProducts.length > 0 ? (
-                        filteredProducts.slice(0, 5).map(product => (
-                          <button
-                            key={product.id}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => {
-                              setSearchQuery(product.name);
-                              setIsSearchFocused(false);
-                              setIsMobileMenuOpen(false);
-                              router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
-                            }}
-                            className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
-                          >
-                            {product.imageUrl ? (
-                              <div className="w-10 h-10 rounded-lg bg-base overflow-hidden shrink-0">
-                                <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                              </div>
-                            ) : (
-                              <div className="w-10 h-10 rounded-lg bg-base flex items-center justify-center shrink-0">
-                                <ShoppingBag className="w-5 h-5 text-text-secondary" />
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
-                              <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-4 py-4 text-center text-sm text-text-secondary">
-                          Pencarian tidak ditemukan
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-center mb-2">
-                <button 
-                  onClick={toggleDarkMode}
-                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-border transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border border-border"
-                  aria-label="Toggle Dark Mode"
-                >
-                  <AnimatePresence mode="wait" initial={false}>
-                    {isDarkMode ? (
-                      <motion.div
-                        key="moon"
-                        initial={{ y: -30, opacity: 0, rotate: -90 }}
-                        animate={{ y: 0, opacity: 1, rotate: 0 }}
-                        exit={{ y: 30, opacity: 0, rotate: 90 }}
-                        transition={{ duration: 0.3 }}
-                        className="absolute"
-                      >
-                        <Moon className="w-5 h-5 text-brand-secondary" />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="sun"
-                        initial={{ y: 30, opacity: 0, rotate: 90 }}
-                        animate={{ y: 0, opacity: 1, rotate: 0 }}
-                        exit={{ y: -30, opacity: 0, rotate: -90 }}
-                        transition={{ duration: 0.3 }}
-                        className="absolute"
-                      >
-                        <Sun className="w-5 h-5 text-brand-secondary" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </button>
-              </div>
-              {greeting && (
-                <div className="text-center font-semibold text-brand-primary pb-2 border-b border-border">
-                  {greeting}
-                </div>
-              )}
-              <Link href="/seller" onClick={() => setIsMobileMenuOpen(false)} className="block py-2 text-center font-medium text-text-secondary hover:text-brand-primary">
-                Mulai Berjualan
-              </Link>
-              
-              {user ? (
-                <div className="flex flex-col gap-2 w-full">
-                  <Link 
-                    href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'} 
-                    onClick={() => setIsMobileMenuOpen(false)} 
-                    className="btn-primary w-full text-center flex items-center justify-center gap-2 relative"
-                  >
-                    {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard Saya' : 'Lihat Pesanan Saya'}
-                    {user.role === 'pembeli' && orderCount > 0 && (
-                      <span className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
-                        {orderCount}
-                      </span>
-                    )}
-                  </Link>
-                  <button 
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      handleLogout();
-                    }}
-                    className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 w-full flex items-center justify-center gap-2 py-2.5 font-semibold rounded-xl transition-all"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>Keluar</span>
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="btn-outline w-full text-center">
-                    Masuk
-                  </Link>
-                  <Link href="/register" onClick={() => setIsMobileMenuOpen(false)} className="btn-primary w-full text-center">
-                    Daftar
-                  </Link>
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
         </header>
       </div>
 
       <main className="flex-1 bg-white dark:bg-base">
         {/* Hero Section */}
         {!categoryFilter && (
-        <section className="relative flex min-h-[500px] items-start overflow-hidden bg-brand-primary px-6 py-6 sm:px-8 sm:py-8 md:min-h-[550px] md:py-10 lg:min-h-[620px] lg:px-12 lg:py-12 xl:items-center xl:py-28">
-          
-          <div className="container mx-auto relative z-10">
-            <div className="grid grid-cols-1 items-center gap-6 sm:gap-8 lg:gap-10 xl:grid-cols-[minmax(0,1.05fr)_minmax(280px,0.95fr)] xl:gap-16">
-              
-              {/* Text Content */}
-              <motion.div 
-                initial={false}
-                animate={{ 
-                  opacity: 1, 
-                  x: 0,
-                  y: [0, -10, 0]
-                }}
-                transition={{ 
-                  opacity: { duration: 0.6, ease: "easeOut" },
-                  x: { duration: 0.6, ease: "easeOut" },
-                  y: { repeat: Infinity, duration: 4, ease: "easeInOut", delay: 0.5 }
-                }}
-                className="order-2 max-w-3xl text-left xl:order-1"
-              >
-                <h1 className="text-display-1 mb-6 leading-[1.1] tracking-tight text-white">
-                  Pesan Makanan UMKM Favoritmu, <span className="text-amber-200 relative inline-block">
-                    Kapan Saja
-                    <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 20" preserveAspectRatio="none">
-                      <path d="M0 10 Q 50 20 100 10" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-white/60" />
-                    </svg>
-                  </span>
-                </h1>
-                <p className="text-body-large mb-10 max-w-xl leading-relaxed text-white/85">
-                  Sistem preorder makanan dan minuman dari UMKM lokal dengan minimum order yang jelas. Rasakan hidangan segar langsung dari tangan ahlinya.
-                </p>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-start gap-4">
-                  <Link href="#katalog" className="w-full rounded-lg bg-white px-8 py-3.5 text-center text-lg font-semibold text-brand-primary shadow-xl shadow-black/15 transition-all hover:scale-105 hover:bg-white/90 sm:w-auto">
-                    Mulai Belanja
-                  </Link>
-                  <Link href="/seller" className="w-full cursor-pointer rounded-lg border border-white/60 px-8 py-3.5 text-center text-lg font-medium text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-white hover:bg-white/15 hover:shadow-md active:scale-95 sm:w-auto">
-                    Daftar Jadi Penjual
-                  </Link>
-                </div>
-              </motion.div>
+          <section className="relative flex min-h-[500px] items-start overflow-hidden px-6 pt-28 pb-10 sm:px-8 sm:pt-32 sm:pb-12 md:min-h-[550px] md:pt-40 lg:min-h-[620px] lg:px-12 lg:pt-40 lg:pb-12 xl:items-center xl:pt-0 xl:py-28">
+            {/* Video Background */}
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover z-0"
+              src="/hero-bg.mp4"
+            />
+            {/* Dark gradient overlay for text readability */}
+            <div className="absolute inset-0 z-[1]" style={{ background: 'linear-gradient(120deg, rgba(8,4,2,0.75) 0%, rgba(25,10,5,0.60) 55%, rgba(8,4,2,0.40) 100%)' }} />
 
-              <motion.div
-                initial={false}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.7, ease: "easeOut", delay: 0.15 }}
-                className="order-1 aspect-video w-full max-w-sm justify-self-center overflow-hidden bg-transparent sm:max-w-lg md:max-w-xl xl:order-2 xl:max-w-2xl xl:justify-self-end xl:self-center"
-                role="img"
-                aria-label="Animasi gerobak makanan"
-              >
-                <DotLottieReact
-                  src="/animations/foodcart.lottie"
-                  autoplay
-                  loop
-                  backgroundColor="transparent"
-                  className="h-full w-full scale-[1.04] brightness-[1.025] dark:opacity-95"
-                />
-              </motion.div>
+            <div className="container mx-auto relative z-[2]">
+              <div className="grid grid-cols-1 items-center">
 
+                {/* Text Content */}
+                <motion.div
+                  initial={false}
+                  animate={{
+                    opacity: 1,
+                    x: 0,
+                  }}
+                  transition={{
+                    opacity: { duration: 0.6, ease: "easeOut" },
+                    x: { duration: 0.6, ease: "easeOut" },
+                  }}
+                  className="max-w-2xl text-left"
+                >
+                  <h1
+                    className="mb-5 leading-[1.1] tracking-tight text-white font-extrabold"
+                    style={{ fontSize: 'clamp(1.85rem, 4.5vw, 3.4rem)', textShadow: '0 2px 24px rgba(0,0,0,0.5)' }}
+                  >
+                    Pesan Makanan UMKM Favoritmu,{' '}
+                    <span className="relative inline-block text-brand-primary">
+                      Kapan Saja
+                      <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 12" preserveAspectRatio="none">
+                        <path d="M0 8 Q 100 0 200 8" fill="transparent" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.7" />
+                      </svg>
+                    </span>
+                  </h1>
+                  <p
+                    className="mb-10 max-w-xl leading-relaxed font-medium"
+                    style={{ fontSize: 'clamp(1rem, 2vw, 1.125rem)', color: 'rgba(255,255,255,0.88)', textShadow: '0 1px 8px rgba(0,0,0,0.35)' }}
+                  >
+                    Sistem preorder makanan dan minuman dari UMKM lokal dengan minimum order yang jelas. Rasakan hidangan segar langsung dari tangan ahlinya.
+                  </p>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-start gap-4">
+                    <Link
+                      href="#katalog"
+                      className="w-full rounded-xl bg-brand-primary px-8 py-3.5 text-center text-lg font-bold text-white shadow-xl shadow-brand-primary/40 transition-all hover:scale-105 hover:bg-brand-primary-hover active:scale-95 sm:w-auto"
+                      style={{ letterSpacing: '0.01em' }}
+                    >
+                      🛒 Mulai Belanja
+                    </Link>
+                    <Link
+                      href="/seller"
+                      className="w-full cursor-pointer rounded-xl border-2 border-white/50 px-8 py-3.5 text-center text-lg font-semibold text-white backdrop-blur-sm bg-white/10 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-white hover:bg-white/20 hover:shadow-md active:scale-95 sm:w-auto"
+                    >
+                      Daftar Jadi Penjual
+                    </Link>
+                  </div>
+                </motion.div>
+
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
         )}
 
         {/* Katalog Section */}
@@ -892,108 +926,108 @@ export default function ClientHome({
 
           {/* UMKM Terpopuler Section */}
           {!categoryFilter && popularSellers.length > 0 && (
-          <div className="mb-16">
-            <motion.div 
-              initial={false}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="mb-6 flex justify-between items-end"
-            >
-              <div>
-                <h2 className="text-h2 mb-2 tracking-tight">UMKM Terpopuler</h2>
-                <p className="text-body-base text-text-secondary">Pilihan toko favorit dengan kualitas terbaik.</p>
-              </div>
-            </motion.div>
+            <div className="mb-16">
+              <motion.div
+                initial={false}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                className="mb-6 flex justify-between items-end"
+              >
+                <div>
+                  <h2 className="text-h2 mb-2 tracking-tight">UMKM Terpopuler</h2>
+                  <p className="text-body-base text-text-secondary">Pilihan toko favorit dengan kualitas terbaik.</p>
+                </div>
+              </motion.div>
 
-            <div className="flex justify-center overflow-x-auto gap-4 sm:gap-6 pb-4 snap-x snap-mandatory scrollbar-hide w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              {popularSellers.map((seller, idx) => (
-                <motion.div
-                  key={seller.sellerId}
-                  initial={false}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                  onClick={() => router.push(`/store/${encodeURIComponent((seller.storeName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${seller.sellerId}`)}
-                  className="snap-start flex-none w-40 sm:w-48 bg-white rounded-2xl border border-border p-4 shadow-sm group cursor-pointer flex flex-col items-center gap-3 hover:-translate-y-1 hover:shadow-lg hover:border-brand-primary/30 transition-all duration-300"
-                >
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-sm border-2 border-orange-100 ring-4 ring-orange-100/60 group-hover:shadow-md transition-all duration-300 relative bg-white">
-                    <img 
-                      src={seller.sellerAvatar} 
-                      alt={seller.storeName} 
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                  </div>
-                  <div className="w-full text-center flex flex-col items-center flex-1 justify-center gap-1">
-                    <h3 className="font-bold text-sm sm:text-base line-clamp-2 w-full" style={{ color: '#0f172a' }}>
-                      {seller.storeName}
-                    </h3>
-                    {seller.averageRating > 0 ? (
-                      <div className="flex items-center justify-center scale-90">
-                        <ProductRating averageRating={seller.averageRating} ratingCount={seller.totalCount} className="[&>span]:text-slate-700" />
-                      </div>
-                    ) : (
-                      <span className="text-[10px]" style={{ color: '#64748b' }}>Belum ada rating</span>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
+              <div className="flex justify-center overflow-x-auto gap-4 sm:gap-6 pb-4 snap-x snap-mandatory scrollbar-hide w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                {popularSellers.map((seller, idx) => (
+                  <motion.div
+                    key={seller.sellerId}
+                    initial={false}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1 }}
+                    onClick={() => router.push(`/store/${encodeURIComponent((seller.storeName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${seller.sellerId}`)}
+                    className="snap-start flex-none w-40 sm:w-48 bg-white rounded-2xl border border-border p-4 shadow-sm group cursor-pointer flex flex-col items-center gap-3 hover:-translate-y-1 hover:shadow-lg hover:border-brand-primary/30 transition-all duration-300"
+                  >
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-sm border-2 border-orange-100 ring-4 ring-orange-100/60 group-hover:shadow-md transition-all duration-300 relative bg-white">
+                      <img
+                        src={seller.sellerAvatar}
+                        alt={seller.storeName}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    </div>
+                    <div className="w-full text-center flex flex-col items-center flex-1 justify-center gap-1">
+                      <h3 className="font-bold text-sm sm:text-base line-clamp-2 w-full" style={{ color: '#0f172a' }}>
+                        {seller.storeName}
+                      </h3>
+                      {seller.averageRating > 0 ? (
+                        <div className="flex items-center justify-center scale-90">
+                          <ProductRating averageRating={seller.averageRating} ratingCount={seller.totalCount} className="[&>span]:text-slate-700" />
+                        </div>
+                      ) : (
+                        <span className="text-[10px]" style={{ color: '#64748b' }}>Belum ada rating</span>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
-          </div>
           )}
 
           {/* Categories Section */}
           {!categoryFilter && (
-          <div className="mb-16">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4"
-            >
-              <div>
-                <h2 className="text-h2 mb-2 tracking-tight">Kategori Pilihan</h2>
-                <p className="text-body-base text-text-secondary">Eksplorasi ragam menu sesuai selera Anda.</p>
-              </div>
-              
-            </motion.div>
+            <div className="mb-16">
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4"
+              >
+                <div>
+                  <h2 className="text-h2 mb-2 tracking-tight">Kategori Pilihan</h2>
+                  <p className="text-body-base text-text-secondary">Eksplorasi ragam menu sesuai selera Anda.</p>
+                </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
-              {[
-                { name: 'Makanan Berat', image: makananBeratImage, keyword: 'nasi' },
-                { name: 'Minuman Segar', image: minumanImage, keyword: 'minum' },
-                { name: 'Jajanan & Cemilan', image: cemilanImage, keyword: 'cemilan' },
-                { name: 'Kue & Roti', image: kueImage, keyword: 'kue' },
-                { name: 'Cepat Saji', image: cepatSajiImage, keyword: 'ayam' },
-              ].map((category, idx) => (
-                <motion.div
-                  key={category.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                  onClick={() => {
-                    router.push('/kategori/' + encodeURIComponent(category.name));
-                  }}
-                  className="group cursor-pointer flex flex-col items-center gap-3"
-                >
-                  <div className="w-full aspect-square rounded-2xl overflow-hidden shadow-sm border border-border bg-surface relative transition-transform duration-300 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-brand-primary/20">
-                    <Image
-                      src={category.image}
-                      alt={category.name}
-                      fill
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                      unoptimized
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                  </div>
-                  <span className="font-bold text-sm sm:text-base text-center" style={{ color: 'var(--color-text-primary)' }}>{category.name}</span>
-                </motion.div>
-              ))}
+              </motion.div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
+                {[
+                  { name: 'Makanan Berat', image: makananBeratImage, keyword: 'nasi' },
+                  { name: 'Minuman Segar', image: minumanImage, keyword: 'minum' },
+                  { name: 'Jajanan & Cemilan', image: cemilanImage, keyword: 'cemilan' },
+                  { name: 'Kue & Roti', image: kueImage, keyword: 'kue' },
+                  { name: 'Cepat Saji', image: cepatSajiImage, keyword: 'ayam' },
+                ].map((category, idx) => (
+                  <motion.div
+                    key={category.name}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1 }}
+                    onClick={() => {
+                      router.push('/kategori/' + encodeURIComponent(category.name));
+                    }}
+                    className="group cursor-pointer flex flex-col items-center gap-3"
+                  >
+                    <div className="w-full aspect-square rounded-2xl overflow-hidden shadow-sm border border-border bg-surface relative transition-transform duration-300 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-brand-primary/20">
+                      <Image
+                        src={category.image}
+                        alt={category.name}
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                        unoptimized
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    </div>
+                    <span className="font-bold text-sm sm:text-base text-center" style={{ color: 'var(--color-text-primary)' }}>{category.name}</span>
+                  </motion.div>
+                ))}
+              </div>
             </div>
-          </div>
           )}
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -1005,13 +1039,13 @@ export default function ClientHome({
                 {searchQuery ? `Hasil pencarian untuk "${searchQuery}"` : (categoryFilter ? `Produk pilihan di kategori ${categoryFilter}.` : "Temukan pilihan produk UMKM yang mungkin kamu sukai.")}
               </p>
             </div>
-            
+
             {/* Action Buttons Container */}
             <div className="flex items-center gap-3 relative z-40">
-              
+
               {/* Category Filter Dropdown */}
               <div className="relative">
-                <button 
+                <button
                   onClick={() => { setIsCategoryDropdownOpen(!isCategoryDropdownOpen); setIsPriceFilterOpen(false); }}
                   className="flex items-center gap-2 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-5 py-2.5 rounded-full font-semibold transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 group"
                 >
@@ -1022,7 +1056,7 @@ export default function ClientHome({
                 </button>
 
                 {isCategoryDropdownOpen && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -1030,14 +1064,13 @@ export default function ClientHome({
                   >
                     <div className="p-2 flex flex-col gap-1">
                       {['Semua Makanan', 'Makanan Manis', 'Makanan Pedas', 'Makanan Gurih'].map(cat => (
-                        <button 
+                        <button
                           key={cat}
                           onClick={() => { setLocalCategoryFilter(cat === 'Semua Makanan' ? null : (localCategoryFilter === cat ? null : cat)); setIsCategoryDropdownOpen(false); }}
-                          className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium ${
-                            (cat === 'Semua Makanan' && !localCategoryFilter) || localCategoryFilter === cat
-                              ? 'bg-brand-primary text-white' 
-                              : 'hover:bg-brand-primary/10 hover:text-brand-primary text-text-primary'
-                          }`}
+                          className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium ${(cat === 'Semua Makanan' && !localCategoryFilter) || localCategoryFilter === cat
+                            ? 'bg-brand-primary text-white'
+                            : 'hover:bg-brand-primary/10 hover:text-brand-primary text-text-primary'
+                            }`}
                         >
                           {cat}
                         </button>
@@ -1049,50 +1082,50 @@ export default function ClientHome({
 
               {/* Price Filter Dropdown */}
               <div className="relative">
-                <button 
+                <button
                   onClick={() => { setIsPriceFilterOpen(!isPriceFilterOpen); setIsCategoryDropdownOpen(false); }}
                   className="flex items-center gap-2 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-5 py-2.5 rounded-full font-semibold transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 group"
                 >
-                Urutkan Harga
-                <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-1 transition-transform duration-300 ${isPriceFilterOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+                  Urutkan Harga
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-1 transition-transform duration-300 ${isPriceFilterOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-              {/* Dropdown Menu */}
-              {isPriceFilterOpen && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 mt-3 w-64 bg-surface border border-border rounded-xl shadow-xl overflow-hidden"
-                >
-                  <div className="p-2 flex flex-col gap-1">
-                    <button 
-                      onClick={() => { setPriceSortOrder('asc'); setIsPriceFilterOpen(false); }}
-                      className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium ${priceSortOrder === 'asc' ? 'bg-brand-primary text-white' : 'hover:bg-brand-primary/10 hover:text-brand-primary text-text-primary'}`}
-                    >
-                      Harga Normal ke Tertinggi
-                    </button>
-                    <button 
-                      onClick={() => { setPriceSortOrder('desc'); setIsPriceFilterOpen(false); }}
-                      className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium ${priceSortOrder === 'desc' ? 'bg-brand-primary text-white' : 'hover:bg-brand-primary/10 hover:text-brand-primary text-text-primary'}`}
-                    >
-                      Harga Tertinggi ke Normal
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-            
+                {/* Dropdown Menu */}
+                {isPriceFilterOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-3 w-64 bg-surface border border-border rounded-xl shadow-xl overflow-hidden"
+                  >
+                    <div className="p-2 flex flex-col gap-1">
+                      <button
+                        onClick={() => { setPriceSortOrder('asc'); setIsPriceFilterOpen(false); }}
+                        className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium ${priceSortOrder === 'asc' ? 'bg-brand-primary text-white' : 'hover:bg-brand-primary/10 hover:text-brand-primary text-text-primary'}`}
+                      >
+                        Harga Normal ke Tertinggi
+                      </button>
+                      <button
+                        onClick={() => { setPriceSortOrder('desc'); setIsPriceFilterOpen(false); }}
+                        className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium ${priceSortOrder === 'desc' ? 'bg-brand-primary text-white' : 'hover:bg-brand-primary/10 hover:text-brand-primary text-text-primary'}`}
+                      >
+                        Harga Tertinggi ke Normal
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+
             </div>
           </motion.div>
 
           {displayProducts.length === 0 ? (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: [0, -8, 0] }}
-              transition={{ 
+              transition={{
                 opacity: { duration: 0.5 },
                 y: { repeat: Infinity, duration: 4, ease: "easeInOut" }
               }}
@@ -1109,7 +1142,7 @@ export default function ClientHome({
               <p className="text-text-secondary">Coba gunakan kata kunci lain untuk pencarian Anda.</p>
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
@@ -1117,7 +1150,7 @@ export default function ClientHome({
             >
               {displayProducts.map((product) => {
                 const productImageUrl = product.imageUrl ?? "/street-food-festival.jpg";
-                
+
                 // Format deadline
                 let deadlineText = "Tidak ada batas waktu";
                 if (product.deadlineDate) {
@@ -1131,12 +1164,12 @@ export default function ClientHome({
                 return (
                   <motion.div variants={itemVariants} key={product.id}>
                     <div onClick={(e) => {
-  if((e.target as HTMLElement).closest('button')) return;
-  router.push(`/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
-}} className="card block group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-surface dark:bg-border rounded-2xl relative">
+                      if ((e.target as HTMLElement).closest('button')) return;
+                      router.push(`/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
+                    }} className="card block group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-surface dark:bg-border rounded-2xl relative">
                       <div className="relative aspect-[4/3] overflow-hidden bg-surface dark:bg-border rounded-t-2xl">
-                        <Image 
-                          src={productImageUrl} 
+                        <Image
+                          src={productImageUrl}
                           alt={product.name}
                           fill
                           className="object-contain group-hover:scale-110 transition-transform duration-500 ease-out"
@@ -1150,7 +1183,7 @@ export default function ClientHome({
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       </div>
-                      
+
                       <div className="p-5">
                         <button
                           type="button"
@@ -1173,8 +1206,8 @@ export default function ClientHome({
                         >
                           <div className="relative w-10 h-10 rounded-full overflow-hidden border border-border shrink-0 bg-surface dark:bg-border">
                             {product.sellerAvatar && (
-                              <Image 
-                                src={product.sellerAvatar} 
+                              <Image
+                                src={product.sellerAvatar}
                                 alt={product.sellerName ?? "Penjual"}
                                 fill
                                 sizes="40px"
@@ -1201,7 +1234,7 @@ export default function ClientHome({
                             </span>
                           </div>
                         )}
-                        
+
                         {product.description && (
                           <p className="text-body-small text-text-secondary line-clamp-2 mb-3 leading-relaxed">
                             {product.description}
@@ -1220,7 +1253,7 @@ export default function ClientHome({
                               </div>
                             )}
                           </div>
-                          
+
                           {product.deadlineDate && (
                             <div className="flex items-center gap-2 text-caption text-text-secondary pt-3 border-t border-border/60">
                               <Clock className="w-4 h-4 text-text-secondary" />
@@ -1243,7 +1276,7 @@ export default function ClientHome({
                                     <Store className="w-4 h-4" />
                                     Lihat Toko &amp; Katalog
                                   </button>
-                                  
+
                                   <button
                                     onClick={(e) => {
                                       e.preventDefault();
@@ -1271,45 +1304,45 @@ export default function ClientHome({
 
         {/* About Platform Section */}
         <section className="px-4 container mx-auto pb-16">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="bg-brand-primary rounded-[2rem] border border-brand-primary/10 overflow-hidden flex flex-col md:flex-row items-center gap-8 p-8 md:p-12 relative shadow-sm"
+            className="bg-brand-primary rounded-[2.5rem] border border-brand-primary/10 overflow-hidden flex flex-col md:flex-row items-center gap-10 p-8 sm:p-12 lg:p-16 relative shadow-lg"
           >
             <div className="flex-1 flex flex-col justify-center">
-              <h2 className="text-h2 mb-6 text-black leading-tight">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-8 text-black leading-snug tracking-tight">
                 Kenapa harus pilih <span className="relative inline-block">
                   <strong className="text-white">Pesanku?</strong>
-                  <svg className="absolute -bottom-2 left-0 w-full text-black/70" viewBox="0 0 100 20" preserveAspectRatio="none">
+                  <svg className="absolute -bottom-1 lg:-bottom-2 left-0 w-full text-black/70" viewBox="0 0 100 20" preserveAspectRatio="none">
                     <path d="M0 10 Q 50 20 100 10" fill="transparent" stroke="currentColor" strokeWidth="4" />
                   </svg>
                 </span>
               </h2>
-              <ul className="space-y-4 text-white/90 text-body-base max-w-xl">
-                <li className="flex items-start gap-3">
-                  <span className="font-bold text-white text-lg leading-none mt-0.5">•</span>
-                  <span><strong>Kualitas Terkurasi:</strong> Hidangan langsung dari tangan ahlinya untuk setiap acara Anda.</span>
+              <ul className="space-y-6 text-white/95 text-lg sm:text-xl lg:text-2xl max-w-2xl leading-relaxed">
+                <li className="flex items-start gap-4">
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 mt-2.5 sm:mt-3.5 rounded-full bg-white shrink-0 shadow-sm" />
+                  <span><strong className="text-white font-bold">Kualitas Terkurasi:</strong> Hidangan langsung dari tangan ahlinya untuk setiap acara Anda.</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <span className="font-bold text-white text-lg leading-none mt-0.5">•</span>
-                  <span><strong>Preorder Mudah & Transparan:</strong> Jadwal produksi dan batas minimum pemesanan yang jelas tanpa bingung.</span>
+                <li className="flex items-start gap-4">
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 mt-2.5 sm:mt-3.5 rounded-full bg-white shrink-0 shadow-sm" />
+                  <span><strong className="text-white font-bold">Preorder Mudah & Transparan:</strong> Jadwal produksi dan batas minimum pemesanan yang jelas tanpa bingung.</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <span className="font-bold text-white text-lg leading-none mt-0.5">•</span>
-                  <span><strong>Komunikasi Langsung:</strong> Fitur chat langsung dengan pembuat makanan untuk kustomisasi pesanan.</span>
+                <li className="flex items-start gap-4">
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 mt-2.5 sm:mt-3.5 rounded-full bg-white shrink-0 shadow-sm" />
+                  <span><strong className="text-white font-bold">Komunikasi Langsung:</strong> Fitur chat langsung dengan pembuat makanan untuk kustomisasi pesanan.</span>
                 </li>
               </ul>
             </div>
-            
+
             {/* Chef Image */}
             <div className="flex-1 w-full flex justify-center md:justify-end">
               <div className="w-full max-w-[320px] aspect-[4/5] relative group flex items-center justify-center">
-                <img 
-                  src="/chef-transparent.png" 
-                  alt="Chef Pesanku" 
-                  className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700" 
+                <img
+                  src="/chef-transparent.png"
+                  alt="Chef Pesanku"
+                  className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700"
                 />
               </div>
             </div>
@@ -1318,7 +1351,7 @@ export default function ClientHome({
 
         {/* Alur Pemesanan Section */}
         <section id="alur-pemesanan" className="px-4 container mx-auto pb-24">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1327,14 +1360,14 @@ export default function ClientHome({
             <h2 className="text-h2 mb-4 text-text-primary">Bagaimana Cara <span className="text-brand-primary">Pesan?</span></h2>
             <p className="text-body-base text-text-secondary max-w-2xl mx-auto">4 langkah mudah untuk menikmati hidangan segar langsung dari UMKM pilihan Anda.</p>
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             onViewportEnter={() => setFlowInView(true)}
             className="grid grid-cols-1 md:grid-cols-4 gap-8 relative max-w-5xl mx-auto"
           >
             {/* Connecting Line for Tablet and Desktop */}
             <div data-flow-connector="desktop" className="hidden md:block absolute top-[2.5rem] left-0 w-full h-1 bg-border -translate-y-1/2 z-0 rounded-full overflow-hidden">
-              <motion.div 
+              <motion.div
                 animate={{ width: activeStep >= 0 ? `${(activeStep * 25) + 12.5}%` : "0%" }}
                 transition={{ duration: 0.8, ease: "easeInOut" }}
                 className="h-full bg-brand-primary rounded-full opacity-60"
@@ -1370,7 +1403,7 @@ export default function ClientHome({
             ].map((step, idx) => {
               const isActive = activeStep === idx;
               return (
-                <motion.div 
+                <motion.div
                   key={idx}
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -1378,21 +1411,20 @@ export default function ClientHome({
                   transition={{ duration: 0.6, delay: step.delay }}
                   className="relative z-10 flex flex-col items-center text-center group"
                 >
-                  <motion.div 
+                  <motion.div
                     whileHover={{ scale: 1.1, rotate: 5 }}
-                    animate={{ 
+                    animate={{
                       y: [0, -10, 0],
                       scale: isActive ? 1.1 : 1
                     }}
-                    transition={{ 
+                    transition={{
                       y: { repeat: Infinity, duration: 3, delay: idx * 0.2, ease: "easeInOut" },
                       scale: { duration: 0.3 }
                     }}
-                    className={`w-20 h-20 border-2 rounded-2xl flex items-center justify-center mb-6 shadow-lg transition-all duration-300 relative overflow-hidden cursor-pointer ${
-                      isActive 
-                        ? 'bg-brand-primary border-brand-primary text-white shadow-brand-primary/40 rotate-3' 
-                        : 'bg-surface border-brand-primary/20 shadow-brand-primary/10 group-hover:bg-brand-primary group-hover:text-white group-hover:border-brand-primary group-hover:rotate-3'
-                    }`}
+                    className={`w-20 h-20 border-2 rounded-2xl flex items-center justify-center mb-6 shadow-lg transition-all duration-300 relative overflow-hidden cursor-pointer ${isActive
+                      ? 'bg-brand-primary border-brand-primary text-white shadow-brand-primary/40 rotate-3'
+                      : 'bg-surface border-brand-primary/20 shadow-brand-primary/10 group-hover:bg-brand-primary group-hover:text-white group-hover:border-brand-primary group-hover:rotate-3'
+                      }`}
                   >
                     <div className={`absolute inset-0 transition-opacity ${isActive ? 'bg-black/10' : 'bg-brand-primary/5 group-hover:opacity-0'}`} />
                     <step.icon className={`w-8 h-8 transition-colors duration-300 relative z-10 ${isActive ? 'text-white' : 'text-brand-primary group-hover:text-white'}`} />
@@ -1421,7 +1453,7 @@ export default function ClientHome({
       <QRScannerModal isOpen={isQRScannerOpen} onClose={() => setIsQRScannerOpen(false)} />
 
       {/* Static Back to Top Button */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeInOut" }}
@@ -1472,26 +1504,26 @@ export default function ClientHome({
       {/* Mobile Bottom Navigation Bar (Landing Page) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-2 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
         <div className="flex w-[40%] justify-around">
-          <button 
-            onClick={scrollToTop} 
+          <button
+            onClick={scrollToTop}
             className="flex flex-col items-center gap-1.5 text-brand-primary font-semibold pb-2 w-1/2"
           >
             <Home className="w-6 h-6 stroke-[1.5] fill-brand-primary/10 stroke-brand-primary" />
             <span>Beranda</span>
           </button>
-          
-          <button 
-            onClick={scrollToCatalog} 
+
+          <button
+            onClick={scrollToCatalog}
             className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 w-1/2"
           >
             <ShoppingBag className="w-6 h-6 stroke-[1.5]" />
             <span>Belanja</span>
           </button>
         </div>
-        
+
         <div className="w-[20%] flex flex-col justify-end items-center relative pb-2 h-full">
           <div className="absolute bottom-6 flex justify-center w-full">
-            <button 
+            <button
               onClick={() => setIsQRScannerOpen(true)}
               className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105"
             >
@@ -1500,9 +1532,9 @@ export default function ClientHome({
           </div>
           <span className="text-text-secondary mt-1">QRIS</span>
         </div>
-        
+
         <div className="flex w-[40%] justify-around">
-          <Link 
+          <Link
             href={user ? (user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders') : '/buyer/orders'}
             className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 relative w-1/2"
           >
@@ -1516,9 +1548,9 @@ export default function ClientHome({
             </div>
             <span>Pesanan</span>
           </Link>
-          
+
           {user ? (
-            <Link 
+            <Link
               href="/profile"
               className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 w-1/2"
             >
@@ -1526,7 +1558,7 @@ export default function ClientHome({
               <span>Akun</span>
             </Link>
           ) : (
-            <Link 
+            <Link
               href="/login"
               className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 w-1/2"
             >
