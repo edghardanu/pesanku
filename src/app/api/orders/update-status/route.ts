@@ -63,17 +63,67 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Unauthorized. Pesanan ini bukan milik toko Anda.' }, { status: 403 });
     }
 
-    // Fungsi upsert balance
-    const addBalance = async (sid: string, amount: number) => {
+    // ── FUNGSI BANTU SALDO ──────────────────────────────────────────────────
+    
+    // Saat penjual konfirmasi (→ processing): tambahkan ke retainedBalance (saldo ditahan)
+    const addRetainedBalance = async (sid: string, amount: number) => {
       const balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, sid)).get();
       if (!balanceObj) {
-        await db.insert(sellerBalances).values({ id: crypto.randomUUID(), sellerId: sid, availableBalance: amount, retainedBalance: 0 });
+        await db.insert(sellerBalances).values({
+          id: crypto.randomUUID(),
+          sellerId: sid,
+          availableBalance: 0,
+          retainedBalance: amount,
+        });
       } else {
-        await db.update(sellerBalances).set({ availableBalance: (balanceObj.availableBalance || 0) + amount }).where(eq(sellerBalances.id, balanceObj.id));
+        await db.update(sellerBalances)
+          .set({ retainedBalance: (balanceObj.retainedBalance || 0) + amount })
+          .where(eq(sellerBalances.id, balanceObj.id));
       }
     };
 
-    // Update status and optional delivery proof
+    // Saat pembeli selesaikan pesanan (→ completed): cairkan dari retained → available
+    const releaseRetainedToAvailable = async (sid: string, amount: number) => {
+      const balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, sid)).get();
+      if (!balanceObj) {
+        // Fallback: langsung ke available jika belum ada record
+        await db.insert(sellerBalances).values({
+          id: crypto.randomUUID(),
+          sellerId: sid,
+          availableBalance: amount,
+          retainedBalance: 0,
+        });
+      } else {
+        const currentRetained = balanceObj.retainedBalance || 0;
+        // Pastikan tidak mengurangi lebih dari yang tertahan
+        const toRelease = Math.min(amount, currentRetained);
+        await db.update(sellerBalances)
+          .set({
+            retainedBalance: currentRetained - toRelease,
+            availableBalance: (balanceObj.availableBalance || 0) + toRelease,
+          })
+          .where(eq(sellerBalances.id, balanceObj.id));
+      }
+    };
+
+    // Tambahkan saldo langsung ke availableBalance (misal: rilis bagian yang ditahan di admin)
+    const addAvailableBalance = async (sid: string, amount: number) => {
+      const balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, sid)).get();
+      if (!balanceObj) {
+        await db.insert(sellerBalances).values({
+          id: crypto.randomUUID(),
+          sellerId: sid,
+          availableBalance: amount,
+          retainedBalance: 0,
+        });
+      } else {
+        await db.update(sellerBalances)
+          .set({ availableBalance: (balanceObj.availableBalance || 0) + amount })
+          .where(eq(sellerBalances.id, balanceObj.id));
+      }
+    };
+
+    // ── UPDATE STATUS PESANAN ───────────────────────────────────────────────
     const updateFields: { status: OrderStatusUpdate; deliveryProofUrl?: string; dispatchReceiptUrl?: string; cancelReason?: string } = { status };
     if (typeof deliveryProofUrl === 'string' && deliveryProofUrl) {
       updateFields.deliveryProofUrl = deliveryProofUrl;
@@ -89,15 +139,26 @@ export async function PUT(req: Request) {
       .set(updateFields)
       .where(eq(orders.id, orderId));
 
-    // LOGIC PEMBAGIAN SALDO 
+    // ── LOGIKA PEMBAGIAN SALDO 50% / 50% ───────────────────────────────────
+    //
+    // Alur:
+    //   1. Penjual konfirmasi → processing  : 50% (sellerSplitAmount) masuk ke retainedBalance (tertahan)
+    //   2. Pembeli klik selesai → completed : 
+    //      - Cairkan 50% (sellerSplitAmount) dari retainedBalance ke availableBalance
+    //      - Cairkan sisa 50% lagi (adminSplitAmount) yang disimpan di admin ke availableBalance
+    //
     if (status === 'processing' && orderObj.status !== 'processing' && orderObj.status !== 'completed') {
-       // Saat pembayaran penuh: Admin 50%, Penjual 50% (sesuai db splitAmount, default 50%)
-       const currentSellerSplit = orderObj.sellerSplitAmount ?? ((orderObj.totalPrice || 0) * 0.5);
-       await addBalance(sellerId, currentSellerSplit);
+      // Gunakan sellerSplitAmount yang sudah tersimpan, fallback ke 50%
+      const sellerShare = orderObj.sellerSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
+      await addRetainedBalance(sellerId, sellerShare);
     } else if (status === 'completed' && orderObj.status !== 'completed') {
-       // Saat klik pesanan selesai: Admin melepaskan sisa 50% ke Penjual
-       const currentAdminHeld = orderObj.adminSplitAmount ?? ((orderObj.totalPrice || 0) * 0.5);
-       await addBalance(sellerId, currentAdminHeld);
+      // 1. Cairkan 50% dari retained ke available
+      const sellerShare = orderObj.sellerSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
+      await releaseRetainedToAvailable(sellerId, sellerShare);
+
+      // 2. Cairkan sisa 50% lagi dari admin ke available
+      const adminShare = orderObj.adminSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
+      await addAvailableBalance(sellerId, adminShare);
     }
 
     return NextResponse.json({ message: 'Status pesanan berhasil diperbarui' }, { status: 200 });

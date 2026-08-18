@@ -93,6 +93,7 @@ export default function ClientSellerDashboard({
     }, 0);
   }, []);
 
+
   const toggleDarkMode = () => {
     if (isDarkMode) {
       document.documentElement.classList.remove('dark');
@@ -111,19 +112,35 @@ export default function ClientSellerDashboard({
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isNotifDesktopOpen, setIsNotifDesktopOpen] = useState(false);
 
-  // Poll for real-time updates on products and notifications
+  // Poll for real-time updates on products, notifications, AND seller orders
   useEffect(() => {
     let initialLoad = true;
     const fetchData = async () => {
       try {
-        const [prodRes, notifRes] = await Promise.all([
+        const [prodRes, notifRes, ordersRes] = await Promise.all([
           fetch('/api/products'),
-          fetch('/api/seller/notifications')
+          fetch('/api/seller/notifications'),
+          fetch(`/api/seller/orders?t=${Date.now()}`, { cache: 'no-store' }),
         ]);
         
         if (prodRes.ok) {
           const data = await prodRes.json();
           if (data.products) setLocalProducts(data.products);
+        }
+
+        // Sync seller orders — menangkap perubahan status dari pembeli (misal: selesai)
+        if (ordersRes.ok) {
+          const data = await ordersRes.json();
+          if (data.orders) {
+            setSellerOrders(prev => {
+              // Hanya update jika ada perubahan status (hindari re-render tidak perlu)
+              const hasChange = data.orders.some((newOrder: { id: string; status: string | null }) => {
+                const existing = prev.find(o => o.id === newOrder.id);
+                return !existing || existing.status !== newOrder.status;
+              });
+              return hasChange ? data.orders : prev;
+            });
+          }
         }
         
         if (notifRes.ok) {

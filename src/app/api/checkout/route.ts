@@ -82,18 +82,24 @@ export async function POST(req: Request) {
         const orderId = `ORD-${Date.now().toString().slice(-6)}-${index + 1}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
         orderIds.push(orderId);
 
+        const totalPrice = unitPrice * item.qty;
+        const sellerSplit = Math.floor(totalPrice * 0.5);
+        const adminSplit = totalPrice - sellerSplit;
+
         await tx.insert(orders).values({
           id: orderId,
           productId: product.id,
           buyerId: user.id,
           qty: item.qty,
-          totalPrice: unitPrice * item.qty,
+          totalPrice,
           notes: item.notes,
           selectedVariant: item.selectedVariant || null,
           selectedVariantPrice,
           status: 'waiting_verification',
           deliveryDate: item.deliveryDate,
           deliveryAddress: item.deliveryAddress,
+          sellerSplitAmount: sellerSplit,
+          adminSplitAmount: adminSplit,
         });
 
         const nextCurrentQty = (product.currentQty || 0) + item.qty;
