@@ -47,6 +47,10 @@ export interface OrderItem {
   deliveryAddress?: string | null;
   storeName?: string | null;
   cancelReason?: string | null;
+  returnReason?: string | null;
+  returnProofUrl?: string | null;
+  returnDate?: string | Date | null;
+  isRead?: boolean | null;
 }
 
 export interface UmkmItem {
@@ -198,6 +202,9 @@ export interface BuyerOrderViewItem {
   rating?: number | null;
   ratedAt?: string | Date | null;
   cancelReason?: string | null;
+  returnReason?: string | null;
+  returnProofUrl?: string | null;
+  returnDate?: string | Date | null;
   unreadCount?: number;
 }
 

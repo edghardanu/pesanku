@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { orders, products, sellerBalances } from '@/lib/schema';
 import { getUserFromSession } from '@/lib/auth';
 import { eq } from 'drizzle-orm';
+import cloudinary from '@/lib/cloudinary';
+import crypto from 'crypto';
 
 export async function PUT(req: Request) {
   try {
@@ -11,19 +13,21 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const { orderId, status, deliveryProofUrl, dispatchReceiptUrl, cancelReason } = await req.json() as {
+    const { orderId, status, deliveryProofUrl, dispatchReceiptUrl, cancelReason, returnReason, returnProofUrl } = await req.json() as {
       orderId?: string;
       status?: unknown;
       deliveryProofUrl?: unknown;
       dispatchReceiptUrl?: unknown;
       cancelReason?: string;
+      returnReason?: string;
+      returnProofUrl?: string;
     };
 
     if (!orderId || !status) {
       return NextResponse.json({ error: 'Order ID dan status wajib diisi' }, { status: 400 });
     }
 
-    const validStatuses = ['waiting_verification', 'verified', 'processing', 'completed', 'cancelled', 'failed', 'preorder_running'] as const;
+    const validStatuses = ['waiting_verification', 'verified', 'processing', 'completed', 'cancelled', 'failed', 'preorder_running', 'return_pending', 'returned'] as const;
     type OrderStatusUpdate = (typeof validStatuses)[number];
     const isValidStatus = (value: unknown): value is OrderStatusUpdate =>
       typeof value === 'string' && validStatuses.includes(value as OrderStatusUpdate);
@@ -44,8 +48,8 @@ export async function PUT(req: Request) {
         if (orderObj.buyerId !== user.id) {
           return NextResponse.json({ error: 'Unauthorized. Ini bukan pesanan Anda.' }, { status: 403 });
         }
-        if (status !== 'completed' && status !== 'cancelled') {
-          return NextResponse.json({ error: 'Pembeli hanya dapat menyelesaikan pesanan.' }, { status: 403 });
+        if (status !== 'completed' && status !== 'cancelled' && status !== 'return_pending') {
+          return NextResponse.json({ error: 'Pembeli hanya dapat menyelesaikan, membatalkan, atau mengajukan kembalikan pesanan.' }, { status: 403 });
         }
       } else if (user.role !== 'penjual') {
         return NextResponse.json({ error: 'Unauthorized. Role tidak dikenali.' }, { status: 403 });
@@ -106,7 +110,7 @@ export async function PUT(req: Request) {
       }
     };
 
-    // Tambahkan saldo langsung ke availableBalance (misal: rilis bagian yang ditahan di admin)
+    // Tambahkan saldo langsung ke availableBalance
     const addAvailableBalance = async (sid: string, amount: number) => {
       const balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, sid)).get();
       if (!balanceObj) {
@@ -123,8 +127,44 @@ export async function PUT(req: Request) {
       }
     };
 
+    // Tolak return: potong dari retained balance
+    const deductRetainedBalance = async (sid: string, amount: number) => {
+      const balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, sid)).get();
+      if (balanceObj) {
+        const currentRetained = balanceObj.retainedBalance || 0;
+        await db.update(sellerBalances)
+          .set({ retainedBalance: Math.max(0, currentRetained - amount) })
+          .where(eq(sellerBalances.id, balanceObj.id));
+      }
+    };
+
+    // Handling Return Proof image upload via Cloudinary if base64
+    let uploadedReturnProofUrl = null;
+    if (status === 'return_pending' && typeof returnProofUrl === 'string') {
+      if (returnProofUrl.startsWith('data:image')) {
+        const hasCloudinaryConfig = Boolean(
+          process.env.CLOUDINARY_CLOUD_NAME &&
+          process.env.CLOUDINARY_API_KEY &&
+          process.env.CLOUDINARY_API_SECRET
+        );
+        if (hasCloudinaryConfig) {
+          try {
+            const uploadResponse = await cloudinary.uploader.upload(returnProofUrl, { folder: 'pesanku_returns' });
+            uploadedReturnProofUrl = uploadResponse.secure_url;
+          } catch (err) {
+            console.error('Cloudinary upload return proof error:', err);
+            uploadedReturnProofUrl = returnProofUrl;
+          }
+        } else {
+          uploadedReturnProofUrl = returnProofUrl;
+        }
+      } else {
+        uploadedReturnProofUrl = returnProofUrl;
+      }
+    }
+
     // ── UPDATE STATUS PESANAN ───────────────────────────────────────────────
-    const updateFields: { status: OrderStatusUpdate; deliveryProofUrl?: string; dispatchReceiptUrl?: string; cancelReason?: string } = { status };
+    const updateFields: any = { status };
     if (typeof deliveryProofUrl === 'string' && deliveryProofUrl) {
       updateFields.deliveryProofUrl = deliveryProofUrl;
     }
@@ -134,20 +174,32 @@ export async function PUT(req: Request) {
     if (status === 'cancelled' && cancelReason) {
       updateFields.cancelReason = cancelReason;
     }
+    if (status === 'return_pending') {
+      updateFields.returnReason = returnReason || 'Tidak ada alasan';
+      updateFields.returnProofUrl = uploadedReturnProofUrl || null;
+      updateFields.returnDate = new Intl.DateTimeFormat('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Jakarta'
+      }).format(new Date()).replace('.', ':') + ' WIB';
+    }
+    // Jika return dibatalkan/ditolak oleh penjual, status kembali ke 'processing'
+    if (status === 'processing' && orderObj.status === 'return_pending') {
+      updateFields.returnReason = null;
+      updateFields.returnProofUrl = null;
+      updateFields.returnDate = null;
+    }
 
     await db.update(orders)
       .set(updateFields)
       .where(eq(orders.id, orderId));
 
     // ── LOGIKA PEMBAGIAN SALDO 50% / 50% ───────────────────────────────────
-    //
-    // Alur:
-    //   1. Penjual konfirmasi → processing  : 50% (sellerSplitAmount) masuk ke retainedBalance (tertahan)
-    //   2. Pembeli klik selesai → completed : 
-    //      - Cairkan 50% (sellerSplitAmount) dari retainedBalance ke availableBalance
-    //      - Cairkan sisa 50% lagi (adminSplitAmount) yang disimpan di admin ke availableBalance
-    //
-    if (status === 'processing' && orderObj.status !== 'processing' && orderObj.status !== 'completed') {
+    if (status === 'processing' && orderObj.status !== 'processing' && orderObj.status !== 'completed' && orderObj.status !== 'return_pending') {
       // Gunakan sellerSplitAmount yang sudah tersimpan, fallback ke 50%
       const sellerShare = orderObj.sellerSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
       await addRetainedBalance(sellerId, sellerShare);
@@ -159,6 +211,10 @@ export async function PUT(req: Request) {
       // 2. Cairkan sisa 50% lagi dari admin ke available
       const adminShare = orderObj.adminSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
       await addAvailableBalance(sellerId, adminShare);
+    } else if (status === 'returned' && orderObj.status !== 'returned') {
+      // Potong 50% dari retainedBalance karena pesanan dikembalikan
+      const sellerShare = orderObj.sellerSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
+      await deductRetainedBalance(sellerId, sellerShare);
     }
 
     return NextResponse.json({ message: 'Status pesanan berhasil diperbarui' }, { status: 200 });

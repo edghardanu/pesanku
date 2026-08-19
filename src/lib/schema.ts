@@ -90,7 +90,7 @@ export const orders = sqliteTable('orders', {
   selectedVariantPrice: integer('selected_variant_price'),
   adminSplitAmount: integer('admin_split_amount'),
   sellerSplitAmount: integer('seller_split_amount'),
-  status: text('status', { enum: ['waiting_verification', 'verified', 'preorder_running', 'failed', 'processing', 'completed', 'cancelled', 'chat_only'] }).default('waiting_verification'),
+  status: text('status', { enum: ['waiting_verification', 'verified', 'preorder_running', 'failed', 'processing', 'completed', 'cancelled', 'chat_only', 'return_pending', 'returned'] }).default('waiting_verification'),
   isRead: integer('is_read', { mode: 'boolean' }).default(false),
   deliveryProofUrl: text('delivery_proof_url'),
   dispatchReceiptUrl: text('dispatch_receipt_url'),
@@ -99,6 +99,9 @@ export const orders = sqliteTable('orders', {
   cancelReason: text('cancel_reason'),
   rating: integer('rating'),
   ratedAt: integer('rated_at', { mode: 'timestamp' }),
+  returnReason: text('return_reason'),
+  returnProofUrl: text('return_proof_url'),
+  returnDate: text('return_date'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 

@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { chatMessages, orders, products, users } from '@/lib/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, or, isNull, desc, sql } from 'drizzle-orm';
 import { getUserFromSession } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
@@ -26,7 +28,7 @@ export async function GET() {
     .innerJoin(users, eq(orders.buyerId, users.id))
     .where(and(
       eq(products.sellerId, user.id),
-      eq(orders.isRead, false)
+      or(eq(orders.isRead, false), isNull(orders.isRead))
     ))
     .orderBy(desc(orders.createdAt));
 
@@ -45,7 +47,7 @@ export async function GET() {
     .innerJoin(users, eq(chatMessages.senderId, users.id))
     .where(and(
       eq(products.sellerId, user.id),
-      eq(chatMessages.isRead, false),
+      or(eq(chatMessages.isRead, false), isNull(chatMessages.isRead)),
       sql`${chatMessages.senderId} != ${user.id}`
     ))
     .orderBy(desc(chatMessages.createdAt));

@@ -55,6 +55,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   const [localUmkmList, setLocalUmkmList] = useState(umkmList);
   const [localPromotionRequests, setLocalPromotionRequests] = useState(promotionRequests);
   const [searchQueryUmkm, setSearchQueryUmkm] = useState('');
+  const [searchQueryPesanan, setSearchQueryPesanan] = useState('');
 
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [feeAplikasi, setFeeAplikasi] = useState<number>(0);
@@ -360,6 +361,16 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
       }
     }
   };
+
+  const filteredPesanan = liveOrders.filter((order) => {
+    if (!searchQueryPesanan) return true;
+    const q = searchQueryPesanan.toLowerCase();
+    return (
+      order.storeName?.toLowerCase().includes(q) ||
+      order.productName?.toLowerCase().includes(q) ||
+      order.buyerName?.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="min-h-screen bg-base flex flex-col md:flex-row">
@@ -766,6 +777,16 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
               <div className="card p-0 border border-border overflow-hidden">
                 <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
                   <h2 className="text-h3 w-full sm:w-auto">Semua Pesanan Penjual</h2>
+                  <div className="relative w-full sm:w-72">
+                    <input 
+                      type="text" 
+                      placeholder="Cari toko, pesanan, pembeli..." 
+                      className="input-field pl-10 w-full"
+                      value={searchQueryPesanan}
+                      onChange={(e) => setSearchQueryPesanan(e.target.value)}
+                    />
+                    <Search className="w-5 h-5 text-text-secondary absolute left-3 top-2.5" />
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
@@ -781,11 +802,11 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                       </tr>
                     </thead>
                     <tbody className="text-body-small text-text-primary">
-                      {liveOrders.length === 0 ? (
+                      {filteredPesanan.length === 0 ? (
                         <tr><td colSpan={7} className="p-8 text-center text-text-secondary">Tidak ada pesanan.</td></tr>
                       ) : (
-                        liveOrders.map((order) => (
-                          <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                        filteredPesanan.map((order) => (
+                           <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
                             <td className="p-4 font-semibold">{order.storeName || '-'}</td>
                             <td className="p-4">
                               <span className="block font-medium">{order.productName || '-'}</span>

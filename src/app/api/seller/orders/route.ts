@@ -4,6 +4,8 @@ import { orders, products, users, payments } from '@/lib/schema';
 import { getUserFromSession } from '@/lib/auth';
 import { and, eq, desc, ne, sql } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const user = await getUserFromSession();
@@ -31,6 +33,10 @@ export async function GET() {
       dispatchReceiptUrl: orders.dispatchReceiptUrl,
       adminSplitAmount: orders.adminSplitAmount,
       sellerSplitAmount: orders.sellerSplitAmount,
+      returnReason: orders.returnReason,
+      returnProofUrl: orders.returnProofUrl,
+      returnDate: orders.returnDate,
+      isRead: orders.isRead,
     })
     .from(orders)
     .innerJoin(products, eq(orders.productId, products.id))

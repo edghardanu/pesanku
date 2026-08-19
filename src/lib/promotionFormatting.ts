@@ -3,46 +3,93 @@ export const formatRupiah = (value: number) => `Rp ${value.toLocaleString('id-ID
 export const WIB_TIMEZONE = 'Asia/Jakarta';
 
 export const formatChatTimeWIB = (value: string | Date | number) => {
-  return new Intl.DateTimeFormat('id-ID', {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: WIB_TIMEZONE
-  }).format(new Date(value)).replace('.', ':');
+    hour12: false,
+    timeZone: WIB_TIMEZONE,
+  });
+  return formatter.format(new Date(value));
 };
 
 export const formatOrderDateTimeWIB = (value: string | Date | number) => {
+  const date = new Date(value);
+  const formattedDate = new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: WIB_TIMEZONE,
+  }).format(date);
+  const formattedTime = new Intl.DateTimeFormat('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: WIB_TIMEZONE,
+  }).format(date).replace('.', ':');
+  return `${formattedDate}, ${formattedTime} WIB`;
+};
+
+export const formatShortDateTimeWIB = (value: string | Date | number) => {
+  const date = new Date(value);
+  const formattedDate = new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: WIB_TIMEZONE,
+  }).format(date);
+  const formattedTime = new Intl.DateTimeFormat('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: WIB_TIMEZONE,
+  }).format(date).replace('.', ':');
+  return `${formattedDate}, ${formattedTime} WIB`;
+};
+
+export const formatPromotionDeadline = (value: string | Date | number) => {
   return new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: WIB_TIMEZONE
+    timeZone: WIB_TIMEZONE,
   }).format(new Date(value)).replace('.', ':') + ' WIB';
 };
 
-export const formatShortDateTimeWIB = (value: string | Date | number) => {
+export const formatDateTimeWIB = (value: string | Date | number) => {
   return new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
     day: 'numeric',
-    month: 'short',
+    month: 'long',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: WIB_TIMEZONE
+    timeZone: WIB_TIMEZONE,
   }).format(new Date(value)).replace('.', ':') + ' WIB';
 };
 
-export const formatPromotionDeadline = (value: string | Date) => new Intl.DateTimeFormat('id-ID', {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  timeZone: 'Asia/Jakarta',
-}).format(new Date(value)).replace('.', ':') + ' WIB';
+export const formatDateWIB = (value: string | Date | number) => {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: WIB_TIMEZONE,
+  }).format(new Date(value));
+};
 
-export const getPromotionCountdown = (value: string | Date, now: number) => {
+export const formatTimeWIB = (value: string | Date | number) => {
+  const formatter = new Intl.DateTimeFormat('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: WIB_TIMEZONE,
+  });
+  return formatter.format(new Date(value)).replace('.', ':') + ' WIB';
+};
+
+export const getPromotionCountdown = (value: string | Date | number, now: number) => {
   if (!now) return 'Menghitung sisa waktu…';
   const difference = new Date(value).getTime() - now;
   if (difference <= 0) return 'Masa promosi telah berakhir';

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Plus, FileText, Package, DollarSign, Settings, LogOut, Info, X, Upload, Store, Sun, Moon, MessageCircle, User, Menu, Megaphone, Bell, Eye, EyeOff } from "lucide-react";
+import { ShoppingBag, Plus, FileText, Package, DollarSign, Settings, LogOut, Info, X, Upload, Store, Sun, Moon, MessageCircle, User, Menu, Megaphone, Bell, Eye, EyeOff, RotateCcw, CheckCircle, XCircle, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SellerPreorderCalendar from "@/components/SellerPreorderCalendar";
 import SellerPromotionCenter from "@/components/SellerPromotionCenter";
@@ -69,11 +69,12 @@ export default function ClientSellerDashboard({
   promotionRequests = []
 }: ClientSellerDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'pesanan_masuk' | 'chat_pembeli' | 'produk' | 'promosi' | 'keuangan' | 'pengaturan'>('produk');
+  const [activeTab, setActiveTab] = useState<'pesanan_masuk' | 'chat_pembeli' | 'produk' | 'promosi' | 'keuangan' | 'pengaturan' | 'pesanan_dikembalikan'>('produk');
   const [selectedProductIdFilter, setSelectedProductIdFilter] = useState<string | undefined>(undefined);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [sellerOrders, setSellerOrders] = useState<OrderItem[]>(initialSellerOrders);
+  const [searchQueryPesanan, setSearchQueryPesanan] = useState('');
 
   useEffect(() => {
     const syncTimer = window.setTimeout(() => setSellerOrders(initialSellerOrders), 0);
@@ -116,13 +117,14 @@ export default function ClientSellerDashboard({
   const [isNotifDesktopOpen, setIsNotifDesktopOpen] = useState(false);
 
   // Poll for real-time updates on products, notifications, AND seller orders
+  const isInitialLoad = useRef(true);
+  
   useEffect(() => {
-    let initialLoad = true;
     const fetchData = async () => {
       try {
         const [prodRes, notifRes, ordersRes] = await Promise.all([
-          fetch('/api/products'),
-          fetch('/api/seller/notifications'),
+          fetch(`/api/products?t=${Date.now()}`, { cache: 'no-store' }),
+          fetch(`/api/seller/notifications?t=${Date.now()}`, { cache: 'no-store' }),
           fetch(`/api/seller/orders?t=${Date.now()}`, { cache: 'no-store' }),
         ]);
         
@@ -152,7 +154,7 @@ export default function ClientSellerDashboard({
              const newOrders = data.newOrders || [];
              const unreadChats = data.unreadChats || [];
              
-             if (!initialLoad) {
+             if (!isInitialLoad.current) {
                if (newOrders.length > prev.newOrders.length) {
                  if ('Notification' in window && Notification.permission === 'granted') {
                    new Notification('Pesanan Baru Masuk!', { body: 'Anda mendapat pesanan baru.' });
@@ -163,9 +165,15 @@ export default function ClientSellerDashboard({
                    icon: 'info',
                    title: 'Pesanan Baru Masuk!',
                    showConfirmButton: false,
-                   timer: 4000,
+                   timer: 5000,
                    timerProgressBar: true
                  });
+                 // Try to play a subtle ping sound if possible
+                 try {
+                   const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                   audio.volume = 0.5;
+                   audio.play().catch(e => console.log('Audio autoplay prevented'));
+                 } catch(e) {}
                }
                
                if (unreadChats.length > prev.unreadChats.length) {
@@ -178,9 +186,14 @@ export default function ClientSellerDashboard({
                    icon: 'info',
                    title: 'Pesan Baru dari Pembeli!',
                    showConfirmButton: false,
-                   timer: 4000,
+                   timer: 5000,
                    timerProgressBar: true
                  });
+                 try {
+                   const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                   audio.volume = 0.5;
+                   audio.play().catch(e => console.log('Audio autoplay prevented'));
+                 } catch(e) {}
                }
              }
              
@@ -200,7 +213,11 @@ export default function ClientSellerDashboard({
                 chatThreads
              };
           });
-          initialLoad = false;
+          
+          // After the first successful fetch evaluation, it's no longer the initial load
+          setTimeout(() => {
+            isInitialLoad.current = false;
+          }, 500);
         }
       } catch (err) {
         console.error('Error polling data:', err);
@@ -256,7 +273,7 @@ export default function ClientSellerDashboard({
     reader.readAsDataURL(file);
   };
 
-  const handleTabChange = (tab: 'pesanan_masuk' | 'chat_pembeli' | 'produk' | 'promosi' | 'keuangan' | 'pengaturan') => {
+  const handleTabChange = (tab: 'pesanan_masuk' | 'chat_pembeli' | 'produk' | 'promosi' | 'keuangan' | 'pengaturan' | 'pesanan_dikembalikan') => {
     if (tab === activeTab) return;
     setActiveTab(tab);
     setIsMobileSidebarOpen(false); // Close mobile sidebar on tab change
@@ -572,6 +589,11 @@ export default function ClientSellerDashboard({
           const pImage = parts.slice(4).join('|');
           bubbleContent = renderSingleOfferCard(pId, pName, pPrice, pImage, isMe);
         }
+      } else if (trimmedText.startsWith('[CHAT_IMG|') && trimmedText.endsWith(']')) {
+        const imgDataUrl = trimmedText.slice(10, -1);
+        bubbleContent = `<div class="mt-1 w-full max-w-[200px] md:max-w-[240px] rounded-lg overflow-hidden cursor-pointer bg-black/10 flex items-center justify-center p-1" onclick="if(event.target.tagName !== 'BUTTON') Swal.fire({imageUrl: '${imgDataUrl}', imageWidth: 500, confirmButtonText: 'Tutup', confirmButtonColor: '#ff5c35', customClass:{popup:'bg-surface text-text-primary rounded-xl'}})">
+          <img src="${imgDataUrl}" alt="Photo" class="w-full h-auto object-cover rounded hover:opacity-90 transition-opacity" />
+        </div>`;
       }
 
       if (isMe) {
@@ -669,9 +691,13 @@ export default function ClientSellerDashboard({
                 ${renderMsgs()}
               </div>
             </div>
-            <div class="flex gap-2">
-              <input type="text" id="chat-input" class="input-field flex-1 text-sm bg-base border-border rounded-xl px-3 outline-none focus:border-brand-primary" placeholder="Ketik pesan di sini...">
-              <button id="send-chat" class="btn-primary py-2 px-4 rounded-xl flex items-center justify-center transition-transform active:scale-95 shrink-0">
+            <div class="flex gap-2 relative mt-2 auto-rows-min">
+              <label for="chat-image-upload" class="bg-base shadow-sm border border-border hover:bg-black/5 dark:hover:bg-white/5 w-11 h-11 rounded-xl cursor-pointer flex justify-center items-center shrink-0 text-text-secondary hover:text-brand-primary transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                <input type="file" id="chat-image-upload" accept="image/png, image/jpeg, image/jpg, image/webp" class="hidden" />
+              </label>
+              <input type="text" id="chat-input" class="input-field shadow-sm flex-1 text-sm bg-base border-border rounded-xl px-3 outline-none focus:border-brand-primary h-11" placeholder="Ketik pesan di sini...">
+              <button id="send-chat" class="btn-primary shadow-sm px-4 rounded-xl flex items-center justify-center transition-transform active:scale-95 shrink-0 h-11">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
               </button>
             </div>
@@ -848,11 +874,14 @@ export default function ClientSellerDashboard({
           }
         });
 
-        const sendMessage = async () => {
-          if (!input.value.trim()) return;
-          const msg = input.value;
+        const sendMessage = async (overrideMsg?: string) => {
+          let msg = overrideMsg;
+          if (!msg) {
+            if (!input.value.trim()) return;
+            msg = input.value;
+          }
           
-          if (editingId) {
+          if (editingId && !overrideMsg) {
             const id = editingId;
             editingId = null;
             input.value = '';
@@ -920,9 +949,33 @@ export default function ClientSellerDashboard({
           }
         };
 
-        sendBtn?.addEventListener('click', sendMessage);
+        sendBtn?.addEventListener('click', () => sendMessage());
         input?.addEventListener('keypress', (e) => {
           if (e.key === 'Enter') sendMessage();
+        });
+
+        const imageUpload = document.getElementById('chat-image-upload') as HTMLInputElement;
+        imageUpload?.addEventListener('change', (e) => {
+          const file = (e.target as HTMLInputElement).files?.[0];
+          if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Ukuran Terlalu Besar',
+                text: 'Maksimum ukuran foto adalah 2MB.',
+                confirmButtonColor: '#ff5c35'
+              });
+              imageUpload.value = '';
+              return;
+            }
+            const reader = new FileReader();
+            reader.onload = (re) => {
+              const base64 = re.target?.result as string;
+              sendMessage(`[CHAT_IMG|${base64}]`);
+              imageUpload.value = '';
+            };
+            reader.readAsDataURL(file);
+          }
         });
       }
     });
@@ -1032,6 +1085,15 @@ export default function ClientSellerDashboard({
     </>
   );
 
+  const filteredSellerOrders = sellerOrders.filter((order) => {
+    if (!searchQueryPesanan) return true;
+    const q = searchQueryPesanan.toLowerCase();
+    return (
+      order.productName?.toLowerCase().includes(q) ||
+      order.buyerName?.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="min-h-screen bg-base flex flex-col md:flex-row">
       {/* Mobile Sidebar Overlay */}
@@ -1082,14 +1144,20 @@ export default function ClientSellerDashboard({
             }`}
           >
             <div className="flex items-center gap-3">
-              <Package className="w-5 h-5" />
+              <Bell className="w-5 h-5" />
               Pesanan Masuk
             </div>
-            {notifications.newOrders.length > 0 && (
-              <span className="flex w-5 h-5 items-center justify-center rounded-full bg-brand-primary text-[10px] font-bold text-white">
-                {notifications.newOrders.length}
-              </span>
-            )}
+            {(() => {
+              const pendingCount = sellerOrders.filter(o => o.status === 'waiting_verification').length;
+              if (pendingCount > 0) {
+                return (
+                  <span className="flex w-5 h-5 items-center justify-center rounded-full bg-brand-primary text-[10px] font-bold text-white shrink-0">
+                    {pendingCount}
+                  </span>
+                );
+              }
+              return null;
+            })()}
           </button>
           <button 
             onClick={() => handleTabChange('chat_pembeli')}
@@ -1130,6 +1198,30 @@ export default function ClientSellerDashboard({
           >
             <DollarSign className="w-5 h-5" />
             Keuangan & Saldo
+          </button>
+          <button 
+            onClick={() => handleTabChange('pesanan_dikembalikan')}
+            className={`w-full flex items-center justify-between p-3 rounded-lg font-medium transition-all text-left hover-btn ${
+              activeTab === 'pesanan_dikembalikan' 
+                ? 'bg-amber-500/10 text-amber-600 font-semibold' 
+                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <RotateCcw className="w-5 h-5" />
+              Pesanan Dikembalikan
+            </div>
+            {(() => {
+              const pendingReturnCount = sellerOrders.filter(o => o.status === 'return_pending').length;
+              if (pendingReturnCount > 0) {
+                return (
+                  <span className="flex w-5 h-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white shrink-0">
+                    {pendingReturnCount}
+                  </span>
+                );
+              }
+              return null;
+            })()}
           </button>
           <button 
             onClick={() => handleTabChange('pengaturan')}
@@ -1278,15 +1370,25 @@ export default function ClientSellerDashboard({
             {activeTab === 'pesanan_masuk' && (
               <div className="flex flex-col gap-6">
                 <div>
-                  <h1 className="text-h1 mb-1 flex items-center gap-2"><Package className="w-8 h-8 text-brand-primary" /> Pesanan Masuk</h1>
+                  <h1 className="text-h1 mb-1 flex items-center gap-2"><Bell className="w-8 h-8 text-brand-primary" /> Pesanan Masuk</h1>
                   <p className="text-body-base text-text-secondary">Daftar semua pesanan dari pelanggan Anda.</p>
                 </div>
                 
                 <div className="card overflow-hidden border-border border">
-                   <div className="p-5 border-b border-border bg-surface/50 flex justify-between items-center">
-                    <h2 className="text-h3">Semua Pesanan</h2>
+                   <div className="p-5 border-b border-border bg-surface/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <h2 className="text-h3 w-full sm:w-auto">Semua Pesanan</h2>
+                    <div className="relative w-full sm:w-72">
+                      <input 
+                        type="text" 
+                        placeholder="Cari pesanan atau pembeli..." 
+                        className="input-field pl-10 w-full"
+                        value={searchQueryPesanan}
+                        onChange={(e) => setSearchQueryPesanan(e.target.value)}
+                      />
+                      <Search className="w-5 h-5 text-text-secondary absolute left-3 top-2.5" />
+                    </div>
                   </div>
-                  {sellerOrders.length === 0 ? (
+                  {filteredSellerOrders.length === 0 ? (
                     <div className="p-10 text-center text-text-secondary">
                       Belum ada pesanan masuk.
                     </div>
@@ -1311,14 +1413,22 @@ export default function ClientSellerDashboard({
                           </tr>
                         </thead>
                         <tbody className="text-body-base text-text-primary">
-                          {sellerOrders.map(order => (
+                          {filteredSellerOrders.map(order => (
                             <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
                               <td className="p-3">
-                                <span className="font-mono text-xs text-text-primary whitespace-nowrap">{order.id}</span>
+                                <div className="flex items-center gap-1.5 font-mono text-xs text-text-primary whitespace-nowrap">
+                                  {order.id}
+                                  {(order.isRead === false || order.isRead === null) && (
+                                    <span className="relative flex h-2 w-2 shrink-0 md:inline-flex" title="Pesanan Baru (Belum Dibuka)">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-error opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-status-error"></span>
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="p-3">
                                 <span className="text-xs text-text-secondary whitespace-nowrap">
-                                  {new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })} WIB
+                                  {formatShortDateTimeWIB(order.createdAt || Date.now())}
                                 </span>
                               </td>
                               <td className="p-3 min-w-[150px]">
@@ -1404,7 +1514,7 @@ export default function ClientSellerDashboard({
                                       order.status === 'cancelled' || order.status === 'failed' ? 'bg-status-error/10 text-status-error border-status-error/20' : 
                                       'bg-border/60 text-text-secondary border-border'
                                     }`}
-                                    defaultValue={order.status ?? 'waiting_verification'}
+                                    value={order.status ?? 'waiting_verification'}
                                     onChange={async (e) => {
                                       const newStatus = e.target.value;
                                       const statusSelect = e.currentTarget;
@@ -1436,12 +1546,14 @@ export default function ClientSellerDashboard({
                                       }
                                     }}
                                   >
-                                    <option value="waiting_verification" className="text-text-primary bg-base">Menunggu Konfirmasi</option>
+                                    <option value="waiting_verification" className="text-text-primary bg-base">
+                                      {!order.proofUrl ? 'Menunggu Pembayaran' : 'Menunggu Verifikasi'}
+                                    </option>
                                     <option value="verified" className="text-text-primary bg-base">
-                                      {!order.proofUrl ? 'Menunggu Pembayaran' : 'Pesanan Dibayar (Verifikasi)'}
+                                      Sudah Dibayar (Terverifikasi)
                                     </option>
                                     <option value="preorder_running" className="text-text-primary bg-base">Preorder Berjalan</option>
-                                    <option value="processing" className="text-text-primary bg-base">Barang Sedang Dikirim</option>
+                                    <option value="processing" className="text-text-primary bg-base">Sedang Diproses/Dikirim</option>
                                     {order.status === 'completed' && <option value="completed" className="text-status-success bg-base">Selesai</option>}
                                     <option value="failed" className="text-status-error bg-base">Gagal</option>
                                     <option value="cancelled" className="text-status-error bg-base">Dibatalkan</option>
@@ -1903,7 +2015,7 @@ export default function ClientSellerDashboard({
                             </td>
                             <td className="p-3">
                               <span className="text-xs text-text-secondary whitespace-nowrap">
-                                {new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })} WIB
+                                {formatShortDateTimeWIB(order.createdAt || Date.now())}
                               </span>
                             </td>
                             <td className="p-3 min-w-[150px]">
@@ -2138,9 +2250,253 @@ export default function ClientSellerDashboard({
               </div>
             </div>
           )}
-          </div>
+
+          {activeTab === 'pesanan_dikembalikan' && (
+            <div className="space-y-6">
+              <div className="flex flex-col gap-1">
+                <h1 className="text-h1 mb-1 flex items-center gap-2">
+                  <RotateCcw className="w-8 h-8 text-amber-500" />
+                  Pesanan Dikembalikan
+                </h1>
+                <p className="text-body-base text-text-secondary">
+                  Daftar permintaan pengembalian (return) pesanan yang diajukan oleh pembeli.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {(() => {
+                  const returnOrders = sellerOrders.filter(o => o.status === 'return_pending' || o.status === 'returned');
+                  if (returnOrders.length === 0) {
+                    return (
+                      <div className="card p-12 text-center flex flex-col items-center justify-center">
+                        <RotateCcw className="w-12 h-12 text-text-secondary mb-4 opacity-50 stroke-[1.5]" />
+                        <h3 className="text-lg font-bold text-text-primary mb-1">Belum Ada Pengajuan Return</h3>
+                        <p className="text-text-secondary text-sm max-w-sm">
+                          Saat ini tidak ada pembeli yang mengajukan pengembalian pesanan secara aktif.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return returnOrders.map((order) => {
+                    const isReturned = order.status === 'returned';
+
+                    const handleConfirmReturn = async () => {
+                      try {
+                        const result = await Swal.fire({
+                          title: 'Konfirmasi Pengembalian?',
+                          text: 'Apakah Anda yakin ingin menyetujui pengembalian pesanan ini dan mengembalikan dana kepada pembeli?',
+                          icon: 'question',
+                          showCancelButton: true,
+                          confirmButtonText: 'Ya, Setujui',
+                          cancelButtonText: 'Batal',
+                          confirmButtonColor: '#10b981',
+                          cancelButtonColor: '#6b7280',
+                          customClass: {
+                            popup: 'bg-surface text-text-primary rounded-xl',
+                          }
+                        });
+
+                        if (result.isConfirmed) {
+                          const res = await fetch('/api/orders/update-status', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              orderId: order.id,
+                              status: 'returned'
+                            })
+                          });
+
+                          if (!res.ok) {
+                            const data = await res.json();
+                            throw new Error(data.error || 'Gagal menyetujui pengembalian');
+                          }
+
+                          await Swal.fire({
+                            icon: 'success',
+                            title: 'Pengembalian Disetujui',
+                            text: 'Status pesanan berhasil diubah menjadi Dikembalikan.',
+                            confirmButtonColor: '#ff5c35'
+                          });
+
+                          window.location.reload();
+                        }
+                      } catch (err: any) {
+                        Swal.fire({
+                          icon: 'error',
+                          title: 'Gagal',
+                          text: err.message || 'Terjadi kesalahan sistem.',
+                          confirmButtonColor: '#ff5c35'
+                        });
+                      }
+                    };
+
+                    const handleCancelReturn = async () => {
+                      const result = await Swal.fire({
+                        title: 'Batalkan Pengajuan Return?',
+                        text: 'Apakah Anda yakin ingin membatalkan/menolak pengembalian pesanan ini?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Iya',
+                        cancelButtonText: 'Batal',
+                        confirmButtonColor: '#ef4444',
+                        cancelButtonColor: '#6b7280',
+                        customClass: {
+                          popup: 'bg-surface text-text-primary rounded-xl',
+                        }
+                      });
+
+                      if (result.isConfirmed) {
+                        try {
+                          const res = await fetch('/api/orders/update-status', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              orderId: order.id,
+                              status: 'processing'
+                            })
+                          });
+
+                          if (!res.ok) {
+                            const data = await res.json();
+                            throw new Error(data.error || 'Gagal membatalkan pengajuan return');
+                          }
+
+                          await Swal.fire({
+                            icon: 'success',
+                            title: 'Pengajuan Return Dibatalkan',
+                            text: 'Status pesanan dikembalikan menjadi diproses oleh Anda.',
+                            confirmButtonColor: '#ff5c35'
+                          });
+
+                          window.location.reload();
+                        } catch (err: any) {
+                          Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: err.message || 'Terjadi kesalahan sistem.',
+                            confirmButtonColor: '#ff5c35'
+                          });
+                        }
+                      }
+                    };
+
+                    return (
+                      <div key={order.id} className="card p-6 border border-border hover:shadow-md transition-shadow relative">
+                        {isReturned ? (
+                          <span className="absolute top-6 right-6 px-3 py-1 bg-emerald-100 text-emerald-700 font-bold text-xs rounded-full">
+                            Telah Dikembalikan
+                          </span>
+                        ) : (
+                          <span className="absolute top-6 right-6 px-3 py-1 bg-amber-100 text-amber-700 font-bold text-xs rounded-full animate-pulse">
+                            Menunggu Konfirmasi
+                          </span>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                          <div className="space-y-3">
+                            <div>
+                              <span className="text-caption text-text-secondary block font-medium">Order ID</span>
+                              <span className="font-mono text-sm font-semibold">{order.id}</span>
+                            </div>
+                            
+                            <div>
+                              <span className="text-caption text-text-secondary block font-medium">Nama Pembeli</span>
+                              <span className="text-sm font-bold text-text-primary">{order.buyerName}</span>
+                            </div>
+
+                            <div>
+                              <span className="text-caption text-text-secondary block font-medium">Alamat Pembeli</span>
+                              <span className="text-sm text-text-primary">{order.buyerAddress || 'Tidak ada alamat'}</span>
+                            </div>
+
+                            <div>
+                              <span className="text-caption text-text-secondary block font-medium">Nama Pesanan</span>
+                              <span className="text-sm font-semibold text-text-primary">{order.productName}</span>
+                              {order.selectedVariant && (
+                                <span className="text-xs text-brand-primary block font-semibold font-mono">Varian: {order.selectedVariant}</span>
+                              )}
+                            </div>
+
+                            <div>
+                              <span className="text-caption text-text-secondary block font-medium">Jumlah Pesanan</span>
+                              <span className="text-sm text-text-primary">{order.qty} porsi</span>
+                            </div>
+
+                            <div>
+                              <span className="text-caption text-text-secondary block font-medium">Harga Total Pesanan</span>
+                              <span className="text-sm font-bold text-brand-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-6">
+                            <div>
+                              <span className="text-caption text-text-secondary block font-medium">Alasan Pengembalian</span>
+                              <p className="text-sm text-text-primary bg-base dark:bg-slate-800/50 p-3 rounded-xl border border-border italic">
+                                "{order.returnReason || 'Tidak ada alasan.'}"
+                              </p>
+                            </div>
+
+                            {order.returnProofUrl && (
+                              <div>
+                                <span className="text-caption text-text-secondary block font-medium mb-1.5">Foto Bukti Pengembalian</span>
+                                <div 
+                                  onClick={() => {
+                                    Swal.fire({
+                                      title: 'Foto Bukti Pengembalian',
+                                      imageUrl: order.returnProofUrl as string,
+                                      imageWidth: 500,
+                                      imageAlt: 'Bukti Pengembalian',
+                                      confirmButtonText: 'Tutup',
+                                      confirmButtonColor: '#ff5c35',
+                                    });
+                                  }}
+                                  className="relative w-28 h-28 rounded-xl overflow-hidden border border-border cursor-pointer hover:opacity-80 transition-opacity group bg-base"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={order.returnProofUrl} alt="Bukti Return" className="w-full h-full object-cover" />
+                                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Eye className="w-5 h-5 text-white" />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {order.returnDate && (
+                              <div>
+                                <span className="text-caption text-text-secondary block font-medium">Tanggal Pengajuan</span>
+                                <span className="text-xs text-text-secondary">{order.returnDate instanceof Date ? order.returnDate.toLocaleDateString() : String(order.returnDate)}</span>
+                              </div>
+                            )}
+
+                            {!isReturned && (
+                              <div className="flex gap-3 pt-3 flex-wrap">
+                                <button
+                                  onClick={handleConfirmReturn}
+                                  className="btn-primary bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                                >
+                                  <CheckCircle className="w-3.5 h-3.5" /> Konfirmasi
+                                </button>
+                                <button
+                                  onClick={handleCancelReturn}
+                                  className="btn-outline border-status-error text-status-error hover:bg-status-error/10 px-4 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+                                >
+                                  <XCircle className="w-3.5 h-3.5" /> Batalkan
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
         </div>
-      </main>
+      </div>
+    </main>
 
       {/* Mobile Bottom Navigation Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-4 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">

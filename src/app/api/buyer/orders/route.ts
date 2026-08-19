@@ -40,6 +40,9 @@ export async function GET() {
         cancelReason: orders.cancelReason,
         rating: orders.rating,
         ratedAt: orders.ratedAt,
+        returnReason: orders.returnReason,
+        returnProofUrl: orders.returnProofUrl,
+        returnDate: orders.returnDate,
       })
       .from(orders)
       .innerJoin(products, eq(orders.productId, products.id))

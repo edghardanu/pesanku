@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star, Trash2, Truck, ScanLine, Search } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star, Trash2, Truck, ScanLine, Search, RotateCcw, Upload } from "lucide-react";
 import Swal from "sweetalert2";
-import QRScannerModal from "@/components/QRScannerModal";
+import dynamic from "next/dynamic";
+const QRScannerModal = dynamic(() => import("@/components/QRScannerModal"), { ssr: false });
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { DotLottieReact } from "@/lib/dotlottie";
@@ -51,6 +52,32 @@ export default function ClientBuyerOrders({
   const [ratingLoadingOrderId, setRatingLoadingOrderId] = useState<string | null>(null);
   const hasShownCheckoutNotice = useRef(false);
   const [activeTab, setActiveTab] = useState<'orders' | 'chats' | 'tracking'>('orders');
+
+  const [activeReturnOrder, setActiveReturnOrder] = useState<BuyerOrderViewItem | null>(null);
+  const [returnReason, setReturnReason] = useState("");
+  const [returnPhoto, setReturnPhoto] = useState<string | null>(null);
+  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Ukuran file terlalu besar',
+        text: 'Maksimum ukuran foto adalah 2MB.',
+        confirmButtonColor: '#ff5c35'
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setReturnPhoto(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const filteredLocalOrders = localOrders.filter(o => {
     if (activeTab === 'chats') return o.status === 'chat_only';
@@ -101,7 +128,7 @@ export default function ClientBuyerOrders({
     };
 
     // Initial fetch not needed as server passes initial orders, just start interval
-    const interval = setInterval(fetchRealtimeOrders, 3000);
+    const interval = setInterval(fetchRealtimeOrders, 15000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -407,6 +434,19 @@ export default function ClientBuyerOrders({
   };
 
   const handleProductRating = async (orderId: string, productName: string, rating: number) => {
+    const result = await Swal.fire({
+      title: 'Konfirmasi Rating',
+      text: `Apakah Anda yakin ingin memberikan ${rating} bintang untuk ${productName}? Rating yang telah diberikan tidak dapat diubah lagi.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Iya',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#94a3b8',
+    });
+
+    if (!result.isConfirmed) return;
+
     const previousRating = localOrders.find((order) => order.orderId === orderId)?.rating ?? null;
     setRatingLoadingOrderId(orderId);
     setLocalOrders((current) => current.map((order) => (
@@ -647,6 +687,11 @@ export default function ClientBuyerOrders({
           const pImage = parts.slice(4).join('|');
           bubbleContent = renderSingleOfferCard(pId, pName, pPrice, pImage, isMe);
         }
+      } else if (trimmedText.startsWith('[CHAT_IMG|') && trimmedText.endsWith(']')) {
+        const imgDataUrl = trimmedText.slice(10, -1);
+        bubbleContent = `<div class="mt-1 w-full max-w-[200px] md:max-w-[240px] rounded-lg overflow-hidden cursor-pointer bg-black/10 flex items-center justify-center p-1" onclick="if(event.target.tagName !== 'BUTTON') Swal.fire({imageUrl: '${imgDataUrl}', imageWidth: 500, confirmButtonText: 'Tutup', confirmButtonColor: '#ff5c35', customClass:{popup:'bg-surface text-text-primary rounded-xl'}})">
+          <img src="${imgDataUrl}" alt="Photo" class="w-full h-auto object-cover rounded hover:opacity-90 transition-opacity" />
+        </div>`;
       }
 
       if (isMe) {
@@ -731,9 +776,13 @@ export default function ClientBuyerOrders({
                 ${renderMsgs()}
               </div>
             </div>
-            <div class="flex gap-2">
-              <input type="text" id="chat-input" class="input-field flex-1 text-sm bg-base border-border rounded-xl px-3 outline-none focus:border-brand-primary" placeholder="Ketik pesan di sini...">
-              <button id="send-chat" class="btn-primary py-2 px-4 rounded-xl flex items-center justify-center transition-transform active:scale-95 shrink-0">
+            <div class="flex gap-2 relative mt-2 auto-rows-min">
+              <label for="chat-image-upload" class="bg-base shadow-sm border border-border hover:bg-black/5 dark:hover:bg-white/5 w-11 h-11 rounded-xl cursor-pointer flex justify-center items-center shrink-0 text-text-secondary hover:text-brand-primary transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                <input type="file" id="chat-image-upload" accept="image/png, image/jpeg, image/jpg, image/webp" class="hidden" />
+              </label>
+              <input type="text" id="chat-input" class="input-field shadow-sm flex-1 text-sm bg-base border-border rounded-xl px-3 outline-none focus:border-brand-primary h-11" placeholder="Ketik pesan di sini...">
+              <button id="send-chat" class="btn-primary shadow-sm px-4 rounded-xl flex items-center justify-center transition-transform active:scale-95 shrink-0 h-11">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
               </button>
             </div>
@@ -866,11 +915,14 @@ export default function ClientBuyerOrders({
           }
         });
         
-        const sendMessage = async () => {
-          if (!input.value.trim()) return;
-          const msg = input.value;
+        const sendMessage = async (overrideMsg?: string) => {
+          let msg = overrideMsg;
+          if (!msg) {
+            if (!input.value.trim()) return;
+            msg = input.value;
+          }
           
-          if (editingId) {
+          if (editingId && !overrideMsg) {
             const id = editingId;
             editingId = null;
             input.value = '';
@@ -938,9 +990,33 @@ export default function ClientBuyerOrders({
           }
         };
 
-        sendBtn?.addEventListener('click', sendMessage);
+        sendBtn?.addEventListener('click', () => sendMessage());
         input?.addEventListener('keypress', (e) => {
           if (e.key === 'Enter') sendMessage();
+        });
+
+        const imageUpload = document.getElementById('chat-image-upload') as HTMLInputElement;
+        imageUpload?.addEventListener('change', (e) => {
+          const file = (e.target as HTMLInputElement).files?.[0];
+          if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Ukuran Terlalu Besar',
+                text: 'Maksimum ukuran foto adalah 2MB.',
+                confirmButtonColor: '#ff5c35'
+              });
+              imageUpload.value = '';
+              return;
+            }
+            const reader = new FileReader();
+            reader.onload = (re) => {
+              const base64 = re.target?.result as string;
+              sendMessage(`[CHAT_IMG|${base64}]`);
+              imageUpload.value = '';
+            };
+            reader.readAsDataURL(file);
+          }
         });
       }
     });
@@ -1068,7 +1144,190 @@ export default function ClientBuyerOrders({
       </header>
 
       <main className="container mx-auto px-4 pt-6 max-w-4xl pb-24 md:pb-12">
-        <AnimatePresence>
+        {activeReturnOrder ? (
+          <div>
+            <button
+              onClick={() => {
+                setActiveReturnOrder(null);
+                setReturnReason("");
+                setReturnPhoto(null);
+              }}
+              className="flex items-center gap-2 mb-6 text-text-secondary hover:text-brand-primary transition-colors text-sm font-semibold cursor-pointer"
+            >
+              <ArrowLeft className="w-5 h-5" /> Kembali ke Pesanan
+            </button>
+            
+            <div className="bg-surface border border-border rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+              <h2 className="text-xl font-bold mb-6 text-text-primary border-b border-border pb-4">Pengajuan Pengembalian Pesanan</h2>
+              
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (!returnPhoto) {
+                  Swal.fire({
+                    icon: 'warning',
+                    title: 'Foto Bukti Wajib',
+                    text: 'Harap unggah foto bukti pengembalian.',
+                    confirmButtonColor: '#ff5c35'
+                  });
+                  return;
+                }
+                if (!returnReason.trim()) {
+                  Swal.fire({
+                    icon: 'warning',
+                    title: 'Alasan Wajib',
+                    text: 'Harap isi alasan pengembalian.',
+                    confirmButtonColor: '#ff5c35'
+                  });
+                  return;
+                }
+
+                setIsSubmittingReturn(true);
+                try {
+                  const res = await fetch('/api/orders/update-status', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      orderId: activeReturnOrder.orderId,
+                      status: 'return_pending',
+                      returnReason: returnReason,
+                      returnProofUrl: returnPhoto
+                    })
+                  });
+
+                  if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Gagal mengirim pengajuan return');
+                  }
+
+                  await Swal.fire({
+                    icon: 'success',
+                    title: 'Pengajuan Return Terkirim',
+                    text: 'Permintaan pengembalian pesanan Anda telah dikirim ke penjual.',
+                    confirmButtonText: 'Tutup',
+                    confirmButtonColor: '#ff5c35'
+                  });
+
+                  window.location.reload();
+                } catch (err: any) {
+                  Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: err.message || 'Terjadi kesalahan sistem.',
+                    confirmButtonColor: '#ff5c35'
+                  });
+                } finally {
+                  setIsSubmittingReturn(false);
+                }
+              }} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1.5 font-bold">Nama Pesanan</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={activeReturnOrder.productName}
+                    className="input-field w-full bg-base/50 text-text-secondary border border-border cursor-not-allowed rounded-xl px-4 py-3 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1.5 font-bold">Jumlah Pesanan</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${activeReturnOrder.qty} Porsi`}
+                    className="input-field w-full bg-base/50 text-text-secondary border border-border cursor-not-allowed rounded-xl px-4 py-3 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1.5 font-bold">Waktu Pengajuan (WIB)</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={formatOrderDateTimeWIB(new Date())}
+                    className="input-field w-full bg-base/50 text-text-secondary border border-border cursor-not-allowed rounded-xl px-4 py-3 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1.5 font-bold">Total Harga Pesanan</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={`Rp ${activeReturnOrder.totalPrice.toLocaleString('id-ID')}`}
+                    className="input-field w-full bg-base/55 text-text-secondary border border-border cursor-not-allowed rounded-xl px-4 py-3 font-bold text-brand-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1.5 font-bold">Unggah Foto Bukti Pengembalian <span className="text-status-error">*</span></label>
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-2xl p-6 bg-base hover:border-brand-primary/50 transition-colors relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      required
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                    {returnPhoto ? (
+                      <div className="flex flex-col items-center">
+                        <img src={returnPhoto} alt="Preview Bukti" className="max-h-48 rounded-xl object-contain mb-3" />
+                        <p className="text-xs text-brand-primary font-semibold">Ketuk untuk mengganti foto</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <Upload className="w-8 h-8 text-text-secondary mb-2" />
+                        <p className="text-sm font-bold text-text-primary mb-1">Pilih File Foto Bukti</p>
+                        <p className="text-xs text-text-secondary">Wajib format JPG/PNG, maksimal 2MB.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1.5 font-bold">Alasan Pengembalian <span className="text-status-error">*</span></label>
+                  <textarea
+                    required
+                    value={returnReason}
+                    onChange={(e) => setReturnReason(e.target.value)}
+                    placeholder="Tulis alasan pengembalian pesanan secara detail..."
+                    rows={4}
+                    className="input-field w-full border border-border bg-base rounded-xl px-4 py-3 focus:border-brand-primary focus:outline-none placeholder-text-secondary text-text-primary"
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveReturnOrder(null);
+                      setReturnReason("");
+                      setReturnPhoto(null);
+                    }}
+                    className="btn-outline flex-1 py-3 text-sm font-semibold rounded-xl text-center cursor-pointer border border-border text-text-secondary"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingReturn}
+                    className="btn-primary flex-1 py-3 text-sm font-semibold rounded-xl text-center bg-brand-primary hover:bg-brand-primary-hover text-white transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {isSubmittingReturn ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Mengirim...
+                      </>
+                    ) : (
+                      "Kirim Pengajuan"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        ) : (
+          <>
+            <AnimatePresence>
           {checkoutNoticeCount > 0 && (
             <motion.div
               initial={{ opacity: 0, y: -12 }}
@@ -1623,24 +1882,25 @@ export default function ClientBuyerOrders({
                         <div>
                           <p className="text-sm font-bold text-text-primary">Beri Rating Produk</p>
                           <p className="mt-0.5 text-xs text-text-secondary">
-                            {order.rating ? `Rating Anda: ${order.rating} dari 5 bintang. Tap untuk mengubah.` : 'Pilih 1 sampai 5 bintang untuk produk ini.'}
+                            {order.rating ? `Rating Anda: ${order.rating} dari 5 bintang.` : 'Pilih 1 sampai 5 bintang untuk produk ini.'}
                           </p>
                         </div>
                         <div className="flex items-center gap-1" role="group" aria-label={`Rating untuk ${order.productName}`}>
                           {[1, 2, 3, 4, 5].map((value) => {
                             const isActive = value <= (order.rating || 0);
                             const isLoading = ratingLoadingOrderId === order.orderId;
+                            const hasRated = !!order.rating;
                             return (
                               <button
                                 key={value}
                                 type="button"
-                                onClick={() => handleProductRating(order.orderId, order.productName, value)}
-                                disabled={isLoading}
+                                onClick={() => !hasRated && handleProductRating(order.orderId, order.productName, value)}
+                                disabled={isLoading || hasRated}
                                 aria-label={`Beri ${value} bintang untuk ${order.productName}`}
                                 aria-pressed={order.rating === value}
-                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:cursor-wait disabled:opacity-60 dark:hover:bg-amber-500/10"
+                                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 ${!hasRated ? 'hover:bg-amber-50 dark:hover:bg-amber-500/10' : ''} ${isLoading ? 'cursor-wait opacity-60' : (hasRated ? 'cursor-default' : '')}`}
                               >
-                                <Star className={`h-7 w-7 transition-all ${isActive ? 'fill-amber-400 text-amber-400' : 'fill-transparent text-slate-300 hover:text-amber-400 dark:text-slate-600'}`} />
+                                <Star className={`h-7 w-7 transition-all ${isActive ? 'fill-amber-400 text-amber-400' : `fill-transparent text-slate-300 ${!hasRated ? 'hover:text-amber-400 dark:text-slate-600' : 'dark:text-slate-700'}`}`} />
                               </button>
                             );
                           })}
@@ -1780,12 +2040,20 @@ export default function ClientBuyerOrders({
                               
                               {/* Selesai Pesanan button - only if processing or preorder_running */}
                               {(order.status === 'processing' || order.status === 'preorder_running') && (
-                                <button 
-                                  onClick={() => handleCompleteOrder(order.orderId, order.productName)}
-                                  className="btn-primary bg-emerald-500 hover:bg-emerald-600 text-white py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
-                                >
-                                  <CheckCircle className="w-3.5 h-3.5" /> Selesai Pesanan
-                                </button>
+                                <>
+                                  <button 
+                                    onClick={() => handleCompleteOrder(order.orderId, order.productName)}
+                                    className="btn-primary bg-emerald-500 hover:bg-emerald-600 text-white py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5" /> Selesai Pesanan
+                                  </button>
+                                  <button 
+                                    onClick={() => setActiveReturnOrder(order)}
+                                    className="btn-outline border-amber-555 border-amber-500 text-amber-600 hover:bg-amber-500/10 py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5" /> Return/Kembalikan Pesanan
+                                  </button>
+                                </>
                               )}
                               
                               {/* Only show Batalkan if not yet completed or cancelled */}
@@ -1817,6 +2085,8 @@ export default function ClientBuyerOrders({
               );
             })}
           </div>
+        )}
+        </>
         )}
       </main>
       <QRScannerModal isOpen={isQRScannerOpen} onClose={() => setIsQRScannerOpen(false)} />

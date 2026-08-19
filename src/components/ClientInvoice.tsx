@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Printer, ArrowLeft, CheckCircle2, Clock, Package, Truck, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { InvoiceOrder } from "@/types";
-import { WIB_TIMEZONE } from "@/lib/promotionFormatting";
+import { WIB_TIMEZONE, formatDateTimeWIB } from "@/lib/promotionFormatting";
 
 export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, feeAdmin = 0, viewerRole = 'buyer' }: { order: InvoiceOrder, feeAplikasi?: number, feeJasa?: number, feeAdmin?: number, viewerRole?: 'buyer' | 'seller' | 'admin' }) {
   const router = useRouter();
@@ -14,7 +14,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
 
   useEffect(() => {
     setTimeout(() => {
-      setPrintDate(new Date().toLocaleString('id-ID', { timeZone: WIB_TIMEZONE }));
+      setPrintDate(formatDateTimeWIB(new Date()));
     }, 0);
   }, []);
   
@@ -24,7 +24,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
       document.title = originalTitle;
     };
 
-    setPrintDate(new Date().toLocaleString('id-ID', { timeZone: WIB_TIMEZONE }));
+    setPrintDate(formatDateTimeWIB(new Date()));
     document.title = `Invoice-${order.id}`;
     window.addEventListener('afterprint', restoreTitle, { once: true });
     window.setTimeout(() => window.print(), 50);
@@ -32,16 +32,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
 
   const formatDate = (date: string | Date | null) => {
     if (!date) return 'Tanggal tidak tersedia';
-
-    return new Date(date).toLocaleDateString('id-ID', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: WIB_TIMEZONE,
-    }) + ' WIB';
+    return formatDateTimeWIB(date);
   };
 
   const getStatusBadge = (status: string | null) => {
