@@ -77,6 +77,17 @@ export default function ClientHome({
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [localCategoryFilter, setLocalCategoryFilter] = useState<string | null>(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [activeStep, setActiveStep] = useState<number>(-1);
   const [flowInView, setFlowInView] = useState(false);
 
@@ -362,6 +373,19 @@ export default function ClientHome({
       return 0;
     });
   }, [filteredProducts, localCategoryFilter, priceSortOrder]);
+
+  // Reset page to 1 when filters or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, localCategoryFilter, priceSortOrder, categoryFilter]);
+
+  const totalPages = Math.ceil(displayProducts.length / itemsPerPage);
+  
+  const currentProducts = useMemo(() => {
+    if (!isDesktop) return displayProducts;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return displayProducts.slice(startIndex, startIndex + itemsPerPage);
+  }, [displayProducts, currentPage, isDesktop]);
 
   return (
     <>
@@ -1157,13 +1181,31 @@ export default function ClientHome({
               <p className="text-text-secondary">Coba gunakan kata kunci lain untuk pencarian Anda.</p>
             </motion.div>
           ) : (
+            <>
+            <div className="relative group/carousel">
+              {/* Floating Left Button (Carousel Style) */}
+              {isDesktop && (
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className={`hidden md:flex absolute -left-4 xl:-left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full items-center justify-center border shadow-xl transition-all ${
+                    currentPage === 1 
+                      ? 'border-gray-200 text-gray-300 bg-white/50 cursor-not-allowed dark:border-gray-800 dark:bg-surface/50' 
+                      : 'border-white text-brand-primary bg-white hover:scale-110 hover:shadow-brand-primary/20 dark:bg-surface dark:border-brand-primary dark:text-brand-primary'
+                  }`}
+                  aria-label="Halaman Sebelumnya"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+              )}
+
             <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
             >
-              {displayProducts.map((product) => {
+              {currentProducts.map((product) => {
                 const productImageUrl = product.imageUrl ?? "/street-food-festival.jpg";
 
                 // Format deadline
@@ -1266,6 +1308,74 @@ export default function ClientHome({
                 )
               })}
             </motion.div>
+
+              {/* Floating Right Button (Carousel Style) */}
+              {isDesktop && (
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage >= totalPages}
+                  className={`hidden md:flex absolute -right-4 xl:-right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full items-center justify-center border shadow-xl transition-all ${
+                    currentPage >= totalPages 
+                      ? 'border-gray-200 text-gray-300 bg-white/50 cursor-not-allowed dark:border-gray-800 dark:bg-surface/50' 
+                      : 'border-white text-brand-primary bg-white hover:scale-110 hover:shadow-brand-primary/20 dark:bg-surface dark:border-brand-primary dark:text-brand-primary'
+                  }`}
+                  aria-label="Halaman Selanjutnya"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+              )}
+            </div>
+            
+            {/* Desktop Pagination Controls */}
+            {isDesktop && (
+              <div className="hidden md:flex justify-center items-center gap-2 mt-12 mb-4">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${currentPage === 1 ? 'border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800' : 'border-gray-300 text-gray-700 bg-white hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 dark:bg-surface dark:border-border dark:text-gray-300'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                
+                <div className="flex items-center gap-1.5 px-2">
+                  {Array.from({ length: totalPages }).map((_, idx) => {
+                    const page = idx + 1;
+                    // simple pagination logic to show max 5 pages
+                    if (
+                      page === 1 || 
+                      page === totalPages || 
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${currentPage === page ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-border'}`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    }
+                    if (
+                      page === currentPage - 2 || 
+                      page === currentPage + 2
+                    ) {
+                      return <span key={page} className="text-gray-400">...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${currentPage === totalPages ? 'border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800' : 'border-gray-300 text-gray-700 bg-white hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 dark:bg-surface dark:border-border dark:text-gray-300'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+              </div>
+            )}
+            </>
           )}
         </section>
 
