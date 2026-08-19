@@ -49,6 +49,7 @@ export default async function SellerDashboard() {
     dispatchReceiptUrl: orders.dispatchReceiptUrl,
     adminSplitAmount: orders.adminSplitAmount,
     sellerSplitAmount: orders.sellerSplitAmount,
+    isRead: orders.isRead,
   })
   .from(orders)
   .innerJoin(products, eq(orders.productId, products.id))
