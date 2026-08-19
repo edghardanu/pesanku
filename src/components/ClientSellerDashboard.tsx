@@ -184,10 +184,20 @@ export default function ClientSellerDashboard({
                }
              }
              
+             // Check if anything actually changed to prevent re-renders
+             const chatThreads = data.chatThreads || [];
+             if (
+               newOrders.length === prev.newOrders.length && 
+               unreadChats.length === prev.unreadChats.length &&
+               chatThreads.length === prev.chatThreads.length
+             ) {
+               return prev;
+             }
+             
              return {
                 newOrders,
                 unreadChats,
-                chatThreads: data.chatThreads || []
+                chatThreads
              };
           });
           initialLoad = false;
@@ -202,7 +212,7 @@ export default function ClientSellerDashboard({
     }
 
     fetchData();
-    const interval = setInterval(fetchData, 3000);
+    const interval = setInterval(fetchData, 15000); // 15 seconds is much better for performance
     return () => clearInterval(interval);
   }, []);
 
@@ -1285,7 +1295,10 @@ export default function ClientSellerDashboard({
                       <table className="w-full text-left border-collapse text-sm">
                         <thead>
                           <tr className="border-b border-border text-body-small text-text-secondary bg-surface/50 whitespace-nowrap">
-                            <th className="p-3 font-medium">Pesanan</th>
+                            <th className="p-3 font-medium">ID Order</th>
+                            <th className="p-3 font-medium">Tanggal</th>
+                            <th className="p-3 font-medium">Nama Pesanan</th>
+                            <th className="p-3 font-medium text-center">Qty</th>
                             <th className="p-3 font-medium">Pembeli</th>
                             <th className="p-3 font-medium text-right text-status-warning">Ditahan</th>
                             <th className="p-3 font-medium text-right text-status-error">Biaya Admin</th>
@@ -1300,20 +1313,27 @@ export default function ClientSellerDashboard({
                         <tbody className="text-body-base text-text-primary">
                           {sellerOrders.map(order => (
                             <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                              <td className="p-3 min-w-[200px]">
-                                <div className="font-mono text-[10px] text-text-secondary mb-1">
-                                  {order.id} &bull; {new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })} WIB
-                                </div>
-                                <p className="font-bold text-text-primary text-sm line-clamp-1">{order.productName}</p>
+                              <td className="p-3">
+                                <span className="font-mono text-xs text-text-primary whitespace-nowrap">{order.id}</span>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-xs text-text-secondary whitespace-nowrap">
+                                  {new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })} WIB
+                                </span>
+                              </td>
+                              <td className="p-3 min-w-[150px]">
+                                <p className="font-bold text-text-primary text-sm line-clamp-2">{order.productName}</p>
                                 {order.selectedVariant && (
                                   <p className="text-[10px] font-semibold text-brand-primary">
                                     Varian: {order.selectedVariant}
                                   </p>
                                 )}
-                                <p className="text-[11px] text-text-secondary">{order.qty} porsi</p>
                                 {order.notes && (
                                   <p className="text-[10px] text-brand-secondary-dark dark:text-brand-secondary mt-0.5 italic max-w-[180px] truncate">Catatan: "{order.notes}"</p>
                                 )}
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className="text-xs text-text-secondary">{order.qty} porsi</span>
                               </td>
                               <td className="p-3 min-w-[140px]">
                                 <p className="text-xs font-semibold text-text-primary truncate max-w-[140px]">{order.buyerName}</p>
@@ -1326,7 +1346,7 @@ export default function ClientSellerDashboard({
                               </td>
                               <td className="p-4 text-right">
                                 <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
-                                  {order.status !== 'completed' && feeAdmin > 0 ? `-Rp ${feeAdmin.toLocaleString('id-ID')}` : '-'}
+                                  {feeAdmin > 0 ? `-Rp ${feeAdmin.toLocaleString('id-ID')}` : '-'}
                                 </span>
                               </td>
                               <td className="p-4 text-right">
@@ -1341,7 +1361,7 @@ export default function ClientSellerDashboard({
                               </td>
                               <td className="p-4 text-right">
                                 <div className="flex flex-col items-end">
-                                  <span className="font-bold text-brand-primary">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' ? 0 : (order.adminSplitAmount ?? 0)) - (order.status === 'completed' ? 0 : feeAdmin) - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
+                                  <span className="font-bold text-brand-primary">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' ? 0 : (order.adminSplitAmount ?? 0)) - feeAdmin - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
                                 </div>
                               </td>
                               <td className="p-3 text-center align-middle">
@@ -1863,7 +1883,10 @@ export default function ClientSellerDashboard({
                     <table className="w-full text-left border-collapse text-sm">
                       <thead>
                         <tr className="border-b border-border text-xs text-text-secondary bg-surface/30 whitespace-nowrap">
-                          <th className="p-3 font-medium">Pesanan</th>
+                          <th className="p-3 font-medium">ID Order</th>
+                          <th className="p-3 font-medium">Tanggal</th>
+                          <th className="p-3 font-medium">Nama Pesanan</th>
+                          <th className="p-3 font-medium text-center">Qty</th>
                           <th className="p-3 font-medium text-right text-status-warning">Ditahan</th>
                           <th className="p-3 font-medium text-right text-status-error">Biaya Admin</th>
                           <th className="p-3 font-medium text-right text-status-error">Biaya Aplikasi</th>
@@ -1875,12 +1898,20 @@ export default function ClientSellerDashboard({
                       <tbody className="text-body-base text-text-primary">
                         {sellerOrders.map(order => (
                           <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                            <td className="p-3 min-w-[200px]">
-                              <div className="font-mono text-[10px] text-text-secondary mb-1">
-                                {order.id} &bull; {new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })} WIB
-                              </div>
-                              <p className="font-bold text-text-primary text-sm line-clamp-1">{order.productName}</p>
+                            <td className="p-3">
+                              <span className="font-mono text-xs text-text-primary whitespace-nowrap">{order.id}</span>
+                            </td>
+                            <td className="p-3">
+                              <span className="text-xs text-text-secondary whitespace-nowrap">
+                                {new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })} WIB
+                              </span>
+                            </td>
+                            <td className="p-3 min-w-[150px]">
+                              <p className="font-bold text-text-primary text-sm line-clamp-2">{order.productName}</p>
                               <p className="text-[11px] text-text-secondary mt-1">Oleh: {order.buyerName}</p>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className="text-xs text-text-secondary">{order.qty} porsi</span>
                             </td>
                             <td className="p-4 text-right">
                               <span className="text-sm font-semibold text-status-warning/90 whitespace-nowrap">
@@ -1889,7 +1920,7 @@ export default function ClientSellerDashboard({
                             </td>
                             <td className="p-4 text-right">
                               <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
-                                {order.status !== 'completed' && feeAdmin > 0 ? `-Rp ${feeAdmin.toLocaleString('id-ID')}` : '-'}
+                                {feeAdmin > 0 ? `-Rp ${feeAdmin.toLocaleString('id-ID')}` : '-'}
                               </span>
                             </td>
                             <td className="p-4 text-right">
@@ -1907,7 +1938,7 @@ export default function ClientSellerDashboard({
                             </td>
                             <td className="p-4 text-right">
                               <div className="flex flex-col items-end">
-                                <span className="font-bold text-status-success">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' ? 0 : (order.adminSplitAmount ?? 0)) - (order.status === 'completed' ? 0 : feeAdmin) - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
+                                <span className="font-bold text-status-success">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' ? 0 : (order.adminSplitAmount ?? 0)) - feeAdmin - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
                               </div>
                             </td>
                           </tr>

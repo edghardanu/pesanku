@@ -69,7 +69,11 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
       {/* Non-printable action bar */}
       <div className="print:hidden sticky top-0 bg-white border-b border-gray-200 shadow-sm z-50 p-4">
         <div className="max-w-3xl mx-auto flex justify-between items-center">
-          <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-600 hover:text-black font-semibold">
+          <button onClick={() => {
+            if (viewerRole === 'seller') router.push('/seller');
+            else if (viewerRole === 'admin') router.push('/admin');
+            else router.push('/');
+          }} className="flex items-center gap-2 text-gray-600 hover:text-black font-semibold">
             <ArrowLeft className="w-5 h-5" />
             Kembali
           </button>
@@ -185,6 +189,10 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
               ) : (
                 <>
                   <div className="flex justify-between text-gray-600 font-medium">
+                    <span>Biaya Admin</span>
+                    <span>-Rp {feeAdmin.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600 font-medium">
                     <span>Biaya Aplikasi</span>
                     <span>-Rp {feeAplikasi.toLocaleString('id-ID')}</span>
                   </div>
@@ -194,7 +202,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
                   </div>
                   <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between items-center">
                     <span className="text-xl font-black text-gray-800">TOTAL DITERIMA</span>
-                    <span className="text-2xl font-black text-green-600">Rp {Math.max(0, order.totalPrice - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
+                    <span className="text-2xl font-black text-green-600">Rp {Math.max(0, order.totalPrice - feeAdmin - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
                   </div>
                 </>
               )}

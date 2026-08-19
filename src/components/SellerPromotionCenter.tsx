@@ -107,7 +107,71 @@ export default function SellerPromotionCenter({ offers, initialRequests, product
             {requests.map((request) => {
               const status = request.status ?? 'pending';
               const expired = now > 0 && new Date(request.expiresAt).getTime() <= now;
-              return <article key={request.id} className="card border border-border p-4 sm:p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-bold text-text-primary">{request.productName}</p><p className="mt-1 text-sm text-text-secondary">{request.offerName} · {formatRupiah(request.offerPrice)}</p></div><CheckCircle2 className={`h-5 w-5 shrink-0 ${status === 'approved' && !expired ? 'text-status-success' : 'text-text-secondary'}`} /></div><p className="mt-3 text-xs text-text-secondary">Berakhir {formatPromotionDeadline(request.expiresAt)}</p><span className={`mt-3 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${expired && status === 'approved' ? statusStyle.cancelled : statusStyle[status]}`}>{expired && status === 'approved' ? 'Promosi telah berakhir' : statusLabel[status]}</span></article>;
+              const handlePayment = (req: PromotionRequestItem) => {
+                Swal.fire({
+                  title: 'Proses Pembayaran Promosi',
+                  html: `
+                    <div class="text-left text-sm space-y-3 mt-3">
+                      <p>Silakan lakukan pembayaran untuk aktivasi promosi <strong>${req.productName}</strong>.</p>
+                      <div class="p-3 bg-brand-primary/10 border border-brand-primary/20 rounded-lg">
+                        <div class="flex justify-between font-semibold text-base mb-1">
+                          <span>Total Tagihan:</span>
+                          <span class="text-brand-primary">${formatRupiah(req.offerPrice)}</span>
+                        </div>
+                        <p class="text-[10px] text-text-secondary">Selesaikan pembayaran agar produk Anda tampil paling atas!</p>
+                      </div>
+                      <div class="mt-4 text-center">
+                        <p class="font-bold mb-2">Pindai QRIS Admin</p>
+                        <div class="bg-white p-3 rounded-xl inline-block border border-border shadow-sm">
+                          <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=PROMO_${req.id}" 
+                               class="mx-auto w-40 h-40" alt="QRIS Pendaftaran" />
+                          <p class="text-xs text-text-secondary mt-2 mb-3">Atas Nama: <strong class="text-text-primary">Admin Pesanku</strong></p>
+                          <a href="https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=PROMO_${req.id}" download="QRIS_Promosi.png" target="_blank" class="inline-flex items-center justify-center gap-1.5 w-full py-2 bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white text-xs font-bold rounded-lg transition-colors border border-brand-primary/20">
+                            Unduh QR
+                          </a>
+                        </div>
+                      </div>
+                      <p class="text-xs text-text-secondary mt-3">Setelah berhasil membayar, harap konfirmasi ulang kepada pihak admin melalui chat atau live support.</p>
+                    </div>
+                  `,
+                  confirmButtonText: 'Saya Sudah Membayar',
+                  cancelButtonText: 'Tutup',
+                  showCancelButton: true,
+                  confirmButtonColor: '#ff5c35'
+                }).then((result) => {
+                  if (result.isConfirmed) {
+                    Swal.fire('Berhasil!', 'Konfirmasi Anda akan segera dicek oleh admin.', 'success');
+                  }
+                });
+              };
+              
+              return (
+                <article key={request.id} className="card border border-border p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-text-primary">{request.productName}</p>
+                      <p className="mt-1 text-sm text-text-secondary">{request.offerName} · {formatRupiah(request.offerPrice)}</p>
+                    </div>
+                    <CheckCircle2 className={`h-5 w-5 shrink-0 ${status === 'approved' && !expired ? 'text-status-success' : 'text-text-secondary'}`} />
+                  </div>
+                  <p className="mt-3 text-xs text-text-secondary">Berakhir {formatPromotionDeadline(request.expiresAt)}</p>
+                  
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${expired && status === 'approved' ? statusStyle.cancelled : statusStyle[status]}`}>
+                      {expired && status === 'approved' ? 'Promosi telah berakhir' : statusLabel[status]}
+                    </span>
+                    
+                    {status === 'approved' && !expired && (
+                      <button 
+                        onClick={() => handlePayment(request)} 
+                        className="btn-primary py-1 px-3 text-xs flex-shrink-0"
+                      >
+                        Bayar Promosi
+                      </button>
+                    )}
+                  </div>
+                </article>
+              );
             })}
           </div>
         )}

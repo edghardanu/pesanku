@@ -26,7 +26,6 @@ export async function GET() {
     .innerJoin(users, eq(orders.buyerId, users.id))
     .where(and(
       eq(products.sellerId, user.id),
-      eq(orders.status, 'waiting_verification'),
       eq(orders.isRead, false)
     ))
     .orderBy(desc(orders.createdAt));

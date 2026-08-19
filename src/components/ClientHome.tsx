@@ -1204,7 +1204,7 @@ export default function ClientHome({
                         {/* Rating Badge */}
                         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm px-2.5 py-0.5 rounded-full flex items-center justify-center gap-1 shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-gray-100 z-10 min-w-[50px]">
                           <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-yellow-500 shrink-0" />
-                          <span className="text-[10px] sm:text-[11px] font-bold text-gray-800 leading-none pb-[1px]">{product.averageRating > 0 ? product.averageRating.toFixed(1) : 'Baru'}</span>
+                          <span className="text-[10px] sm:text-[11px] font-bold text-gray-800 leading-none pb-[1px]">{(product.averageRating ?? 0) > 0 ? product.averageRating!.toFixed(1) : 'Baru'}</span>
                         </div>
                       </div>
 
@@ -1217,7 +1217,7 @@ export default function ClientHome({
                         
                         {/* Subtitle / Tags */}
                         <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mb-1.5 line-clamp-1">
-                          {product.sellerName || 'Toko'} • {product.category || 'Makanan'}
+                          {product.sellerName || 'Toko'} • {(product as any).category || 'Makanan'}
                         </p>
 
                         <div className="mb-auto"></div>
