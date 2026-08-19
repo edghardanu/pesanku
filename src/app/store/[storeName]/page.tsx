@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import ClientStoreProfile from '@/components/ClientStoreProfile';
 import { getUserFromSession } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { orders, products, sellerProfiles, users } from '@/lib/schema';
+import { orders, products, sellerProfiles, users, settings } from '@/lib/schema';
 import { parseStoredProductVariants } from '@/lib/productVariants';
 
 export const dynamic = 'force-dynamic';
@@ -147,5 +147,13 @@ export default async function StoreProfilePage({
     }));
   }
 
-  return <ClientStoreProfile seller={seller} products={catalog} showCatalog={showCatalog} user={user} />;
+  const allSettings = await db.select().from(settings).all();
+  let feeAplikasi = 0, feeJasa = 0, feeAdmin = 0;
+  allSettings.forEach((f) => {
+    if (f.key === "fee_aplikasi") feeAplikasi = parseInt(f.value);
+    if (f.key === "fee_jasa") feeJasa = parseInt(f.value);
+    if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
+  });
+
+  return <ClientStoreProfile seller={seller} products={catalog} showCatalog={showCatalog} user={user} feeAplikasi={feeAplikasi} feeJasa={feeJasa} feeAdmin={feeAdmin} />;
 }

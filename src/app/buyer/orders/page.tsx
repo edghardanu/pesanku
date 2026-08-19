@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { orders, products, payments, sellerProfiles, users } from "@/lib/schema";
+import { orders, products, payments, sellerProfiles, users, settings } from "@/lib/schema";
 import { eq, desc, ne, and } from "drizzle-orm";
 import { getUserFromSession } from "@/lib/auth";
 import ClientBuyerOrders from "@/components/ClientBuyerOrders";
@@ -85,5 +85,13 @@ export default async function BuyerOrdersPage({
     }));
   }
 
-  return <ClientBuyerOrders orders={userOrders} user={user} checkoutCount={checkoutCount} />;
+  const allSettings = await db.select().from(settings).all();
+  let feeAplikasi = 0, feeJasa = 0, feeAdmin = 0;
+  allSettings.forEach((f) => {
+    if (f.key === "fee_aplikasi") feeAplikasi = parseInt(f.value);
+    if (f.key === "fee_jasa") feeJasa = parseInt(f.value);
+    if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
+  });
+
+  return <ClientBuyerOrders orders={userOrders} user={user} checkoutCount={checkoutCount} feeAplikasi={feeAplikasi} feeJasa={feeJasa} feeAdmin={feeAdmin} />;
 }

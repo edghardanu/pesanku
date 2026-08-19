@@ -15,10 +15,16 @@ export default function ClientBuyerOrders({
   orders,
   user,
   checkoutCount = 0,
+  feeAplikasi = 0,
+  feeJasa = 0,
+  feeAdmin = 0,
 }: {
   orders: BuyerOrderViewItem[];
   user?: AuthUser | null;
   checkoutCount?: number;
+  feeAplikasi?: number;
+  feeJasa?: number;
+  feeAdmin?: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1286,7 +1292,7 @@ export default function ClientBuyerOrders({
                             </div>
                             <div className="flex flex-col pt-1 sm:pt-1.5">
                               <span className={`text-sm sm:text-base font-bold ${step.active ? 'text-brand-primary' : step.completed ? 'text-text-primary' : 'text-text-secondary'}`}>{step.label}</span>
-                              {step.date && <span className="text-[11px] sm:text-xs text-text-secondary mt-1">{typeof step.date === 'string' ? step.date : new Date(step.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })}</span>}
+                              {step.date && <span className="text-[11px] sm:text-xs text-text-secondary mt-1">{step.date === 'Telah Dibayar' ? step.date : formatOrderDateTimeWIB(step.date)}</span>}
                             </div>
                           </div>
                         );
@@ -1315,7 +1321,7 @@ export default function ClientBuyerOrders({
                             </div>
                             <div className="flex flex-col items-center mt-4 text-center px-2">
                               <span className={`text-sm font-bold ${step.active ? 'text-brand-primary' : step.completed ? 'text-text-primary' : 'text-text-secondary'}`}>{step.label}</span>
-                              {step.date && <span className="text-xs text-text-secondary mt-1.5">{typeof step.date === 'string' ? step.date : new Date(step.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })}</span>}
+                              {step.date && <span className="text-xs text-text-secondary mt-1.5">{step.date === 'Telah Dibayar' ? step.date : formatOrderDateTimeWIB(step.date)}</span>}
                             </div>
                           </div>
                         );
@@ -1429,9 +1435,9 @@ export default function ClientBuyerOrders({
               const quantityBaseValue = quantityInputValue ? Number(quantityInputValue) : order.qty;
               const orderUnitPrice = order.qty > 0 ? order.totalPrice / order.qty : 0;
               const draftQuantity = Number(quantityInputValue);
-              const displayedTotalPrice = quantityInputValue && Number.isSafeInteger(draftQuantity) && draftQuantity > 0
+              const displayedTotalPrice = (quantityInputValue && Number.isSafeInteger(draftQuantity) && draftQuantity > 0
                 ? orderUnitPrice * draftQuantity
-                : order.totalPrice;
+                : order.totalPrice) + feeAplikasi + feeJasa + feeAdmin;
               const isQuantityLocked = order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId;
               
               return (
@@ -1794,7 +1800,7 @@ export default function ClientBuyerOrders({
 
                               {isWaitingPayment && (
                                 <button 
-                                  onClick={() => handlePayment(order.orderId, order.totalPrice)}
+                                  onClick={() => handlePayment(order.orderId, order.totalPrice + feeAplikasi + feeJasa + feeAdmin)}
                                   className="btn-primary py-1.5 px-4 text-xs flex items-center justify-center gap-2 w-full sm:w-auto"
                                 >
                                   <CreditCard className="w-3.5 h-3.5" /> Bayar Sekarang

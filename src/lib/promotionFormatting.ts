@@ -1,5 +1,37 @@
 export const formatRupiah = (value: number) => `Rp ${value.toLocaleString('id-ID')}`;
 
+export const WIB_TIMEZONE = 'Asia/Jakarta';
+
+export const formatChatTimeWIB = (value: string | Date | number) => {
+  return new Intl.DateTimeFormat('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: WIB_TIMEZONE
+  }).format(new Date(value)).replace('.', ':');
+};
+
+export const formatOrderDateTimeWIB = (value: string | Date | number) => {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: WIB_TIMEZONE
+  }).format(new Date(value)).replace('.', ':') + ' WIB';
+};
+
+export const formatShortDateTimeWIB = (value: string | Date | number) => {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: WIB_TIMEZONE
+  }).format(new Date(value)).replace('.', ':') + ' WIB';
+};
+
 export const formatPromotionDeadline = (value: string | Date) => new Intl.DateTimeFormat('id-ID', {
   weekday: 'long',
   day: 'numeric',

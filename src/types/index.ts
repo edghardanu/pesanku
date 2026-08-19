@@ -212,6 +212,8 @@ export interface InvoiceOrder {
   createdAt: string | Date | null;
   productName: string;
   productPrice: number;
+  buyerId?: string | null;
+  sellerId?: string | null;
   sellerName?: string | null;
   sellerAddress?: string | null;
   buyerName?: string | null;

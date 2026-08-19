@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { InvoiceOrder } from "@/types";
 import { WIB_TIMEZONE } from "@/lib/promotionFormatting";
 
-export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, feeAdmin = 0 }: { order: InvoiceOrder, feeAplikasi?: number, feeJasa?: number, feeAdmin?: number }) {
+export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, feeAdmin = 0, viewerRole = 'buyer' }: { order: InvoiceOrder, feeAplikasi?: number, feeJasa?: number, feeAdmin?: number, viewerRole?: 'buyer' | 'seller' | 'admin' }) {
   const router = useRouter();
   const itemUnitPrice = order.selectedVariantPrice ?? order.productPrice;
   
@@ -162,23 +162,42 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
                 <span>Subtotal</span>
                 <span>Rp {order.totalPrice.toLocaleString('id-ID')}</span>
               </div>
-              <div className="flex justify-between text-gray-600 font-medium">
-                <span>Biaya Aplikasi</span>
-                <span>Rp {feeAplikasi.toLocaleString('id-ID')}</span>
-              </div>
-              <div className="flex justify-between text-gray-600 font-medium">
-                <span>Biaya Jasa</span>
-                <span>Rp {feeJasa.toLocaleString('id-ID')}</span>
-              </div>
-              <div className="flex justify-between text-gray-600 font-medium">
-                <span>Biaya Admin</span>
-                <span>Rp {feeAdmin.toLocaleString('id-ID')}</span>
-              </div>
-              <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between items-center">
-                <span className="text-xl font-black text-gray-800">TOTAL PEMBAYARAN</span>
-                <span className="text-2xl font-black text-orange-600">Rp {(order.totalPrice + feeAplikasi + feeJasa + feeAdmin).toLocaleString('id-ID')}</span>
-              </div>
-
+              
+              {viewerRole === 'buyer' ? (
+                <>
+                  <div className="flex justify-between text-gray-600 font-medium">
+                    <span>Biaya Aplikasi</span>
+                    <span>Rp {feeAplikasi.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600 font-medium">
+                    <span>Biaya Jasa</span>
+                    <span>Rp {feeJasa.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600 font-medium">
+                    <span>Biaya Admin</span>
+                    <span>Rp {feeAdmin.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between items-center">
+                    <span className="text-xl font-black text-gray-800">TOTAL PEMBAYARAN</span>
+                    <span className="text-2xl font-black text-orange-600">Rp {(order.totalPrice + feeAplikasi + feeJasa + feeAdmin).toLocaleString('id-ID')}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between text-gray-600 font-medium">
+                    <span>Biaya Aplikasi</span>
+                    <span>-Rp {feeAplikasi.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600 font-medium">
+                    <span>Biaya Jasa</span>
+                    <span>-Rp {feeJasa.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between items-center">
+                    <span className="text-xl font-black text-gray-800">TOTAL DITERIMA</span>
+                    <span className="text-2xl font-black text-green-600">Rp {Math.max(0, order.totalPrice - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

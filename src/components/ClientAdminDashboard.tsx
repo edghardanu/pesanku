@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { formatOrderDateTimeWIB } from "@/lib/promotionFormatting";
 import Link from "next/link";
 import {
   ShoppingBag,
@@ -435,19 +436,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
             )}
           </button>
 
-          <button
-            onClick={() => handleTabChange('verifikasi')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'verifikasi'
-              ? 'bg-status-warning/10 text-status-warning font-semibold'
-              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-              }`}
-          >
-            <CheckCircle className="w-5 h-5" />
-            <span>Verifikasi Pembayaran</span>
-            {mockVerifications.length > 0 && (
-              <span className="ml-auto bg-status-warning text-white text-xs font-bold px-2 py-0.5 rounded-full">{mockVerifications.length}</span>
-            )}
-          </button>
 
           <button
             onClick={() => handleTabChange('qris')}
@@ -803,15 +791,30 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                               <span className="block font-medium">{order.productName || '-'}</span>
                               <span className="text-xs text-text-secondary block mt-1">{order.qty}x Pcs</span>
                             </td>
-                            <td className="p-4 text-xs">
-                              {order.deliveryDate ? (order.deliveryDate.includes('-') ? new Date(order.deliveryDate).toLocaleDateString('id-ID') : order.deliveryDate) : '-'}
+                            <td className="p-4 text-xs whitespace-nowrap">
+                              {order.createdAt ? formatOrderDateTimeWIB(order.createdAt) : '-'}
                             </td>
                             <td className="p-4 font-bold text-brand-primary whitespace-nowrap">
                               Rp {(order.totalPrice || 0).toLocaleString('id-ID')}
                             </td>
                             <td className="p-4 text-xs">
-                              <span className="block text-status-warning"><span className="font-semibold">Admin:</span> Rp {(order.adminSplitAmount ?? ((order.totalPrice || 0) * 0.5)).toLocaleString('id-ID')}</span>
-                              <span className="block text-status-success mt-1"><span className="font-semibold">Penjual:</span> Rp {(order.sellerSplitAmount ?? ((order.totalPrice || 0) * 0.5)).toLocaleString('id-ID')}</span>
+                              {(() => {
+                                const isCompleted = order.status === 'completed';
+                                const fees = feeAplikasi + feeJasa + feeAdmin;
+                                const moneyFromBuyer = (order.totalPrice || 0) + fees;
+                                const sellerNet = Math.max(0, (order.totalPrice || 0) - fees);
+                                const adminNet = Math.max(0, moneyFromBuyer - sellerNet);
+                                const defaultAdmin = isCompleted ? adminNet : moneyFromBuyer;
+                                const defaultSeller = isCompleted ? sellerNet : 0;
+                                const adminRender = order.adminSplitAmount ?? defaultAdmin;
+                                const sellerRender = order.sellerSplitAmount ?? defaultSeller;
+                                return (
+                                  <>
+                                    <span className="block text-status-warning"><span className="font-semibold">Admin:</span> Rp {adminRender.toLocaleString('id-ID')}</span>
+                                    <span className="block text-status-success mt-1"><span className="font-semibold">Penjual:</span> Rp {sellerRender.toLocaleString('id-ID')}</span>
+                                  </>
+                                );
+                              })()}
                             </td>
                             <td className="p-4">
                               <span className={`px-2 py-1 rounded-full text-xs font-bold ${['waiting_verification', 'failed', 'cancelled'].includes(order.status || '')
@@ -831,9 +834,14 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                             <td className="p-4 text-center">
                               <button
                                 onClick={() => {
-                                  // Default split computation if not explicitly set
-                                  const currentAdmin = order.adminSplitAmount ?? ((order.totalPrice || 0) * 0.5);
-                                  const currentSeller = order.sellerSplitAmount ?? ((order.totalPrice || 0) * 0.5);
+                                  // Updated default split logic
+                                  const isCompleted = order.status === 'completed';
+                                  const fees = feeAplikasi + feeJasa + feeAdmin;
+                                  const moneyFromBuyer = (order.totalPrice || 0) + fees;
+                                  const sellerNet = Math.max(0, (order.totalPrice || 0) - fees);
+                                  const adminNet = Math.max(0, moneyFromBuyer - sellerNet);
+                                  const currentAdmin = order.adminSplitAmount ?? (isCompleted ? adminNet : moneyFromBuyer);
+                                  const currentSeller = order.sellerSplitAmount ?? (isCompleted ? sellerNet : 0);
 
                                   Swal.fire({
                                     title: 'Detail Pesanan & Saldo',
@@ -880,8 +888,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                         </div>
                                       </div>
                                       <div class="flex items-center justify-between mt-2 pt-2 border-t border-border font-bold">
-                                         <span class="text-text-primary">Total Order:</span>
-                                         <span id="swal-total-validation" class="text-brand-primary">Rp ${(order.totalPrice || 0).toLocaleString('id-ID')}</span>
+                                         <span class="text-text-primary">Total Uang (Termasuk Biaya):</span>
+                                         <span id="swal-total-validation" class="text-brand-primary">Rp ${moneyFromBuyer.toLocaleString('id-ID')}</span>
                                       </div>
                                     </div>
                                   `,
@@ -898,7 +906,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                     },
                                     buttonsStyling: false,
                                     didOpen: () => {
-                                      const t = order.totalPrice || 0;
+                                      const t = moneyFromBuyer;
                                       const adminInput = document.getElementById('swal-admin-split') as HTMLInputElement;
                                       const sellerInput = document.getElementById('swal-seller-split') as HTMLInputElement;
                                       const percentInput = document.getElementById('swal-admin-percent') as HTMLInputElement;
@@ -953,8 +961,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                     preConfirm: () => {
                                       const adminSplit = Number((document.getElementById('swal-admin-split') as HTMLInputElement).value);
                                       const sellerSplit = Number((document.getElementById('swal-seller-split') as HTMLInputElement).value);
-                                      if (adminSplit + sellerSplit !== (order.totalPrice || 0)) {
-                                        Swal.showValidationMessage('Total pembagian harus sama dengan total harga pesanan!');
+                                      if (adminSplit + sellerSplit !== moneyFromBuyer) {
+                                        Swal.showValidationMessage('Total pembagian harus sama dengan total uang yang masuk (termasuk biaya platform)!');
                                         return false;
                                       }
                                       return { adminSplit, sellerSplit };
@@ -1375,61 +1383,14 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
               </div>
             )}
 
-            {activeTab === 'verifikasi' && (
-              <div className="card p-0 border border-border overflow-hidden">
-                <div className="p-6 border-b border-border flex justify-between items-center bg-surface/50">
-                  <h2 className="text-h3">Status Pembayaran Masuk</h2>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-surface text-caption text-text-secondary border-b border-border">
-                        <th className="p-4 font-medium">Order ID</th>
-                        <th className="p-4 font-medium">Total Bayar</th>
-                        <th className="p-4 font-medium">Status</th>
-                        <th className="p-4 font-medium">Waktu Pemesanan</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-body-small text-text-primary">
-                      {liveOrders.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="p-8 text-center text-text-secondary">Tidak ada data transaksi saat ini.</td>
-                        </tr>
-                      ) : (
-                        liveOrders.map((order) => (
-                          <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                            <td className="p-4 font-mono font-medium">{order.id}</td>
-                            <td className="p-4 font-semibold text-brand-primary">Rp {(order.totalPrice || 0).toLocaleString('id-ID')}</td>
-                            <td className="p-4">
-                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${order.status === 'verified' || order.status === 'completed'
-                                ? 'bg-status-success/10 text-status-success'
-                                : order.status === 'waiting_verification'
-                                  ? 'bg-status-warning/10 text-status-warning'
-                                  : 'bg-border/50 text-text-secondary'
-                                }`}>
-                                {order.status === 'verified' ? 'Dibayar' :
-                                  order.status === 'completed' ? 'Selesai' :
-                                    order.status === 'waiting_verification' ? 'Pending' : 'Batal'}
-                              </span>
-                            </td>
-                            <td className="p-4 text-text-secondary">
-                              {order.createdAt ? new Date(order.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+
             {activeTab === 'settings' && (
               <div className="grid gap-6">
                 <div className="card md:p-6 border border-border">
                   <div className="flex justify-between items-center mb-6">
                     <div>
                       <h2 className="text-h3">Biaya Aplikasi</h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli pada saat checkout (ditampilkan dalam struk pdf).</p>
+                      <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari hasil saldo bersih penjual.</p>
                     </div>
                     <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Aplikasi', input: 'number', inputValue: feeAplikasi }); if (v) { setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_aplikasi: parseInt(v) }) }); setFeeAplikasi(parseInt(v)); setFeeLoading(false); Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); } }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
                   </div>
@@ -1439,7 +1400,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                   <div className="flex justify-between items-center mb-6">
                     <div>
                       <h2 className="text-h3">Biaya Jasa</h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli untuk jasa layanan aplikasi.</p>
+                      <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari saldo bersih penjual.</p>
                     </div>
                     <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Jasa', input: 'number', inputValue: feeJasa }); if (v) { setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_jasa: parseInt(v) }) }); setFeeJasa(parseInt(v)); setFeeLoading(false); Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); } }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
                   </div>
@@ -1449,7 +1410,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                   <div className="flex justify-between items-center mb-6">
                     <div>
                       <h2 className="text-h3">Biaya Admin</h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">Dipotong secara tak terlihat dari hasil saldo bersih penjual per transaksi pembayaran.</p>
+                      <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari hasil saldo bersih penjual.</p>
                     </div>
                     <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Admin', input: 'number', inputValue: feeAdmin }); if (v) { setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_admin: parseInt(v) }) }); setFeeAdmin(parseInt(v)); setFeeLoading(false); Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); } }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
                   </div>
@@ -1465,7 +1426,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-2 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
         <button
           onClick={() => handleTabChange('overview')}
-          className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 ${activeTab === 'overview' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+          className={`flex flex-col items-center gap-1.5 w-1/3 transition-colors pb-2 ${activeTab === 'overview' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
         >
           <LayoutDashboard className={`w-6 h-6 stroke-[1.5] ${activeTab === 'overview' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
           <span>Overview</span>
@@ -1473,28 +1434,16 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
 
         <button
           onClick={() => handleTabChange('umkm')}
-          className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 ${activeTab === 'umkm' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+          className={`flex flex-col items-center gap-1.5 w-1/3 transition-colors pb-2 ${activeTab === 'umkm' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
         >
           <Store className={`w-6 h-6 stroke-[1.5] ${activeTab === 'umkm' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
           <span>UMKM</span>
         </button>
 
-        <button
-          onClick={() => handleTabChange('verifikasi')}
-          className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 relative ${activeTab === 'verifikasi' ? 'text-status-warning font-semibold' : 'text-text-secondary hover:text-status-warning'}`}
-        >
-          <div className="relative">
-            <CheckCircle className={`w-6 h-6 stroke-[1.5] ${activeTab === 'verifikasi' ? 'fill-status-warning/10 stroke-status-warning' : ''}`} />
-            {mockVerifications.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-status-warning text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{mockVerifications.length}</span>
-            )}
-          </div>
-          <span>Verifikasi</span>
-        </button>
 
         <button
           onClick={() => setIsMobileSidebarOpen(true)}
-          className={`flex flex-col items-center gap-1.5 w-1/5 transition-colors pb-2 ${['promosi', 'qris', 'tickets', 'settings'].includes(activeTab)
+          className={`flex flex-col items-center gap-1.5 w-1/3 transition-colors pb-2 ${['promosi', 'qris', 'tickets', 'settings'].includes(activeTab)
             ? 'text-brand-primary font-semibold'
             : 'text-text-secondary hover:text-brand-primary'
             }`}

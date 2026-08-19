@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Plus, Package, DollarSign, Settings, LogOut, Info, X, Upload, Store, Sun, Moon, MessageCircle, User, Menu, Megaphone, Bell, Eye, EyeOff } from "lucide-react";
+import { ShoppingBag, Plus, FileText, Package, DollarSign, Settings, LogOut, Info, X, Upload, Store, Sun, Moon, MessageCircle, User, Menu, Megaphone, Bell, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SellerPreorderCalendar from "@/components/SellerPreorderCalendar";
 import SellerPromotionCenter from "@/components/SellerPromotionCenter";
@@ -49,6 +49,8 @@ type ClientSellerDashboardProps = {
   userName: string;
   sellerOrders?: OrderItem[];
   feeAdmin?: number;
+  feeAplikasi?: number;
+  feeJasa?: number;
   promotionOffers?: PromotionOfferItem[];
   promotionRequests?: PromotionRequestItem[];
 };
@@ -62,7 +64,7 @@ export default function ClientSellerDashboard({
   userName,
   userEmail = '',
   sellerOrders: initialSellerOrders = [],
-  feeAdmin = 0,
+  feeAdmin = 0, feeAplikasi = 0, feeJasa = 0,
   promotionOffers = [],
   promotionRequests = []
 }: ClientSellerDashboardProps) {
@@ -1279,157 +1281,102 @@ export default function ClientSellerDashboard({
                       Belum ada pesanan masuk.
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[1000px] text-left border-collapse">
+                    <div className="overflow-x-auto w-full">
+                      <table className="w-full text-left border-collapse text-sm">
                         <thead>
                           <tr className="border-b border-border text-body-small text-text-secondary bg-surface/50 whitespace-nowrap">
-                            <th className="p-4 font-medium">Order ID</th>
-                            <th className="p-4 font-medium">Produk</th>
-                            <th className="p-4 font-medium">Pembeli</th>
-                            <th className="p-4 font-medium">Total Bayar</th>
-                            <th className="p-4 font-medium">Bukti Bayar</th>
-                            <th className="p-4 font-medium">Bukti Delivery</th>
-                            <th className="p-4 font-medium">Bukti Barang Sampai</th>
-                            <th className="p-4 font-medium text-right">Aksi Status</th>
+                            <th className="p-3 font-medium">Pesanan</th>
+                            <th className="p-3 font-medium">Pembeli</th>
+                            <th className="p-3 font-medium text-right text-status-warning">Ditahan</th>
+                            <th className="p-3 font-medium text-right text-status-error">Biaya Admin</th>
+                            <th className="p-3 font-medium text-right text-status-error">Biaya Aplikasi</th>
+                            <th className="p-3 font-medium text-right text-status-error">Biaya Jasa</th>
+                            <th className="p-3 font-medium text-right">Net Saldo</th>
+                            <th className="p-3 font-medium text-center">Invoice</th>
+                            <th className="p-3 font-medium text-center">Dokumen & Bukti</th>
+                            <th className="p-3 font-medium text-right">Aksi Status</th>
                           </tr>
                         </thead>
                         <tbody className="text-body-base text-text-primary">
                           {sellerOrders.map(order => (
                             <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                              <td className="p-4 font-mono font-medium text-sm text-text-secondary">
-                                {order.id}
-                                <div className="text-[10px] text-text-secondary font-sans mt-1">{new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })} WIB</div>
-                              </td>
-                              <td className="p-4 min-w-[200px]">
-                                <p className="font-semibold text-text-primary line-clamp-1">{order.productName}</p>
+                              <td className="p-3 min-w-[200px]">
+                                <div className="font-mono text-[10px] text-text-secondary mb-1">
+                                  {order.id} &bull; {new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })} WIB
+                                </div>
+                                <p className="font-bold text-text-primary text-sm line-clamp-1">{order.productName}</p>
                                 {order.selectedVariant && (
-                                  <p className="mt-1 text-[10px] font-semibold text-brand-primary">
+                                  <p className="text-[10px] font-semibold text-brand-primary">
                                     Varian: {order.selectedVariant}
-                                    {order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined
-                                      ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}`
-                                      : ''}
                                   </p>
                                 )}
-                                <p className="text-xs text-text-secondary mt-1">{order.qty} porsi</p>
+                                <p className="text-[11px] text-text-secondary">{order.qty} porsi</p>
                                 {order.notes && (
-                                  <p className="text-[10px] text-brand-secondary-dark dark:text-brand-secondary mt-1 italic">Catatan: "{order.notes}"</p>
+                                  <p className="text-[10px] text-brand-secondary-dark dark:text-brand-secondary mt-0.5 italic max-w-[180px] truncate">Catatan: "{order.notes}"</p>
                                 )}
                               </td>
-                              <td className="p-4 min-w-[200px]">
-                                <p className="text-sm font-semibold text-text-primary">{order.buyerName}</p>
-                                {order.buyerPhone && (
-                                  <p className="text-xs text-text-secondary mt-0.5">{order.buyerPhone}</p>
-                                )}
-                                {order.buyerAddress && (
-                                  <p className="text-xs text-text-secondary mt-0.5 max-w-[220px] line-clamp-2">{order.buyerAddress}</p>
-                                )}
+                              <td className="p-3 min-w-[140px]">
+                                <p className="text-xs font-semibold text-text-primary truncate max-w-[140px]">{order.buyerName}</p>
+                                {order.buyerPhone && <p className="text-[10px] text-text-secondary">{order.buyerPhone}</p>}
                               </td>
-                              <td className="p-4">
-                                <div className="flex flex-col">
-                                  <span className="font-bold text-brand-primary">Rp {Math.max(0, order.totalPrice - feeAdmin).toLocaleString('id-ID')}</span>
-                                  {feeAdmin > 0 && <span className="text-[10px] text-text-secondary mt-0.5">Biaya Admin Rp {feeAdmin.toLocaleString('id-ID')}</span>}
+                              <td className="p-4 text-right">
+                                <span className="text-sm font-semibold text-status-warning/90 whitespace-nowrap">
+                                  {order.status !== 'completed' && (order.adminSplitAmount ?? 0) > 0 ? `-Rp ${(order.adminSplitAmount ?? 0).toLocaleString('id-ID')}` : '-'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
+                                  {order.status !== 'completed' && feeAdmin > 0 ? `-Rp ${feeAdmin.toLocaleString('id-ID')}` : '-'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
+                                  {feeAplikasi > 0 ? `-Rp ${feeAplikasi.toLocaleString('id-ID')}` : '-'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
+                                  {feeJasa > 0 ? `-Rp ${feeJasa.toLocaleString('id-ID')}` : '-'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <div className="flex flex-col items-end">
+                                  <span className="font-bold text-brand-primary">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' ? 0 : (order.adminSplitAmount ?? 0)) - (order.status === 'completed' ? 0 : feeAdmin) - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
                                 </div>
                               </td>
-                              <td className="p-4">
-                                {order.proofUrl ? (
-                                  <button 
-                                    onClick={() => {
-                                      Swal.fire({
-                                        title: 'Bukti Pembayaran',
-                                        imageUrl: order.proofUrl as string,
-                                        imageWidth: 400,
-                                        imageAlt: 'Bukti Pembayaran',
-                                        text: `Total: Rp ${order.totalPrice.toLocaleString('id-ID')}`,
-                                        confirmButtonText: 'Tutup',
-                                        confirmButtonColor: '#ff5c35',
-                                        customClass: {
-                                          popup: 'bg-surface text-text-primary',
-                                          title: 'text-text-primary'
-                                        }
-                                      });
-                                    }}
-                                    className="text-brand-secondary-dark dark:text-brand-secondary font-medium underline hover:text-brand-primary transition-colors text-sm border border-brand-secondary/30 px-3 py-1.5 rounded-lg"
-                                  >
-                                    Lihat Bukti
-                                  </button>
-                                ) : (
-                                  <span className="text-text-secondary text-xs italic bg-surface-secondary px-2 py-1 rounded-md">Belum ada</span>
-                                )}
+                              <td className="p-3 text-center align-middle">
+                                <Link href={`/invoice/${order.id}`} target="_blank" className="inline-flex items-center justify-center w-8 h-8 bg-surface border border-border hover:border-brand-primary/50 text-text-secondary hover:text-brand-primary rounded-lg transition-all shadow-sm" title="Unduh Invoice">
+                                  <FileText className="w-4 h-4" />
+                                </Link>
                               </td>
-                              <td className="p-4">
-                                {order.dispatchReceiptUrl ? (
-                                  <div 
-                                    onClick={() => {
-                                      Swal.fire({
-                                        title: 'Bukti Delivery (Resi)',
-                                        imageUrl: order.dispatchReceiptUrl as string,
-                                        imageWidth: 400,
-                                        imageAlt: 'Bukti Delivery (Resi)',
-                                        confirmButtonText: 'Tutup',
-                                        confirmButtonColor: '#ff5c35',
-                                        customClass: {
-                                          popup: 'bg-surface text-text-primary rounded-xl',
-                                          title: 'text-text-primary text-lg'
-                                        }
-                                      });
-                                    }}
-                                    className="relative w-16 h-16 rounded-xl overflow-hidden border border-border cursor-pointer hover:opacity-80 transition-opacity shadow-sm group inline-block"
-                                    title="Klik untuk melihat bukti"
-                                  >
-                                    <img src={order.dispatchReceiptUrl} alt="Bukti Delivery" className="w-full h-full object-cover" />
-                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => handleUploadDispatchReceipt(order.id, order.status || 'verified')}
-                                    className="btn-outline border-brand-secondary/40 text-brand-secondary hover:bg-brand-secondary/10 hover:border-brand-secondary py-1.5 px-3 text-xs font-semibold rounded-lg transition-all whitespace-nowrap"
-                                  >
-                                    Upload Bukti
-                                  </button>
-                                )}
-                              </td>
-                              <td className="p-4">
-                                {order.deliveryProofUrl ? (
-                                  <div 
-                                    onClick={() => {
-                                      Swal.fire({
-                                        title: 'Bukti Barang Sampai',
-                                        imageUrl: order.deliveryProofUrl as string,
-                                        imageWidth: 400,
-                                        imageAlt: 'Bukti Barang Sampai',
-                                        confirmButtonText: 'Tutup',
-                                        confirmButtonColor: '#ff5c35',
-                                        customClass: {
-                                          popup: 'bg-surface text-text-primary rounded-xl',
-                                          title: 'text-text-primary text-lg'
-                                        }
-                                      });
-                                    }}
-                                    className="relative w-16 h-16 rounded-xl overflow-hidden border border-border cursor-pointer hover:opacity-80 transition-opacity shadow-sm group inline-block"
-                                    title="Klik untuk melihat bukti"
-                                  >
-                                    <img src={order.deliveryProofUrl} alt="Bukti Delivery" className="w-full h-full object-cover" />
-                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => handleUploadDeliveryProof(order.id)}
-                                    className="btn-outline border-brand-secondary/40 text-brand-secondary hover:bg-brand-secondary/10 hover:border-brand-secondary py-1.5 px-3 text-xs font-semibold rounded-lg transition-all"
-                                  >
-                                    Upload Bukti
-                                  </button>
-                                )}
+                              <td className="p-3 align-top min-w-[130px]">
+                                <div className="flex flex-col gap-1.5 w-full">
+                                  {order.proofUrl ? (
+                                    <button onClick={() => Swal.fire({ title: 'Bukti Pembayaran', imageUrl: order.proofUrl as string, imageWidth: 400 })} className="text-[10px] w-full py-1 rounded bg-brand-primary/10 text-brand-primary font-semibold border-brand-primary/20 border transition-colors hover:bg-brand-primary hover:text-white">Bayar: Lihat</button>
+                                  ) : (
+                                    <span className="text-[10px] w-full text-center py-1 rounded bg-surface-secondary text-text-secondary border border-transparent">Bayar: -</span>
+                                  )}
+
+                                  {order.dispatchReceiptUrl ? (
+                                    <button onClick={() => Swal.fire({ title: 'Resi Pengiriman', imageUrl: order.dispatchReceiptUrl as string, imageWidth: 400 })} className="text-[10px] w-full py-1 rounded bg-brand-secondary/10 text-brand-secondary font-semibold border-brand-secondary/20 border transition-colors hover:bg-brand-secondary hover:text-white">Bukti Kirim: Lihat</button>
+                                  ) : (
+                                    <button onClick={() => handleUploadDispatchReceipt(order.id, order.status || 'verified')} className="text-[10px] w-full py-1 rounded border border-dashed border-text-secondary/50 text-text-secondary hover:text-brand-secondary hover:border-brand-secondary transition-colors">Bukti Kirim: Upload</button>
+                                  )}
+
+                                  {order.deliveryProofUrl ? (
+                                    <button onClick={() => Swal.fire({ title: 'Bukti Tiba', imageUrl: order.deliveryProofUrl as string, imageWidth: 400 })} className="text-[10px] w-full py-1 rounded bg-status-success/10 text-status-success font-semibold border-status-success/20 border transition-colors hover:bg-status-success hover:text-white">Bukti Tiba: Lihat</button>
+                                  ) : (
+                                    <button onClick={() => handleUploadDeliveryProof(order.id)} className="text-[10px] w-full py-1 rounded border border-dashed border-text-secondary/50 text-text-secondary hover:text-status-success hover:border-status-success transition-colors">Bukti Tiba: Upload</button>
+                                  )}
+                                </div>
                               </td>
                               <td className="p-4 text-right">
                                 <div className="flex flex-col items-end gap-2">
 
                                   <select
+                                    disabled={order.status === 'completed'}
                                     className={`text-xs font-semibold rounded-lg border px-2 py-1.5 outline-none cursor-pointer text-center w-[160px] ${
-                                      order.status === 'completed' ? 'bg-status-success/10 text-status-success border-status-success/20' : 
+                                      order.status === 'completed' ? 'bg-status-success/10 text-status-success border-status-success/20 cursor-not-allowed opacity-80' : 
                                       order.status === 'processing' ? 'bg-brand-primary/10 text-brand-primary border-brand-primary/20' : 
                                       order.status === 'preorder_running' ? 'bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-300' :
                                       order.status === 'verified' ? 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20' : 
@@ -1475,7 +1422,7 @@ export default function ClientSellerDashboard({
                                     </option>
                                     <option value="preorder_running" className="text-text-primary bg-base">Preorder Berjalan</option>
                                     <option value="processing" className="text-text-primary bg-base">Barang Sedang Dikirim</option>
-                                    <option value="completed" className="text-status-success bg-base">Selesai</option>
+                                    {order.status === 'completed' && <option value="completed" className="text-status-success bg-base">Selesai</option>}
                                     <option value="failed" className="text-status-error bg-base">Gagal</option>
                                     <option value="cancelled" className="text-status-error bg-base">Dibatalkan</option>
                                   </select>
@@ -1880,17 +1827,23 @@ export default function ClientSellerDashboard({
               <h1 className="text-h1 mb-1">Keuangan & Saldo</h1>
               <p className="text-body-base text-text-secondary mb-8">Pantau penghasilan dan transaksi pesanan Anda di sini.</p>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="card p-6 border-status-success border-2 shadow-sm">
-                  <h3 className="text-body-small text-text-secondary mb-2">Total Saldo Bersih (Setelah Biaya)</h3>
-                  <p className="text-display-1 font-bold text-status-success">
-                    Rp {sellerOrders.filter(o => o.status === 'completed' || o.status === 'verified').reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - feeAdmin), 0).toLocaleString('id-ID')}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
+                <div className="card p-6 border-status-success border-2 shadow-sm rounded-xl">
+                  <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Total Saldo Bersih</h3>
+                  <p className="text-2xl sm:text-3xl font-bold text-status-success">
+                    Rp {sellerOrders.filter(o => o.status === 'completed').reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
                   </p>
                 </div>
-                <div className="card p-6">
-                  <h3 className="text-body-small text-text-secondary mb-2">Menunggu Pembayaran / Verifikasi</h3>
-                  <p className="text-display-1 font-bold text-status-warning">
-                    Rp {sellerOrders.filter(o => o.status === 'waiting_verification').reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - feeAdmin), 0).toLocaleString('id-ID')}
+                <div className="card p-6 border-border border rounded-xl bg-surface/30">
+                  <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Ditahan Admin (Dalam Proses)</h3>
+                  <p className="text-2xl sm:text-3xl font-bold text-brand-primary">
+                    Rp {sellerOrders.filter(o => ['verified', 'preorder_running', 'processing'].includes(o.status || '')).reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - (curr.adminSplitAmount ?? 0) - feeAdmin - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
+                  </p>
+                </div>
+                <div className="card p-6 border-border border rounded-xl">
+                  <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Menunggu Pembayaran</h3>
+                  <p className="text-2xl sm:text-3xl font-bold text-status-warning">
+                    Rp {sellerOrders.filter(o => o.status === 'waiting_verification').reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - (curr.adminSplitAmount ?? 0) - feeAdmin - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
                   </p>
                 </div>
               </div>
@@ -1900,40 +1853,61 @@ export default function ClientSellerDashboard({
                   <h2 className="text-h3">Daftar Transaksi Pesanan</h2>
                 </div>
                 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto w-full">
                   {sellerOrders.length === 0 ? (
                     <div className="p-10 text-center text-text-secondary flex flex-col items-center">
                       <Info className="w-12 h-12 text-brand-secondary/50 mb-4" />
                       <p>Belum ada transaksi. Terus promosikan pre-order Anda!</p>
                     </div>
                   ) : (
-                    <table className="w-full min-w-[700px] text-left border-collapse">
+                    <table className="w-full text-left border-collapse text-sm">
                       <thead>
-                        <tr className="border-b border-border text-body-small text-text-secondary bg-surface/30 whitespace-nowrap">
-                          <th className="p-4 font-medium">Order ID</th>
-                          <th className="p-4 font-medium">Produk & Pembeli</th>
-                          <th className="p-4 font-medium text-right">Total Transaksi</th>
-                          <th className="p-4 font-medium text-right">Net Masuk Saldo</th>
+                        <tr className="border-b border-border text-xs text-text-secondary bg-surface/30 whitespace-nowrap">
+                          <th className="p-3 font-medium">Pesanan</th>
+                          <th className="p-3 font-medium text-right text-status-warning">Ditahan</th>
+                          <th className="p-3 font-medium text-right text-status-error">Biaya Admin</th>
+                          <th className="p-3 font-medium text-right text-status-error">Biaya Aplikasi</th>
+                          <th className="p-3 font-medium text-right text-status-error">Biaya Jasa</th>
+                          <th className="p-3 font-medium text-right">Total Transaksi</th>
+                          <th className="p-3 font-medium text-right">Net Masuk Saldo</th>
                         </tr>
                       </thead>
                       <tbody className="text-body-base text-text-primary">
                         {sellerOrders.map(order => (
                           <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                            <td className="p-4 font-mono font-medium text-sm text-text-secondary">
-                              {order.id}
-                              <div className="text-[10px] text-text-secondary font-sans mt-1">{new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })} WIB</div>
+                            <td className="p-3 min-w-[200px]">
+                              <div className="font-mono text-[10px] text-text-secondary mb-1">
+                                {order.id} &bull; {new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: WIB_TIMEZONE })} WIB
+                              </div>
+                              <p className="font-bold text-text-primary text-sm line-clamp-1">{order.productName}</p>
+                              <p className="text-[11px] text-text-secondary mt-1">Oleh: {order.buyerName}</p>
                             </td>
-                            <td className="p-4">
-                              <p className="font-semibold text-text-primary line-clamp-1">{order.productName}</p>
-                              <p className="text-xs text-text-secondary mt-1">Pembeli: {order.buyerName}</p>
+                            <td className="p-4 text-right">
+                              <span className="text-sm font-semibold text-status-warning/90 whitespace-nowrap">
+                                {order.status !== 'completed' && (order.adminSplitAmount ?? 0) > 0 ? `-Rp ${(order.adminSplitAmount ?? 0).toLocaleString('id-ID')}` : '-'}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
+                                {order.status !== 'completed' && feeAdmin > 0 ? `-Rp ${feeAdmin.toLocaleString('id-ID')}` : '-'}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
+                                {feeAplikasi > 0 ? `-Rp ${feeAplikasi.toLocaleString('id-ID')}` : '-'}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
+                                {feeJasa > 0 ? `-Rp ${feeJasa.toLocaleString('id-ID')}` : '-'}
+                              </span>
                             </td>
                             <td className="p-4 text-right">
                               <span className="font-semibold text-text-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</span>
                             </td>
                             <td className="p-4 text-right">
                               <div className="flex flex-col items-end">
-                                <span className="font-bold text-status-success">Rp {Math.max(0, order.totalPrice - feeAdmin).toLocaleString('id-ID')}</span>
-                                {feeAdmin > 0 && <span className="text-[10px] text-text-secondary mt-0.5">Biaya Admin -Rp {feeAdmin.toLocaleString('id-ID')}</span>}
+                                <span className="font-bold text-status-success">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' ? 0 : (order.adminSplitAmount ?? 0)) - (order.status === 'completed' ? 0 : feeAdmin) - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
                               </div>
                             </td>
                           </tr>

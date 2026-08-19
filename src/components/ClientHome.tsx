@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, Store, LayoutDashboard, Sparkles, MessageCircle, ScanLine } from "lucide-react";
+import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, Store, LayoutDashboard, Sparkles, MessageCircle, ScanLine, MapPin, Star, MessageSquare } from "lucide-react";
 import { motion, Variants, AnimatePresence } from "framer-motion";
 import { DotLottieReact } from "@/lib/dotlottie";
 import Swal from "sweetalert2";
@@ -433,7 +433,7 @@ export default function ClientHome({
                                   setSearchQuery(product.name);
                                   setIsSearchFocused(false);
                                   setIsMobileSearchOpen(false);
-                                  router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
+                                  router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
                                 }}
                                 className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
                               >
@@ -664,7 +664,7 @@ export default function ClientHome({
                                   setSearchQuery(product.name);
                                   setIsSearchFocused(false);
                                   setIsMobileSearchOpen(false);
-                                  router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
+                                  router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
                                 }}
                                 className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
                               >
@@ -739,7 +739,7 @@ export default function ClientHome({
                                 setSearchQuery(product.name);
                                 setIsSearchFocused(false);
                                 setIsMobileMenuOpen(false);
-                                router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
+                                router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
                               }}
                               className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
                             >
@@ -948,7 +948,7 @@ export default function ClientHome({
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ once: true }}
                     transition={{ delay: idx * 0.1 }}
-                    onClick={() => router.push(`/store/${encodeURIComponent((seller.storeName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${seller.sellerId}`)}
+                    onClick={() => router.push(`/store/${encodeURIComponent((seller.storeName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${seller.sellerId}?view=katalog`)}
                     className="snap-start flex-none w-40 sm:w-48 bg-white rounded-2xl border border-border p-4 shadow-sm group cursor-pointer flex flex-col items-center gap-3 hover:-translate-y-1 hover:shadow-lg hover:border-brand-primary/30 transition-all duration-300"
                   >
                     <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-sm border-2 border-orange-100 ring-4 ring-orange-100/60 group-hover:shadow-md transition-all duration-300 relative bg-white">
@@ -992,13 +992,12 @@ export default function ClientHome({
 
               </motion.div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
                 {[
                   { name: 'Makanan Berat', image: makananBeratImage, keyword: 'nasi' },
                   { name: 'Minuman Segar', image: minumanImage, keyword: 'minum' },
                   { name: 'Jajanan & Cemilan', image: cemilanImage, keyword: 'cemilan' },
                   { name: 'Kue & Roti', image: kueImage, keyword: 'kue' },
-                  { name: 'Cepat Saji', image: cepatSajiImage, keyword: 'ayam' },
                 ].map((category, idx) => (
                   <motion.div
                     key={category.name}
@@ -1032,7 +1031,7 @@ export default function ClientHome({
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-10 pt-20 lg:pt-0"
+            className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 pt-4 lg:pt-0 mt-4"
           >
             <div>
               <h2 className="text-h2 mb-2 tracking-tight">{categoryFilter ? `Kategori: ${categoryFilter}` : 'Rekomendasi Untuk Kamu'}</h2>
@@ -1048,11 +1047,16 @@ export default function ClientHome({
               <div className="relative">
                 <button
                   onClick={() => { setIsCategoryDropdownOpen(!isCategoryDropdownOpen); setIsPriceFilterOpen(false); }}
-                  className="flex items-center gap-2 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-5 py-2.5 rounded-full font-semibold transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 group"
+                  className={`relative flex items-center justify-between w-36 sm:w-44 bg-white border px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all duration-300 group hover:border-brand-primary/60 outline-none focus:border-brand-primary ${isCategoryDropdownOpen ? 'border-brand-primary shadow-sm' : 'border-gray-300'}`}
                 >
-                  {localCategoryFilter ? localCategoryFilter : 'Kategori Makanan'}
-                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-1 transition-transform duration-300 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <span className={`absolute -top-2 left-3 px-1.5 text-[10px] sm:text-[11px] font-medium bg-white transition-colors duration-300 z-10 ${isCategoryDropdownOpen ? 'text-brand-primary' : 'text-gray-500 group-hover:text-brand-primary/80'}`}>
+                    Kategori Makanan
+                  </span>
+                  <span className="text-[13px] sm:text-sm font-semibold text-gray-800 truncate text-left w-full">
+                    {localCategoryFilter || 'Terpopuler'}
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 shrink-0 transition-transform duration-300 ml-1 ${isCategoryDropdownOpen ? 'rotate-180 text-brand-primary' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
 
@@ -1061,19 +1065,22 @@ export default function ClientHome({
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-3 w-48 bg-surface border border-border rounded-xl shadow-xl overflow-hidden"
+                    className="absolute left-0 mt-3 w-48 bg-white dark:bg-surface border border-gray-100 rounded-xl shadow-xl overflow-hidden z-50 ring-1 ring-black/5"
                   >
                     <div className="p-2 flex flex-col gap-1">
                       {['Semua Makanan', 'Makanan Manis', 'Makanan Pedas', 'Makanan Gurih'].map(cat => (
                         <button
                           key={cat}
                           onClick={() => { setLocalCategoryFilter(cat === 'Semua Makanan' ? null : (localCategoryFilter === cat ? null : cat)); setIsCategoryDropdownOpen(false); }}
-                          className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium ${(cat === 'Semua Makanan' && !localCategoryFilter) || localCategoryFilter === cat
-                            ? 'bg-brand-primary text-white'
-                            : 'hover:bg-brand-primary/10 hover:text-brand-primary text-text-primary'
+                          className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium relative ${((cat === 'Semua Makanan' && !localCategoryFilter) || localCategoryFilter === cat)
+                            ? 'bg-brand-primary/5 text-brand-primary'
+                            : 'hover:bg-brand-primary/5 hover:text-brand-primary text-gray-700'
                             }`}
                         >
                           {cat}
+                          {((cat === 'Semua Makanan' && !localCategoryFilter) || localCategoryFilter === cat) && (
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-brand-primary rounded-r-full" />
+                          )}
                         </button>
                       ))}
                     </div>
@@ -1085,11 +1092,16 @@ export default function ClientHome({
               <div className="relative">
                 <button
                   onClick={() => { setIsPriceFilterOpen(!isPriceFilterOpen); setIsCategoryDropdownOpen(false); }}
-                  className="flex items-center gap-2 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-5 py-2.5 rounded-full font-semibold transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 group"
+                  className={`relative flex items-center justify-between w-36 sm:w-44 bg-white border px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all duration-300 group hover:border-brand-primary/60 outline-none focus:border-brand-primary ${isPriceFilterOpen ? 'border-brand-primary shadow-sm' : 'border-gray-300'}`}
                 >
-                  Urutkan Harga
-                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-1 transition-transform duration-300 ${isPriceFilterOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <span className={`absolute -top-2 left-3 px-1.5 text-[10px] sm:text-[11px] font-medium bg-white transition-colors duration-300 z-10 ${isPriceFilterOpen ? 'text-brand-primary' : 'text-gray-500 group-hover:text-brand-primary/80'}`}>
+                    Urutkan Harga
+                  </span>
+                  <span className="text-[13px] sm:text-sm font-semibold text-gray-800 truncate text-left w-full">
+                    {priceSortOrder === 'asc' ? 'Termurah' : (priceSortOrder === 'desc' ? 'Termahal' : 'Relevansi')}
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 shrink-0 transition-transform duration-300 ml-1 ${isPriceFilterOpen ? 'rotate-180 text-brand-primary' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
 
@@ -1099,20 +1111,22 @@ export default function ClientHome({
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-3 w-64 bg-surface border border-border rounded-xl shadow-xl overflow-hidden"
+                    className="absolute right-0 sm:left-0 sm:right-auto mt-3 w-48 sm:w-56 bg-white dark:bg-surface border border-gray-100 rounded-xl shadow-xl overflow-hidden z-50 ring-1 ring-black/5"
                   >
                     <div className="p-2 flex flex-col gap-1">
                       <button
-                        onClick={() => { setPriceSortOrder('asc'); setIsPriceFilterOpen(false); }}
-                        className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium ${priceSortOrder === 'asc' ? 'bg-brand-primary text-white' : 'hover:bg-brand-primary/10 hover:text-brand-primary text-text-primary'}`}
+                         onClick={() => { setPriceSortOrder('asc'); setIsPriceFilterOpen(false); }}
+                         className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium relative ${priceSortOrder === 'asc' ? 'bg-brand-primary/5 text-brand-primary' : 'hover:bg-brand-primary/5 hover:text-brand-primary text-gray-700'}`}
                       >
-                        Harga Normal ke Tertinggi
+                         Dari Termurah
+                         {priceSortOrder === 'asc' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-brand-primary rounded-r-full" />}
                       </button>
                       <button
-                        onClick={() => { setPriceSortOrder('desc'); setIsPriceFilterOpen(false); }}
-                        className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium ${priceSortOrder === 'desc' ? 'bg-brand-primary text-white' : 'hover:bg-brand-primary/10 hover:text-brand-primary text-text-primary'}`}
+                         onClick={() => { setPriceSortOrder('desc'); setIsPriceFilterOpen(false); }}
+                         className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium relative ${priceSortOrder === 'desc' ? 'bg-brand-primary/5 text-brand-primary' : 'hover:bg-brand-primary/5 hover:text-brand-primary text-gray-700'}`}
                       >
-                        Harga Tertinggi ke Normal
+                         Dari Termahal
+                         {priceSortOrder === 'desc' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-brand-primary rounded-r-full" />}
                       </button>
                     </div>
                   </motion.div>
@@ -1147,7 +1161,7 @@ export default function ClientHome({
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
             >
               {displayProducts.map((product) => {
                 const productImageUrl = product.imageUrl ?? "/street-food-festival.jpg";
@@ -1165,135 +1179,86 @@ export default function ClientHome({
 
                 return (
                   <motion.div variants={itemVariants} key={product.id}>
-                    <div onClick={(e) => {
-                      if ((e.target as HTMLElement).closest('button')) return;
-                      router.push(`/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
-                    }} className="card block group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-surface dark:bg-border rounded-2xl relative">
-                      <div className="relative aspect-[4/3] overflow-hidden bg-surface dark:bg-border rounded-t-2xl">
+                    <div
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('button')) return;
+                        router.push(`/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
+                      }}
+                      className="group cursor-pointer bg-white border border-gray-100 dark:bg-border dark:border-gray-800 rounded-[20px] p-2.5 sm:p-3 flex flex-row gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 relative h-full"
+                    >
+                      {/* Left Image Area */}
+                      <div className="relative w-[110px] h-[110px] sm:w-[120px] sm:h-[120px] shrink-0 rounded-[14px] overflow-hidden bg-gray-50 border border-black/5">
                         <Image
                           src={productImageUrl}
                           alt={product.name}
                           fill
-                          className="object-contain group-hover:scale-110 transition-transform duration-500 ease-out"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                          sizes="120px"
                         />
-                        {product.isPromoted && (
-                          <span className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold text-white shadow-lg ring-2 ring-white/70" style={{ backgroundImage: 'linear-gradient(to right, #f97316, var(--color-brand-primary))' }}>
-                            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                            {product.promotionLabel || 'Paling Populer'}
-                          </span>
+                        {/* Promo Badge Optional */}
+                        {product.price > 50000 && (
+                          <div className="absolute top-0 left-0 bg-[#ff4b4b] text-white text-[10px] font-bold px-2 py-0.5 rounded-br-xl shadow-sm z-10">
+                            Terlaris!
+                          </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        {/* Rating Badge */}
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm px-2.5 py-0.5 rounded-full flex items-center justify-center gap-1 shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-gray-100 z-10 min-w-[50px]">
+                          <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-yellow-500 shrink-0" />
+                          <span className="text-[10px] sm:text-[11px] font-bold text-gray-800 leading-none pb-[1px]">{product.averageRating > 0 ? product.averageRating.toFixed(1) : 'Baru'}</span>
+                        </div>
                       </div>
 
-                      <div className="p-5">
-                        <button
-                          type="button"
-                          disabled={!product.sellerId}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            if (!product.sellerId) return;
-
-                            const storeName = product.storeName || product.sellerName || 'toko';
-                            const storeSlug = storeName
-                              .toLowerCase()
-                              .replace(/[^a-z0-9]+/g, '-')
-                              .replace(/^-|-$/g, '');
-                            router.push(`/store/${encodeURIComponent(storeSlug)}-${product.sellerId}`);
-                          }}
-                          className="group/store mb-3 flex w-full items-center gap-3 rounded-xl p-1.5 text-left transition-colors hover:bg-brand-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 disabled:cursor-default disabled:hover:bg-transparent"
-                          aria-label={`Lihat profil lengkap toko ${product.storeName || product.sellerName || 'penjual'}`}
-                          title="Lihat profil lengkap toko"
-                        >
-                          <div className="relative w-10 h-10 rounded-full overflow-hidden border border-border shrink-0 bg-surface dark:bg-border">
-                            {product.sellerAvatar && (
-                              <Image
-                                src={product.sellerAvatar}
-                                alt={product.sellerName ?? "Penjual"}
-                                fill
-                                sizes="40px"
-                                className="object-cover"
-                              />
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-body-small font-semibold text-text-primary leading-tight line-clamp-1">{product.sellerName}</p>
-                            <p className="text-caption text-text-secondary mt-0.5 leading-snug">{product.sellerAddress}</p>
-                          </div>
-                        </button>
-
-                        <h3 className="text-h3 mb-1 line-clamp-2 leading-tight group-hover:text-brand-primary transition-colors">{product.name}</h3>
-                        <ProductRating
-                          averageRating={product.averageRating}
-                          ratingCount={product.ratingCount}
-                          className="mb-2"
-                        />
-                        {product.batchCategory && (
-                          <div className="mb-2">
-                            <span className="bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary px-2 py-0.5 rounded text-[10px] font-bold border border-brand-secondary/30">
-                              {product.batchCategory}
-                            </span>
-                          </div>
-                        )}
-
-                        {product.description && (
-                          <p className="text-body-small text-text-secondary line-clamp-2 mb-3 leading-relaxed">
-                            {product.description}
-                          </p>
-                        )}
-                        <p className="text-h2 text-brand-primary mb-5 font-bold tracking-tight">
-                          Rp {product.price.toLocaleString('id-ID')}
+                      {/* Right Content Area */}
+                      <div className="flex flex-col flex-1 min-w-0 pt-0.5">
+                        {/* Title */}
+                        <h3 className="text-[13px] sm:text-sm font-bold text-gray-900 dark:text-gray-100 leading-snug line-clamp-2 mb-1 group-hover:text-brand-primary transition-colors">
+                          {product.name}
+                        </h3>
+                        
+                        {/* Subtitle / Tags */}
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mb-1.5 line-clamp-1">
+                          {product.sellerName || 'Toko'} • {product.category || 'Makanan'}
                         </p>
 
-                        <div className="space-y-4">
-                          <div className="bg-surface/50 p-3 rounded-lg border border-border">
-                            {product.processingTime && (
-                              <div className="flex justify-between text-caption font-medium">
-                                <span className="text-text-secondary">Waktu Proses:</span>
-                                <span className="text-brand-primary">{product.processingTime}</span>
-                              </div>
-                            )}
-                          </div>
+                        <div className="mb-auto"></div>
 
-                          {product.deadlineDate && (
-                            <div className="flex items-center gap-2 text-caption text-text-secondary pt-3 border-t border-border/60">
-                              <Clock className="w-4 h-4 text-text-secondary" />
-                              <span className="font-medium">Ditutup: {deadlineText}</span>
-                            </div>
-                          )}
+                        {/* Location / Meta Info */}
+                        <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-gray-500 font-medium mb-1 w-full overflow-hidden">
+                          <MapPin className="w-3.5 h-3.5 text-[#ff4b4b] shrink-0" />
+                          <span className="truncate">{product.sellerAddress || product.storeAddress || 'Alamat tidak tersedia'}</span>
+                        </div>
 
-                          <div className="mt-4 w-full">
-                            {(() => {
-                              return (
-                                <div className="flex flex-col gap-2">
-                                  <button
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
-                                    }}
-                                    className="w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm font-semibold btn-primary hover:bg-brand-primary-hover"
-                                  >
-                                    <Store className="w-4 h-4" />
-                                    Lihat Toko &amp; Katalog
-                                  </button>
-
-                                  <button
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      handleInternalPresalesChat(product.sellerName || 'Toko', product.id, product.name, product.sellerLogoUrl || product.sellerAvatar);
-                                    }}
-                                    className="w-full py-2.5 text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm font-semibold border-2 border-brand-primary text-brand-primary hover:bg-brand-primary/10"
-                                  >
-                                    <MessageCircle className="w-4 h-4" />
-                                    Chat Penjual
-                                  </button>
-                                </div>
-                              );
-                            })()}
-                          </div>
+                        {/* Price Row */}
+                        <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold mb-2">
+                          <span className="text-[#ff4b4b] truncate font-bold text-sm">
+                            Rp {product.price.toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-1.5 sm:gap-2 mt-auto w-full">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/store/${encodeURIComponent((product.storeName || product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog`);
+                            }}
+                            className="flex-1 flex items-center justify-center gap-1 bg-[#ff5c35] text-white py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-[#ff424e] transition-colors relative z-20 group/btn"
+                          >
+                            <Store className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
+                            <span className="truncate">Lihat</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleInternalPresalesChat(product.storeName || product.sellerName || 'Toko UMKM', product.id, product.name, product.sellerLogoUrl || product.sellerAvatar);
+                            }}
+                            className="flex-[1.2] flex items-center justify-center gap-1 bg-white text-[#ff5c35] border border-[#ff5c35] py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-[#ff5c35]/5 transition-colors relative z-20 group/btn"
+                          >
+                            <MessageSquare className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
+                            <span className="truncate">Chat</span>
+                          </button>
                         </div>
                       </div>
                     </div>

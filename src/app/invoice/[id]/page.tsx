@@ -23,6 +23,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       selectedVariant: orders.selectedVariant,
       selectedVariantPrice: orders.selectedVariantPrice,
       createdAt: orders.createdAt,
+      buyerId: orders.buyerId,
+      sellerId: products.sellerId,
       
       productName: products.name,
       productPrice: products.price,
@@ -60,5 +62,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
     if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
   });
 
-  return <ClientInvoice order={orderData} feeAplikasi={feeAplikasi} feeJasa={feeJasa} feeAdmin={feeAdmin} />;
+  const viewerRole = user.role === 'admin' ? 'admin' : (user.id === orderData.sellerId ? 'seller' : 'buyer');
+
+  return <ClientInvoice order={orderData} feeAplikasi={feeAplikasi} feeJasa={feeJasa} feeAdmin={feeAdmin} viewerRole={viewerRole} />;
 }

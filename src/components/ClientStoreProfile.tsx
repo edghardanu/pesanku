@@ -16,7 +16,7 @@ import {
   Plus,
   ShieldCheck,
   ShoppingBag,
-  ShoppingCart,
+  ShoppingCart, Star,
   Store,
   Trash2,
   User,
@@ -66,11 +66,17 @@ export default function ClientStoreProfile({
   products,
   showCatalog,
   user,
+  feeAplikasi = 0,
+  feeJasa = 0,
+  feeAdmin = 0,
 }: {
   seller: StoreView;
   products: ProductItem[];
   showCatalog: boolean;
   user: AuthUser | null;
+  feeAplikasi?: number;
+  feeJasa?: number;
+  feeAdmin?: number;
 }) {
   const router = useRouter();
   const [cart, setCart] = useState<Record<string, CartLine>>({});
@@ -205,7 +211,19 @@ export default function ClientStoreProfile({
         <div class="text-left">
           <p class="mb-3 text-sm text-gray-500">${cartProducts.length} produk dari ${escapeHtml(seller.storeName)}</p>
           ${summary}
-          <div class="mb-4 flex justify-between pt-4 text-base"><strong>Total</strong><strong style="color:#ff5c35">${formatRupiah(totalPrice)}</strong></div>
+          <div class="flex justify-between text-xs text-gray-500 mt-2 pt-2 border-t border-gray-100">
+            <span>Subtotal Produk</span><span>${formatRupiah(totalPrice)}</span>
+          </div>
+          <div class="flex justify-between text-xs text-gray-500 mt-1.5">
+            <span>Biaya Aplikasi</span><span>${formatRupiah(feeAplikasi)}</span>
+          </div>
+          <div class="flex justify-between text-xs text-gray-500 mt-1.5">
+            <span>Biaya Jasa</span><span>${formatRupiah(feeJasa)}</span>
+          </div>
+          <div class="flex justify-between text-xs text-gray-500 mt-1.5 mb-2 pb-2 border-b border-gray-200">
+            <span>Biaya Platform (Admin)</span><span>${formatRupiah(feeAdmin)}</span>
+          </div>
+          <div class="mb-4 flex justify-between pt-1 text-base"><strong>Total Pesanan</strong><strong style="color:#ff5c35">${formatRupiah(totalPrice + feeAplikasi + feeJasa + feeAdmin)}</strong></div>
           <label for="store-order-date" class="mb-1 block text-sm font-semibold">Tanggal Pesanan <span class="text-red-500">*</span></label>
           <input id="store-order-date" type="date" min="${today}" class="mb-3 w-full rounded border p-2 text-sm focus:border-[#ff5c35] focus:outline-none" />
           <label for="store-order-address" class="mb-1 block text-sm font-semibold">Alamat Pengiriman <span class="font-normal text-gray-400">(opsional)</span></label>
@@ -362,7 +380,7 @@ export default function ClientStoreProfile({
                   <p className="mt-1 text-sm text-text-secondary">Toko ini belum menambahkan produk.</p>
                 </div>
               ) : (
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
                   {products.map((product) => {
                     const productSlug = (product.name || 'produk')
                       .toLowerCase()
@@ -375,49 +393,53 @@ export default function ClientStoreProfile({
                     const closed = isProductClosed(product);
 
                     return (
-                      <article key={product.id} className="card group flex flex-col overflow-hidden border border-border transition-all hover:-translate-y-1 hover:shadow-lg">
-                        <Link href={`/product/${encodeURIComponent(productSlug)}-${product.id}`} className="block">
-                          <div className="relative aspect-[4/3] bg-base">
+                      <article key={product.id} className="group flex flex-row overflow-hidden bg-white dark:bg-border border border-gray-100 dark:border-gray-800 transition-all hover:shadow-md rounded-[20px] p-2.5 sm:p-3 gap-3 sm:gap-4 relative h-full">
+                        <div className="relative w-[110px] h-[110px] sm:w-[120px] sm:h-[120px] shrink-0 bg-gray-50 border border-black/5 rounded-[14px] overflow-hidden self-start">
+                          <Link href={`/product/${encodeURIComponent(productSlug)}-${product.id}`} className="block w-full h-full">
                             <Image
                               src={product.imageUrl || '/street-food-festival.jpg'}
                               alt={product.name}
                               fill
-                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                              className="object-cover transition-transform duration-300 group-hover:scale-105"
+                              sizes="120px"
+                              className="object-cover transition-transform duration-500 group-hover:scale-105"
                             />
-                          </div>
-                        </Link>
+                            {/* Rating Badge */}
+                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm px-2.5 py-0.5 rounded-full flex items-center justify-center gap-1 shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-gray-100 text-[10px] sm:text-[11px] font-bold z-10 text-gray-800 leading-none pb-[1px] min-w-[50px]">
+                               <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-yellow-500 shrink-0" /> 
+                               {(product.averageRating ?? 0) > 0 ? (product.averageRating ?? 0).toFixed(1) : 'Baru'}
+                            </div>
+                          </Link>
+                        </div>
 
-                        <div className="flex flex-1 flex-col p-4">
+                        <div className="flex flex-1 flex-col justify-center min-w-0 pt-0.5">
                           {product.batchCategory && (
-                            <span className="mb-2 inline-flex self-start rounded bg-brand-secondary/15 px-2 py-0.5 text-[10px] font-bold text-brand-secondary-dark">
+                            <span className="mb-1.5 sm:mb-2 md:mt-2 inline-flex self-start rounded bg-brand-secondary/15 px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-[9px] sm:text-[10px] font-bold text-brand-secondary-dark line-clamp-1 truncate block w-max max-w-full">
                               {product.batchCategory}
                             </span>
                           )}
                           <Link href={`/product/${encodeURIComponent(productSlug)}-${product.id}`}>
-                            <h3 className="line-clamp-2 text-lg font-bold text-text-primary transition-colors group-hover:text-brand-primary">{product.name}</h3>
+                            <h3 className="text-[13px] sm:text-sm font-bold text-gray-900 dark:text-gray-100 leading-snug line-clamp-2 mb-1 group-hover:text-[#ff5c35] transition-colors">{product.name}</h3>
                           </Link>
-                          <ProductRating
-                            averageRating={product.averageRating}
-                            ratingCount={product.ratingCount}
-                            className="mt-1.5"
-                          />
-                          <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-relaxed text-text-secondary">
-                            {product.description || 'Tidak ada deskripsi produk.'}
+                          
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mb-1.5 line-clamp-1">
+                            {product.description || 'Tidak ada deskripsi.'}
                           </p>
-                          <div className="mt-3">
-                            <p className="text-xl font-bold text-brand-primary">{formatRupiah(productSubtotal)}</p>
+
+                          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold mb-2">
+                            <span className="text-[#ff4b4b] truncate font-bold text-sm">
+                              {formatRupiah(productSubtotal)}
+                            </span>
                             {line && line.qty > 1 && (
-                              <p className="mt-0.5 text-xs text-text-secondary">
-                                {line.qty} × {formatRupiah(displayedPrice)}
-                              </p>
+                              <span className="ml-1 text-[10px] text-gray-500 font-medium whitespace-nowrap">
+                                ({line.qty}× {formatRupiah(displayedPrice)})
+                              </span>
                             )}
                           </div>
 
                           {product.variants && product.variants.length > 0 && (
-                            <fieldset className="mt-4">
-                              <legend className="mb-2 text-xs font-semibold text-text-primary">Pilih varian <span className="font-normal text-text-secondary">(opsional)</span></legend>
-                              <div className="flex flex-wrap gap-2">
+                            <div className="mb-2 w-full overflow-x-auto pb-1 no-scrollbar flex items-center">
+                              <span className="text-[10px] font-medium text-text-secondary mr-2 shrink-0">Varian:</span>
+                              <div className="flex gap-1.5">
                                 {product.variants.map((variant) => {
                                   const isSelected = selectedVariant === variant.name;
                                   return (
@@ -426,31 +448,28 @@ export default function ClientStoreProfile({
                                       type="button"
                                       onClick={() => selectVariant(product.id, isSelected ? '' : variant.name)}
                                       aria-pressed={isSelected}
-                                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${isSelected
-                                        ? 'border-brand-primary bg-brand-primary text-white'
-                                        : 'border-border bg-surface text-text-primary hover:border-brand-primary hover:text-brand-primary'
+                                      className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold transition-colors shrink-0 whitespace-nowrap ${isSelected
+                                        ? 'border-[#ff5c35] bg-[#ff5c35] text-white'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:border-[#ff5c35] hover:text-[#ff5c35]'
                                       }`}
                                     >
-                                      {variant.name}{variant.price !== null && variant.price !== undefined ? ` · ${formatRupiah(variant.price)}` : ''}
+                                      {variant.name}
                                     </button>
                                   );
                                 })}
                               </div>
-                            </fieldset>
+                            </div>
                           )}
 
-                          <div className="mt-auto pt-4">
-                            <div className="mb-3 flex items-center justify-between gap-3 border-t border-border/60 pt-3">
-                              <span className="flex items-center gap-1 text-xs text-text-secondary"><Clock className="h-3.5 w-3.5" />{product.processingTime || 'Waktu proses belum tersedia'}</span>
-                              <Link href={`/product/${encodeURIComponent(productSlug)}-${product.id}`} aria-label={`Lihat detail ${product.name}`}>
-                                <ChevronRight className="h-4 w-4 shrink-0 text-brand-primary" />
-                              </Link>
+                          <div className="mt-auto w-full">
+                            <div className="mb-1.5 flex items-center justify-between gap-2">
+                              <span className="flex items-center gap-1 text-[10px] text-gray-500 w-full truncate"><Clock className="w-3 h-3 shrink-0 text-gray-400" /><span className="truncate">{product.processingTime || 'Preorder'}</span></span>
                             </div>
 
                             {line ? (
-                              <div className="flex items-center gap-2 rounded-xl border border-brand-primary/30 bg-brand-primary/5 p-2">
-                                <button type="button" onClick={() => changeQty(product.id, -1)} disabled={line.qty <= 1} className="rounded-lg border border-border bg-surface p-2 disabled:opacity-40" aria-label={`Kurangi ${product.name}`}>
-                                  <Minus className="h-4 w-4" />
+                              <div className="flex items-center justify-between gap-1.5 rounded-lg border border-[#ff5c35]/20 bg-[#ff5c35]/5 p-1 w-full mt-2">
+                                <button type="button" onClick={() => changeQty(product.id, -1)} disabled={line.qty <= 1} className="rounded-md border border-gray-200 bg-white p-1 disabled:opacity-40" aria-label={`Kurangi`}>
+                                  <Minus className="h-3.5 w-3.5 text-gray-700" />
                                 </button>
                                 <input
                                   type="text"
@@ -459,14 +478,13 @@ export default function ClientStoreProfile({
                                   value={line.qty === 0 ? '' : line.qty}
                                   onChange={(event) => setDirectQty(product.id, event.target.value)}
                                   onBlur={() => normalizeQty(product.id)}
-                                  aria-label={`Jumlah ${product.name}`}
-                                  className="w-12 rounded-lg border border-border bg-surface px-1 py-2 text-center font-bold text-text-primary outline-none transition-colors focus:border-brand-primary"
+                                  className="w-8 rounded-md bg-transparent px-0.5 py-1 text-center text-xs font-bold text-gray-900 outline-none transition-colors border-none"
                                 />
-                                <button type="button" onClick={() => changeQty(product.id, 1)} className="rounded-lg border border-border bg-surface p-2" aria-label={`Tambah ${product.name}`}>
-                                  <Plus className="h-4 w-4" />
+                                <button type="button" onClick={() => changeQty(product.id, 1)} className="rounded-md border border-gray-200 bg-white p-1" aria-label={`Tambah`}>
+                                  <Plus className="h-3.5 w-3.5 text-gray-700" />
                                 </button>
-                                <button type="button" onClick={() => removeProduct(product.id)} className="ml-auto rounded-lg p-2 text-status-error hover:bg-status-error/10" aria-label={`Hapus ${product.name} dari keranjang`}>
-                                  <Trash2 className="h-4 w-4" />
+                                <button type="button" onClick={() => removeProduct(product.id)} className="ml-auto rounded-md border border-gray-200 bg-white p-1 text-red-500 hover:bg-red-50" aria-label={`Hapus`}>
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               </div>
                             ) : (
@@ -474,9 +492,9 @@ export default function ClientStoreProfile({
                                 type="button"
                                 onClick={() => addProduct(product)}
                                 disabled={closed}
-                                className="btn-primary flex w-full items-center justify-center gap-2 py-2.5 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+                                className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-[#ff5c35] px-3 py-1.5 text-[11px] font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 mt-2"
                               >
-                                <Plus className="h-4 w-4" /> {closed ? 'Tidak Dapat Dipesan' : 'Tambah ke Keranjang'}
+                                <Plus className="h-3 h-3 shrink-0" /> <span className="truncate">{closed ? 'Ditutup' : 'Tambah'}</span>
                               </button>
                             )}
                           </div>

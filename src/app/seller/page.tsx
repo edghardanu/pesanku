@@ -47,6 +47,8 @@ export default async function SellerDashboard() {
     proofUrl: payments.proofUrl,
     deliveryProofUrl: orders.deliveryProofUrl,
     dispatchReceiptUrl: orders.dispatchReceiptUrl,
+    adminSplitAmount: orders.adminSplitAmount,
+    sellerSplitAmount: orders.sellerSplitAmount,
   })
   .from(orders)
   .innerJoin(products, eq(orders.productId, products.id))
@@ -61,8 +63,12 @@ export default async function SellerDashboard() {
 
   const feeSettings = await db.select().from(settings).all();
   let feeAdmin = 0;
+  let feeAplikasi = 0;
+  let feeJasa = 0;
   feeSettings.forEach(f => {
     if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
+    if (f.key === "fee_aplikasi") feeAplikasi = parseInt(f.value);
+    if (f.key === "fee_jasa") feeJasa = parseInt(f.value);
   });
 
   const schedulePrefix = `preorder_schedule:${user.id}:`;
@@ -141,6 +147,8 @@ export default async function SellerDashboard() {
       userName={user.name}
       sellerOrders={sellerOrders}
       feeAdmin={feeAdmin}
+      feeAplikasi={feeAplikasi}
+      feeJasa={feeJasa}
       promotionOffers={sellerPromotionOffers}
       promotionRequests={sellerPromotionRequests}
       userEmail={user.email}

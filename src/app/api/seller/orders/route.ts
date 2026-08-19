@@ -29,6 +29,8 @@ export async function GET() {
       proofUrl: payments.proofUrl,
       deliveryProofUrl: orders.deliveryProofUrl,
       dispatchReceiptUrl: orders.dispatchReceiptUrl,
+      adminSplitAmount: orders.adminSplitAmount,
+      sellerSplitAmount: orders.sellerSplitAmount,
     })
     .from(orders)
     .innerJoin(products, eq(orders.productId, products.id))
