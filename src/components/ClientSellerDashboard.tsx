@@ -692,10 +692,21 @@ export default function ClientSellerDashboard({
               </div>
             </div>
             <div class="flex gap-2 relative mt-2 auto-rows-min">
-              <label for="chat-image-upload" class="bg-base shadow-sm border border-border hover:bg-black/5 dark:hover:bg-white/5 w-11 h-11 rounded-xl cursor-pointer flex justify-center items-center shrink-0 text-text-secondary hover:text-brand-primary transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                <input type="file" id="chat-image-upload" accept="image/png, image/jpeg, image/jpg, image/webp" class="hidden" />
-              </label>
+              <div class="relative" id="attachment-container">
+                <button type="button" id="attachment-toggle" class="bg-base shadow-sm border border-border hover:bg-black/5 dark:hover:bg-white/5 w-11 h-11 rounded-xl cursor-pointer flex justify-center items-center shrink-0 text-text-secondary hover:text-brand-primary transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                </button>
+                <div id="attachment-menu" class="hidden absolute bottom-full mb-2 left-0 flex gap-2 bg-base border border-border p-2 rounded-xl shadow-lg z-[9999] transition-all transform origin-bottom-left">
+                  <label for="chat-camera-upload" class="cursor-pointer w-10 h-10 flex flex-col items-center justify-center bg-black/5 rounded-lg hover:text-brand-primary hover:bg-brand-primary/10 transition-colors" title="Kamera">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                    <input type="file" id="chat-camera-upload" accept="image/*" capture="environment" class="hidden" />
+                  </label>
+                  <label for="chat-gallery-upload" class="cursor-pointer w-10 h-10 flex flex-col items-center justify-center bg-black/5 rounded-lg hover:text-brand-primary hover:bg-brand-primary/10 transition-colors" title="Galeri">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    <input type="file" id="chat-gallery-upload" accept="image/*" class="hidden" />
+                  </label>
+                </div>
+              </div>
               <input type="text" id="chat-input" class="input-field shadow-sm flex-1 text-sm bg-base border-border rounded-xl px-3 outline-none focus:border-brand-primary h-11" placeholder="Ketik pesan di sini...">
               <button id="send-chat" class="btn-primary shadow-sm px-4 rounded-xl flex items-center justify-center transition-transform active:scale-95 shrink-0 h-11">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -954,8 +965,7 @@ export default function ClientSellerDashboard({
           if (e.key === 'Enter') sendMessage();
         });
 
-        const imageUpload = document.getElementById('chat-image-upload') as HTMLInputElement;
-        imageUpload?.addEventListener('change', (e) => {
+        const handleImageUpload = (e: Event, inputElement: HTMLInputElement) => {
           const file = (e.target as HTMLInputElement).files?.[0];
           if (file) {
             if (file.size > 2 * 1024 * 1024) {
@@ -965,17 +975,39 @@ export default function ClientSellerDashboard({
                 text: 'Maksimum ukuran foto adalah 2MB.',
                 confirmButtonColor: '#ff5c35'
               });
-              imageUpload.value = '';
+              inputElement.value = '';
               return;
             }
             const reader = new FileReader();
             reader.onload = (re) => {
               const base64 = re.target?.result as string;
               sendMessage(`[CHAT_IMG|${base64}]`);
-              imageUpload.value = '';
+              inputElement.value = '';
+              document.getElementById('attachment-menu')?.classList.add('hidden');
             };
             reader.readAsDataURL(file);
           }
+        };
+
+        const cameraUpload = document.getElementById('chat-camera-upload') as HTMLInputElement;
+        cameraUpload?.addEventListener('change', (e) => handleImageUpload(e, cameraUpload));
+        
+        const galleryUpload = document.getElementById('chat-gallery-upload') as HTMLInputElement;
+        galleryUpload?.addEventListener('change', (e) => handleImageUpload(e, galleryUpload));
+
+        const attachmentToggle = document.getElementById('attachment-toggle');
+        attachmentToggle?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('attachment-menu')?.classList.toggle('hidden');
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('attachment-menu');
+            const toggle = document.getElementById('attachment-toggle');
+            if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target as Node) && e.target !== toggle) {
+                menu.classList.add('hidden');
+            }
         });
       }
     });

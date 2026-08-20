@@ -79,6 +79,7 @@ export default function ClientHome({
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+  const [visibleMobileItems, setVisibleMobileItems] = useState(12);
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
@@ -377,15 +378,16 @@ export default function ClientHome({
   // Reset page to 1 when filters or search change
   useEffect(() => {
     setCurrentPage(1);
+    setVisibleMobileItems(12);
   }, [searchQuery, localCategoryFilter, priceSortOrder, categoryFilter]);
 
   const totalPages = Math.ceil(displayProducts.length / itemsPerPage);
   
   const currentProducts = useMemo(() => {
-    if (!isDesktop) return displayProducts;
+    if (!isDesktop) return displayProducts.slice(0, visibleMobileItems);
     const startIndex = (currentPage - 1) * itemsPerPage;
     return displayProducts.slice(startIndex, startIndex + itemsPerPage);
-  }, [displayProducts, currentPage, isDesktop]);
+  }, [displayProducts, currentPage, isDesktop, visibleMobileItems]);
 
   return (
     <>
@@ -1326,6 +1328,18 @@ export default function ClientHome({
               )}
             </div>
             
+            {/* Mobile Load More Controls */}
+            {!isDesktop && displayProducts.length > visibleMobileItems && (
+              <div className="flex md:hidden justify-center items-center mt-8 mb-4">
+                <button
+                  onClick={() => setVisibleMobileItems(prev => prev + 12)}
+                  className="px-6 py-2.5 rounded-full border border-border text-sm font-semibold text-text-primary hover:border-brand-primary hover:text-brand-primary transition-colors bg-surface shadow-sm"
+                >
+                  Tampilkan Lebih Banyak
+                </button>
+              </div>
+            )}
+
             {/* Desktop Pagination Controls */}
             {isDesktop && (
               <div className="hidden md:flex justify-center items-center gap-2 mt-12 mb-4">

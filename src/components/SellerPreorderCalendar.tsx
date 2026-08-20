@@ -535,14 +535,14 @@ export default function SellerPreorderCalendar({
 
                 return (
                   <div key={order.id} className="rounded-xl border border-border bg-base p-3 relative group">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-text-primary">{order.productName}</p>
-                        {order.selectedVariant && <p className="mt-0.5 text-xs font-semibold text-brand-primary">Varian: {order.selectedVariant}{order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}` : ''}</p>}
-                        <p className="mt-1 text-xs text-text-secondary">{order.qty} porsi · {order.id}</p>
-                      </div>
-                      <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${statusBadge}`}>{statusLabel}</span>
+                    {/* Status badge on top, full width */}
+                    <div className="mb-2">
+                      <span className={`inline-block rounded-full px-2.5 py-1 text-[10px] font-bold leading-tight ${statusBadge}`}>{statusLabel}</span>
                     </div>
+                    {/* Product name — full width, wraps freely */}
+                    <p className="text-sm font-bold text-text-primary leading-snug">{order.productName}</p>
+                    {order.selectedVariant && <p className="mt-0.5 text-xs font-semibold text-brand-primary">Varian: {order.selectedVariant}{order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}` : ''}</p>}
+                    <p className="mt-1 text-[10px] text-text-secondary truncate max-w-full">{order.qty} porsi · <span className="font-mono">{order.id}</span></p>
                     <div className="mt-3 space-y-1.5 text-xs text-text-secondary pt-2 border-t border-border/50">
                       <p className="flex items-center gap-2"><UserRound className="h-3.5 w-3.5 shrink-0" /><span className="font-semibold text-text-primary">{order.buyerName || 'Pembeli'}</span></p>
                       {order.buyerPhone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 shrink-0" />{order.buyerPhone}</p>}

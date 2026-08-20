@@ -45,6 +45,6 @@
     "typescript": "^5"
   },
   "overrides": {
-    "keyv": "^4.5.4"
+    "keyv": "npm:@keyvhq/core@^2.2.7"
   }
 }
