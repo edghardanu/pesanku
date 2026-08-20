@@ -82,6 +82,13 @@ export default function ClientHome({
   const [visibleMobileItems, setVisibleMobileItems] = useState(12);
   const [isDesktop, setIsDesktop] = useState(false);
 
+  // UMKM Terpopuler pagination
+  const sellersPerPage = 2;
+  const [sellerPage, setSellerPage] = useState(0);
+  const [sellerPageDir, setSellerPageDir] = useState<1 | -1>(1);
+  const [sellerAutoPlay, setSellerAutoPlay] = useState(true);
+
+
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 768);
     handleResize();
@@ -337,6 +344,8 @@ export default function ClientHome({
       totalCount: seller.totalCount || 0,
     })).slice(0, 10);
   }, [initialProducts, initialPopularSellers]);
+
+
 
   const filteredProducts = useMemo(() => {
     return initialProducts.filter(product => {
@@ -951,56 +960,99 @@ export default function ClientHome({
         {/* Katalog Section */}
         <section id="katalog" className={`scroll-mt-24 px-4 container mx-auto ${categoryFilter ? 'py-16' : 'pb-16 pt-8'}`}>
 
-          {/* UMKM Terpopuler Section */}
-          {!categoryFilter && popularSellers.length > 0 && (
-            <div className="mb-16">
-              <motion.div
-                initial={false}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                className="mb-6 flex justify-between items-end"
-              >
-                <div>
-                  <h2 className="text-h2 mb-2 tracking-tight">UMKM Terpopuler</h2>
-                  <p className="text-body-base text-text-secondary">Pilihan toko favorit dengan kualitas terbaik.</p>
-                </div>
-              </motion.div>
+          {/* UMKM Terpopuler Section — Infinite Marquee Slider */}
+          {!categoryFilter && popularSellers.length > 0 && (() => {
+            // Triple the list for seamless infinite loop
+            const loopSellers = [...popularSellers, ...popularSellers, ...popularSellers];
 
-              <div className="flex justify-center overflow-x-auto gap-4 sm:gap-6 pb-4 snap-x snap-mandatory scrollbar-hide w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                {popularSellers.map((seller, idx) => (
+            // Card width + gap in pixels (used for speed calc)
+            const cardW = 192; // ~w-48
+            const gap = 24;
+            const totalWidth = popularSellers.length * (cardW + gap);
+            const durationSec = totalWidth / 60; // 60px per second
+
+            return (
+              <div className="mb-16">
+                {/* Header */}
+                <div className="mb-6 flex justify-between items-center">
+                  <div>
+                    <h2 className="text-h2 mb-2 tracking-tight">UMKM Terpopuler</h2>
+                    <p className="text-body-base text-text-secondary">Pilihan toko favorit dengan kualitas terbaik.</p>
+                  </div>
+
+                  {/* Prev / Next manual controls */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => { setSellerAutoPlay(false); setTimeout(() => setSellerAutoPlay(true), 8000); setSellerPage(prev => Math.max(prev - 1, 0)); }}
+                      disabled={sellerPage === 0}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${sellerPage === 0 ? 'border-gray-200 text-gray-300 bg-gray-50 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800' : 'border-gray-300 text-gray-700 bg-white hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 dark:bg-surface dark:border-border dark:text-gray-300'}`}
+                      aria-label="UMKM Sebelumnya"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    </button>
+                    <button
+                      onClick={() => { setSellerAutoPlay(false); setTimeout(() => setSellerAutoPlay(true), 8000); setSellerPage(prev => prev + 1); }}
+                      className="w-10 h-10 rounded-xl flex items-center justify-center border transition-all border-gray-300 text-gray-700 bg-white hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 dark:bg-surface dark:border-border dark:text-gray-300"
+                      aria-label="UMKM Selanjutnya"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Infinite Marquee Strip */}
+                <div
+                  className="overflow-hidden relative"
+                  style={{ maskImage: 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)' }}
+                >
                   <motion.div
-                    key={seller.sellerId}
-                    initial={false}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: idx * 0.1 }}
-                    onClick={() => router.push(`/store/${encodeURIComponent((seller.storeName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${seller.sellerId}?view=katalog`)}
-                    className="snap-start flex-none w-40 sm:w-48 bg-white rounded-2xl border border-border p-4 shadow-sm group cursor-pointer flex flex-col items-center gap-3 hover:-translate-y-1 hover:shadow-lg hover:border-brand-primary/30 transition-all duration-300"
+                    className="flex gap-6"
+                    animate={sellerAutoPlay ? { x: [`0px`, `-${totalWidth}px`] } : {}}
+                    transition={sellerAutoPlay ? { repeat: Infinity, duration: durationSec, ease: 'linear' } : {}}
                   >
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-sm border-2 border-orange-100 ring-4 ring-orange-100/60 group-hover:shadow-md transition-all duration-300 relative bg-white">
-                      <img
-                        src={seller.sellerAvatar}
-                        alt={seller.storeName}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                    </div>
-                    <div className="w-full text-center flex flex-col items-center flex-1 justify-center gap-1">
-                      <h3 className="font-bold text-sm sm:text-base line-clamp-2 w-full" style={{ color: '#0f172a' }}>
-                        {seller.storeName}
-                      </h3>
-                      {seller.averageRating > 0 ? (
-                        <div className="flex items-center justify-center scale-90">
-                          <ProductRating averageRating={seller.averageRating} ratingCount={seller.totalCount} className="[&>span]:text-slate-700" />
+                    {loopSellers.map((seller, idx) => (
+                      <div
+                        key={`${seller.sellerId}-${idx}`}
+                        onClick={() => router.push(`/store/${encodeURIComponent((seller.storeName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${seller.sellerId}?view=katalog`)}
+                        className="flex-none w-40 sm:w-48 bg-white dark:bg-surface rounded-2xl border border-border p-4 shadow-sm group cursor-pointer flex flex-col items-center gap-3 hover:-translate-y-1 hover:shadow-lg hover:border-brand-primary/30 transition-all duration-300 relative overflow-hidden"
+                        onMouseEnter={() => setSellerAutoPlay(false)}
+                        onMouseLeave={() => setSellerAutoPlay(true)}
+                      >
+                        {/* Shimmer */}
+                        <motion.div
+                          className="absolute inset-0 pointer-events-none z-10"
+                          animate={{ x: ['-120%', '120%'] }}
+                          transition={{ repeat: Infinity, repeatDelay: 2.5, duration: 0.7, ease: 'easeIn', delay: (idx % popularSellers.length) * 0.6 }}
+                        >
+                          <div className="h-full w-2/5 bg-gradient-to-r from-transparent via-white/50 to-transparent skew-x-[-18deg]" />
+                        </motion.div>
+
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-sm border-2 border-orange-100 ring-4 ring-orange-100/60 group-hover:shadow-md transition-all duration-300 relative bg-white">
+                          <img
+                            src={seller.sellerAvatar}
+                            alt={seller.storeName}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
                         </div>
-                      ) : (
-                        <span className="text-[10px]" style={{ color: '#64748b' }}>Belum ada rating</span>
-                      )}
-                    </div>
+                        <div className="w-full text-center flex flex-col items-center justify-center gap-1">
+                          <h3 className="font-bold text-sm sm:text-base line-clamp-2 w-full" style={{ color: '#0f172a' }}>
+                            {seller.storeName}
+                          </h3>
+                          {seller.averageRating > 0 ? (
+                            <div className="flex items-center justify-center scale-90">
+                              <ProductRating averageRating={seller.averageRating} ratingCount={seller.totalCount} className="[&>span]:text-slate-700" />
+                            </div>
+                          ) : (
+                            <span className="text-[10px]" style={{ color: '#64748b' }}>Belum ada rating</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </motion.div>
-                ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Categories Section */}
           {!categoryFilter && (
