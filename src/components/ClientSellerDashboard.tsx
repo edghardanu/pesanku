@@ -120,12 +120,19 @@ export default function ClientSellerDashboard({
   const isInitialLoad = useRef(true);
   
   useEffect(() => {
+    let abortController: AbortController | null = null;
+
     const fetchData = async () => {
+      // Abort any previous in-flight request before starting a new one
+      abortController?.abort();
+      abortController = new AbortController();
+      const { signal } = abortController;
+
       try {
         const [prodRes, notifRes, ordersRes] = await Promise.all([
-          fetch(`/api/products?t=${Date.now()}`, { cache: 'no-store' }),
-          fetch(`/api/seller/notifications?t=${Date.now()}`, { cache: 'no-store' }),
-          fetch(`/api/seller/orders?t=${Date.now()}`, { cache: 'no-store' }),
+          fetch(`/api/products?t=${Date.now()}`, { cache: 'no-store', signal }),
+          fetch(`/api/seller/notifications?t=${Date.now()}`, { cache: 'no-store', signal }),
+          fetch(`/api/seller/orders?t=${Date.now()}`, { cache: 'no-store', signal }),
         ]);
         
         if (prodRes.ok) {
@@ -220,6 +227,9 @@ export default function ClientSellerDashboard({
           }, 500);
         }
       } catch (err) {
+        // Silently ignore AbortError — happens when component unmounts or
+        // the next polling tick starts before the previous request finishes.
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         console.error('Error polling data:', err);
       }
     };
@@ -230,7 +240,10 @@ export default function ClientSellerDashboard({
 
     fetchData();
     const interval = setInterval(fetchData, 15000); // 15 seconds is much better for performance
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      abortController?.abort(); // Cancel any in-flight request on unmount
+    };
   }, []);
 
   const [formData, setFormData] = useState({
