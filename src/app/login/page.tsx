@@ -8,12 +8,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import Swal from 'sweetalert2';
 
 export default function LoginPage() {
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
+  
   useEffect(() => {
     setTimeout(() => {
       if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -92,50 +92,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-center items-center p-4 pb-24 md:pb-4 bg-base relative">
-      <Link href="/" className="hidden lg:flex absolute top-6 left-4 md:left-6 items-center gap-2 text-text-secondary hover:text-brand-primary transition-colors font-medium bg-surface border border-border px-4 py-2 rounded-full shadow-sm z-10">
-        <ArrowLeft className="w-5 h-5" />
-        <span>Kembali ke Beranda</span>
-      </Link>
+    <div className="min-h-screen flex flex-col lg:flex-row-reverse bg-white dark:bg-gray-950 relative overflow-x-hidden">
+      {/* Left Form Section */}
+      <div className="flex-[1.2] relative z-10 w-full lg:w-3/5 lg:h-screen lg:overflow-y-auto px-6 sm:px-12 py-8 md:py-12">
+      <div className="w-full max-w-md lg:max-w-2xl xl:max-w-3xl mx-auto flex flex-col px-6 lg:px-12 xl:px-20 pt-8 pb-20">
       
-      <button 
-        onClick={toggleDarkMode}
-        className="absolute top-6 right-4 md:right-6 p-2 bg-surface border border-border rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors flex items-center justify-center w-10 h-10 shadow-sm z-10"
-        aria-label="Toggle Dark Mode"
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          {isDarkMode ? (
-            <motion.div
-              key="moon"
-              initial={{ scale: 0.5, opacity: 0, rotate: -90 }}
-              animate={{ scale: 1, opacity: 1, rotate: 0 }}
-              exit={{ scale: 0.5, opacity: 0, rotate: 90 }}
-              transition={{ duration: 0.2 }}
-              className="absolute"
-            >
-              <Moon className="w-5 h-5 text-brand-secondary" />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="sun"
-              initial={{ scale: 0.5, opacity: 0, rotate: 90 }}
-              animate={{ scale: 1, opacity: 1, rotate: 0 }}
-              exit={{ scale: 0.5, opacity: 0, rotate: -90 }}
-              transition={{ duration: 0.2 }}
-              className="absolute"
-            >
-              <Sun className="w-5 h-5 text-brand-primary" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </button>
 
-      <Link href="/" className="flex items-center gap-2 mb-8 hover:opacity-80 transition-opacity">
+      <div className="w-full flex-1 flex flex-col pb-24 md:pb-12">
+
+      <Link href="/" className="flex justify-center items-center gap-3 mb-10 hover:opacity-80 transition-opacity">
         <ShoppingBag className="w-10 h-10 text-brand-primary" />
-        <span className="text-display-1 text-brand-primary font-bold">pesanku</span>
+        <span className="text-display-1 text-brand-primary font-bold text-3xl">pesanku</span>
       </Link>
 
-      <div className="card w-full max-w-md p-8">
+      <div className="w-full">
         <h1 className="text-h2 text-text-primary mb-2 text-center">
           Selamat Datang Kembali!
         </h1>
@@ -149,7 +119,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <form className="space-y-3" onSubmit={handleSubmit}>
           <div>
             <label className="block text-body-small font-medium text-text-primary mb-1">
               Email
@@ -210,6 +180,50 @@ export default function LoginPage() {
               Daftar Sekarang
             </Link>
           </p>
+        </div>
+        </div>
+        </div>
+      </div>
+      </div>
+
+      {/* Right Image Section (Now visually on Left) */}
+      <div className="flex order-first lg:order-none w-full lg:w-2/5 lg:h-screen lg:sticky lg:top-0 relative shadow-lg lg:shadow-[10px_0px_30px_-15px_rgba(0,0,0,0.3)] bg-brand-primary overflow-hidden">
+        
+        
+        
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img 
+          src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
+          alt="Makanan UMKM"
+          className="absolute inset-0 w-full h-full object-cover opacity-90"
+        />
+        <div className="relative z-10 w-full min-h-[450px] sm:min-h-[500px] lg:min-h-[100%] bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-between p-6 sm:p-8 lg:p-10 xl:p-16">
+          <div className="w-full flex-none">
+            <Link href="/" className="inline-flex items-center gap-2 px-4 py-2.5 bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/20 text-white rounded-full transition-all group shadow-xl">
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+              <span className="font-semibold tracking-wide text-sm hidden sm:block">Kembali ke Beranda</span>
+            </Link>
+          </div>
+          <motion.div className="mt-auto pt-8 lg:pt-12" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.8 }}>
+            <div className="flex items-center justify-center gap-4 mb-6 lg:mb-8">
+              <div className="bg-white rounded-xl shadow-lg p-2">
+                <ShoppingBag className="w-10 h-10 lg:w-14 lg:h-14 text-brand-primary" strokeWidth={2.5} />
+              </div>
+              <span className="text-4xl lg:text-7xl font-extrabold text-brand-primary tracking-wide drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">pesanku</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl lg:text-5xl font-extrabold text-white mb-2 lg:mb-4 leading-tight">Dukung Kuliner<br className="hidden sm:block"/> UMKM Lokal</h2>
+            <p className="text-sm sm:text-base lg:text-lg text-white/90 max-w-lg leading-relaxed mb-4 lg:mb-6 hidden sm:block lg:block">Nikmati hidangan lezat dan segar langsung dari tangan ahlinya, dukung pengusaha kecil di sekitarmu.</p>
+            <div className="hidden sm:flex gap-4">
+               <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+                 <div className="text-3xl font-bold text-brand-primary mb-1">Cepat</div>
+                 <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Akses Langsung</div>
+               </div>
+               <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+                 <div className="text-3xl font-bold text-brand-primary mb-1">Aman</div>
+                 <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Transaksi Terjamin</div>
+               </div>
+            </div>
+          </motion.div>
         </div>
       </div>
 

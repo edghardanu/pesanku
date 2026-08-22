@@ -69,7 +69,6 @@ export default function ClientHome({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
-  const [greeting, setGreeting] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [isPriceFilterOpen, setIsPriceFilterOpen] = useState(false);
@@ -165,25 +164,6 @@ export default function ClientHome({
   };
 
 
-  useEffect(() => {
-    setTimeout(() => {
-      const now = new Date();
-      const utcHours = now.getUTCHours();
-      const wibHours = (utcHours + 7) % 24;
-
-      let text = "Selamat malam";
-      if (wibHours >= 5 && wibHours < 11) {
-        text = "Selamat pagi";
-      } else if (wibHours >= 11 && wibHours < 15) {
-        text = "Selamat siang";
-      } else if (wibHours >= 15 && wibHours < 18) {
-        text = "Selamat sore";
-      }
-
-      setGreeting(`${text}, ${user?.name || 'Pengunjung'}`);
-    }, 0);
-  }, [user?.name]);
-
   // Removed local isLoading in favor of GlobalLoader
 
   useEffect(() => {
@@ -197,6 +177,27 @@ export default function ClientHome({
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const scrollToAbout = () => {
+    const section = document.getElementById('about-platform');
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      const footerElement = document.querySelector('footer');
+      if (footerElement) {
+        footerElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
+  const scrollToCategories = () => {
+    const section = document.getElementById('kategori-pilihan');
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      scrollToCatalog();
+    }
   };
 
   const handleLogout = async () => {
@@ -391,7 +392,7 @@ export default function ClientHome({
   }, [searchQuery, localCategoryFilter, priceSortOrder, categoryFilter]);
 
   const totalPages = Math.ceil(displayProducts.length / itemsPerPage);
-  
+
   const currentProducts = useMemo(() => {
     if (!isDesktop) return displayProducts.slice(0, visibleMobileItems);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -405,7 +406,7 @@ export default function ClientHome({
           ? 'bg-white/85 dark:bg-surface/85 backdrop-blur-md border border-border/50 shadow-lg rounded-2xl max-w-7xl'
           : 'bg-transparent'
           }`}>
-          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="container mx-auto px-4 h-16 flex items-center justify-between relative">
             <Link href="/" className="flex items-center gap-2 hover:scale-105 transition-transform">
               <motion.div
                 className="flex items-center gap-2"
@@ -419,100 +420,155 @@ export default function ClientHome({
               </motion.div>
             </Link>
 
-            <AnimatePresence>
-              {isMobileSearchOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="hidden md:flex flex-1 max-w-md mx-4 lg:mx-8"
-                >
-                  <div className="relative w-full group">
-                    <input
-                      id="desktop-search"
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onFocus={() => setIsSearchFocused(true)}
-                      onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                      placeholder="Cari makanan atau minuman..."
-                      className={`input-field pl-10 pr-10 rounded-full focus:bg-surface transition-all duration-300 border-transparent focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/10 ${isScrolled ? 'bg-base' : 'bg-white/95'}`}
-                    />
-                    <Search className="w-5 h-5 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-brand-primary transition-colors" />
-                    
-                    <button
-                      onClick={() => {
-                        if (searchQuery) {
-                          setSearchQuery("");
-                        } else {
-                          setIsMobileSearchOpen(false);
-                        }
-                      }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary p-1 rounded-full hover:bg-gray-100 transition-colors"
-                      aria-label="Close search"
+
+
+            <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+
+              {/* Search Toggle and Expanding Input */}
+              <div className="relative flex items-center">
+                <AnimatePresence>
+                  {isMobileSearchOpen && (
+                    <motion.div
+                      initial={{ width: 0, opacity: 0 }}
+                      animate={{ width: 240, opacity: 1 }}
+                      exit={{ width: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-full top-1/2 -translate-y-1/2 mr-4 overflow-visible z-50 flex"
                     >
-                      <X className="w-4 h-4" />
-                    </button>
+                      <div className="relative w-full group">
+                        <input
+                          id="desktop-search"
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onFocus={() => setIsSearchFocused(true)}
+                          onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                          placeholder="Cari menu..."
+                          className={`input-field w-full pl-4 pr-10 rounded-full focus:bg-surface transition-all duration-300 border-transparent focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/10 ${isScrolled ? 'bg-base' : 'bg-white/95 text-black'}`}
+                        />
+                        <button
+                          onClick={() => {
+                            if (searchQuery) {
+                              setSearchQuery("");
+                            } else {
+                              setIsMobileSearchOpen(false);
+                            }
+                          }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary p-1 rounded-full hover:bg-gray-100 transition-colors"
+                          aria-label="Close search"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
 
-                    {/* Desktop Search Dropdown */}
-                    {searchQuery && isSearchFocused && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
-                        <div className="max-h-60 overflow-y-auto">
-                          {filteredProducts.length > 0 ? (
-                            filteredProducts.slice(0, 5).map(product => (
-                              <button
-                                key={product.id}
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => {
-                                  setSearchQuery(product.name);
-                                  setIsSearchFocused(false);
-                                  setIsMobileSearchOpen(false);
-                                  router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
-                                }}
-                                className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
-                              >
-                                {product.imageUrl ? (
-                                  <div className="w-10 h-10 rounded-lg bg-base overflow-hidden shrink-0">
-                                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                                  </div>
-                                ) : (
-                                  <div className="w-10 h-10 rounded-lg bg-base flex items-center justify-center shrink-0">
-                                    <ShoppingBag className="w-5 h-5 text-text-secondary" />
-                                  </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
-                                  <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
+                        {/* Desktop Search Dropdown */}
+                        {searchQuery && isSearchFocused && (
+                          <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-[100] w-[240px]">
+                            <div className="max-h-60 overflow-y-auto">
+                              {filteredProducts.length > 0 ? (
+                                filteredProducts.slice(0, 5).map(product => (
+                                  <button
+                                    key={product.id}
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                      setSearchQuery(product.name);
+                                      setIsSearchFocused(false);
+                                      setIsMobileSearchOpen(false);
+                                      router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
+                                    }}
+                                    className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
+                                  >
+                                    {product.imageUrl ? (
+                                      <div className="w-10 h-10 rounded-lg bg-base overflow-hidden shrink-0">
+                                        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                      </div>
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-lg bg-base flex items-center justify-center shrink-0">
+                                        <ShoppingBag className="w-5 h-5 text-text-secondary" />
+                                      </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
+                                      <p className="text-xs text-text-secondary truncate text-black truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
+                                    </div>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="px-4 py-4 text-center text-sm text-text-secondary">
+                                  Pencarian tidak ditemukan
                                 </div>
-                              </button>
-                            ))
-                          ) : (
-                            <div className="px-4 py-4 text-center text-sm text-text-secondary">
-                              Pencarian tidak ditemukan
+                              )}
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-            <div className={`hidden md:flex items-center gap-4 ${!isMobileSearchOpen ? 'ml-auto' : ''}`}>
-              {!isMobileSearchOpen && (
                 <button
                   onClick={() => {
-                    setIsMobileSearchOpen(true);
-                    setTimeout(() => document.querySelector<HTMLInputElement>('#desktop-search')?.focus(), 100);
+                    if (!isMobileSearchOpen) {
+                      setIsMobileSearchOpen(true);
+                      setTimeout(() => document.querySelector<HTMLInputElement>('#desktop-search')?.focus(), 100);
+                    } else {
+                      // If clicking when already open, we might want to perform search or just let it be handled by input
+                    }
                   }}
-                  className={`p-2 rounded-full transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border ${isScrolled ? 'border-border hover:bg-gray-100 dark:hover:bg-border' : 'border-white/40 bg-white/10 hover:bg-white/20'}`}
+                  className={`p-1.5 -ml-4 rounded-full transition-colors flex items-center justify-center ${isScrolled ? 'text-text-primary hover:bg-gray-100' : 'text-white hover:bg-white/20'}`}
                   aria-label="Toggle Search"
                 >
-                  <Search className={`w-5 h-5 ${isScrolled ? 'text-text-primary' : 'text-white'}`} />
+                  <Search className="w-5 h-5" />
                 </button>
-              )}
+              </div>
+
+              <Link
+                href="/"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToTop();
+                }}
+                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
+                  }`}
+              >
+                Beranda
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
+              </Link>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToCategories();
+                }}
+                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group cursor-pointer ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
+                  }`}
+              >
+                Katalog Makanan / Minuman
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToAbout();
+                }}
+                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group cursor-pointer ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
+                  }`}
+              >
+                Tentang Kami
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
+              </button>
+              <Link
+                href="/seller"
+                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
+                  }`}
+              >
+                Mulai Berjualan
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
+              </Link>
+            </div>
+
+
+
+            <div className="hidden md:flex items-center gap-4 ml-auto">
+
               <button
                 onClick={toggleDarkMode}
                 className={`p-2 rounded-full transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border ${isScrolled ? 'border-border hover:bg-gray-100 dark:hover:bg-border' : 'border-white/40 bg-white/10 hover:bg-white/20'}`}
@@ -545,14 +601,7 @@ export default function ClientHome({
                 </AnimatePresence>
               </button>
 
-              {greeting && (
-                <Link href="/profile" className={`text-body-small font-semibold mr-2 hidden lg:inline-block hover:underline transition-all ${isScrolled ? 'text-brand-primary' : 'text-white'}`} title="Buka Profil">
-                  {greeting}
-                </Link>
-              )}
-              <Link href="/seller" className={`text-body-small font-medium transition-colors ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'}`}>
-                Mulai Berjualan
-              </Link>
+
 
               {user ? (
                 <div className="flex items-center gap-2">
@@ -655,82 +704,7 @@ export default function ClientHome({
           </div>
 
           {/* Mobile Search Input Dropdown */}
-          <AnimatePresence>
-            {isMobileSearchOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="md:hidden bg-surface border-b border-border shadow-sm absolute w-full left-0 top-[64px] z-40"
-              >
-                <div className="p-4">
-                  <div className="relative w-full">
-                    <input
-                      id="mobile-search"
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onFocus={() => setIsSearchFocused(true)}
-                      onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                      placeholder="Cari makanan atau minuman..."
-                      className="input-field pl-10 pr-10 rounded-xl w-full border-brand-primary/20 focus:border-brand-primary"
-                    />
-                    <Search className="w-5 h-5 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary p-1"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
 
-                    {/* Mobile Search Dropdown */}
-                    {searchQuery && isSearchFocused && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
-                        <div className="max-h-60 overflow-y-auto">
-                          {filteredProducts.length > 0 ? (
-                            filteredProducts.slice(0, 5).map(product => (
-                              <button
-                                key={product.id}
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => {
-                                  setSearchQuery(product.name);
-                                  setIsSearchFocused(false);
-                                  setIsMobileSearchOpen(false);
-                                  router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
-                                }}
-                                className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
-                              >
-                                {product.imageUrl ? (
-                                  <div className="w-10 h-10 rounded-lg bg-base overflow-hidden shrink-0">
-                                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                                  </div>
-                                ) : (
-                                  <div className="w-10 h-10 rounded-lg bg-base flex items-center justify-center shrink-0">
-                                    <ShoppingBag className="w-5 h-5 text-text-secondary" />
-                                  </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
-                                  <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
-                                </div>
-                              </button>
-                            ))
-                          ) : (
-                            <div className="px-4 py-4 text-center text-sm text-text-secondary">
-                              Pencarian tidak ditemukan
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* Mobile Menu */}
           {isMobileMenuOpen && (
@@ -748,7 +722,7 @@ export default function ClientHome({
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsSearchFocused(true)}
                     onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                    placeholder="Cari makanan atau minuman..."
+                    placeholder="Cari menu..."
                     className="input-field pl-10 pr-10 rounded-full w-full"
                   />
                   <Search className="w-5 h-5 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
@@ -835,11 +809,6 @@ export default function ClientHome({
                     </AnimatePresence>
                   </button>
                 </div>
-                {greeting && (
-                  <div className="text-center font-semibold text-brand-primary pb-2 border-b border-border">
-                    {greeting}
-                  </div>
-                )}
                 <Link href="/seller" onClick={() => setIsMobileMenuOpen(false)} className="block py-2 text-center font-medium text-text-secondary hover:text-brand-primary">
                   Mulai Berjualan
                 </Link>
@@ -988,14 +957,14 @@ export default function ClientHome({
                       className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${sellerPage === 0 ? 'border-gray-200 text-gray-300 bg-gray-50 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800' : 'border-gray-300 text-gray-700 bg-white hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 dark:bg-surface dark:border-border dark:text-gray-300'}`}
                       aria-label="UMKM Sebelumnya"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
                     </button>
                     <button
                       onClick={() => { setSellerAutoPlay(false); setTimeout(() => setSellerAutoPlay(true), 8000); setSellerPage(prev => prev + 1); }}
                       className="w-10 h-10 rounded-xl flex items-center justify-center border transition-all border-gray-300 text-gray-700 bg-white hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 dark:bg-surface dark:border-border dark:text-gray-300"
                       aria-label="UMKM Selanjutnya"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
                     </button>
                   </div>
                 </div>
@@ -1056,7 +1025,7 @@ export default function ClientHome({
 
           {/* Categories Section */}
           {!categoryFilter && (
-            <div className="mb-16">
+            <div id="kategori-pilihan" className="scroll-mt-24 mb-16">
               <motion.div
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -1193,18 +1162,18 @@ export default function ClientHome({
                   >
                     <div className="p-2 flex flex-col gap-1">
                       <button
-                         onClick={() => { setPriceSortOrder('asc'); setIsPriceFilterOpen(false); }}
-                         className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium relative ${priceSortOrder === 'asc' ? 'bg-brand-primary/5 text-brand-primary' : 'hover:bg-brand-primary/5 hover:text-brand-primary text-gray-700'}`}
+                        onClick={() => { setPriceSortOrder('asc'); setIsPriceFilterOpen(false); }}
+                        className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium relative ${priceSortOrder === 'asc' ? 'bg-brand-primary/5 text-brand-primary' : 'hover:bg-brand-primary/5 hover:text-brand-primary text-gray-700'}`}
                       >
-                         Dari Termurah
-                         {priceSortOrder === 'asc' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-brand-primary rounded-r-full" />}
+                        Dari Termurah
+                        {priceSortOrder === 'asc' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-brand-primary rounded-r-full" />}
                       </button>
                       <button
-                         onClick={() => { setPriceSortOrder('desc'); setIsPriceFilterOpen(false); }}
-                         className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium relative ${priceSortOrder === 'desc' ? 'bg-brand-primary/5 text-brand-primary' : 'hover:bg-brand-primary/5 hover:text-brand-primary text-gray-700'}`}
+                        onClick={() => { setPriceSortOrder('desc'); setIsPriceFilterOpen(false); }}
+                        className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium relative ${priceSortOrder === 'desc' ? 'bg-brand-primary/5 text-brand-primary' : 'hover:bg-brand-primary/5 hover:text-brand-primary text-gray-700'}`}
                       >
-                         Dari Termahal
-                         {priceSortOrder === 'desc' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-brand-primary rounded-r-full" />}
+                        Dari Termahal
+                        {priceSortOrder === 'desc' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-brand-primary rounded-r-full" />}
                       </button>
                     </div>
                   </motion.div>
@@ -1236,217 +1205,215 @@ export default function ClientHome({
             </motion.div>
           ) : (
             <>
-            <div className="relative group/carousel">
-              {/* Floating Left Button (Carousel Style) */}
-              {isDesktop && (
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className={`hidden md:flex absolute -left-4 xl:-left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full items-center justify-center border shadow-xl transition-all ${
-                    currentPage === 1 
-                      ? 'border-gray-200 text-gray-300 bg-white/50 cursor-not-allowed dark:border-gray-800 dark:bg-surface/50' 
+              <div className="relative group/carousel">
+                {/* Floating Left Button (Carousel Style) */}
+                {isDesktop && (
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className={`hidden md:flex absolute -left-4 xl:-left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full items-center justify-center border shadow-xl transition-all ${currentPage === 1
+                      ? 'border-gray-200 text-gray-300 bg-white/50 cursor-not-allowed dark:border-gray-800 dark:bg-surface/50'
                       : 'border-white text-brand-primary bg-white hover:scale-110 hover:shadow-brand-primary/20 dark:bg-surface dark:border-brand-primary dark:text-brand-primary'
-                  }`}
-                  aria-label="Halaman Sebelumnya"
+                      }`}
+                    aria-label="Halaman Sebelumnya"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                  </button>
+                )}
+
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                </button>
-              )}
+                  {currentProducts.map((product) => {
+                    const productImageUrl = product.imageUrl ?? "/street-food-festival.jpg";
 
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
-            >
-              {currentProducts.map((product) => {
-                const productImageUrl = product.imageUrl ?? "/street-food-festival.jpg";
+                    // Format deadline
+                    let deadlineText = "Tidak ada batas waktu";
+                    if (product.deadlineDate) {
+                      deadlineText = new Date(product.deadlineDate).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        timeZone: WIB_TIMEZONE,
+                      });
+                    }
 
-                // Format deadline
-                let deadlineText = "Tidak ada batas waktu";
-                if (product.deadlineDate) {
-                  deadlineText = new Date(product.deadlineDate).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                    timeZone: WIB_TIMEZONE,
-                  });
-                }
-
-                return (
-                  <motion.div variants={itemVariants} key={product.id}>
-                    <div
-                      onClick={(e) => {
-                        if ((e.target as HTMLElement).closest('button')) return;
-                        router.push(`/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
-                      }}
-                      className="group cursor-pointer bg-white border border-gray-100 dark:bg-border dark:border-gray-800 rounded-[20px] p-2.5 sm:p-3 flex flex-row gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 relative h-full"
-                    >
-                      {/* Left Image Area */}
-                      <div className="relative w-[110px] h-[110px] sm:w-[120px] sm:h-[120px] shrink-0 rounded-[14px] overflow-hidden bg-gray-50 border border-black/5">
-                        <Image
-                          src={productImageUrl}
-                          alt={product.name}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                          sizes="120px"
-                        />
-                        {/* Promo Badge Optional */}
-                        {product.price > 50000 && (
-                          <div className="absolute top-0 left-0 bg-[#ff4b4b] text-white text-[10px] font-bold px-2 py-0.5 rounded-br-xl shadow-sm z-10">
-                            Terlaris!
-                          </div>
-                        )}
-                        {/* Rating Badge */}
-                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm px-2.5 py-0.5 rounded-full flex items-center justify-center gap-1 shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-gray-100 z-10 min-w-[50px]">
-                          <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-yellow-500 shrink-0" />
-                          <span className="text-[10px] sm:text-[11px] font-bold text-gray-800 leading-none pb-[1px]">{(product.averageRating ?? 0) > 0 ? product.averageRating!.toFixed(1) : 'Baru'}</span>
-                        </div>
-                      </div>
-
-                      {/* Right Content Area */}
-                      <div className="flex flex-col flex-1 min-w-0 pt-0.5">
-                        {/* Title */}
-                        <h3 className="text-[13px] sm:text-sm font-bold text-gray-900 dark:text-gray-100 leading-snug line-clamp-2 mb-1 group-hover:text-brand-primary transition-colors">
-                          {product.name}
-                        </h3>
-                        
-                        {/* Subtitle / Tags */}
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mb-1.5 line-clamp-1">
-                          {product.sellerName || 'Toko'} • {(product as any).category || 'Makanan'}
-                        </p>
-
-                        <div className="mb-auto"></div>
-
-                        {/* Location / Meta Info */}
-                        <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-gray-500 font-medium mb-1 w-full overflow-hidden">
-                          <MapPin className="w-3.5 h-3.5 text-[#ff4b4b] shrink-0" />
-                          <span className="truncate">{product.sellerAddress || product.storeAddress || 'Alamat tidak tersedia'}</span>
-                        </div>
-
-                        {/* Price Row */}
-                        <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold mb-2">
-                          <span className="text-[#ff4b4b] truncate font-bold text-sm">
-                            Rp {product.price.toLocaleString('id-ID')}
-                          </span>
-                        </div>
-                        
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-1.5 sm:gap-2 mt-auto w-full">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/store/${encodeURIComponent((product.storeName || product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog`);
-                            }}
-                            className="flex-1 flex items-center justify-center gap-1 bg-[#ff5c35] text-white py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-[#ff424e] transition-colors relative z-20 group/btn"
-                          >
-                            <Store className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
-                            <span className="truncate">Lihat</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleInternalPresalesChat(product.storeName || product.sellerName || 'Toko UMKM', product.id, product.name, product.sellerLogoUrl || product.sellerAvatar);
-                            }}
-                            className="flex-[1.2] flex items-center justify-center gap-1 bg-white text-[#ff5c35] border border-[#ff5c35] py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-[#ff5c35]/5 transition-colors relative z-20 group/btn"
-                          >
-                            <MessageSquare className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
-                            <span className="truncate">Chat</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )
-              })}
-            </motion.div>
-
-              {/* Floating Right Button (Carousel Style) */}
-              {isDesktop && (
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage >= totalPages}
-                  className={`hidden md:flex absolute -right-4 xl:-right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full items-center justify-center border shadow-xl transition-all ${
-                    currentPage >= totalPages 
-                      ? 'border-gray-200 text-gray-300 bg-white/50 cursor-not-allowed dark:border-gray-800 dark:bg-surface/50' 
-                      : 'border-white text-brand-primary bg-white hover:scale-110 hover:shadow-brand-primary/20 dark:bg-surface dark:border-brand-primary dark:text-brand-primary'
-                  }`}
-                  aria-label="Halaman Selanjutnya"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                </button>
-              )}
-            </div>
-            
-            {/* Mobile Load More Controls */}
-            {!isDesktop && displayProducts.length > visibleMobileItems && (
-              <div className="flex md:hidden justify-center items-center mt-8 mb-4">
-                <button
-                  onClick={() => setVisibleMobileItems(prev => prev + 12)}
-                  className="px-6 py-2.5 rounded-full border border-border text-sm font-semibold text-text-primary hover:border-brand-primary hover:text-brand-primary transition-colors bg-surface shadow-sm"
-                >
-                  Tampilkan Lebih Banyak
-                </button>
-              </div>
-            )}
-
-            {/* Desktop Pagination Controls */}
-            {isDesktop && (
-              <div className="hidden md:flex justify-center items-center gap-2 mt-12 mb-4">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${currentPage === 1 ? 'border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800' : 'border-gray-300 text-gray-700 bg-white hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 dark:bg-surface dark:border-border dark:text-gray-300'}`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                </button>
-                
-                <div className="flex items-center gap-1.5 px-2">
-                  {Array.from({ length: totalPages }).map((_, idx) => {
-                    const page = idx + 1;
-                    // simple pagination logic to show max 5 pages
-                    if (
-                      page === 1 || 
-                      page === totalPages || 
-                      (page >= currentPage - 1 && page <= currentPage + 1)
-                    ) {
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${currentPage === page ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-border'}`}
+                    return (
+                      <motion.div variants={itemVariants} key={product.id}>
+                        <div
+                          onClick={(e) => {
+                            if ((e.target as HTMLElement).closest('button')) return;
+                            router.push(`/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
+                          }}
+                          className="group cursor-pointer bg-white border border-gray-100 dark:bg-border dark:border-gray-800 rounded-[20px] p-2.5 sm:p-3 flex flex-row gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 relative h-full"
                         >
-                          {page}
-                        </button>
-                      );
-                    }
-                    if (
-                      page === currentPage - 2 || 
-                      page === currentPage + 2
-                    ) {
-                      return <span key={page} className="text-gray-400">...</span>;
-                    }
-                    return null;
-                  })}
-                </div>
+                          {/* Left Image Area */}
+                          <div className="relative w-[110px] h-[110px] sm:w-[120px] sm:h-[120px] shrink-0 rounded-[14px] overflow-hidden bg-gray-50 border border-black/5">
+                            <Image
+                              src={productImageUrl}
+                              alt={product.name}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                              sizes="120px"
+                            />
+                            {/* Promo Badge Optional */}
+                            {product.price > 50000 && (
+                              <div className="absolute top-0 left-0 bg-[#ff4b4b] text-white text-[10px] font-bold px-2 py-0.5 rounded-br-xl shadow-sm z-10">
+                                Terlaris!
+                              </div>
+                            )}
+                            {/* Rating Badge */}
+                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm px-2.5 py-0.5 rounded-full flex items-center justify-center gap-1 shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-gray-100 z-10 min-w-[50px]">
+                              <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-yellow-500 shrink-0" />
+                              <span className="text-[10px] sm:text-[11px] font-bold text-gray-800 leading-none pb-[1px]">{(product.averageRating ?? 0) > 0 ? product.averageRating!.toFixed(1) : 'Baru'}</span>
+                            </div>
+                          </div>
 
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${currentPage === totalPages ? 'border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800' : 'border-gray-300 text-gray-700 bg-white hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 dark:bg-surface dark:border-border dark:text-gray-300'}`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                </button>
+                          {/* Right Content Area */}
+                          <div className="flex flex-col flex-1 min-w-0 pt-0.5">
+                            {/* Title */}
+                            <h3 className="text-[13px] sm:text-sm font-bold text-gray-900 dark:text-gray-100 leading-snug line-clamp-2 mb-1 group-hover:text-brand-primary transition-colors">
+                              {product.name}
+                            </h3>
+
+                            {/* Subtitle / Tags */}
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mb-1.5 line-clamp-1">
+                              {product.sellerName || 'Toko'} • {(product as any).category || 'Makanan'}
+                            </p>
+
+                            <div className="mb-auto"></div>
+
+                            {/* Location / Meta Info */}
+                            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-gray-500 font-medium mb-1 w-full overflow-hidden">
+                              <MapPin className="w-3.5 h-3.5 text-[#ff4b4b] shrink-0" />
+                              <span className="truncate">{product.sellerAddress || product.storeAddress || 'Alamat tidak tersedia'}</span>
+                            </div>
+
+                            {/* Price Row */}
+                            <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold mb-2">
+                              <span className="text-[#ff4b4b] truncate font-bold text-sm">
+                                Rp {product.price.toLocaleString('id-ID')}
+                              </span>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-1.5 sm:gap-2 mt-auto w-full">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/store/${encodeURIComponent((product.storeName || product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog`);
+                                }}
+                                className="flex-1 flex items-center justify-center gap-1 bg-[#ff5c35] text-white py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-[#ff424e] transition-colors relative z-20 group/btn"
+                              >
+                                <Store className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
+                                <span className="truncate">Lihat</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleInternalPresalesChat(product.storeName || product.sellerName || 'Toko UMKM', product.id, product.name, product.sellerLogoUrl || product.sellerAvatar);
+                                }}
+                                className="flex-[1.2] flex items-center justify-center gap-1 bg-white text-[#ff5c35] border border-[#ff5c35] py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-[#ff5c35]/5 transition-colors relative z-20 group/btn"
+                              >
+                                <MessageSquare className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
+                                <span className="truncate">Chat</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </motion.div>
+
+                {/* Floating Right Button (Carousel Style) */}
+                {isDesktop && (
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage >= totalPages}
+                    className={`hidden md:flex absolute -right-4 xl:-right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full items-center justify-center border shadow-xl transition-all ${currentPage >= totalPages
+                      ? 'border-gray-200 text-gray-300 bg-white/50 cursor-not-allowed dark:border-gray-800 dark:bg-surface/50'
+                      : 'border-white text-brand-primary bg-white hover:scale-110 hover:shadow-brand-primary/20 dark:bg-surface dark:border-brand-primary dark:text-brand-primary'
+                      }`}
+                    aria-label="Halaman Selanjutnya"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                  </button>
+                )}
               </div>
-            )}
+
+              {/* Mobile Load More Controls */}
+              {!isDesktop && displayProducts.length > visibleMobileItems && (
+                <div className="flex md:hidden justify-center items-center mt-8 mb-4">
+                  <button
+                    onClick={() => setVisibleMobileItems(prev => prev + 12)}
+                    className="px-6 py-2.5 rounded-full border border-border text-sm font-semibold text-text-primary hover:border-brand-primary hover:text-brand-primary transition-colors bg-surface shadow-sm"
+                  >
+                    Tampilkan Lebih Banyak
+                  </button>
+                </div>
+              )}
+
+              {/* Desktop Pagination Controls */}
+              {isDesktop && (
+                <div className="hidden md:flex justify-center items-center gap-2 mt-12 mb-4">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${currentPage === 1 ? 'border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800' : 'border-gray-300 text-gray-700 bg-white hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 dark:bg-surface dark:border-border dark:text-gray-300'}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                  </button>
+
+                  <div className="flex items-center gap-1.5 px-2">
+                    {Array.from({ length: totalPages }).map((_, idx) => {
+                      const page = idx + 1;
+                      // simple pagination logic to show max 5 pages
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      ) {
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${currentPage === page ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-border'}`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      }
+                      if (
+                        page === currentPage - 2 ||
+                        page === currentPage + 2
+                      ) {
+                        return <span key={page} className="text-gray-400">...</span>;
+                      }
+                      return null;
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${currentPage === totalPages ? 'border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800' : 'border-gray-300 text-gray-700 bg-white hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 dark:bg-surface dark:border-border dark:text-gray-300'}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                  </button>
+                </div>
+              )}
             </>
           )}
         </section>
 
         {/* About Platform Section */}
-        <section className="px-4 container mx-auto pb-16">
+        <section id="about-platform" className="scroll-mt-24 px-4 container mx-auto pb-16">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1481,7 +1448,7 @@ export default function ClientHome({
 
             {/* Chef Image */}
             <div className="flex-1 w-full flex justify-center md:justify-end">
-              <div className="w-full max-w-[320px] aspect-[4/5] relative group flex items-center justify-center">
+              <div className="w-full max-w-[240px] aspect-[4/5] relative group flex items-center justify-center">
                 <img
                   src="/chef-transparent.png"
                   alt="Chef Pesanku"

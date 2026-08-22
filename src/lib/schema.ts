@@ -167,3 +167,13 @@ export const tickets = sqliteTable('tickets', {
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 
+// OTP Verification Codes
+export const otpCodes = sqliteTable('otp_codes', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull(),
+  code: text('code').notNull(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  isUsed: integer('is_used', { mode: 'boolean' }).default(false),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+
