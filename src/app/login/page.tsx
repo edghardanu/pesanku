@@ -87,124 +87,124 @@ export default function LoginPage() {
       icon: 'info',
       title: 'Reset password',
       text: 'Untuk keamanan akun, reset password publik dinonaktifkan. Silakan hubungi admin Pesanku untuk bantuan pemulihan akun.',
-      confirmButtonColor: '#ff5722',
+      confirmButtonColor: '#800000',
     });
   };
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row-reverse bg-white dark:bg-gray-950 relative overflow-x-hidden">
       {/* Left Form Section */}
-      <div className="flex-[1.2] relative z-10 w-full lg:w-3/5 lg:h-screen lg:overflow-y-auto px-6 sm:px-12 py-8 md:py-12">
-      <div className="w-full max-w-md lg:max-w-2xl xl:max-w-3xl mx-auto flex flex-col px-6 lg:px-12 xl:px-20 pt-8 pb-20">
+      <div className="flex-[1.2] relative z-10 w-full lg:w-3/5 lg:h-screen lg:overflow-y-auto px-4 sm:px-8 py-6 lg:py-12">
+      <div className="w-full max-w-md lg:max-w-2xl xl:max-w-3xl mx-auto flex flex-col px-0 lg:px-12 xl:px-20 pt-4 lg:pt-8 pb-20">
       
 
       <div className="w-full flex-1 flex flex-col pb-24 md:pb-12">
 
-      <Link href="/" className="flex justify-center items-center gap-3 mb-10 hover:opacity-80 transition-opacity">
-        <ShoppingBag className="w-10 h-10 text-brand-primary" />
-        <span className="text-display-1 text-brand-primary font-bold text-3xl">pesanku</span>
-      </Link>
+        <Link href="/" className="flex justify-center items-center gap-3 mb-10 hover:opacity-80 transition-opacity">
+          <ShoppingBag className="w-10 h-10 text-brand-primary" />
+          <span className="text-display-1 text-brand-primary font-bold text-3xl">pesanku</span>
+        </Link>
 
-      <div className="w-full">
-        <h1 className="text-h2 text-text-primary mb-2 text-center">
-          Selamat Datang Kembali!
-        </h1>
-        <p className="text-body-base text-text-secondary mb-8 text-center">
-          Silakan masuk ke akun Anda.
-        </p>
+        <div className="w-full">
+          <h1 className="text-h2 text-text-primary mb-2 text-center">
+            Selamat Datang Kembali!
+          </h1>
+          <p className="text-body-base text-text-secondary mb-8 text-center">
+            Silakan masuk ke akun Anda.
+          </p>
 
-        {error && (
-          <div className="p-3 bg-status-error/10 text-status-error rounded-lg mb-6 text-sm font-medium">
-            {error}
-          </div>
-        )}
-
-        <form className="space-y-3" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-body-small font-medium text-text-primary mb-1">
-              Email
-            </label>
-            <input 
-              type="email" 
-              name="email"
-              placeholder="Masukkan email Anda"
-              className="input-field"
-              required
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-body-small font-medium text-text-primary">
-                Password
-              </label>
-              <button 
-                type="button" 
-                onClick={handleForgotPassword}
-                className="text-caption text-brand-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
-              >
-                Lupa password?
-              </button>
+          {error && (
+            <div className="p-3 bg-status-error/10 text-status-error rounded-lg mb-6 text-sm font-medium">
+              {error}
             </div>
-            <div className="relative">
+          )}
+
+          <form className="space-y-3" onSubmit={handleSubmit}>
+            <div>
+              <label className="block text-body-small font-medium text-text-primary mb-1">
+                Email
+              </label>
               <input 
-                type={showPassword ? "text" : "password"}
-                name="password"
-                placeholder="Masukkan password Anda"
-                className="input-field pr-10"
+                type="email" 
+                name="email"
+                placeholder="Masukkan email Anda"
+                className="input-field"
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-secondary hover:text-text-primary"
-              >
-                {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
-              </button>
             </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-body-small font-medium text-text-primary">
+                  Password
+                </label>
+                <button 
+                  type="button" 
+                  onClick={handleForgotPassword}
+                  className="text-caption text-brand-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
+                >
+                  Lupa password?
+                </button>
+              </div>
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Masukkan password Anda"
+                  className="input-field pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-secondary hover:text-text-primary"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <button disabled={loading} type="submit" className="btn-primary w-full mt-6 py-3 text-lg disabled:opacity-50">
+              {loading ? "Memproses..." : "Masuk"}
+            </button>
+          </form>
+
+          <div className="mt-8 text-center space-y-3">
+            <p className="text-body-small text-text-secondary">
+              Belum punya akun?{' '}
+              <Link href="/register" className="text-brand-primary font-medium hover:underline">
+                Daftar Sekarang
+              </Link>
+            </p>
           </div>
-
-          <button disabled={loading} type="submit" className="btn-primary w-full mt-6 py-3 text-lg disabled:opacity-50">
-            {loading ? "Memproses..." : "Masuk"}
-          </button>
-        </form>
-
-        <div className="mt-8 text-center space-y-3">
-          <p className="text-body-small text-text-secondary">
-            Belum punya akun?{' '}
-            <Link href="/register" className="text-brand-primary font-medium hover:underline">
-              Daftar Sekarang
-            </Link>
-          </p>
         </div>
-        </div>
-        </div>
+      </div>
       </div>
       </div>
 
       {/* Right Image Section (Now visually on Left) */}
-      <div className="flex order-first lg:order-none w-full lg:w-2/5 lg:h-screen lg:sticky lg:top-0 relative shadow-lg lg:shadow-[10px_0px_30px_-15px_rgba(0,0,0,0.3)] bg-brand-primary overflow-hidden">
+      <div className="flex order-first lg:order-none w-full lg:w-2/5 h-44 sm:h-52 lg:h-screen lg:sticky lg:top-0 relative shadow-lg lg:shadow-[10px_0px_30px_-15px_rgba(0,0,0,0.3)] bg-brand-primary overflow-hidden">
         
         
         
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img 
           src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
           alt="Makanan UMKM"
           className="absolute inset-0 w-full h-full object-cover opacity-90"
         />
-        <div className="relative z-10 w-full min-h-[450px] sm:min-h-[500px] lg:min-h-[100%] bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-between p-6 sm:p-8 lg:p-10 xl:p-16">
+        <div className="relative z-10 w-full h-full bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-between p-4 sm:p-6 lg:p-10 xl:p-16">
           <div className="w-full flex-none">
-            <Link href="/" className="inline-flex items-center gap-2 px-4 py-2.5 bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/20 text-white rounded-full transition-all group shadow-xl">
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-              <span className="font-semibold tracking-wide text-sm hidden sm:block">Kembali ke Beranda</span>
+            <Link href="/" className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2.5 bg-black/35 hover:bg-black/50 backdrop-blur-md border border-white/20 text-white rounded-full transition-all group shadow-xl">
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform" />
+              <span className="font-semibold tracking-wide text-xs sm:text-sm">Beranda</span>
             </Link>
           </div>
-          <motion.div className="mt-auto pt-8 lg:pt-12" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.8 }}>
+          <motion.div className="hidden lg:flex flex-col mt-auto pt-8 lg:pt-12" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.8 }}>
             <div className="flex items-center justify-center gap-4 mb-6 lg:mb-8">
               <div className="bg-white rounded-xl shadow-lg p-2">
                 <ShoppingBag className="w-10 h-10 lg:w-14 lg:h-14 text-brand-primary" strokeWidth={2.5} />

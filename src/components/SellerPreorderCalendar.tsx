@@ -174,8 +174,8 @@ export default function SellerPreorderCalendar({
           <div class="rounded-xl border border-gray-200 bg-gray-50 p-3">
             <p class="font-semibold text-gray-900">${escapeHtml(order.productName || 'Produk')}</p>
             <p class="mt-1 text-sm text-gray-500">${escapeHtml(order.buyerName || 'Pembeli')} · ${order.qty} porsi</p>
-            ${order.requestedDeliveryDate ? `<p class="mt-1 text-sm font-semibold text-orange-600">Tanggal yang diminta pembeli: ${escapeHtml(formatLongDate(order.requestedDeliveryDate))}</p>` : ''}
-            ${order.selectedVariant ? `<p class="mt-1 text-sm font-semibold text-orange-600">Varian: ${escapeHtml(order.selectedVariant)}${order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}` : ''}</p>` : ''}
+            ${order.requestedDeliveryDate ? `<p class="mt-1 text-sm font-semibold text-brand-primary">Tanggal yang diminta pembeli: ${escapeHtml(formatLongDate(order.requestedDeliveryDate))}</p>` : ''}
+            ${order.selectedVariant ? `<p class="mt-1 text-sm font-semibold text-brand-primary">Varian: ${escapeHtml(order.selectedVariant)}${order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}` : ''}</p>` : ''}
           </div>
           <div>
             <label for="schedule-date" class="mb-1.5 block text-sm font-semibold text-gray-700">Tanggal pengiriman</label>
@@ -187,7 +187,7 @@ export default function SellerPreorderCalendar({
           </div>
           <div>
             <label for="schedule-reason" class="mb-1.5 block text-sm font-semibold text-gray-700">Alasan/Catatan jadwal <span class="font-normal text-gray-400">(opsional)</span></label>
-            <textarea id="schedule-reason" maxlength="500" rows="3" class="w-full resize-y rounded-lg border border-gray-300 p-3 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500" placeholder="Contoh: Jadwal disesuaikan dengan kesiapan produksi">${escapeHtml(order.scheduleReason || '')}</textarea>
+            <textarea id="schedule-reason" maxlength="500" rows="3" class="w-full resize-y rounded-lg border border-gray-300 p-3 text-sm outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" placeholder="Contoh: Jadwal disesuaikan dengan kesiapan produksi">${escapeHtml(order.scheduleReason || '')}</textarea>
           </div>
         </div>
       `,
@@ -196,7 +196,7 @@ export default function SellerPreorderCalendar({
       confirmButtonText: 'Simpan Jadwal',
       cancelButtonText: 'Batal',
       denyButtonText: 'Batalkan Jadwal',
-      confirmButtonColor: '#ff5c35',
+      confirmButtonColor: '#800000',
       denyButtonColor: '#ef4444',
       preConfirm: () => {
         const deliveryDate = (document.getElementById('schedule-date') as HTMLInputElement)?.value;
@@ -285,7 +285,7 @@ export default function SellerPreorderCalendar({
           <div class="rounded-xl border border-gray-200 bg-gray-50 p-3">
             <p class="font-semibold text-gray-900">${escapeHtml(order.productName || 'Produk')}</p>
             <p class="mt-1 text-sm text-gray-500">${escapeHtml(order.buyerName || 'Pembeli')} · ${order.qty} porsi</p>
-            ${order.requestedDeliveryDate ? `<p class="mt-1 text-sm text-gray-500">Tanggal yang diminta pembeli: <span class="font-semibold text-orange-600">${escapeHtml(formatLongDate(order.requestedDeliveryDate))}</span></p>` : ''}
+            ${order.requestedDeliveryDate ? `<p class="mt-1 text-sm text-gray-500">Tanggal yang diminta pembeli: <span class="font-semibold text-brand-primary">${escapeHtml(formatLongDate(order.requestedDeliveryDate))}</span></p>` : ''}
           </div>
           <div>
             <label for="confirmation-delivery-date" class="mb-1.5 block text-sm font-semibold text-gray-700">Jadwal pengiriman</label>
@@ -294,7 +294,7 @@ export default function SellerPreorderCalendar({
           </div>
           <div>
             <label for="confirmation-schedule-reason" class="mb-1.5 block text-sm font-semibold text-gray-700">Alasan/Catatan <span class="font-normal text-gray-400">(opsional)</span></label>
-            <textarea id="confirmation-schedule-reason" maxlength="500" rows="3" class="w-full resize-y rounded-lg border border-gray-300 p-3 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500" placeholder="Isi jika tanggal atau jadwal perlu diberi penjelasan">${escapeHtml(order.scheduleReason || '')}</textarea>
+            <textarea id="confirmation-schedule-reason" maxlength="500" rows="3" class="w-full resize-y rounded-lg border border-gray-300 p-3 text-sm outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" placeholder="Isi jika tanggal atau jadwal perlu diberi penjelasan">${escapeHtml(order.scheduleReason || '')}</textarea>
           </div>
           <p class="text-center text-sm text-gray-600">Pesanan akan dikonfirmasi dan statusnya diteruskan ke pembeli.</p>
         </div>

@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function VerifyPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-orange-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-4 py-12">
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-primary/[0.03] via-white to-brand-primary/[0.03] dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-4 py-12">
       <OtpVerificationForm />
     </main>
   );

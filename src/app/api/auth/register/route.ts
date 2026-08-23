@@ -53,7 +53,7 @@ Tim ${appName}`;
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;padding:32px 24px;">
   <tr>
     <td style="text-align:center;padding-bottom:24px;border-bottom:1px solid #e5e7eb;">
-      <h1 style="color:#EA580C;font-size:22px;margin:0;">Pesanku</h1>
+      <h1 style="color:#800000;font-size:22px;margin:0;">Pesanku</h1>
     </td>
   </tr>
   <tr>
@@ -63,8 +63,8 @@ Tim ${appName}`;
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td align="center">
-            <div style="background-color:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;padding:16px 24px;display:inline-block;">
-              <span style="font-size:32px;font-weight:700;letter-spacing:8px;color:#EA580C;font-family:'Courier New',Courier,monospace;">${otpCode}</span>
+            <div style="background-color:#FDF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:16px 24px;display:inline-block;">
+              <span style="font-size:32px;font-weight:700;letter-spacing:8px;color:#800000;font-family:'Courier New',Courier,monospace;">${otpCode}</span>
             </div>
           </td>
         </tr>

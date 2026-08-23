@@ -177,7 +177,7 @@ export default function ClientProfile({ user, sellerData }: { user: AuthUser, se
       text: "Apakah Anda yakin ingin mengakhiri sesi?",
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#ff5722',
+      confirmButtonColor: '#800000',
       cancelButtonColor: '#9ca3af',
       confirmButtonText: 'Ya, Keluar',
       cancelButtonText: 'Batal',
@@ -375,7 +375,7 @@ export default function ClientProfile({ user, sellerData }: { user: AuthUser, se
 
           {user.role === 'pembeli' && (
             <Link href="/buyer/orders" className="flex items-center gap-4 p-4 hover:bg-base transition-colors border-b border-border">
-              <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+              <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
                 <Package className="w-5 h-5" />
               </div>
               <div className="flex-1">

@@ -71,7 +71,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
           <button 
             onClick={handlePrint}
             aria-label={`Cetak atau simpan invoice ${order.id} sebagai PDF`}
-            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg font-bold transition-colors shadow-sm"
+            className="flex items-center gap-2 bg-brand-primary hover:bg-brand-primary-hover text-white px-5 py-2 rounded-lg font-bold transition-colors shadow-sm"
           >
             <Printer className="w-5 h-5" />
             Cetak / Simpan PDF
@@ -84,9 +84,9 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
         <div className="invoice-document bg-white rounded-xl shadow-md overflow-hidden print:shadow-none print:w-full print:m-0 print:p-0">
           
           {/* Header */}
-          <div className="invoice-section invoice-header p-8 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-orange-50/30">
+          <div className="invoice-section invoice-header p-8 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-brand-primary/[0.03]">
             <div>
-              <h1 className="text-3xl font-black text-orange-600 tracking-tight">INVOICE</h1>
+              <h1 className="text-3xl font-black text-brand-primary tracking-tight">INVOICE</h1>
               <p className="text-sm font-semibold text-gray-500 mt-1 uppercase tracking-wider">{order.id}</p>
             </div>
             <div className="text-left md:text-right">
@@ -130,7 +130,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
                   <td className="py-4 p-2">
                     <p className="font-bold text-gray-800 text-lg">{order.productName}</p>
                     {order.selectedVariant && (
-                      <p className="text-sm font-semibold text-orange-600 mt-1">
+                      <p className="text-sm font-semibold text-brand-primary mt-1">
                         Varian: {order.selectedVariant}
                         {order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined
                           ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}`
@@ -174,7 +174,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
                   </div>
                   <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between items-center">
                     <span className="text-xl font-black text-gray-800">TOTAL PEMBAYARAN</span>
-                    <span className="text-2xl font-black text-orange-600">Rp {(order.totalPrice + feeAplikasi + feeJasa + feeAdmin).toLocaleString('id-ID')}</span>
+                    <span className="text-2xl font-black text-brand-primary">Rp {(order.totalPrice + feeAplikasi + feeJasa + feeAdmin).toLocaleString('id-ID')}</span>
                   </div>
                 </>
               ) : (

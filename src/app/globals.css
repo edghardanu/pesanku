@@ -2,8 +2,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-brand-primary: #E05638;
-  --color-brand-primary-hover: #C84327;
+  --color-brand-primary: #800000;
+  --color-brand-primary-hover: #660000;
   --color-brand-secondary: #F4A261;
   --color-brand-accent: #2A9D8F;
   --color-base: #FAFAF9;

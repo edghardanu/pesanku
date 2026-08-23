@@ -422,7 +422,49 @@ export default function ClientHome({
 
 
 
-            <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+            <div className="hidden md:flex items-center gap-4 lg:gap-8 absolute left-1/2 -translate-x-1/2">
+              <Link
+                href="/"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToTop();
+                }}
+                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
+                  }`}
+              >
+                Beranda
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
+              </Link>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToCategories();
+                }}
+                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group cursor-pointer ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
+                  }`}
+              >
+                Katalog Makanan / Minuman
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToAbout();
+                }}
+                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group cursor-pointer ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
+                  }`}
+              >
+                Tentang Kami
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
+              </button>
+              <Link
+                href="/seller"
+                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
+                  }`}
+              >
+                Mulai Berjualan
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
+              </Link>
 
               {/* Search Toggle and Expanding Input */}
               <div className="relative flex items-center">
@@ -514,55 +556,12 @@ export default function ClientHome({
                       // If clicking when already open, we might want to perform search or just let it be handled by input
                     }
                   }}
-                  className={`p-1.5 -ml-4 rounded-full transition-colors flex items-center justify-center ${isScrolled ? 'text-text-primary hover:bg-gray-100' : 'text-white hover:bg-white/20'}`}
+                  className={`p-1.5 rounded-full transition-colors flex items-center justify-center ${isScrolled ? 'text-text-primary hover:bg-gray-100' : 'text-white hover:bg-white/20'}`}
                   aria-label="Toggle Search"
                 >
                   <Search className="w-5 h-5" />
                 </button>
               </div>
-
-              <Link
-                href="/"
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToTop();
-                }}
-                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
-                  }`}
-              >
-                Beranda
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
-              </Link>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToCategories();
-                }}
-                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group cursor-pointer ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
-                  }`}
-              >
-                Katalog Makanan / Minuman
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToAbout();
-                }}
-                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group cursor-pointer ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
-                  }`}
-              >
-                Tentang Kami
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
-              </button>
-              <Link
-                href="/seller"
-                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
-                  }`}
-              >
-                Mulai Berjualan
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
-              </Link>
             </div>
 
 
@@ -618,7 +617,7 @@ export default function ClientHome({
                   >
                     {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard' : 'Lihat Pesanan Saya'}
                     {user.role === 'pembeli' && orderCount > 0 && (
-                      <span className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center absolute -top-2 -right-2 border-2 border-white shadow-sm">
+                      <span className="bg-brand-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center absolute -top-2 -right-2 border-2 border-white shadow-sm">
                         {orderCount}
                       </span>
                     )}
@@ -704,6 +703,81 @@ export default function ClientHome({
           </div>
 
           {/* Mobile Search Input Dropdown */}
+          <AnimatePresence>
+            {isMobileSearchOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="md:hidden border-t border-border/50 bg-white/95 dark:bg-surface/95 backdrop-blur-md overflow-hidden"
+              >
+                <div className="p-4 relative">
+                  <div className="relative w-full">
+                    <input
+                      id="mobile-search"
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onFocus={() => setIsSearchFocused(true)}
+                      onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                      placeholder="Cari menu..."
+                      className="w-full pl-10 pr-10 py-2.5 bg-base/50 dark:bg-base text-text-primary rounded-full transition-all duration-300 border border-border focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 text-sm outline-none"
+                    />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary p-1 rounded-full hover:bg-gray-100 dark:hover:bg-border/50 transition-colors"
+                        aria-label="Clear search"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown list for matching search results in mobile view */}
+                  {searchQuery && isSearchFocused && (
+                    <div className="relative mt-3 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-[100] max-h-60 overflow-y-auto">
+                      {filteredProducts.length > 0 ? (
+                        filteredProducts.slice(0, 5).map(product => (
+                          <button
+                            key={product.id}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setSearchQuery(product.name);
+                              setIsSearchFocused(false);
+                              setIsMobileSearchOpen(false);
+                              router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors text-text-primary"
+                          >
+                            {product.imageUrl ? (
+                              <div className="w-10 h-10 rounded-lg bg-base overflow-hidden shrink-0">
+                                <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-base flex items-center justify-center shrink-0">
+                                <ShoppingBag className="w-5 h-5 text-text-secondary" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 text-left">
+                              <p className="text-sm font-semibold truncate">{product.name}</p>
+                              <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-4 py-4 text-center text-sm text-text-secondary">
+                          Pencarian tidak ditemukan
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
 
           {/* Mobile Menu */}
@@ -822,7 +896,7 @@ export default function ClientHome({
                     >
                       {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard Saya' : 'Lihat Pesanan Saya'}
                       {user.role === 'pembeli' && orderCount > 0 && (
-                        <span className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
+                        <span className="bg-brand-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
                           {orderCount}
                         </span>
                       )}
@@ -996,7 +1070,7 @@ export default function ClientHome({
                           <div className="h-full w-2/5 bg-gradient-to-r from-transparent via-white/50 to-transparent skew-x-[-18deg]" />
                         </motion.div>
 
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-sm border-2 border-orange-100 ring-4 ring-orange-100/60 group-hover:shadow-md transition-all duration-300 relative bg-white">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-sm border-2 border-brand-primary/20 ring-4 ring-brand-primary/10 group-hover:shadow-md transition-all duration-300 relative bg-white">
                           <img
                             src={seller.sellerAvatar}
                             alt={seller.storeName}
@@ -1294,7 +1368,7 @@ export default function ClientHome({
 
                             {/* Price Row */}
                             <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold mb-2">
-                              <span className="text-[#ff4b4b] truncate font-bold text-sm">
+                              <span className="text-brand-primary truncate font-bold text-sm">
                                 Rp {product.price.toLocaleString('id-ID')}
                               </span>
                             </div>
@@ -1307,7 +1381,7 @@ export default function ClientHome({
                                   e.stopPropagation();
                                   router.push(`/store/${encodeURIComponent((product.storeName || product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog`);
                                 }}
-                                className="flex-1 flex items-center justify-center gap-1 bg-[#ff5c35] text-white py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-[#ff424e] transition-colors relative z-20 group/btn"
+                                className="flex-1 flex items-center justify-center gap-1 bg-brand-primary text-white py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-brand-primary-hover transition-colors relative z-20 group/btn"
                               >
                                 <Store className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
                                 <span className="truncate">Lihat</span>
@@ -1318,7 +1392,7 @@ export default function ClientHome({
                                   e.stopPropagation();
                                   handleInternalPresalesChat(product.storeName || product.sellerName || 'Toko UMKM', product.id, product.name, product.sellerLogoUrl || product.sellerAvatar);
                                 }}
-                                className="flex-[1.2] flex items-center justify-center gap-1 bg-white text-[#ff5c35] border border-[#ff5c35] py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-[#ff5c35]/5 transition-colors relative z-20 group/btn"
+                                className="flex-[1.2] flex items-center justify-center gap-1 bg-white text-brand-primary border border-brand-primary py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-brand-primary/5 transition-colors relative z-20 group/btn"
                               >
                                 <MessageSquare className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
                                 <span className="truncate">Chat</span>
@@ -1651,7 +1725,7 @@ export default function ClientHome({
             <div className="relative">
               <FileText className="w-6 h-6 stroke-[1.5]" />
               {user && user.role === 'pembeli' && orderCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">
+                <span className="absolute -top-1.5 -right-2 bg-brand-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">
                   {orderCount}
                 </span>
               )}

@@ -122,7 +122,7 @@ export default function RegisterPage() {
         icon: "success",
         title: "Registrasi Berhasil!",
         text: "Kode verifikasi telah dikirim ke email Anda.",
-        confirmButtonColor: "#EA580C",
+        confirmButtonColor: "#800000",
         timer: 3000,
         timerProgressBar: true,
       });
@@ -171,7 +171,7 @@ export default function RegisterPage() {
   const handleVerifyOtp = async () => {
     const fullCode = otpDigits.join("");
     if (fullCode.length !== 6) {
-      Swal.fire({ icon: "warning", title: "Kode Belum Lengkap", text: "Masukkan 6 digit kode OTP.", confirmButtonColor: "#EA580C" });
+      Swal.fire({ icon: "warning", title: "Kode Belum Lengkap", text: "Masukkan 6 digit kode OTP.", confirmButtonColor: "#800000" });
       return;
     }
 
@@ -189,15 +189,15 @@ export default function RegisterPage() {
           icon: "success",
           title: "Akun Aktif! ✅",
           text: verifyResult.message,
-          confirmButtonColor: "#EA580C",
+          confirmButtonColor: "#800000",
         }).then(() => {
           router.push("/login");
         });
       } else {
-        Swal.fire({ icon: "error", title: "Verifikasi Gagal", text: verifyResult.message, confirmButtonColor: "#EA580C" });
+        Swal.fire({ icon: "error", title: "Verifikasi Gagal", text: verifyResult.message, confirmButtonColor: "#800000" });
       }
     } catch {
-      Swal.fire({ icon: "error", title: "Error", text: "Gagal menghubungi server.", confirmButtonColor: "#EA580C" });
+      Swal.fire({ icon: "error", title: "Error", text: "Gagal menghubungi server.", confirmButtonColor: "#800000" });
     } finally {
       setOtpLoading(false);
     }
@@ -219,13 +219,13 @@ export default function RegisterPage() {
       if (result.success) {
         setOtpCountdown(300);
         setOtpDigits(["", "", "", "", "", ""]);
-        Swal.fire({ icon: "success", title: "Kode Baru Terkirim!", text: "Cek email Anda.", confirmButtonColor: "#EA580C", timer: 2000, timerProgressBar: true });
+        Swal.fire({ icon: "success", title: "Kode Baru Terkirim!", text: "Cek email Anda.", confirmButtonColor: "#800000", timer: 2000, timerProgressBar: true });
         setTimeout(() => otpInputRefs.current[0]?.focus(), 300);
       } else {
-        Swal.fire({ icon: "error", title: "Gagal", text: result.message, confirmButtonColor: "#EA580C" });
+        Swal.fire({ icon: "error", title: "Gagal", text: result.message, confirmButtonColor: "#800000" });
       }
     } catch {
-      Swal.fire({ icon: "error", title: "Error", text: "Gagal menghubungi server.", confirmButtonColor: "#EA580C" });
+      Swal.fire({ icon: "error", title: "Error", text: "Gagal menghubungi server.", confirmButtonColor: "#800000" });
     } finally {
       setOtpLoading(false);
     }
@@ -236,16 +236,16 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row-reverse bg-white dark:bg-gray-950 relative overflow-x-hidden">
       {/* Left Form Section */}
-      <div className="flex-[1.2] relative z-10 w-full lg:w-3/5 lg:h-screen lg:overflow-y-auto px-6 sm:px-12 py-8 md:py-12">
-      <div className="w-full max-w-xl mx-auto flex flex-col px-6 lg:px-8 pt-4 pb-8">
+      <div className="flex-[1.2] relative z-10 w-full lg:w-3/5 lg:h-screen lg:overflow-y-auto px-4 sm:px-8 py-6 lg:py-12">
+      <div className="w-full max-w-xl mx-auto flex flex-col px-0 lg:px-8 pt-4 pb-8">
       
 
       <div className="w-full flex-1 flex flex-col pb-24 md:pb-12">
 
-      <Link href="/" className="flex justify-center items-center gap-3 mb-10 hover:opacity-80 transition-opacity">
-        <ShoppingBag className="w-10 h-10 text-brand-primary" />
-        <span className="text-display-1 text-brand-primary font-bold text-3xl">pesanku</span>
-      </Link>
+        <Link href="/" className="flex justify-center items-center gap-3 mb-10 hover:opacity-80 transition-opacity">
+          <ShoppingBag className="w-10 h-10 text-brand-primary" />
+          <span className="text-display-1 text-brand-primary font-bold text-3xl">pesanku</span>
+        </Link>
 
       <div className="w-full">
         <h1 className="text-2xl font-bold text-text-primary mb-1 text-center">Daftar Akun Baru</h1>
@@ -516,7 +516,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Right Image Section (Now visually on Left) */}
-      <div className="flex order-first lg:order-none w-full lg:w-2/5 lg:h-screen lg:sticky lg:top-0 relative shadow-lg lg:shadow-[10px_0px_30px_-15px_rgba(0,0,0,0.3)] bg-brand-primary overflow-hidden">
+      <div className="flex order-first lg:order-none w-full lg:w-2/5 h-44 sm:h-52 lg:h-screen lg:sticky lg:top-0 relative shadow-lg lg:shadow-[10px_0px_30px_-15px_rgba(0,0,0,0.3)] bg-brand-primary overflow-hidden">
         
         
         
@@ -526,14 +526,14 @@ export default function RegisterPage() {
           alt="Toko UMKM Lokal"
           className="absolute inset-0 w-full h-full object-cover opacity-90"
         />
-        <div className="relative z-10 w-full min-h-[450px] sm:min-h-[500px] lg:min-h-[100%] bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-between p-6 sm:p-8 lg:p-10 xl:p-16">
+        <div className="relative z-10 w-full h-full bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-between p-4 sm:p-6 lg:p-10 xl:p-16">
           <div className="w-full flex-none">
-            <Link href="/login" className="inline-flex items-center gap-2 px-4 py-2.5 bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/20 text-white rounded-full transition-all group shadow-xl">
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-              <span className="font-semibold tracking-wide text-sm hidden sm:block">Kembali ke Login</span>
+            <Link href="/login" className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2.5 bg-black/35 hover:bg-black/50 backdrop-blur-md border border-white/20 text-white rounded-full transition-all group shadow-xl">
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform" />
+              <span className="font-semibold tracking-wide text-xs sm:text-sm">Masuk</span>
             </Link>
           </div>
-          <motion.div className="mt-auto pt-8 lg:pt-12" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8 }}>
+          <motion.div className="hidden lg:flex flex-col mt-auto pt-8 lg:pt-12" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8 }}>
             <div className="flex items-center justify-center gap-4 mb-6 lg:mb-8">
               <div className="bg-white rounded-xl shadow-lg p-2">
                 <ShoppingBag className="w-10 h-10 lg:w-14 lg:h-14 text-brand-primary" strokeWidth={2.5} />
