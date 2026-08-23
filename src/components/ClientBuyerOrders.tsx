@@ -1682,7 +1682,8 @@ export default function ClientBuyerOrders({
                   const steps = [
                     { label: 'Pesanan Dibuat', completed: true, date: order.createdAt },
                     { label: 'Menunggu Pembayaran', completed: isVerified || isPreorderRunning || isProcessing || isCompleted, active: isWaitingPayment && !order.paymentId, date: order.paymentId ? 'Telah Dibayar' : '' },
-                    { label: 'Verifikasi Pembayaran', completed: isPreorderRunning || isProcessing || isCompleted, active: isVerified || (isWaitingPayment && !!order.paymentId), date: '' },
+                    { label: 'Verifikasi Pembayaran', completed: isVerified || isPreorderRunning || isProcessing || isCompleted, active: isWaitingPayment && !!order.paymentId, date: '' },
+                    { label: 'Menunggu Konfirmasi Penjual', completed: isPreorderRunning || isProcessing || isCompleted, active: isVerified, date: '' },
                     { label: 'Preorder Berjalan', completed: isProcessing || isCompleted, active: isPreorderRunning, date: '' },
                     { label: 'Diproses Penjual', completed: isCompleted, active: isProcessing, date: '' },
                     { label: 'Pesanan Selesai', completed: isCompleted, active: false, date: order.ratedAt || '' }
@@ -2117,8 +2118,8 @@ export default function ClientBuyerOrders({
                                 </span>
                               )}
                               {isVerified && (
-                                <span className="px-3 py-1 bg-status-success/10 text-status-success rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                  <CheckCircle className="w-3.5 h-3.5" /> Sudah Dibayar
+                                <span className="px-3 py-1 bg-brand-primary/10 text-brand-primary rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
+                                  <Clock className="w-3.5 h-3.5" /> Menunggu Konf. Penjual
                                 </span>
                               )}
                               {order.status === 'processing' && (
