@@ -1496,10 +1496,10 @@ export default function ClientHome({
             className="bg-brand-primary rounded-[2.5rem] border border-brand-primary/10 overflow-hidden flex flex-col md:flex-row items-center gap-10 p-8 sm:p-12 lg:p-16 relative shadow-lg"
           >
             <div className="flex-1 flex flex-col justify-center">
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-8 text-black leading-snug tracking-tight">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-8 text-white leading-snug tracking-tight">
                 Kenapa harus pilih <span className="relative inline-block">
                   <strong className="text-white">Pesanku?</strong>
-                  <svg className="absolute -bottom-1 lg:-bottom-2 left-0 w-full text-black/70" viewBox="0 0 100 20" preserveAspectRatio="none">
+                  <svg className="absolute -bottom-1 lg:-bottom-2 left-0 w-full text-white" viewBox="0 0 100 20" preserveAspectRatio="none">
                     <path d="M0 10 Q 50 20 100 10" fill="transparent" stroke="currentColor" strokeWidth="4" />
                   </svg>
                 </span>

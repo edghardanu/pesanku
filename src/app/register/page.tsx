@@ -540,15 +540,15 @@ export default function RegisterPage() {
               </div>
               <span className="text-4xl lg:text-7xl font-extrabold text-brand-primary tracking-wide drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">pesanku</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-5xl font-extrabold text-white mb-2 lg:mb-4 leading-tight">Mulai<br className="hidden sm:block"/><span className="text-black drop-shadow-md">Perjalananmu</span></h2>
+            <h2 className="text-2xl sm:text-3xl lg:text-5xl font-extrabold text-white mb-2 lg:mb-4 leading-tight">Mulai<br className="hidden sm:block"/><span className="text-white drop-shadow-md">Perjalananmu</span></h2>
             <p className="text-sm sm:text-base lg:text-lg text-white/90 leading-relaxed mb-4 lg:mb-6 hidden sm:block lg:block">Bergabung ribuan pelanggan dan mitra UMKM yang saling terhubung dalam platform Pesanku.</p>
             <div className="hidden sm:grid grid-cols-2 gap-4">
-               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
-                 <div className="text-3xl font-bold text-brand-primary mb-1">{publicStats.totalUmkm}</div>
+               <div className="bg-brand-primary rounded-2xl p-4 border border-white/10 shadow-md">
+                 <div className="text-3xl font-bold text-white mb-1">{publicStats.totalUmkm}</div>
                  <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Mitra UMKM</div>
                </div>
-               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
-                 <div className="text-3xl font-bold text-brand-primary mb-1 flex items-center gap-1">{publicStats.avgRating} <span className="text-2xl text-yellow-400">★</span></div>
+               <div className="bg-brand-primary rounded-2xl p-4 border border-white/10 shadow-md">
+                 <div className="text-3xl font-bold text-white mb-1 flex items-center gap-1">{publicStats.avgRating} <span className="text-2xl text-yellow-400">★</span></div>
                  <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Kepuasan Pelanggan</div>
                </div>
             </div>
