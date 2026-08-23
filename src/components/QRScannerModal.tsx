@@ -49,7 +49,7 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
         onScan(decodedText);
       } else {
         onClose();
-        if (pathname !== "/") router.push("/");
+        router.push("/");
         Swal.fire({
           title: "QRIS Terdeteksi",
           text: "Data QRIS: " + decodedText.substring(0, 30) + "... \n Fitur pembayaran sedang dalam pengembangan.",
@@ -59,7 +59,7 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
       }
     } else {
       onClose();
-      if (pathname !== "/") router.push("/");
+      router.push("/");
     }
   };
 
@@ -153,7 +153,7 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
     <div className="fixed inset-0 z-[100] flex flex-col bg-black overflow-hidden animate-in fade-in duration-300">
 
       {/* Header Overlay */}
-      <div className="absolute top-0 left-0 right-0 z-10 flex items-start justify-between px-4 pt-6 pb-12 bg-gradient-to-b from-black/80 to-transparent text-white pointer-events-none">
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-start justify-between px-4 pt-6 pb-12 bg-gradient-to-b from-black/80 to-transparent text-white pointer-events-none">
         <div className="flex flex-col gap-1 drop-shadow-md">
           <div className="flex items-center gap-2">
             <Camera className="w-5 h-5 text-brand-primary" />
@@ -268,7 +268,7 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
       </div>
 
       {/* Footer: Mode Toggle + Info */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 p-6 pt-8 bg-gradient-to-t from-black via-black/90 to-transparent text-white safe-area-bottom">
+      <div className="absolute bottom-0 left-0 right-0 z-20 p-6 pt-8 bg-gradient-to-t from-black via-black/90 to-transparent text-white safe-area-bottom">
 
         {/* Mode Toggle Buttons */}
         <div className="flex items-center justify-center gap-3 mb-5">

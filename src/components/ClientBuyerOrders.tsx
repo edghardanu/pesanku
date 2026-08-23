@@ -81,14 +81,15 @@ export default function ClientBuyerOrders({
   };
 
   const filteredLocalOrders = localOrders.filter(o => {
+    if (cancelledExpiredOrderIds.includes(o.orderId)) return false;
     if (activeTab === 'chats') return o.status === 'chat_only';
     if (activeTab === 'tracking') return o.status !== 'chat_only' && o.status !== 'cancelled';
     return o.status !== 'chat_only';
   });
 
   useEffect(() => {
-    setLocalOrders(orders);
-  }, [orders]);
+    setLocalOrders(orders.filter(o => !cancelledExpiredOrderIds.includes(o.orderId)));
+  }, [orders, cancelledExpiredOrderIds]);
 
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
@@ -120,7 +121,8 @@ export default function ClientBuyerOrders({
         if (res.ok) {
           const data = await res.json();
           if (data.orders) {
-            setLocalOrders(data.orders);
+            const activeOrders = data.orders.filter((o: BuyerOrderViewItem) => !cancelledExpiredOrderIds.includes(o.orderId));
+            setLocalOrders(activeOrders);
           }
         }
       } catch (err) {
@@ -131,7 +133,7 @@ export default function ClientBuyerOrders({
     // Initial fetch not needed as server passes initial orders, just start interval
     const interval = setInterval(fetchRealtimeOrders, 15000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, cancelledExpiredOrderIds]);
 
   useEffect(() => {
     if (checkoutCount < 1 || hasShownCheckoutNotice.current) return;
