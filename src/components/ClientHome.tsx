@@ -1018,14 +1018,18 @@ export default function ClientHome({
             return (
               <div className="mb-16">
                 {/* Header */}
-                <div className="mb-6 flex justify-between items-center">
-                  <div>
-                    <h2 className="text-h2 mb-2 tracking-tight">UMKM Terpopuler</h2>
+                <div className="mb-6 flex flex-col md:flex-row justify-center items-center relative gap-4">
+                  <div className="text-center w-full">
+                    <div className="flex items-center justify-center gap-4 mb-2">
+                      <div className="h-1 w-12 sm:w-16 bg-brand-primary/80 rounded-full"></div>
+                      <h2 className="text-h2 tracking-tight mb-0">UMKM Terpopuler</h2>
+                      <div className="h-1 w-12 sm:w-16 bg-brand-primary/80 rounded-full"></div>
+                    </div>
                     <p className="text-body-base text-text-secondary">Pilihan toko favorit dengan kualitas terbaik.</p>
                   </div>
 
                   {/* Prev / Next manual controls */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 md:absolute md:right-0">
                     <button
                       onClick={() => { setSellerAutoPlay(false); setTimeout(() => setSellerAutoPlay(true), 8000); setSellerPage(prev => Math.max(prev - 1, 0)); }}
                       disabled={sellerPage === 0}
@@ -1105,10 +1109,14 @@ export default function ClientHome({
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
-                className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4"
+                className="mb-8 flex flex-col md:flex-row justify-center items-center relative gap-4"
               >
-                <div>
-                  <h2 className="text-h2 mb-2 tracking-tight">Kategori Pilihan</h2>
+                <div className="text-center w-full">
+                  <div className="flex items-center justify-center gap-4 mb-2">
+                    <div className="h-1 w-12 sm:w-16 bg-brand-primary/80 rounded-full"></div>
+                    <h2 className="text-h2 tracking-tight mb-0">Kategori Pilihan</h2>
+                    <div className="h-1 w-12 sm:w-16 bg-brand-primary/80 rounded-full"></div>
+                  </div>
                   <p className="text-body-base text-text-secondary">Eksplorasi ragam menu sesuai selera Anda.</p>
                 </div>
 
