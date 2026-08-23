@@ -206,7 +206,8 @@ export default function ClientHome({
       text: `Apakah Anda ${user?.name || ''} ingin keluar dari akun Pesanku?`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#ff5c35',
+      confirmButtonColor: '#800000',
+      iconColor: '#800000',
       cancelButtonColor: '#94a3b8',
       confirmButtonText: 'Ya, Keluar',
       cancelButtonText: 'Batal'
@@ -583,7 +584,7 @@ export default function ClientHome({
                       transition={{ duration: 0.3 }}
                       className="absolute"
                     >
-                      <Moon className={`w-5 h-5 ${isScrolled ? 'text-brand-secondary' : 'text-white'}`} />
+                      <Moon className={`w-5 h-5 ${isScrolled ? 'text-brand-primary' : 'text-white'}`} />
                     </motion.div>
                   ) : (
                     <motion.div
@@ -594,7 +595,7 @@ export default function ClientHome({
                       transition={{ duration: 0.3 }}
                       className="absolute"
                     >
-                      <Sun className={`w-5 h-5 ${isScrolled ? 'text-brand-secondary' : 'text-white'}`} />
+                      <Sun className={`w-5 h-5 ${isScrolled ? 'text-brand-primary' : 'text-white'}`} />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -866,7 +867,7 @@ export default function ClientHome({
                           transition={{ duration: 0.3 }}
                           className="absolute"
                         >
-                          <Moon className="w-5 h-5 text-brand-secondary" />
+                          <Moon className="w-5 h-5 text-brand-primary" />
                         </motion.div>
                       ) : (
                         <motion.div
@@ -877,7 +878,7 @@ export default function ClientHome({
                           transition={{ duration: 0.3 }}
                           className="absolute"
                         >
-                          <Sun className="w-5 h-5 text-brand-secondary" />
+                          <Sun className="w-5 h-5 text-brand-primary" />
                         </motion.div>
                       )}
                     </AnimatePresence>

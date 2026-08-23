@@ -346,7 +346,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
       text: `Apakah Anda ${userName} ingin keluar?`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#ff5c35', // brand-primary
+      confirmButtonColor: '#800000', // brand-primary
+      iconColor: '#800000',
       cancelButtonColor: '#94a3b8',
       confirmButtonText: 'Ya',
       cancelButtonText: 'Batal'
@@ -529,7 +530,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                     transition={{ duration: 0.2 }}
                     className="absolute"
                   >
-                    <Moon className="w-4 h-4 text-brand-secondary" />
+                    <Moon className="w-4 h-4 text-brand-primary" />
                   </motion.div>
                 ) : (
                   <motion.div
@@ -540,7 +541,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                     transition={{ duration: 0.2 }}
                     className="absolute"
                   >
-                    <Sun className="w-4 h-4 text-brand-secondary" />
+                    <Sun className="w-4 h-4 text-brand-primary" />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -590,7 +591,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                         transition={{ duration: 0.3 }}
                         className="absolute"
                       >
-                        <Moon className="w-5 h-5 text-brand-secondary" />
+                        <Moon className="w-5 h-5 text-brand-primary" />
                       </motion.div>
                     ) : (
                       <motion.div
@@ -601,7 +602,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                         transition={{ duration: 0.3 }}
                         className="absolute"
                       >
-                        <Sun className="w-5 h-5 text-brand-secondary" />
+                        <Sun className="w-5 h-5 text-brand-primary" />
                       </motion.div>
                     )}
                   </AnimatePresence>

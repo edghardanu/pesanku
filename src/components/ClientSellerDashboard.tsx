@@ -334,7 +334,8 @@ export default function ClientSellerDashboard({
       text: `Apakah Anda ${userName} ingin keluar?`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#ff5c35', // brand-primary
+      confirmButtonColor: '#800000', // brand-primary
+      iconColor: '#800000',
       cancelButtonColor: '#94a3b8',
       confirmButtonText: 'Ya',
       cancelButtonText: 'Batal'
@@ -1289,7 +1290,7 @@ export default function ClientSellerDashboard({
             aria-label="Toggle Dark Mode"
           >
             <span className="flex items-center gap-3 text-sm">
-              {isDarkMode ? <Moon className="w-5 h-5 text-brand-secondary" /> : <Sun className="w-5 h-5 text-brand-secondary" />}
+              {isDarkMode ? <Moon className="w-5 h-5 text-brand-primary" /> : <Sun className="w-5 h-5 text-brand-primary" />}
               <span>{isDarkMode ? 'Mode Gelap' : 'Mode Terang'}</span>
             </span>
             <span className="text-xs bg-border/60 px-2 py-0.5 rounded-md font-semibold text-text-secondary">
@@ -1329,7 +1330,7 @@ export default function ClientSellerDashboard({
                 title="Notifikasi"
               >
                 <motion.div initial={{ rotate: 0 }} whileHover={{ rotate: 15 }} className="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-secondary"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-primary"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                 </motion.div>
                 {totalNotifs > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-error px-1 text-[9px] font-bold text-white shadow-sm animate-pulse-slow">
@@ -1345,7 +1346,7 @@ export default function ClientSellerDashboard({
               aria-label="Buka Pengaturan Toko"
               title="Pengaturan Toko"
             >
-              <Settings className="w-4 h-4 text-brand-secondary" />
+              <Settings className="w-4 h-4 text-brand-primary" />
             </button>
 
             <button 
@@ -1363,7 +1364,7 @@ export default function ClientSellerDashboard({
                     transition={{ duration: 0.2 }}
                     className="absolute"
                   >
-                    <Moon className="w-4 h-4 text-brand-secondary" />
+                    <Moon className="w-4 h-4 text-brand-primary" />
                   </motion.div>
                 ) : (
                   <motion.div
@@ -1374,7 +1375,7 @@ export default function ClientSellerDashboard({
                     transition={{ duration: 0.2 }}
                     className="absolute"
                   >
-                    <Sun className="w-4 h-4 text-brand-secondary" />
+                    <Sun className="w-4 h-4 text-brand-primary" />
                   </motion.div>
                 )}
               </AnimatePresence>

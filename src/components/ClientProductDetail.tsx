@@ -112,7 +112,8 @@ export default function ClientProductDetail({
       text: `Apakah Anda ${user?.name || ''} ingin keluar dari akun Pesanku?`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#ff5c35',
+      confirmButtonColor: '#800000',
+      iconColor: '#800000',
       cancelButtonColor: '#94a3b8',
       confirmButtonText: 'Ya, Keluar',
       cancelButtonText: 'Batal'
