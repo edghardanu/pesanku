@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     }
 
     const sellerProducts = await db.select().from(products)
-      .where(and(eq(products.sellerId, sellerId), eq(products.status, 'active')))
+      .where(eq(products.sellerId, sellerId))
       .orderBy(desc(products.createdAt));
 
     return NextResponse.json({

@@ -581,27 +581,42 @@ export default function ClientSellerDashboard({
               <p class="text-xs font-bold mt-1 ${textPrice}">${pPrice}</p>
             </div>
           </div>
-          <button data-product-id="${pId}" class="view-product-calendar-btn w-full ${buttonBg} text-xs font-bold py-1.5 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1 active:scale-95 cursor-pointer border-none outline-none">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Lihat Jadwal Produk
-          </button>
+          <div class="flex flex-col gap-1.5 mt-0.5">
+            <button data-product-id="${pId}" class="view-product-calendar-btn w-full ${buttonBg} text-xs font-bold py-1.5 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1 active:scale-95 cursor-pointer border-none outline-none">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Lihat Jadwal Produk
+            </button>
+            ${!isMe ? `
+            <button data-product-id="${pId}" data-product-name="${pName}" data-product-price="${pPrice}" data-product-image="${pImage}" class="confirm-presale-btn w-full bg-status-success hover:bg-status-success-dark text-white text-xs font-bold py-1.5 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1 active:scale-95 cursor-pointer border-none outline-none">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><polyline points="20 6 9 17 4 12"/></svg>
+              Konfirmasi (Bisa Diproses)
+            </button>
+            ` : ''}
+          </div>
         </div>
       `;
     };
 
     const renderMsgs = () => chatHistory.map((c: ChatMessage) => {
-      const isMe = c.sender === 'seller';
+      const isMe = (c.senderId && profile?.userId && c.senderId === profile.userId) || c.sender === 'seller';
       
       const trimmedText = (c.text || '').trim();
-      let bubbleContent = c.text;
-      if (trimmedText.startsWith('[PRODUK_OFFER|') && trimmedText.endsWith(']')) {
-        const parts = trimmedText.slice(1, -1).split('|');
-        if (parts.length >= 5) {
-          const pId = parts[1];
-          const pName = parts[2];
-          const pPrice = parts[3];
-          const pImage = parts.slice(4).join('|');
-          bubbleContent = renderSingleOfferCard(pId, pName, pPrice, pImage, isMe);
+      let bubbleContent = escapeQuotes(c.text || "").replace(/\n/g, '<br/>');
+      
+      const offerMatch = bubbleContent.match(/\[PRODUK_OFFER\|(.*?)\|(.*?)\|(.*?)\|(.*?)\]/);
+      if (offerMatch) {
+        const fullMatch = offerMatch[0];
+        bubbleContent = bubbleContent.replace(fullMatch, "").replace(/<br\/>/g, '\n').trim().replace(/\n/g, '<br/>');
+        const pId = offerMatch[1];
+        const pName = offerMatch[2];
+        const pPrice = offerMatch[3];
+        const pImage = offerMatch[4];
+        const cardHtml = renderSingleOfferCard(pId, pName, pPrice, pImage, isMe);
+        
+        if (bubbleContent && bubbleContent !== '<br/>') {
+          bubbleContent = `<div>${bubbleContent}</div><div class="mt-2.5">${cardHtml}</div>`;
+        } else {
+          bubbleContent = cardHtml;
         }
       } else if (trimmedText.startsWith('[CHAT_IMG|') && trimmedText.endsWith(']')) {
         const imgDataUrl = trimmedText.slice(10, -1);
@@ -611,25 +626,36 @@ export default function ClientSellerDashboard({
       }
 
       if (isMe) {
-        const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
-        const tickStyle = c.isRead ? "color: #60a5fa;" : "";
+        // ── PENJUAL / Saya (Kanan) ──────────────────────────────────────
+        const tickStyle = c.isRead ? "color:#60a5fa;" : "opacity:0.6;";
         return `
-          <div class="flex justify-end mt-3">
-            <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm">
+          <div class="flex justify-end items-end gap-2 mt-3">
+            <div style="background:#800000;color:#fff;border-radius:14px 14px 4px 14px;padding:10px 14px;max-width:78%;font-size:13.5px;text-align:left;box-shadow:0 2px 8px rgba(128,0,0,0.18);">
               ${bubbleContent}
-              <div class="flex items-center justify-end gap-1 mt-1">
-                <span class="text-[10px] text-white/80">${isMe ? 'Anda' : (buyerName || 'Pembeli')} • ${c.createdAt ? formatChatTimeWIB(c.createdAt) : ''}</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${tickClass}" style="${tickStyle}"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
+              <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:4px;">
+                <span style="font-size:10px;opacity:0.8;">Anda • ${c.createdAt ? formatChatTimeWIB(c.createdAt) : ''}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="${tickStyle}"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
               </div>
+            </div>
+            <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#800000,#b22222);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(128,0,0,0.25);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
           </div>
         `;
       } else {
+        // ── PEMBELI (Kiri) ───────────────────────────────────────────────
+        const buyerInitial = (buyerName || 'P').charAt(0).toUpperCase();
         return `
-          <div class="flex justify-start mt-3">
-            <div class="bg-surface border border-border rounded-xl rounded-tl-none px-4 py-2 max-w-[80%] text-sm text-text-primary text-left">
-              ${bubbleContent}
-              <div class="text-[10px] text-text-secondary mt-1">${isMe ? 'Anda' : (buyerName || 'Pembeli')} • ${c.createdAt ? formatChatTimeWIB(c.createdAt) : ''}</div>
+          <div class="flex justify-start items-end gap-2 mt-3">
+            <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#e2e8f0,#cbd5e1);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,0.12);border:1.5px solid rgba(128,0,0,0.2);">
+              <span style="font-size:12px;font-weight:700;color:#800000;">${buyerInitial}</span>
+            </div>
+            <div style="max-width:78%;">
+              <div style="font-size:10px;font-weight:600;color:#800000;margin-bottom:4px;padding-left:2px;letter-spacing:0.3px;">${buyerName || 'Pembeli'}</div>
+              <div style="background:#f3f4f6;color:#1f2937;border-radius:4px 14px 14px 14px;padding:10px 14px;font-size:13.5px;text-align:left;box-shadow:0 2px 6px rgba(0,0,0,0.07);border:1px solid rgba(0,0,0,0.07);">
+                ${bubbleContent}
+                <div style="font-size:10px;opacity:0.55;margin-top:4px;text-align:right;">${c.createdAt ? formatChatTimeWIB(c.createdAt) : ''}</div>
+              </div>
             </div>
           </div>
         `;
@@ -637,9 +663,9 @@ export default function ClientSellerDashboard({
     }).join('');
 
     const renderProductList = () => {
-      const activeProducts = localProducts.filter(p => p.status === 'active');
+      const activeProducts = localProducts;
       if (activeProducts.length === 0) {
-        return `<div class="text-xs text-text-secondary text-center py-8">Tidak ada produk aktif di toko Anda.</div>`;
+        return `<div class="text-xs text-text-secondary text-center py-8">Tidak ada produk di toko Anda.</div>`;
       }
       return activeProducts.map(p => {
         const imageUrl = p.imageUrl || "/street-food-festival.jpg";
@@ -778,6 +804,74 @@ export default function ClientSellerDashboard({
                   calendarEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
               }, 150);
+            }
+          }
+          
+          const confirmBtn = target.closest('.confirm-presale-btn');
+          if (confirmBtn) {
+            const pId = confirmBtn.getAttribute('data-product-id') || '';
+            const pName = confirmBtn.getAttribute('data-product-name');
+            const pPrice = confirmBtn.getAttribute('data-product-price') || '';
+            const pImage = confirmBtn.getAttribute('data-product-image') || '';
+            
+            if (pName) {
+              const todayStr = new Date().toISOString().split('T')[0];
+              
+              Swal.fire({
+                title: 'Konfirmasi Jadwal',
+                html: `
+                  <div class="text-left space-y-4 pt-2">
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                      <p class="font-semibold text-gray-900">${pName.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+                      <p class="mt-1 text-sm text-gray-500">Konfirmasi kesanggupan pre-order.</p>
+                    </div>
+                    <div>
+                      <label for="presale-confirm-date" class="mb-1.5 block text-sm font-semibold text-gray-700">Tanggal pengiriman</label>
+                      <input id="presale-confirm-date" type="date" value="${todayStr}" class="swal2-input m-0 w-full" style="height:44px;font-size:14px;" />
+                    </div>
+                    <div>
+                      <label for="presale-confirm-reason" class="mb-1.5 block text-sm font-semibold text-gray-700">Alasan/Catatan jadwal <span class="font-normal text-gray-400">(opsional)</span></label>
+                      <textarea id="presale-confirm-reason" maxlength="500" rows="3" class="w-full resize-y rounded-lg border border-gray-300 p-3 text-sm outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" placeholder="Pesan kepada pembeli (opsional)"></textarea>
+                    </div>
+                  </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Kirim Konfirmasi',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#800000',
+                focusConfirm: false,
+                customClass: {
+                  popup: 'rounded-3xl',
+                  confirmButton: 'rounded-xl font-bold px-5 py-2.5',
+                  cancelButton: 'rounded-xl font-bold px-5 py-2.5'
+                },
+                preConfirm: () => {
+                  const dateInput = document.getElementById('presale-confirm-date') as HTMLInputElement;
+                  const reasonInput = document.getElementById('presale-confirm-reason') as HTMLTextAreaElement;
+                  if (!dateInput.value) {
+                    Swal.showValidationMessage('Tanggal pengiriman wajib diisi!');
+                    return false;
+                  }
+                  
+                  const parts = dateInput.value.split('-');
+                  return { dateStr: `${parts[2]}/${parts[1]}/${parts[0]}`, reason: reasonInput.value.trim() };
+                }
+              }).then((res) => {
+                if (res.isConfirmed && res.value) {
+                  const { dateStr, reason } = res.value;
+                  let confirmMsg = `Halo kak! Pesanan Pre-Order Anda untuk produk **${pName}** kami jadwalkan pengirimannya pada **${dateStr}** (Bisa Diproses).`;
+                  if (reason) {
+                    confirmMsg += `\n\nCatatan dari kami: \n*"${reason}"*`;
+                  }
+                  confirmMsg += `\n\nSilakan klik tombol produk di bawah ini lalu lakukan *Checkout* (Pesan Sekarang) untuk menyelesaikan pesanan Anda. Terima kasih!`;
+                  confirmMsg += `\n\n[PRODUK_OFFER|${pId}|${pName}|${pPrice}|${pImage}]`;
+                  
+                  sendMessage(confirmMsg);
+                  setTimeout(() => {
+                    handleOpenChat(orderId, buyerName, productName);
+                  }, 400);
+                }
+              });
             }
           }
         });
@@ -955,13 +1049,23 @@ export default function ClientSellerDashboard({
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({ orderId, text: msg })
             });
+
+            if (!sendRes.ok) throw new Error("API failed");
+
             const { id: realId } = await sendRes.json();
             
-            // Set REAL ID to buttons so they can be clicked
-            document.querySelector(`.chat-edit-btn[data-id="${msgId}"]`)?.setAttribute('data-id', realId);
-            document.querySelector(`.chat-del-btn[data-id="${msgId}"]`)?.setAttribute('data-id', realId);
-            document.getElementById(`msg-bubble-${msgId}`)!.id = `msg-bubble-${realId}`;
-            document.getElementById(`msg-text-${msgId}`)!.id = `msg-text-${realId}`;
+            // Set REAL ID to buttons so they can be clicked (check if they exist first!)
+            const editBtn = document.querySelector(`.chat-edit-btn[data-id="${msgId}"]`);
+            if (editBtn) editBtn.setAttribute('data-id', realId);
+            
+            const delBtn = document.querySelector(`.chat-del-btn[data-id="${msgId}"]`);
+            if (delBtn) delBtn.setAttribute('data-id', realId);
+            
+            const msgBubble = document.getElementById(`msg-bubble-${msgId}`);
+            if (msgBubble) msgBubble.id = `msg-bubble-${realId}`;
+            
+            const msgText = document.getElementById(`msg-text-${msgId}`);
+            if (msgText) msgText.id = `msg-text-${realId}`;
             
             const actionsBlock = document.getElementById(`${msgId}-actions`);
             if (actionsBlock) actionsBlock.style.display = 'flex';
@@ -1455,6 +1559,7 @@ export default function ClientSellerDashboard({
                             <th className="p-3 font-medium text-right">Net Saldo</th>
                             <th className="p-3 font-medium text-center">Invoice</th>
                             <th className="p-3 font-medium text-center">Dokumen & Bukti</th>
+                            <th className="p-3 font-medium text-center">Jadwal Pengiriman</th>
                             <th className="p-3 font-medium text-right">Aksi Status</th>
                           </tr>
                         </thead>
@@ -1546,6 +1651,19 @@ export default function ClientSellerDashboard({
                                   )}
                                 </div>
                               </td>
+                              <td className="p-4 text-center">
+                                {order.deliveryDate ? (
+                                  <span className="text-xs font-semibold text-brand-primary whitespace-nowrap bg-brand-primary/10 px-2 py-1 rounded-md">
+                                    {new Date(order.deliveryDate).toLocaleDateString('id-ID', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      year: 'numeric'
+                                    })}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-text-secondary/50 italic">-</span>
+                                )}
+                              </td>
                               <td className="p-4 text-right">
                                 <div className="flex flex-col items-end gap-2">
 
@@ -1557,7 +1675,7 @@ export default function ClientSellerDashboard({
                                       order.status === 'preorder_running' ? 'bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-300' :
                                       order.status === 'verified' ? 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20' : 
                                       order.status === 'waiting_verification' ? 'bg-status-warning/10 text-status-warning border-status-warning/20' : 
-                                      order.status === 'cancelled' || order.status === 'failed' ? 'bg-status-error/10 text-status-error border-status-error/20' : 
+                                      order.status === 'cancelled' || order.status === 'returned' || order.status === 'failed' ? 'bg-status-error/10 text-status-error border-status-error/20' : 
                                       'bg-border/60 text-text-secondary border-border'
                                     }`}
                                     value={order.status ?? 'waiting_verification'}
@@ -1565,6 +1683,18 @@ export default function ClientSellerDashboard({
                                       const newStatus = e.target.value;
                                       const statusSelect = e.currentTarget;
                                       const previousStatus = order.status ?? 'waiting_verification';
+
+                                      if ((newStatus === 'preorder_running' || newStatus === 'processing') && !order.deliveryDate) {
+                                        Swal.fire({
+                                          icon: 'warning',
+                                          title: 'Konfirmasi Tanggal Diperlukan',
+                                          text: 'Silakan lakukan konfirmasi tanggal pesanan terlebih dahulu di fitur "Produk Preorder" pada bagian "Pesanan Belum Dijadwalkan".',
+                                          confirmButtonColor: '#ff5c35'
+                                        });
+                                        statusSelect.value = previousStatus;
+                                        return;
+                                      }
+
                                       try {
                                         Swal.fire({
                                           title: 'Loading...',
@@ -1578,9 +1708,15 @@ export default function ClientSellerDashboard({
                                         });
                                         const data = await res.json();
                                         if (!res.ok) throw new Error(data.error || 'Gagal memperbarui status');
-                                        setSellerOrders(current => current.map(item => item.id === order.id
-                                          ? { ...item, status: newStatus }
-                                          : item));
+                                        setSellerOrders(current => current.map(item => {
+                                          if (item.id === order.id) {
+                                            if (newStatus === 'waiting_verification' || newStatus === 'verified') {
+                                              return { ...item, status: newStatus, deliveryDate: null, fulfillmentStatus: null, scheduleReason: null };
+                                            }
+                                            return { ...item, status: newStatus };
+                                          }
+                                          return item;
+                                        }));
                                         router.refresh();
                                         Swal.fire({
                                           icon: 'success', title: 'Berhasil', text: 'Status pesanan diperbarui!', timer: 1500, showConfirmButton: false
@@ -1593,15 +1729,15 @@ export default function ClientSellerDashboard({
                                     }}
                                   >
                                     <option value="waiting_verification" className="text-text-primary bg-base">
-                                      {!order.proofUrl ? 'Menunggu Pembayaran' : 'Menunggu Verifikasi'}
+                                      Menunggu Pembayaran
                                     </option>
                                     <option value="verified" className="text-text-primary bg-base">
-                                      Sudah Dibayar (Terverifikasi)
+                                      Sudah Dibayar
                                     </option>
-                                    <option value="preorder_running" className="text-text-primary bg-base">Preorder Berjalan</option>
-                                    <option value="processing" className="text-text-primary bg-base">Sedang Diproses/Dikirim</option>
+                                    <option value="preorder_running" className="text-text-primary bg-base">Diproses Penjual</option>
+                                    <option value="processing" className="text-text-primary bg-base">Barang Dikirim</option>
                                     {order.status === 'completed' && <option value="completed" className="text-status-success bg-base">Selesai</option>}
-                                    <option value="failed" className="text-status-error bg-base">Gagal</option>
+                                    <option value="returned" className="text-status-error bg-base">Pesanan Dikembalikan</option>
                                     <option value="cancelled" className="text-status-error bg-base">Dibatalkan</option>
                                   </select>
                                 </div>
@@ -1685,6 +1821,9 @@ export default function ClientSellerDashboard({
                 productIdFilter={selectedProductIdFilter}
                 onOrderStatusChange={(orderId, status, cancelReason) => {
                   setSellerOrders(current => current.map(order => order.id === orderId ? { ...order, status, cancelReason } : order));
+                }}
+                onScheduleChange={(orderId, schedule) => {
+                  setSellerOrders(current => current.map(order => order.id === orderId ? { ...order, ...schedule } : order));
                 }}
               />
 

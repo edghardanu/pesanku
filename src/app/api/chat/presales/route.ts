@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Silakan login sebagai pembeli terlebih dahulu untuk menggunakan fitur chat." }, { status: 401 });
     }
 
-    const { productId, text } = await request.json();
+    const { productId, text, productOffer } = await request.json();
     if (!productId || !text) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
@@ -41,13 +41,18 @@ export async function POST(request: Request) {
     }
 
     const orderId = orderRecord!.id;
-    const msgId = `msg_${crypto.randomBytes(8).toString('hex')}`;
+    let finalMessage = text;
+
+    if (productOffer) {
+      const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(productOffer.price || 0);
+      finalMessage += `\n\n[PRODUK_OFFER|${productOffer.id}|${productOffer.name}|${formattedPrice}|${productOffer.image}]`;
+    }
     
     await db.insert(chatMessages).values({
-      id: msgId,
+      id: `msg_${crypto.randomBytes(8).toString('hex')}`,
       orderId,
       senderId: user.id,
-      text,
+      text: finalMessage,
       isRead: false
     });
 

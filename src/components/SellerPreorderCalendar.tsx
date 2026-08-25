@@ -82,11 +82,13 @@ export default function SellerPreorderCalendar({
   products,
   productIdFilter,
   onOrderStatusChange,
+  onScheduleChange,
 }: {
   orders: OrderItem[];
   products: ProductOption[];
   productIdFilter?: string;
   onOrderStatusChange?: (orderId: string, status: string, cancelReason?: string) => void;
+  onScheduleChange?: (orderId: string, schedule: Partial<OrderItem>) => void;
 }) {
   const router = useRouter();
   const todayKey = toDateKey(new Date());
@@ -119,10 +121,12 @@ export default function SellerPreorderCalendar({
   );
 
   const hasSellerSchedule = (order: OrderItem) => Boolean(order.deliveryDate && order.fulfillmentStatus);
-  const scheduledOrders = filteredOrders.filter(hasSellerSchedule);
-  const unscheduledOrders = filteredOrders.filter((order) => (
-    !hasSellerSchedule(order) && !['cancelled', 'failed', 'completed'].includes(order.status || '')
-  ));
+  const isPendingStatus = (order: OrderItem) => ['waiting_verification', 'verified'].includes(order.status || '');
+
+  const scheduledOrders = filteredOrders.filter(order => hasSellerSchedule(order) && !isPendingStatus(order));
+  const unscheduledOrders = filteredOrders.filter((order) => {
+    return (!hasSellerSchedule(order) || isPendingStatus(order)) && !['cancelled', 'returned', 'completed'].includes(order.status || '');
+  });
 
   const selectedDayOrders = scheduledOrders.filter((order) => order.deliveryDate === selectedDate);
 
@@ -192,12 +196,9 @@ export default function SellerPreorderCalendar({
         </div>
       `,
       showCancelButton: true,
-      showDenyButton: Boolean(order.deliveryDate),
       confirmButtonText: 'Simpan Jadwal',
       cancelButtonText: 'Batal',
-      denyButtonText: 'Batalkan Jadwal',
       confirmButtonColor: '#800000',
-      denyButtonColor: '#ef4444',
       preConfirm: () => {
         const deliveryDate = (document.getElementById('schedule-date') as HTMLInputElement)?.value;
         const fulfillmentStatus = (document.getElementById('schedule-status') as HTMLSelectElement)?.value as FulfillmentStatus;
@@ -209,21 +210,6 @@ export default function SellerPreorderCalendar({
         return { deliveryDate, fulfillmentStatus, scheduleReason };
       },
     });
-
-    if (result.isDenied) {
-      const response = await fetch(`/api/seller/preorder-schedule?orderId=${encodeURIComponent(order.id)}`, { method: 'DELETE' });
-      const data = await response.json();
-      if (!response.ok) {
-        await Swal.fire('Gagal', data.error || 'Jadwal tidak dapat dihapus.', 'error');
-        return;
-      }
-      setLocalOrders((current) => current.map((item) => item.id === order.id
-        ? { ...item, deliveryDate: null, fulfillmentStatus: null, scheduleReason: null, scheduleUpdatedAt: null }
-        : item));
-      router.refresh();
-      await Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Jadwal dihapus', showConfirmButton: false, timer: 2500 });
-      return;
-    }
 
     if (!result.isConfirmed || !result.value) return;
 
@@ -241,12 +227,23 @@ export default function SellerPreorderCalendar({
     setLocalOrders((current) => current.map((item) => item.id === order.id
       ? {
         ...item,
+        status: data.status,
         deliveryDate: data.schedule.deliveryDate,
         fulfillmentStatus: data.schedule.fulfillmentStatus,
         scheduleReason: data.schedule.scheduleReason,
         scheduleUpdatedAt: data.schedule.updatedAt,
       }
       : item));
+    if (data.status && data.status !== order.status) {
+      onOrderStatusChange?.(order.id, data.status);
+    }
+    onScheduleChange?.(order.id, {
+      status: data.status,
+      deliveryDate: data.schedule.deliveryDate,
+      fulfillmentStatus: data.schedule.fulfillmentStatus,
+      scheduleReason: data.schedule.scheduleReason,
+      scheduleUpdatedAt: data.schedule.updatedAt,
+    });
     setSelectedDate(data.schedule.deliveryDate);
     const scheduledDate = fromDateKey(data.schedule.deliveryDate);
     setVisibleMonth(new Date(scheduledDate.getFullYear(), scheduledDate.getMonth(), 1));
@@ -346,14 +343,21 @@ export default function SellerPreorderCalendar({
       setLocalOrders((current) => current.map((item) => item.id === order.id
         ? {
           ...item,
-          status: 'verified',
+          status: data.status,
           deliveryDate: data.schedule.deliveryDate,
           fulfillmentStatus: data.schedule.fulfillmentStatus,
           scheduleReason: data.schedule.scheduleReason,
           scheduleUpdatedAt: data.schedule.updatedAt,
         }
         : item));
-      onOrderStatusChange?.(order.id, 'verified');
+      onOrderStatusChange?.(order.id, data.status);
+      onScheduleChange?.(order.id, {
+        status: data.status,
+        deliveryDate: data.schedule.deliveryDate,
+        fulfillmentStatus: data.schedule.fulfillmentStatus,
+        scheduleReason: data.schedule.scheduleReason,
+        scheduleUpdatedAt: data.schedule.updatedAt,
+      });
       setSelectedDate(data.schedule.deliveryDate);
       const scheduledDate = fromDateKey(data.schedule.deliveryDate);
       setVisibleMonth(new Date(scheduledDate.getFullYear(), scheduledDate.getMonth(), 1));
@@ -525,9 +529,15 @@ export default function SellerPreorderCalendar({
                 } else if (order.status === 'cancelled') {
                   statusLabel = 'Dibatalkan';
                   statusBadge = 'bg-status-error/10 text-status-error border border-status-error/20';
+                } else if (order.status === 'returned') {
+                  statusLabel = 'Dikembalikan Pembeli';
+                  statusBadge = 'bg-status-error/10 text-status-error border border-status-error/20';
                 } else if (order.status === 'verified') {
-                  statusLabel = 'Diproses (Verifikasi)';
+                  statusLabel = 'Sudah Dibayar';
                   statusBadge = 'bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20';
+                } else if (order.status === 'preorder_running') {
+                  statusLabel = 'Diproses Penjual';
+                  statusBadge = 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20';
                 } else if (order.status === 'waiting_verification') {
                   statusLabel = 'Menunggu Konfirmasi';
                   statusBadge = 'bg-status-warning/10 text-status-warning border border-status-warning/20';
@@ -594,12 +604,13 @@ export default function SellerPreorderCalendar({
                     <p className="truncate text-sm font-bold text-text-primary">{order.productName}</p>
                     {order.status === 'verified' && (
                       <span className="shrink-0 rounded-full border border-brand-secondary/20 bg-brand-secondary/10 px-2 py-1 text-[10px] font-bold text-brand-secondary">
-                        Diproses (Verifikasi)
+                        Sudah Dibayar
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-text-secondary">{order.qty} porsi · {order.id}</p>
                   {order.requestedDeliveryDate && <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Diminta pembeli: {formatLongDate(order.requestedDeliveryDate)}</p>}
+                  {order.deliveryDate && <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-0.5">Jadwal sementara: {formatLongDate(order.deliveryDate)}</p>}
                   {order.selectedVariant && <p className="text-xs font-semibold text-brand-primary">Varian: {order.selectedVariant}{order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}` : ''}</p>}
 
                   <div className="mt-2 space-y-1 text-xs text-text-secondary pt-2 border-t border-border/50">

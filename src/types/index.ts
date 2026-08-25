@@ -5,6 +5,7 @@
 
 export interface SellerProfile {
   id?: string;
+  userId?: string;
   storeName?: string | null;
   address?: string | null;
   category?: string | null;
@@ -206,6 +207,7 @@ export interface BuyerOrderViewItem {
   returnProofUrl?: string | null;
   returnDate?: string | Date | null;
   unreadCount?: number;
+  lastMessageAt?: string | Date | null;
 }
 
 export interface InvoiceOrder {

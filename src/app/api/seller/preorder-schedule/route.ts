@@ -126,14 +126,16 @@ export async function PUT(req: Request) {
     };
     const key = `${schedulePrefix(user.id)}${body.orderId}`;
 
+    const newStatus = (order.status === 'waiting_verification' || order.status === 'verified') ? 'preorder_running' : order.status;
+
     await db.transaction(async (tx) => {
       await tx.insert(settings)
         .values({ key, value: JSON.stringify(schedule) })
         .onConflictDoUpdate({ target: settings.key, set: { value: JSON.stringify(schedule) } });
 
-      if (confirmOrder) {
+      if (newStatus !== order.status) {
         await tx.update(orders)
-          .set({ status: 'verified' })
+          .set({ status: newStatus })
           .where(eq(orders.id, body.orderId as string));
       }
     });
@@ -143,7 +145,7 @@ export async function PUT(req: Request) {
         ? 'Pesanan berhasil dikonfirmasi dan jadwal pengiriman disimpan.'
         : 'Jadwal pengiriman berhasil disimpan.',
       schedule,
-      status: confirmOrder ? 'verified' : order.status,
+      status: newStatus,
     });
   } catch (error) {
     console.error('Update preorder schedule error:', error);

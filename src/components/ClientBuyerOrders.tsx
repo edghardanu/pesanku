@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DotLottieReact } from "@/lib/dotlottie";
 import { formatOrderDateTimeWIB, formatChatTimeWIB, WIB_TIMEZONE } from "@/lib/promotionFormatting";
 import { AuthUser, BuyerOrderViewItem, ChatMessage } from "@/types";
+import ChatInterface from "@/components/ChatInterface";
 
 export default function ClientBuyerOrders({
   orders,
@@ -34,12 +35,11 @@ export default function ClientBuyerOrders({
     const openChatOrderId = searchParams.get('openChat');
     if (openChatOrderId) {
       const order = orders.find(o => o.orderId === openChatOrderId);
-      if (order) {
-        // give it a tiny delay to let SWAL mount cleanly
-        setTimeout(() => {
-          setActiveTab('chats');
-          handleOpenChat(order.orderId, order.storeName || 'Toko UMKM', order.productName);
-        }, 500);
+      const productName = order ? order.productName : searchParams.get('productName');
+
+      if (productName) {
+        setActiveTab('chats');
+        setSelectedChatOrderId(openChatOrderId);
       }
     }
   }, [searchParams, orders]);
@@ -58,6 +58,7 @@ export default function ClientBuyerOrders({
   const [returnPhoto, setReturnPhoto] = useState<string | null>(null);
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
   const [cancelledExpiredOrderIds, setCancelledExpiredOrderIds] = useState<string[]>([]);
+  const [selectedChatOrderId, setSelectedChatOrderId] = useState<string | null>(null);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -82,10 +83,15 @@ export default function ClientBuyerOrders({
 
   const filteredLocalOrders = localOrders.filter(o => {
     if (cancelledExpiredOrderIds.includes(o.orderId)) return false;
-    if (activeTab === 'chats') return o.status === 'chat_only';
+    if (activeTab === 'chats') return true; // Semua order punya chat
     if (activeTab === 'tracking') return o.status !== 'chat_only' && o.status !== 'cancelled';
-    return o.status !== 'chat_only';
+    return o.status !== 'chat_only'; // Tab pesanan: sembunyikan chat_only
   });
+
+  // Untuk tab chats, pisahkan chat_only dan order biasa yg ada pesan baru dari seller
+  const chatOnlyOrders = filteredLocalOrders.filter(o => o.status === 'chat_only');
+  const regularOrdersWithChat = filteredLocalOrders.filter(o => o.status !== 'chat_only');
+
 
   useEffect(() => {
     setLocalOrders(orders.filter(o => !cancelledExpiredOrderIds.includes(o.orderId)));
@@ -115,24 +121,52 @@ export default function ClientBuyerOrders({
   useEffect(() => {
     if (!user || user.role !== 'pembeli') return;
 
+    let failCount = 0;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    let abortController: AbortController | null = null;
+
     const fetchRealtimeOrders = async () => {
+      // Cancel any previous in-flight request
+      abortController?.abort();
+      abortController = new AbortController();
+
       try {
-        const res = await fetch(`/api/buyer/orders?t=${Date.now()}`, { cache: 'no-store' });
+        const res = await fetch(`/api/buyer/orders?t=${Date.now()}`, {
+          cache: 'no-store',
+          signal: abortController.signal,
+        });
         if (res.ok) {
           const data = await res.json();
           if (data.orders) {
-            const activeOrders = data.orders.filter((o: BuyerOrderViewItem) => !cancelledExpiredOrderIds.includes(o.orderId));
+            const activeOrders = data.orders.filter(
+              (o: BuyerOrderViewItem) => !cancelledExpiredOrderIds.includes(o.orderId)
+            );
             setLocalOrders(activeOrders);
           }
         }
-      } catch (err) {
-        console.error('Error polling real-time orders:', err);
+        failCount = 0; // reset on success
+      } catch (err: unknown) {
+        // AbortError is expected on cleanup — not a real error
+        if (err instanceof Error && err.name === 'AbortError') return;
+        failCount++;
+        // Log only meaningful failures (not every transient hiccup)
+        if (failCount <= 3) {
+          console.warn(`[BuyerOrders] Polling attempt ${failCount} failed:`, err);
+        }
       }
+
+      // Schedule next poll with exponential back-off capped at 60s
+      const delay = Math.min(15000 * Math.pow(2, Math.max(0, failCount - 1)), 60000);
+      timeoutId = setTimeout(fetchRealtimeOrders, delay);
     };
 
-    // Initial fetch not needed as server passes initial orders, just start interval
-    const interval = setInterval(fetchRealtimeOrders, 15000);
-    return () => clearInterval(interval);
+    // Start first poll after initial 15 s (server already sent initial data)
+    timeoutId = setTimeout(fetchRealtimeOrders, 15000);
+
+    return () => {
+      clearTimeout(timeoutId);
+      abortController?.abort();
+    };
   }, [user, cancelledExpiredOrderIds]);
 
   useEffect(() => {
@@ -737,471 +771,10 @@ export default function ClientBuyerOrders({
     }
   };
 
-  const escapeQuotes = (str: string) => str ? str.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
 
-  const handleOpenChat = async (orderId: string, storeName: string, productName: string, sellerId?: string) => {
-    // Clear unread count optimistically
-    setLocalOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, unreadCount: 0 } : o));
-
-    // Show loading state first
-    Swal.fire({
-      title: 'Memuat Obrolan...',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-
-    try {
-      const res = await fetch(`/api/chat?orderId=${orderId}`, { cache: 'no-store' });
-      if (!res.ok) throw new Error('Gagal memuat obrolan');
-      const { messages, status } = await res.json();
-
-      const chatHistory: ChatMessage[] = messages || [];
-
-      let storeProducts: any[] = [];
-      if (sellerId) {
-        try {
-          const prodRes = await fetch(`/api/products/public?sellerId=${sellerId}`);
-          if (prodRes.ok) {
-            const prodData = await prodRes.json();
-            storeProducts = prodData.products || [];
-          }
-        } catch (err) {
-          console.error('Failed to fetch store products:', err);
-        }
-      }
-
-      // Virtual fallback: Ensure the seller always has an opening message on the frontend!
-      const hasSellerOpening = chatHistory.some((m: ChatMessage) => m.role === 'penjual' || m.role === 'admin');
-      if (!hasSellerOpening) {
-        const isChatOnly = status === 'chat_only';
-        chatHistory.unshift({
-          sender: 'seller',
-          role: 'penjual',
-          text: isChatOnly
-            ? `Halo kak! Apakah ada yang bisa kami bantu seputar produk <b>${productName}</b>?`
-            : `Halo kak! Tadi kakak melakukan pemesanan untuk <b>${productName}</b> ya?`,
-          createdAt: chatHistory[0]?.createdAt
-            ? new Date(new Date(chatHistory[0].createdAt).getTime() - 60000).toISOString()
-            : new Date().toISOString(),
-          isRead: false
-        });
-      }
-
-      const renderSingleOfferCard = (pId: string, pName: string, pPrice: string, pImage: string, isMe: boolean) => {
-        const cleanImg = pImage || "/street-food-festival.jpg";
-        const bgCard = isMe ? 'bg-white/10' : 'bg-surface border border-border';
-        const textTitle = isMe ? 'text-white' : 'text-text-primary';
-        const textPrice = isMe ? 'text-yellow-200' : 'text-brand-primary';
-        const buttonBg = isMe ? 'bg-white text-brand-primary hover:bg-white/95' : 'bg-brand-primary text-white hover:bg-brand-primary-hover';
-
-        return `
-        <div class="flex flex-col gap-2.5 p-2.5 rounded-xl ${bgCard} w-full min-w-0 max-w-[260px] shadow-sm text-left">
-          <div class="flex gap-3 items-center">
-            <div class="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-base relative border border-white/10">
-              <img src="${cleanImg}" alt="${pName}" class="w-full h-full object-cover" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-bold ${textTitle} line-clamp-2 leading-tight" title="${pName}">${pName}</p>
-              <p class="text-xs font-bold mt-1 ${textPrice}">${pPrice}</p>
-            </div>
-          </div>
-          <a href="/product/${encodeURIComponent((pName || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${pId}" target="_blank" class="w-full ${buttonBg} text-xs font-bold py-1.5 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1 active:scale-95 decoration-none hover:no-underline">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-            Lihat Produk
-          </a>
-        </div>
-      `;
-      };
-
-      const renderMsgs = () => chatHistory.map((c: ChatMessage) => {
-        const isMe = (c.senderId && user?.id && c.senderId === user.id) || c.sender === 'buyer';
-
-        const trimmedText = (c.text || '').trim();
-        let bubbleContent = c.text;
-        if (trimmedText.startsWith('[PRODUK_OFFER|') && trimmedText.endsWith(']')) {
-          const parts = trimmedText.slice(1, -1).split('|');
-          if (parts.length >= 5) {
-            const pId = parts[1];
-            const pName = parts[2];
-            const pPrice = parts[3];
-            const pImage = parts.slice(4).join('|');
-            bubbleContent = renderSingleOfferCard(pId, pName, pPrice, pImage, isMe);
-          }
-        } else if (trimmedText.startsWith('[CHAT_IMG|') && trimmedText.endsWith(']')) {
-          const imgDataUrl = trimmedText.slice(10, -1);
-          bubbleContent = `<div class="mt-1 w-full max-w-[200px] md:max-w-[240px] rounded-lg overflow-hidden cursor-pointer bg-black/10 flex items-center justify-center p-1" onclick="if(event.target.tagName !== 'BUTTON') Swal.fire({imageUrl: '${imgDataUrl}', imageWidth: 500, confirmButtonText: 'Tutup', confirmButtonColor: '#ff5c35', customClass:{popup:'bg-surface text-text-primary rounded-xl'}})">
-          <img src="${imgDataUrl}" alt="Photo" class="w-full h-auto object-cover rounded hover:opacity-90 transition-opacity" />
-        </div>`;
-        }
-
-        if (isMe) {
-          const tickClass = c.isRead ? "text-blue-200" : "text-text-primary/60";
-          const tickStyle = c.isRead ? "color: #60a5fa;" : "";
-          return `
-          <div class="flex justify-end mt-3">
-            <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm">
-              ${bubbleContent}
-              <div class="flex items-center justify-end gap-1 mt-1">
-                <span class="text-[10px] text-white/80">${isMe ? 'Anda' : (storeName || 'Penjual')} • ${c.createdAt ? formatChatTimeWIB(c.createdAt) : ''}</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${tickClass}" style="${tickStyle}"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
-              </div>
-            </div>
-          </div>
-        `;
-        } else {
-          return `
-          <div class="flex justify-start mt-3">
-            <div class="bg-surface border border-border rounded-xl rounded-tl-none px-4 py-2 max-w-[80%] text-sm text-text-primary text-left">
-              ${bubbleContent}
-              <div class="text-[10px] text-text-secondary mt-1">${isMe ? 'Anda' : (storeName || 'Penjual')} • ${c.createdAt ? formatChatTimeWIB(c.createdAt) : ''}</div>
-            </div>
-          </div>
-        `;
-        }
-      }).join('');
-
-      const renderProductList = () => {
-        if (storeProducts.length === 0) {
-          return `<div class="text-xs text-text-secondary text-center py-4 bg-base rounded-xl border border-border">Belum ada produk aktif</div>`;
-        }
-        return storeProducts.map(p => {
-          const pImage = p.imageUrl || "/street-food-festival.jpg";
-          const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(p.price);
-          return `
-          <div class="flex flex-col gap-2 p-2.5 bg-base border border-border rounded-xl hover:border-brand-primary/50 transition-colors w-full">
-            <div class="flex gap-2.5 items-center">
-              <div class="w-14 h-14 shrink-0 rounded-lg overflow-hidden bg-surface relative">
-                <img src="${pImage}" alt="${p.name}" class="w-full h-full object-cover" />
-              </div>
-              <div class="flex-1 min-w-0 text-left">
-                <p class="text-sm font-bold text-text-primary line-clamp-2 leading-tight" title="${p.name}">${p.name}</p>
-                <p class="text-xs font-bold text-brand-primary mt-1">${formattedPrice}</p>
-              </div>
-            </div>
-            <button class="w-full bg-brand-primary text-white hover:bg-brand-primary-hover text-xs font-bold py-1.5 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1 mt-0.5 active:scale-95 btn-ask-product" data-pid="${p.id}" data-pname="${p.name}" data-pprice="${formattedPrice}" data-pimg="${pImage}">
-              Tanyakan
-            </button>
-          </div>
-        `;
-        }).join('');
-      };
-
-      Swal.fire({
-        title: `Chat dengan ${storeName}`,
-        width: 'min(95vw, 950px)',
-        html: `
-        <style>
-          #store-products-list::-webkit-scrollbar {
-            width: 8px !important;
-            display: block !important;
-          }
-          #store-products-list::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.05) !important;
-            border-radius: 4px !important;
-          }
-          #store-products-list::-webkit-scrollbar-thumb {
-            background: #cbd5e1 !important;
-            border-radius: 4px !important;
-          }
-          #store-products-list::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8 !important;
-          }
-        </style>
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 text-left">
-          <!-- Column 1: Chat -->
-          <div class="md:col-span-7 flex flex-col justify-between">
-            <div class="flex flex-col h-[320px] md:h-[500px] bg-base border border-border rounded-xl p-3 md:p-4 overflow-y-auto mb-3 md:mb-4" id="chat-box">
-              <div class="text-[10px] md:text-xs text-text-secondary text-center mb-3">Hari ini</div>
-              <div id="chat-messages" class="flex flex-col gap-2 md:gap-3">
-                ${renderMsgs()}
-              </div>
-            </div>
-            <div class="flex gap-2 relative mt-2 auto-rows-min">
-              <div class="relative" id="attachment-container">
-                <button type="button" id="attachment-toggle" class="bg-base shadow-sm border border-border hover:bg-black/5 dark:hover:bg-white/5 w-11 h-11 rounded-xl cursor-pointer flex justify-center items-center shrink-0 text-text-secondary hover:text-brand-primary transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                </button>
-                <div id="attachment-menu" class="hidden absolute bottom-full mb-2 left-0 flex gap-2 bg-base border border-border p-2 rounded-xl shadow-lg z-[9999] transition-all transform origin-bottom-left">
-                  <label for="chat-camera-upload" class="cursor-pointer w-10 h-10 flex flex-col items-center justify-center bg-black/5 rounded-lg hover:text-brand-primary hover:bg-brand-primary/10 transition-colors" title="Kamera">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                    <input type="file" id="chat-camera-upload" accept="image/*" capture="environment" class="hidden" />
-                  </label>
-                  <label for="chat-gallery-upload" class="cursor-pointer w-10 h-10 flex flex-col items-center justify-center bg-black/5 rounded-lg hover:text-brand-primary hover:bg-brand-primary/10 transition-colors" title="Galeri">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                    <input type="file" id="chat-gallery-upload" accept="image/*" class="hidden" />
-                  </label>
-                </div>
-              </div>
-              <input type="text" id="chat-input" class="input-field shadow-sm flex-1 text-sm bg-base border-border rounded-xl px-3 outline-none focus:border-brand-primary h-11" placeholder="Ketik pesan di sini...">
-              <button id="send-chat" class="btn-primary shadow-sm px-4 rounded-xl flex items-center justify-center transition-transform active:scale-95 shrink-0 h-11">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-              </button>
-            </div>
-          </div>
-          
-          <!-- Column 2: Products Showcase -->
-          <div class="md:col-span-5 border-t md:border-t-0 md:border-l border-border pt-3 md:pt-0 md:pl-4 flex flex-col h-[340px] md:h-[550px] transition-all duration-300 overflow-hidden" id="products-column">
-            <div class="flex flex-col h-full w-full">
-              <button id="toggle-products-btn" class="w-full text-[11px] md:text-xs font-bold text-text-primary mb-2 flex items-center justify-between shrink-0 uppercase tracking-wider bg-transparent hover:bg-black/5 p-2 -mx-2 rounded-lg transition-colors cursor-pointer outline-none select-none">
-                <div class="flex items-center gap-1.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-primary"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
-                  Produk dari Toko Ini
-                </div>
-                <svg id="toggle-products-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300 transform"><polyline points="18 15 12 9 6 15"></polyline></svg>
-              </button>
-              <div class="flex-1 overflow-y-scroll pr-1.5 space-y-2 max-h-[300px] md:max-h-[510px] transition-all duration-300" id="store-products-list">
-                ${renderProductList()}
-              </div>
-            </div>
-          </div>
-        </div>
-      `,
-        showConfirmButton: false,
-        showCloseButton: true,
-        customClass: {
-          popup: 'bg-surface text-text-primary rounded-2xl border border-border shadow-2xl',
-          title: 'text-lg font-bold border-b border-border pb-3 mb-0 text-left w-full text-text-primary',
-          htmlContainer: 'mt-4 w-full px-0',
-          closeButton: 'focus:outline-none'
-        },
-        didOpen: () => {
-          const input = document.getElementById('chat-input') as HTMLInputElement;
-          const sendBtn = document.getElementById('send-chat');
-          const chatBox = document.getElementById('chat-box');
-          const chatMessages = document.getElementById('chat-messages');
-          const productsList = document.getElementById('store-products-list');
-
-          let editingId: string | null = null;
-          if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-
-          const toggleBtn = document.getElementById('toggle-products-btn');
-          const toggleIcon = document.getElementById('toggle-products-icon');
-          const productsColumn = document.getElementById('products-column');
-
-          let isProductsOpen = true;
-
-          toggleBtn?.addEventListener('click', () => {
-            isProductsOpen = !isProductsOpen;
-            if (isProductsOpen) {
-              productsList!.style.display = 'block';
-              toggleIcon!.style.transform = 'rotate(0deg)';
-              productsColumn!.classList.remove('h-auto', 'md:h-auto');
-              productsColumn!.classList.add('h-[340px]', 'md:h-[550px]');
-            } else {
-              productsList!.style.display = 'none';
-              toggleIcon!.style.transform = 'rotate(180deg)';
-              productsColumn!.classList.remove('h-[340px]', 'md:h-[550px]');
-              productsColumn!.classList.add('h-auto', 'md:h-auto');
-            }
-          });
-
-          const sendProductAsk = async (pId: string, pName: string, pPrice: string, pImage: string) => {
-            const offerCode = `[PRODUK_OFFER|${pId}|${pName}|${pPrice}|${pImage}]`;
-            const now = new Date();
-            const tempMsg: ChatMessage = {
-              id: 'temp-' + Date.now(),
-              text: offerCode,
-              senderId: user?.id,
-              isRead: false,
-              createdAt: now.toISOString()
-            };
-            chatHistory.push(tempMsg);
-            if (chatMessages) {
-              chatMessages.innerHTML = renderMsgs();
-            }
-            if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-
-            try {
-              const sendRes = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId, text: offerCode }),
-              });
-              if (sendRes.ok) {
-                const resData = await sendRes.json();
-                const idx = chatHistory.findIndex((m: ChatMessage) => m.id === tempMsg.id);
-                if (idx !== -1) {
-                  chatHistory[idx].id = resData.id;
-                }
-              }
-            } catch (err) {
-              console.error('Failed to send product ask:', err);
-            }
-          };
-
-          const attachAskListeners = () => {
-            document.querySelectorAll('.btn-ask-product').forEach(btn => {
-              btn.addEventListener('click', (e) => {
-                const target = e.currentTarget as HTMLButtonElement;
-                const pId = target.getAttribute('data-pid')!;
-                const pName = target.getAttribute('data-pname')!;
-                const pPrice = target.getAttribute('data-pprice')!;
-                const pImage = target.getAttribute('data-pimg')!;
-                sendProductAsk(pId, pName, pPrice, pImage);
-              });
-            });
-          };
-          attachAskListeners();
-
-          chatBox?.addEventListener('click', async (e) => {
-            const target = e.target as HTMLElement;
-            if (target.classList.contains('chat-del-btn')) {
-              const id = target.getAttribute('data-id');
-              const bubble = document.getElementById(`msg-bubble-${id}`);
-              if (bubble) bubble.style.display = 'none';
-              await fetch('/api/chat', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id })
-              });
-            }
-            if (target.classList.contains('chat-edit-btn')) {
-              const id = target.getAttribute('data-id');
-              const text = target.getAttribute('data-text');
-              if (id && text && input) {
-                editingId = id;
-                input.value = text;
-                input.focus();
-              }
-            }
-          });
-
-          const sendMessage = async (overrideMsg?: string) => {
-            let msg = overrideMsg;
-            if (!msg) {
-              if (!input.value.trim()) return;
-              msg = input.value;
-            }
-
-            if (editingId && !overrideMsg) {
-              const id = editingId;
-              editingId = null;
-              input.value = '';
-              const textSpan = document.getElementById(`msg-text-${id}`);
-              const editBtn = document.querySelector(`.chat-edit-btn[data-id="${id}"]`);
-              if (textSpan) textSpan.innerText = msg;
-              if (editBtn) editBtn.setAttribute('data-text', escapeQuotes(msg));
-              await fetch('/api/chat', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, text: msg })
-              });
-              return;
-            }
-
-            const now = new Date();
-            const time = formatChatTimeWIB(now);
-            const msgId = 'msg-' + Date.now();
-
-            input.value = '';
-
-            chatMessages?.insertAdjacentHTML('beforeend', `
-            <div class="flex justify-end mt-3 group" id="msg-bubble-${msgId}">
-              <div class="flex flex-col items-end justify-center mr-2 gap-1.5 opacity-80" id="${msgId}-actions" style="display:none;">
-                <button class="chat-edit-btn text-[10px] text-brand-primary flex items-center gap-1 hover:text-brand-primary-hover transition-colors bg-brand-primary/5 px-2 py-0.5 rounded-full" data-id="${msgId}" data-text="${escapeQuotes(msg)}">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> Edit
-                </button>
-                <button class="chat-del-btn text-[10px] text-status-error flex items-center gap-1 hover:text-red-700 transition-colors bg-status-error/5 px-2 py-0.5 rounded-full" data-id="${msgId}">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Hapus
-                </button>
-              </div>
-              <div class="bg-brand-primary text-white rounded-xl rounded-tr-none px-4 py-2 max-w-[80%] text-sm text-left shadow-sm opacity-50" id="${msgId}-container">
-                <span id="msg-text-${msgId}">${msg}</span>
-                <div class="flex items-center justify-end gap-1 mt-1">
-                  <span class="text-[10px] text-white/80">Anda • ${time}</span>
-                  <svg id="${msgId}-ticks" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-primary/60"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
-                </div>
-              </div>
-            </div>
-          `);
-            if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-
-            try {
-              const sendRes = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId, text: msg })
-              });
-              const { id: realId } = await sendRes.json();
-
-              // Set REAL ID to buttons so they can be clicked
-              document.querySelector(`.chat-edit-btn[data-id="${msgId}"]`)?.setAttribute('data-id', realId);
-              document.querySelector(`.chat-del-btn[data-id="${msgId}"]`)?.setAttribute('data-id', realId);
-              document.getElementById(`msg-bubble-${msgId}`)!.id = `msg-bubble-${realId}`;
-              document.getElementById(`msg-text-${msgId}`)!.id = `msg-text-${realId}`;
-
-              const actionsBlock = document.getElementById(`${msgId}-actions`);
-              if (actionsBlock) actionsBlock.style.display = 'flex';
-
-              const c = document.getElementById(`${msgId}-container`);
-              if (c) c.classList.remove('opacity-50');
-              // Pesan berhasil terkirim, tetapi centang tetap abu-abu sampai penjual membacanya.
-            } catch (e) {
-              console.error('Failed to send msg');
-            }
-          };
-
-          sendBtn?.addEventListener('click', () => sendMessage());
-          input?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-          });
-
-          const handleImageUpload = (e: Event, inputElement: HTMLInputElement) => {
-            const file = (e.target as HTMLInputElement).files?.[0];
-            if (file) {
-              if (file.size > 2 * 1024 * 1024) {
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Ukuran Terlalu Besar',
-                  text: 'Maksimum ukuran foto adalah 2MB.',
-                  confirmButtonColor: '#ff5c35'
-                });
-                inputElement.value = '';
-                return;
-              }
-              const reader = new FileReader();
-              reader.onload = (re) => {
-                const base64 = re.target?.result as string;
-                sendMessage(`[CHAT_IMG|${base64}]`);
-                inputElement.value = '';
-                document.getElementById('attachment-menu')?.classList.add('hidden');
-              };
-              reader.readAsDataURL(file);
-            }
-          };
-
-          const cameraUpload = document.getElementById('chat-camera-upload') as HTMLInputElement;
-          cameraUpload?.addEventListener('change', (e) => handleImageUpload(e, cameraUpload));
-
-          const galleryUpload = document.getElementById('chat-gallery-upload') as HTMLInputElement;
-          galleryUpload?.addEventListener('change', (e) => handleImageUpload(e, galleryUpload));
-
-          const attachmentToggle = document.getElementById('attachment-toggle');
-          attachmentToggle?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            document.getElementById('attachment-menu')?.classList.toggle('hidden');
-          });
-
-          // Close menu when clicking outside
-          document.addEventListener('click', (e) => {
-            const menu = document.getElementById('attachment-menu');
-            const toggle = document.getElementById('attachment-toggle');
-            if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target as Node) && e.target !== toggle) {
-              menu.classList.add('hidden');
-            }
-          });
-        }
-      });
-
-    } catch (error) {
-      Swal.fire('Terjadi Kesalahan', 'Gagal memuat obrolan', 'error');
-    }
-  };
-
-  const chatsCount = localOrders.filter(o => o.status === 'chat_only').reduce((acc, o) => acc + (o.unreadCount || 0), 0);
-  const ordersCount = localOrders.filter(o => o.status !== 'chat_only').reduce((acc, o) => acc + (o.unreadCount || 0), 0);
+  // chatsCount: semua unread dari semua order (karena tab chat menghubungkan ke semua percakapan)
+  const chatsCount = localOrders.reduce((acc, o) => acc + (o.unreadCount || 0), 0);
+  const ordersCount = 0; // Badge unread dipindahkan ke tab Chat
   const trackingCount = localOrders.filter(o => o.status !== 'chat_only' && o.status !== 'cancelled').reduce((acc, o) => acc + (o.unreadCount || 0), 0);
   const totalUnreadCount = localOrders.reduce((acc, o) => acc + (o.unreadCount || 0), 0);
 
@@ -1592,84 +1165,79 @@ export default function ClientBuyerOrders({
               </div>
             )}
 
-            {activeTab === 'chats' && filteredLocalOrders.length > 0 && (
-              <div className="flex justify-end mb-4">
-                <button
-                  onClick={handleDeleteAllChats}
-                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-status-error bg-status-error/10 hover:bg-status-error/20 border border-status-error/20 rounded-xl transition-all hover-btn cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Hapus Semua Chat
-                </button>
-              </div>
-            )}
+            {!user ? (
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", bounce: 0.5, duration: 0.8 }}
+                className="text-center py-20 px-4 bg-surface rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.06)] border border-border mt-8 flex flex-col items-center max-w-lg mx-auto overflow-hidden relative"
+              >
+                <div className="absolute -top-32 -left-32 w-64 h-64 bg-brand-primary/10 rounded-full blur-3xl opacity-50 mix-blend-multiply" />
+                <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-brand-secondary/20 rounded-full blur-3xl opacity-50 mix-blend-multiply" />
 
-            {filteredLocalOrders.length === 0 ? (
-              !user ? (
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: "spring", bounce: 0.5, duration: 0.8 }}
-                  className="text-center py-20 px-4 bg-surface rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.06)] border border-border mt-8 flex flex-col items-center max-w-lg mx-auto overflow-hidden relative"
-                >
-                  <div className="absolute -top-32 -left-32 w-64 h-64 bg-brand-primary/10 rounded-full blur-3xl opacity-50 mix-blend-multiply" />
-                  <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-brand-secondary/20 rounded-full blur-3xl opacity-50 mix-blend-multiply" />
-
-                  <div className="relative flex flex-col items-center">
-                    <div
-                      className="relative z-10 mb-4 mt-6 h-56 w-56 sm:h-64 sm:w-64"
-                      role="img"
-                      aria-label="Peringatan untuk masuk ke akun"
-                    >
-                      <DotLottieReact
-                        src="/animations/danger-icon.lottie"
-                        autoplay
-                        loop
-                        className="h-full w-full"
-                      />
-                    </div>
+                <div className="relative flex flex-col items-center">
+                  <div
+                    className="relative z-10 mb-4 mt-6 h-56 w-56 sm:h-64 sm:w-64"
+                    role="img"
+                    aria-label="Peringatan untuk masuk ke akun"
+                  >
+                    <DotLottieReact
+                      src="/animations/danger-icon.lottie"
+                      autoplay
+                      loop
+                      className="h-full w-full"
+                    />
                   </div>
+                </div>
 
-                  <h3 className="text-h2 text-text-primary mb-3 font-bold">Anda belum masuk!</h3>
-                  <p className="text-body-base text-text-secondary mb-8 max-w-sm">Tampaknya Anda belum login ke dalam akun, silakan masuk untuk melihat dan membuat pesanan baru.</p>
+                <h3 className="text-h2 text-text-primary mb-3 font-bold">Anda belum masuk!</h3>
+                <p className="text-body-base text-text-secondary mb-8 max-w-sm">Tampaknya Anda belum login ke dalam akun, silakan masuk untuk melihat dan membuat pesanan baru.</p>
 
-                  <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto z-10 relative">
-                    <Link href="/login" className="btn-primary py-3 px-8 text-base text-white shadow-lg hover:shadow-brand-primary/30 transition-shadow w-full sm:w-auto text-center rounded-xl">
-                      Masuk Sekarang
-                    </Link>
-                  </div>
-                </motion.div>
-              ) : (
-                <div className="text-center py-20 bg-surface rounded-3xl border border-border mt-8 shadow-sm">
-                  <div className="mx-auto w-fit relative mb-6 mt-4">
-                    <div
-                      className="relative h-36 w-48 overflow-hidden rounded-3xl md:h-48 md:w-64"
-                      role="img"
-                      aria-label={activeTab === 'chats' ? "Belum ada riwayat obrolan" : activeTab === 'tracking' ? "Belum ada pesanan untuk dilacak" : "Belum ada riwayat pesanan"}
-                    >
-                      <DotLottieReact
-                        src="/animations/no-history.lottie"
-                        autoplay
-                        loop
-                        className="h-full w-full"
-                      />
-                    </div>
-                  </div>
-                  <h3 className="text-h3 text-text-primary mb-2">
-                    {activeTab === 'chats' ? "Belum Ada Percakapan" : activeTab === 'tracking' ? "Belum Ada Pesanan yang Dilacak" : "Anda Belum Membuat Pesanan"}
-                  </h3>
-                  <p className="text-text-secondary mb-6">
-                    {activeTab === 'chats'
-                      ? "Hubungi penjual untuk bertanya tentang produk atau melakukan pemesanan pre-sales."
-                      : activeTab === 'tracking'
-                        ? "Pantau status pesanan aktif Anda di sini mulai dari pembayaran hingga barang sampai."
-                        : "Mulai pesan makanan dan minuman UMKM favoritmu sekarang!"}
-                  </p>
-                  <Link href="/" className="btn-primary py-2.5 px-8 font-medium">
-                    {activeTab === 'chats' ? "Mulai Bertanya" : "Pesan Sekarang"}
+                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto z-10 relative">
+                  <Link href="/login" className="btn-primary py-3 px-8 text-base text-white shadow-lg hover:shadow-brand-primary/30 transition-shadow w-full sm:w-auto text-center rounded-xl">
+                    Masuk Sekarang
                   </Link>
                 </div>
-              )
+              </motion.div>
+            ) : activeTab === 'chats' ? (
+              <ChatInterface
+                mode="buyer"
+                user={user || null}
+                initialOrderId={selectedChatOrderId}
+                buyerOrders={localOrders}
+                setBuyerOrders={setLocalOrders}
+                onBack={() => {
+                  setSelectedChatOrderId(null);
+                }}
+              />
+            ) : filteredLocalOrders.length === 0 ? (
+              <div className="text-center py-20 bg-surface rounded-3xl border border-border mt-8 shadow-sm">
+                <div className="mx-auto w-fit relative mb-6 mt-4">
+                  <div
+                    className="relative h-36 w-48 overflow-hidden rounded-3xl md:h-48 md:w-64"
+                    role="img"
+                    aria-label={activeTab === 'tracking' ? "Belum ada pesanan untuk dilacak" : "Belum ada riwayat pesanan"}
+                  >
+                    <DotLottieReact
+                      src="/animations/no-history.lottie"
+                      autoplay
+                      loop
+                      className="h-full w-full"
+                    />
+                  </div>
+                </div>
+                <h3 className="text-h3 text-text-primary mb-2">
+                  {activeTab === 'tracking' ? "Belum Ada Pesanan yang Dilacak" : "Anda Belum Membuat Pesanan"}
+                </h3>
+                <p className="text-text-secondary mb-6">
+                  {activeTab === 'tracking'
+                    ? "Pantau status pesanan aktif Anda di sini mulai dari pembayaran hingga barang sampai."
+                    : "Mulai pesan makanan dan minuman UMKM favoritmu sekarang!"}
+                </p>
+                <Link href="/" className="btn-primary py-2.5 px-8 font-medium">
+                  {activeTab === 'tracking' ? "Kembali Belanja" : "Pesan Sekarang"}
+                </Link>
+              </div>
             ) : activeTab === 'tracking' ? (
               <div className="flex flex-col gap-6">
                 {filteredLocalOrders.map((order) => {
@@ -1685,8 +1253,8 @@ export default function ClientBuyerOrders({
                     { label: 'Menunggu Pembayaran', completed: isVerified || isPreorderRunning || isProcessing || isCompleted, active: isWaitingPayment && !order.paymentId, date: order.paymentId ? 'Telah Dibayar' : '' },
                     { label: 'Verifikasi Pembayaran', completed: isVerified || isPreorderRunning || isProcessing || isCompleted, active: isWaitingPayment && !!order.paymentId, date: '' },
                     { label: 'Menunggu Konfirmasi Penjual', completed: isPreorderRunning || isProcessing || isCompleted, active: isVerified, date: '' },
-                    { label: 'Preorder Berjalan', completed: isProcessing || isCompleted, active: isPreorderRunning, date: '' },
-                    { label: 'Diproses Penjual', completed: isCompleted, active: isProcessing, date: '' },
+                    { label: 'Diproses Penjual', completed: isProcessing || isCompleted, active: isPreorderRunning, date: isPreorderRunning || isProcessing || isCompleted ? 'Tanggal telah dikonfirmasi' : '' },
+                    { label: 'Barang Dikirim', completed: isCompleted, active: isProcessing, date: '' },
                     { label: 'Pesanan Selesai', completed: isCompleted, active: false, date: order.ratedAt || '' }
                   ];
 
@@ -1766,6 +1334,7 @@ export default function ClientBuyerOrders({
             ) : (
               <div className="space-y-4">
                 {filteredLocalOrders.map((order) => {
+
                   const clearQtyDraft = () => {
                     setQtyDrafts(prev => {
                       if (!(order.orderId in prev)) return prev;
@@ -1873,12 +1442,16 @@ export default function ClientBuyerOrders({
 
                   return (
                     <div key={order.orderId} className="card p-0 border border-border overflow-hidden bg-surface">
-                      <div className="p-4 border-b border-border bg-base flex justify-between items-center">
-                        <span className="text-xs font-mono text-text-secondary">
-                          {order.status === 'chat_only' ? `Chat dengan ${order.storeName || 'Toko UMKM'}` : order.orderId}
+                      <div className="p-4 border-b border-border bg-base flex justify-between items-center gap-3">
+                        <span className="text-xs font-mono text-text-secondary truncate min-w-0">
+                          {order.status === 'chat_only'
+                            ? <><span className="font-semibold text-text-primary">{order.productName}</span> · {order.storeName || 'Toko UMKM'}</>
+                            : order.orderId}
                         </span>
-                        <span className="text-xs text-text-secondary font-medium">
-                          {formatOrderDate(order.createdAt)}
+                        <span className="text-xs text-text-secondary font-medium shrink-0">
+                          {order.status === 'chat_only' && order.lastMessageAt
+                            ? formatOrderDate(order.lastMessageAt)
+                            : formatOrderDate(order.createdAt)}
                         </span>
                       </div>
                       <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
@@ -2125,12 +1698,12 @@ export default function ClientBuyerOrders({
                               )}
                               {order.status === 'processing' && (
                                 <span className="px-3 py-1 bg-brand-secondary/10 text-brand-secondary-dark dark:text-brand-secondary rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                  <Clock className="w-3.5 h-3.5" /> Sedang Diproses
+                                  <Clock className="w-3.5 h-3.5" /> Barang Dikirim
                                 </span>
                               )}
                               {order.status === 'preorder_running' && (
                                 <span className="px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                  <Clock className="w-3.5 h-3.5" /> Preorder Berjalan
+                                  <Clock className="w-3.5 h-3.5" /> Diproses Penjual
                                 </span>
                               )}
                               {isCompleted && (
@@ -2150,10 +1723,18 @@ export default function ClientBuyerOrders({
                                   )}
                                 </div>
                               )}
+                              {order.status === 'returned' && (
+                                <span className="px-3 py-1 bg-status-error/10 text-status-error rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
+                                  <XCircle className="w-3.5 h-3.5" /> Pesanan dikembalikan oleh pembeli
+                                </span>
+                              )}
 
                               <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto mt-1">
                                 <button
-                                  onClick={() => handleOpenChat(order.orderId, order.storeName || 'Toko UMKM', order.productName, order.sellerId)}
+                                  onClick={() => {
+                                    setSelectedChatOrderId(order.orderId);
+                                    setActiveTab('chats');
+                                  }}
                                   className="relative btn-outline border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10 hover:border-brand-primary py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
                                 >
                                   <MessageCircle className="w-3.5 h-3.5" /> Chat

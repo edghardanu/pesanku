@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       selectedVariant: typeof item.selectedVariant === 'string' ? item.selectedVariant.trim() : '',
       deliveryDate: typeof item.deliveryDate === 'string' ? item.deliveryDate : null,
       deliveryAddress: typeof item.deliveryAddress === 'string' ? item.deliveryAddress : null,
+      chatOrderId: typeof item.chatOrderId === 'string' ? item.chatOrderId : null,
     }));
 
     if (items.some((item) => !item.productId || !Number.isInteger(item.qty) || item.qty < 1 || !item.deliveryDate)) {
@@ -79,28 +80,66 @@ export async function POST(req: Request) {
 
       const orderIds: string[] = [];
       for (const [index, { item, product, unitPrice, selectedVariantPrice }] of validatedItems.entries()) {
-        const orderId = `ORD-${Date.now().toString().slice(-6)}-${index + 1}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+        const orderId = item.chatOrderId || `ORD-${Date.now().toString().slice(-6)}-${index + 1}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
         orderIds.push(orderId);
 
         const totalPrice = unitPrice * item.qty;
         const sellerSplit = Math.floor(totalPrice * 0.5);
         const adminSplit = totalPrice - sellerSplit;
 
-        await tx.insert(orders).values({
-          id: orderId,
-          productId: product.id,
-          buyerId: user.id,
-          qty: item.qty,
-          totalPrice,
-          notes: item.notes,
-          selectedVariant: item.selectedVariant || null,
-          selectedVariantPrice,
-          status: 'waiting_verification',
-          deliveryDate: item.deliveryDate,
-          deliveryAddress: item.deliveryAddress,
-          sellerSplitAmount: sellerSplit,
-          adminSplitAmount: adminSplit,
-        });
+        if (item.chatOrderId) {
+          // Verify it's actually their order
+          const existingOrder = await tx.select().from(orders).where(eq(orders.id, item.chatOrderId)).get();
+          if (existingOrder && existingOrder.buyerId === user.id && existingOrder.status === 'chat_only') {
+            await tx.update(orders).set({
+              qty: item.qty,
+              totalPrice,
+              notes: item.notes,
+              selectedVariant: item.selectedVariant || null,
+              selectedVariantPrice,
+              status: 'waiting_verification',
+              deliveryDate: item.deliveryDate,
+              deliveryAddress: item.deliveryAddress,
+              sellerSplitAmount: sellerSplit,
+              adminSplitAmount: adminSplit,
+            }).where(eq(orders.id, item.chatOrderId));
+          } else {
+            // Fallback securely
+            const fbOrderId = `ORD-${Date.now().toString().slice(-6)}-${index + 1}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+            orderIds[orderIds.length - 1] = fbOrderId;
+            await tx.insert(orders).values({
+              id: fbOrderId,
+              productId: product.id,
+              buyerId: user.id,
+              qty: item.qty,
+              totalPrice,
+              notes: item.notes,
+              selectedVariant: item.selectedVariant || null,
+              selectedVariantPrice,
+              status: 'waiting_verification',
+              deliveryDate: item.deliveryDate,
+              deliveryAddress: item.deliveryAddress,
+              sellerSplitAmount: sellerSplit,
+              adminSplitAmount: adminSplit,
+            });
+          }
+        } else {
+          await tx.insert(orders).values({
+            id: orderId,
+            productId: product.id,
+            buyerId: user.id,
+            qty: item.qty,
+            totalPrice,
+            notes: item.notes,
+            selectedVariant: item.selectedVariant || null,
+            selectedVariantPrice,
+            status: 'waiting_verification',
+            deliveryDate: item.deliveryDate,
+            deliveryAddress: item.deliveryAddress,
+            sellerSplitAmount: sellerSplit,
+            adminSplitAmount: adminSplit,
+          });
+        }
 
         const nextCurrentQty = (product.currentQty || 0) + item.qty;
         await tx.update(products)

@@ -64,6 +64,20 @@ export async function GET() {
       ))
       .groupBy(chatMessages.orderId);
 
+    // Last message time per order
+    const lastMessages = await db
+      .select({
+        orderId: chatMessages.orderId,
+        lastAt: sql<number>`max(${chatMessages.createdAt})`.as('lastAt'),
+      })
+      .from(chatMessages)
+      .groupBy(chatMessages.orderId);
+
+    const lastMessageMap: Record<string, Date | null> = lastMessages.reduce((acc, row) => {
+      acc[row.orderId] = row.lastAt ? new Date((row.lastAt as number) * 1000) : null;
+      return acc;
+    }, {} as Record<string, Date | null>);
+
     unreadCounts = unreadChats.reduce((acc, row) => {
       acc[row.orderId] = Number(row.count);
       return acc;
@@ -71,7 +85,8 @@ export async function GET() {
 
     userOrders = userOrders.map(order => ({
       ...order,
-      unreadCount: unreadCounts[order.orderId] || 0
+      unreadCount: unreadCounts[order.orderId] || 0,
+      lastMessageAt: lastMessageMap[order.orderId] ?? null,
     }));
 
     return NextResponse.json({ orders: userOrders });

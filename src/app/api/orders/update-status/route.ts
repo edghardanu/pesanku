@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders, products, sellerBalances } from '@/lib/schema';
+import { orders, products, sellerBalances, settings } from '@/lib/schema';
 import { getUserFromSession } from '@/lib/auth';
 import { eq } from 'drizzle-orm';
 import cloudinary from '@/lib/cloudinary';
@@ -192,6 +192,12 @@ export async function PUT(req: Request) {
       updateFields.returnReason = null;
       updateFields.returnProofUrl = null;
       updateFields.returnDate = null;
+    }
+
+    if (status === 'waiting_verification' || status === 'verified') {
+      const scheduleKey = `preorder_schedule:${sellerId}:${orderId}`;
+      await db.delete(settings).where(eq(settings.key, scheduleKey));
+      updateFields.deliveryDate = null;
     }
 
     await db.update(orders)
