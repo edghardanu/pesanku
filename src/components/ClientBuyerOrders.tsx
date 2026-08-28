@@ -200,10 +200,10 @@ export default function ClientBuyerOrders({
 
           if (elapsed >= 86400 && !cancelledExpiredOrderIds.includes(order.orderId)) {
             setCancelledExpiredOrderIds(prev => [...prev, order.orderId]);
-            
+
             // Delete order from localOrders immediately
             setLocalOrders(prev => prev.filter(o => o.orderId !== order.orderId));
-            
+
             try {
               await fetch('/api/orders/cancel', {
                 method: 'DELETE',
@@ -604,7 +604,6 @@ export default function ClientBuyerOrders({
     // Tampilkan loading
     Swal.fire({
       title: 'Menyiapkan Pembayaran...',
-      html: '<p class="text-sm text-gray-500">Menghubungi server iPaymu, harap tunggu.</p>',
       allowOutsideClick: false,
       didOpen: () => { Swal.showLoading(); },
     });
