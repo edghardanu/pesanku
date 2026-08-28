@@ -65,7 +65,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   useEffect(() => {
     fetch('/api/settings').then(r => r.json()).then(d => {
       setFeeAplikasi(d.fee_aplikasi || 0); setFeeJasa(d.fee_jasa || 0); setFeeAdmin(d.fee_admin || 0);
-    }).catch(console.error);
+    }).catch((_e) => {});
   }, []);
 
   useEffect(() => {
@@ -113,7 +113,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           }
         }
       } catch (err) {
-        console.error('Error polling chart stats:', err);
+        // error suppressed
       }
     };
 
@@ -127,7 +127,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           }
         }
       } catch (err) {
-        console.error('Error polling tickets:', err);
+        // error suppressed
       }
     };
 
@@ -358,7 +358,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
         await fetch('/api/auth/logout', { method: 'POST' });
         router.push("/login");
       } catch (error) {
-        console.error('Logout error', error);
+        // error suppressed
       }
     }
   };
@@ -714,7 +714,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                           timer: 3000
                                         });
                                       } catch (error) {
-                                        console.error(error);
+                                        // error suppressed
                                         Swal.fire('Error', 'Gagal memperbarui status', 'error');
                                       }
                                     }}
@@ -753,7 +753,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                               timer: 3000
                                             });
                                           } catch (error) {
-                                            console.error(error);
+                                            // error suppressed
                                             Swal.fire('Error', 'Terjadi kesalahan saat menghapus', 'error');
                                           }
                                         }

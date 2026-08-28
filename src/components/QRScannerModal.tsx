@@ -39,7 +39,7 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
         scannerRef.current = null;
       }
     } catch (e) {
-      console.warn("Error gracefully stopping scanner", e);
+      // error suppressed
     }
 
     setIsClosing(false);
@@ -90,7 +90,7 @@ export default function QRScannerModal({ isOpen, onClose, onScan }: QRScannerMod
         scannerRef.current = null;
       }
     } catch (e) {
-      console.warn("Error stopping camera", e);
+      // error suppressed
     }
   };
 

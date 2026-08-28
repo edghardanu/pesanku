@@ -65,7 +65,15 @@ export default function ChatInterface({
   const [inputText, setInputText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
-  const [showProductsPanel, setShowProductsPanel] = useState(true);
+  const [showProductsPanel, setShowProductsPanel] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // Buka panel produk secara default hanya di layar desktop lebar (>= 1024px)
+      setShowProductsPanel(window.innerWidth >= 1024);
+    }
+  }, []);
+
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [activeSessionStatus, setActiveSessionStatus] = useState<string | null>(null);
   const [activeSessionProductId, setActiveSessionProductId] = useState<string | null>(null);
@@ -79,102 +87,7 @@ export default function ChatInterface({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Fetch store products on buyer side when thread changes
-  const activeThread = useMemo(() => {
-    if (mode === "buyer") {
-      return buyerOrders.find(o => o.orderId === selectedOrderId);
-    } else {
-      return sellerThreads.find(t => t.orderId === selectedOrderId);
-    }
-  }, [selectedOrderId, buyerOrders, sellerThreads, mode]);
-
-  useEffect(() => {
-    if (mode === "buyer" && activeThread?.sellerId && selectedOrderId) {
-      const getStoreProducts = async () => {
-        setIsLoadingProducts(true);
-        try {
-          const res = await fetch(`/api/products/public?sellerId=${activeThread.sellerId}&t=${Date.now()}`, { cache: 'no-store' });
-          if (res.ok) {
-            const data = await res.json();
-            setStoreProducts(data.products || []);
-          }
-        } catch (err) {
-          console.error("Failed to load seller products:", err);
-        } finally {
-          setIsLoadingProducts(false);
-        }
-      };
-      getStoreProducts();
-    } else {
-      setStoreProducts([]);
-    }
-  }, [selectedOrderId, activeThread, mode]);
-
-  // Clean unread counts optimistically when selecting thread
-  useEffect(() => {
-    if (selectedOrderId) {
-      if (mode === "buyer" && setBuyerOrders) {
-        setBuyerOrders(prev => prev.map(o => o.orderId === selectedOrderId ? { ...o, unreadCount: 0 } : o));
-      } else if (mode === "seller" && setSellerThreads) {
-        setSellerThreads(prev => prev.map(t => t.orderId === selectedOrderId ? { ...t, unreadCount: 0 } : t));
-      }
-    }
-  }, [selectedOrderId, mode, setBuyerOrders, setSellerThreads]);
-
-  // 1. Loader Effect for Active Chat
-  const loadChatSession = async (orderId: string, skipLoadingState = false) => {
-    if (!skipLoadingState) setIsLoadingMessages(true);
-    try {
-      const res = await fetch(`/api/chat?orderId=${orderId}&t=${Date.now()}`, { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(data.messages || []);
-        setActiveSessionStatus(data.status);
-        setActiveSessionProductId(data.productId);
-      }
-    } catch (err) {
-      console.error("Failed loading chat:", err);
-    } finally {
-      if (!skipLoadingState) setIsLoadingMessages(false);
-    }
-  };
-
-  // 2. Poll Effect for selected chat session
-  useEffect(() => {
-    if (pollingRef.current) clearInterval(pollingRef.current);
-
-    if (selectedOrderId) {
-      // First load
-      loadChatSession(selectedOrderId, false);
-
-      // Poll every 3 seconds
-      pollingRef.current = setInterval(() => {
-        loadChatSession(selectedOrderId, true);
-      }, 3000);
-    } else {
-      setMessages([]);
-      setActiveSessionStatus(null);
-      setActiveSessionProductId(null);
-    }
-
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
-  }, [selectedOrderId]);
-
-  // Scroll to bottom helper
-  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
-    setTimeout(() => {
-      chatEndRef.current?.scrollIntoView({ behavior });
-    }, 100);
-  };
-
-  useEffect(() => {
-    if (messages.length > 0) {
-      scrollToBottom("smooth");
-    }
-  }, [messages.length]);
+  const productsCacheRef = useRef<Record<string, ProductItem[]>>({});
 
   // Unify and sort threads list
   const threads: ChatThread[] = useMemo(() => {
@@ -184,7 +97,7 @@ export default function ChatInterface({
         orderId: o.orderId,
         title: o.storeName || 'Toko UMKM',
         subtitle: o.productName,
-        avatarInitial: (o.storeName || 'T').charAt(0).toUpperCase(),
+        avatarInitial: o.storeName ? o.storeName.charAt(0).toUpperCase() : 'RT',
         unreadCount: o.unreadCount || 0,
         lastMessageAt: o.lastMessageAt || o.createdAt,
         productId: o.sellerId ? undefined : undefined,
@@ -221,12 +134,135 @@ export default function ChatInterface({
     });
   }, [buyerOrders, sellerThreads, mode, searchQuery]);
 
+  // Fetch store products on buyer side when thread changes
+  const activeThread = useMemo(() => {
+    return threads.find(t => t.orderId === selectedOrderId);
+  }, [selectedOrderId, threads]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    if (mode === "buyer" && activeThread?.sellerId && selectedOrderId) {
+      const sellerId = activeThread.sellerId;
+
+      // Jika sudah ada di cache, gunakan dari cache dan jangan hit API lagi
+      if (productsCacheRef.current[sellerId]) {
+        setStoreProducts(productsCacheRef.current[sellerId]);
+        setIsLoadingProducts(false);
+        return;
+      }
+
+      const getStoreProducts = async () => {
+        setIsLoadingProducts(true);
+        try {
+          const res = await fetch(
+            `/api/products/public?sellerId=${sellerId}&t=${Date.now()}`,
+            { 
+              cache: 'no-store',
+              signal: controller.signal 
+            }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (!controller.signal.aborted) {
+              const fetchedProducts = data.products || [];
+              productsCacheRef.current[sellerId] = fetchedProducts;
+              setStoreProducts(fetchedProducts);
+            }
+          }
+        } catch (err: any) {
+          if (err.name !== 'AbortError') {
+            // Error ditangani secara diam untuk menghindari console spam
+          }
+        } finally {
+          if (!controller.signal.aborted) {
+            setIsLoadingProducts(false);
+          }
+        }
+      };
+      getStoreProducts();
+    } else {
+      setStoreProducts([]);
+    }
+
+    return () => {
+      controller.abort();
+    };
+  }, [activeThread?.sellerId, mode, selectedOrderId]);
+
+  // Clean unread counts optimistically when selecting thread
+  useEffect(() => {
+    if (selectedOrderId) {
+      if (mode === "buyer" && setBuyerOrders) {
+        setBuyerOrders(prev => prev.map(o => o.orderId === selectedOrderId ? { ...o, unreadCount: 0 } : o));
+      } else if (mode === "seller" && setSellerThreads) {
+        setSellerThreads(prev => prev.map(t => t.orderId === selectedOrderId ? { ...t, unreadCount: 0 } : t));
+      }
+    }
+  }, [selectedOrderId, mode, setBuyerOrders, setSellerThreads]);
+
+  // 1. Loader Effect for Active Chat
+  const loadChatSession = async (orderId: string, skipLoadingState = false) => {
+    if (!skipLoadingState) setIsLoadingMessages(true);
+    try {
+      const res = await fetch(`/api/chat?orderId=${orderId}&t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data.messages || []);
+        setActiveSessionStatus(data.status);
+        setActiveSessionProductId(data.productId);
+      }
+    } catch (err) {
+      // Failed loading chat ditangani otomatis via retry pada polling
+    } finally {
+      if (!skipLoadingState) setIsLoadingMessages(false);
+    }
+  };
+
+  // 2. Poll Effect for selected chat session
+  useEffect(() => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+
+    if (selectedOrderId) {
+      // First load
+      loadChatSession(selectedOrderId, false);
+
+      // Poll every 5 seconds
+      pollingRef.current = setInterval(() => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+          loadChatSession(selectedOrderId, true);
+        }
+      }, 5000);
+    } else {
+      setMessages([]);
+      setActiveSessionStatus(null);
+      setActiveSessionProductId(null);
+    }
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [selectedOrderId]);
+
+  // Scroll to bottom helper
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    setTimeout(() => {
+      chatEndRef.current?.scrollIntoView({ behavior });
+    }, 100);
+  };
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom("smooth");
+    }
+  }, [messages.length]);
+
   // Sync selection if initialOrderId changes query
   useEffect(() => {
-    if (initialOrderId) {
+    if (initialOrderId && selectedOrderId !== initialOrderId) {
       setSelectedOrderId(initialOrderId);
     }
-  }, [initialOrderId]);
+  }, [initialOrderId, selectedOrderId]);
 
   // Send message
   const handleSendMessage = async (customText?: string) => {
@@ -261,7 +297,7 @@ export default function ChatInterface({
         setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: serverData.id } : m));
       }
     } catch (err) {
-      console.error("Failed sending message:", err);
+      // Failed sending message
     }
   };
 
@@ -314,7 +350,7 @@ export default function ChatInterface({
           body: JSON.stringify({ id: msgId })
         });
       } catch (err) {
-        console.error("Failed to delete message:", err);
+        // Failed deleting
       }
     }
   };
@@ -341,7 +377,7 @@ export default function ChatInterface({
           body: JSON.stringify({ id: msgId, text })
         });
       } catch (err) {
-        console.error("Failed to edit message:", err);
+        // Failed editing
       }
     }
   };
@@ -660,7 +696,7 @@ export default function ChatInterface({
     <div className="flex h-[calc(100vh-140px)] md:h-[650px] w-full card border border-border bg-surface shadow-md overflow-hidden relative select-none">
 
       {/* ── SECTION A: SIDEBAR (Chat list threads) ── */}
-      <div className={`w-full md:w-[350px] border-r border-border flex flex-col h-full bg-surface-secondary/70 ${selectedOrderId ? "hidden md:flex" : "flex"}`}>
+      <div className={`w-full md:w-[300px] lg:w-[325px] xl:w-[350px] border-r border-border flex flex-col h-full bg-surface-secondary/70 ${selectedOrderId ? "hidden md:flex" : "flex"}`}>
 
         {/* Search header list */}
         <div className="p-4 border-b border-border bg-surface flex flex-col gap-3">
@@ -755,7 +791,7 @@ export default function ChatInterface({
               <div className="flex items-center gap-3 min-w-0">
                 <button
                   onClick={() => setSelectedOrderId(null)}
-                  className="p-1.5 hover:bg-neutral-100 dark:hover:bg-slate-800 rounded-full transition-colors inline-block md:hidden text-text-primary mr-1"
+                  className="p-1.5 hover:bg-neutral-100 dark:hover:bg-slate-800 rounded-full transition-colors inline-block md:hidden !text-slate-900 mr-1"
                   title="Kembali ke daftar chat"
                 >
                   <ChevronLeft className="w-6 h-6" />
@@ -767,7 +803,7 @@ export default function ChatInterface({
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <h3 className="font-bold text-sm sm:text-base text-text-primary truncate">{activeThread.title}</h3>
+                    <h3 className="font-bold text-sm sm:text-base !text-slate-900 truncate">{activeThread.title}</h3>
                     {activeSessionStatus === "chat_only" && (
                       <span className="bg-brand-primary/10 text-brand-primary text-[8px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider">Tanya Produk</span>
                     )}
@@ -895,7 +931,7 @@ export default function ChatInterface({
 
               {/* Showcase right items panel drawer */}
               {showProductsPanel && (
-                <div className="w-[280px] border-l border-border bg-surface h-full flex flex-col z-10 absolute right-0 top-0 bottom-0 md:relative transform transition-transform duration-200">
+                <div className="w-[280px] border-l border-border bg-surface h-full flex flex-col z-20 absolute right-0 top-0 bottom-0 lg:relative shadow-2xl lg:shadow-none transform transition-transform duration-200">
                   <div className="p-3 border-b border-border bg-base/50 flex align-center justify-between shrink-0">
                     <span className="text-xs font-bold text-text-primary uppercase tracking-tight flex items-center gap-1.5 mt-0.5">
                       <ShoppingBag className="w-4 h-4 text-brand-primary" />
@@ -935,7 +971,12 @@ export default function ChatInterface({
                                 </div>
                               </div>
                               <button
-                                onClick={() => handleSendMessage(`Permisi kak, saya ingin bertanya tentang produk *${p.name}* (${formattedPrice}) ini:\n\n[PRODUK_OFFER|${p.id}|${p.name}|${formattedPrice}|${pImage}]`)}
+                                onClick={() => {
+                                  handleSendMessage(`Permisi kak, saya ingin bertanya tentang produk *${p.name}* (${formattedPrice}) ini:\n\n[PRODUK_OFFER|${p.id}|${p.name}|${formattedPrice}|${pImage}]`);
+                                  if (window.innerWidth < 1024) {
+                                    setShowProductsPanel(false);
+                                  }
+                                }}
                                 className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white text-[10px] font-black py-1.5 rounded-lg active:scale-95 transition-all text-center border-none cursor-pointer"
                               >
                                 Tanyakan Produk
@@ -965,7 +1006,12 @@ export default function ChatInterface({
                                 </div>
                               </div>
                               <button
-                                onClick={() => handleSendMessage(`Halo kak! Kami menawarkan produk pre-order *${p.name}* (Harga dasar: ${formattedPrice}) yang bisa dibuat khusus untuk kakak:\n\n[PRODUK_OFFER|${p.id}|${p.name}|${formattedPrice}|${pImage}]`)}
+                                onClick={() => {
+                                  handleSendMessage(`Halo kak! Kami menawarkan produk pre-order *${p.name}* (Harga dasar: ${formattedPrice}) yang bisa dibuat khusus untuk kakak:\n\n[PRODUK_OFFER|${p.id}|${p.name}|${formattedPrice}|${pImage}]`);
+                                  if (window.innerWidth < 1024) {
+                                    setShowProductsPanel(false);
+                                  }
+                                }}
                                 className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white text-[10px] font-black py-1.5 rounded-lg active:scale-95 transition-all text-center border-none cursor-pointer"
                               >
                                 Tawarkan ke Pembeli

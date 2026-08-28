@@ -179,7 +179,7 @@ export default function ClientSellerDashboard({
                  try {
                    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
                    audio.volume = 0.5;
-                   audio.play().catch(e => console.log('Audio autoplay prevented'));
+                   audio.play().catch(e => { /* ignore */ });
                  } catch(e) {}
                }
                
@@ -199,7 +199,7 @@ export default function ClientSellerDashboard({
                  try {
                    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
                    audio.volume = 0.5;
-                   audio.play().catch(e => console.log('Audio autoplay prevented'));
+                   audio.play().catch(e => { /* ignore */ });
                  } catch(e) {}
                }
              }
@@ -230,7 +230,7 @@ export default function ClientSellerDashboard({
         // Silently ignore AbortError — happens when component unmounts or
         // the next polling tick starts before the previous request finishes.
         if (err instanceof DOMException && err.name === 'AbortError') return;
-        console.error('Error polling data:', err);
+        // error suppressed
       }
     };
 
@@ -299,7 +299,7 @@ export default function ClientSellerDashboard({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderIds })
-      }).catch(console.error);
+      }).catch((_e) => {});
 
       setNotifications(prev => ({ ...prev, newOrders: [] }));
     }
@@ -346,7 +346,7 @@ export default function ClientSellerDashboard({
         await fetch('/api/auth/logout', { method: 'POST' });
         router.push('/login');
       } catch (error) {
-        console.error('Logout failed:', error);
+        // error suppressed
       }
     }
   };
@@ -953,7 +953,7 @@ export default function ClientSellerDashboard({
               ticks.classList.add('text-white');
             }
           } catch (err) {
-            console.error(err);
+            // error suppressed
           }
         };
 
@@ -1074,7 +1074,7 @@ export default function ClientSellerDashboard({
             if (c) c.classList.remove('opacity-50');
             // Pesan berhasil terkirim, tetapi centang tetap abu-abu sampai pembeli membacanya.
           } catch (e) {
-            console.error('Failed to send msg');
+            // error suppressed
           }
         };
 
@@ -1159,7 +1159,7 @@ export default function ClientSellerDashboard({
         });
       }
     } catch (err) {
-      console.error('Failed to mark notification as read:', err);
+      // error suppressed
     }
   };
 

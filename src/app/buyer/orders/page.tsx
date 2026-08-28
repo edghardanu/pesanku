@@ -23,6 +23,16 @@ export default async function BuyerOrdersPage({
   let userOrders: BuyerOrderViewItem[] = [];
   let unreadCounts: Record<string, number> = {};
   
+  let fullUser = null;
+  if (user) {
+    const dbUser = await db.select().from(users).where(eq(users.id, user.id)).get();
+    fullUser = {
+      ...user,
+      address: dbUser?.address || '',
+      phone: dbUser?.phone || ''
+    };
+  }
+
   if (user && user.role === 'pembeli') {
     // Fetch orders with product details and payment records
     userOrders = await db
@@ -93,5 +103,5 @@ export default async function BuyerOrdersPage({
     if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
   });
 
-  return <ClientBuyerOrders orders={userOrders} user={user} checkoutCount={checkoutCount} feeAplikasi={feeAplikasi} feeJasa={feeJasa} feeAdmin={feeAdmin} />;
+  return <ClientBuyerOrders orders={userOrders} user={fullUser} checkoutCount={checkoutCount} feeAplikasi={feeAplikasi} feeJasa={feeJasa} feeAdmin={feeAdmin} />;
 }

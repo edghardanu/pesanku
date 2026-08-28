@@ -142,7 +142,7 @@ export default function ClientHome({
             setOrderCount(data.count);
           }
         })
-        .catch(console.error);
+        .catch((_e) => {});
     }
   }, [user]);
 
@@ -223,7 +223,7 @@ export default function ClientHome({
         await fetch('/api/auth/logout', { method: 'POST' });
         window.location.href = '/login';
       } catch (error) {
-        console.error('Logout failed:', error);
+        // error suppressed
       }
     }
   };
@@ -355,7 +355,7 @@ export default function ClientHome({
 
 
 
-            <div className="hidden md:flex items-center gap-4 lg:gap-8 absolute left-1/2 -translate-x-1/2">
+            <div className="hidden lg:flex items-center gap-3 lg:gap-6 flex-1 justify-center px-4 whitespace-nowrap">
               <Link
                 href="/"
                 onClick={(e) => {
@@ -399,6 +399,11 @@ export default function ClientHome({
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
               </Link>
 
+            </div>
+
+
+
+            <div className="hidden md:flex items-center gap-3 ml-auto">
               {/* Search Toggle and Expanding Input */}
               <div className="relative flex items-center">
                 <AnimatePresence>
@@ -485,21 +490,14 @@ export default function ClientHome({
                     if (!isMobileSearchOpen) {
                       setIsMobileSearchOpen(true);
                       setTimeout(() => document.querySelector<HTMLInputElement>('#desktop-search')?.focus(), 100);
-                    } else {
-                      // If clicking when already open, we might want to perform search or just let it be handled by input
                     }
                   }}
-                  className={`p-1.5 rounded-full transition-colors flex items-center justify-center ${isScrolled ? 'text-text-primary hover:bg-gray-100' : 'text-white hover:bg-white/20'}`}
+                  className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 border ${isScrolled ? 'border-border hover:bg-gray-100 dark:hover:bg-border text-text-primary' : 'border-white/40 bg-white/10 hover:bg-white/20 text-white'}`}
                   aria-label="Toggle Search"
                 >
                   <Search className="w-5 h-5" />
                 </button>
               </div>
-            </div>
-
-
-
-            <div className="hidden md:flex items-center gap-4 ml-auto">
 
               <button
                 onClick={toggleDarkMode}
@@ -865,20 +863,18 @@ export default function ClientHome({
         {/* Hero Section */}
         {!categoryFilter && (
           <section className="relative flex min-h-[560px] items-end overflow-hidden px-6 pt-28 pb-16 sm:min-h-[580px] sm:px-8 sm:pt-32 sm:pb-20 md:min-h-[600px] md:pt-40 md:pb-20 lg:min-h-[640px] lg:px-12 lg:pt-40 lg:pb-24 xl:min-h-[680px] xl:pb-28 xl:pt-0">
-            {/* Video Background */}
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
+            {/* Image Background */}
+            <img
+              src="/bg-pesanku.jpeg"
+              alt="Pesanku Hero Background"
               className="absolute inset-0 w-full h-full object-cover z-0"
-              src="/hero-bg.mp4"
+              style={{ objectPosition: 'center', filter: 'contrast(1.1) brightness(0.95)' }}
             />
-            {/* Dark gradient overlay for text readability */}
-            <div className="absolute inset-0 z-[1]" style={{ background: 'linear-gradient(120deg, rgba(8,4,2,0.75) 0%, rgba(25,10,5,0.60) 55%, rgba(8,4,2,0.40) 100%)' }} />
+            {/* Background Gradient */}
+            <div className="absolute inset-0 z-[1]" style={{ background: 'linear-gradient(120deg, rgba(8,4,2,0.75) 0%, rgba(25,10,5,0.65) 55%, rgba(8,4,2,0.50) 100%)' }} />
 
             <div className="container mx-auto relative z-[2]">
-              <div className="grid grid-cols-1 items-center">
+              <div className="grid grid-cols-1 lg:grid-cols-[45%_55%] items-center gap-4 lg:gap-0">
 
                 {/* Text Content */}
                 <motion.div
@@ -891,7 +887,7 @@ export default function ClientHome({
                     opacity: { duration: 0.6, ease: "easeOut" },
                     x: { duration: 0.6, ease: "easeOut" },
                   }}
-                  className="max-w-2xl text-left"
+                  className="max-w-2xl text-left z-10"
                 >
                   <h1
                     className="mb-5 leading-[1.1] tracking-tight text-white font-extrabold"
@@ -926,6 +922,26 @@ export default function ClientHome({
                       Daftar Jadi Penjual
                     </Link>
                   </div>
+                </motion.div>
+
+                {/* Image Content */}
+                <motion.div
+                  initial={{ opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+                  className="flex justify-center lg:justify-end items-center relative mt-10 md:mt-12 lg:mt-0 lg:-mr-12 xl:-mr-20"
+                >
+                  <Image 
+                    src="/animasi-nobg.png" 
+                    alt="Animasi Pesanku" 
+                    width={1600}
+                    height={1600}
+                    quality={100}
+                    unoptimized={true}
+                    priority
+                    className="w-full sm:w-[85%] md:w-[75%] lg:w-full xl:w-[115%] max-w-[500px] lg:max-w-none object-contain transition-transform duration-700 ease-out hover:scale-[1.03] lg:origin-right" 
+                    style={{ filter: 'drop-shadow(0 25px 35px rgba(0,0,0,0.6))' }} 
+                  />
                 </motion.div>
 
               </div>
@@ -1259,11 +1275,7 @@ export default function ClientHome({
                     return (
                       <motion.div variants={itemVariants} key={product.id}>
                         <div
-                          onClick={(e) => {
-                            if ((e.target as HTMLElement).closest('button')) return;
-                            router.push(`/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
-                          }}
-                          className="group cursor-pointer bg-white border border-gray-100 dark:bg-border dark:border-gray-800 rounded-[20px] p-2.5 sm:p-3 flex flex-row gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 relative h-full"
+                          className="group bg-white border border-gray-100 dark:bg-border dark:border-gray-800 rounded-[20px] p-2.5 sm:p-3 flex flex-row gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 relative h-full"
                         >
                           {/* Left Image Area */}
                           <div className="relative w-[110px] h-[110px] sm:w-[120px] sm:h-[120px] shrink-0 rounded-[14px] overflow-hidden bg-gray-50 border border-black/5">

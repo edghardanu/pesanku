@@ -70,7 +70,7 @@ export default function ClientProductDetail({
           setCurrentTime(Date.now());
         }
       } catch (error) {
-        console.error("Gagal memperbarui detail produk:", error);
+        // error suppressed
       }
     };
 
@@ -102,7 +102,7 @@ export default function ClientProductDetail({
             setHasActiveOrder(data.hasActiveOrder);
           }
         })
-        .catch(console.error);
+        .catch((_e) => {});
     }
   }, [user, product.id]);
 

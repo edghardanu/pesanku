@@ -31,18 +31,6 @@ export default function ClientBuyerOrders({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    const openChatOrderId = searchParams.get('openChat');
-    if (openChatOrderId) {
-      const order = orders.find(o => o.orderId === openChatOrderId);
-      const productName = order ? order.productName : searchParams.get('productName');
-
-      if (productName) {
-        setActiveTab('chats');
-        setSelectedChatOrderId(openChatOrderId);
-      }
-    }
-  }, [searchParams, orders]);
   const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [localOrders, setLocalOrders] = useState<BuyerOrderViewItem[]>(orders);
@@ -59,6 +47,19 @@ export default function ClientBuyerOrders({
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
   const [cancelledExpiredOrderIds, setCancelledExpiredOrderIds] = useState<string[]>([]);
   const [selectedChatOrderId, setSelectedChatOrderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const openChatOrderId = searchParams.get('openChat');
+    if (openChatOrderId && selectedChatOrderId !== openChatOrderId) {
+      const order = orders.find(o => o.orderId === openChatOrderId);
+      const productName = order ? order.productName : searchParams.get('productName');
+
+      if (productName) {
+        setActiveTab('chats');
+        setSelectedChatOrderId(openChatOrderId);
+      }
+    }
+  }, [searchParams, orders, selectedChatOrderId]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -113,7 +114,7 @@ export default function ClientBuyerOrders({
 
   useEffect(() => {
     if (user?.role === 'pembeli') {
-      fetch('/api/orders', { method: 'PATCH' }).catch(err => console.error(err));
+      fetch('/api/orders', { method: 'PATCH' }).catch((_err) => { /* ignore */ });
     }
   }, [user]);
 
@@ -126,6 +127,13 @@ export default function ClientBuyerOrders({
     let abortController: AbortController | null = null;
 
     const fetchRealtimeOrders = async () => {
+      // Skip if the page/tab is backgrounded/hidden
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        const delay = Math.min(15000 * Math.pow(2, Math.max(0, failCount - 1)), 60000);
+        timeoutId = setTimeout(fetchRealtimeOrders, delay);
+        return;
+      }
+
       // Cancel any previous in-flight request
       abortController?.abort();
       abortController = new AbortController();
@@ -147,11 +155,9 @@ export default function ClientBuyerOrders({
         failCount = 0; // reset on success
       } catch (err: unknown) {
         // AbortError is expected on cleanup — not a real error
-        if (err instanceof Error && err.name === 'AbortError') return;
-        failCount++;
-        // Log only meaningful failures (not every transient hiccup)
-        if (failCount <= 3) {
-          console.warn(`[BuyerOrders] Polling attempt ${failCount} failed:`, err);
+        if (err instanceof Error && err.name !== 'AbortError') {
+          failCount++;
+          // fail log suppressed
         }
       }
 
@@ -211,8 +217,8 @@ export default function ClientBuyerOrders({
                 body: JSON.stringify({ orderId: order.orderId }),
               });
               router.refresh();
-            } catch (err) {
-              console.error('Failed to automatically delete expired order:', err);
+            } catch (_err) {
+              // error suppressed
             }
 
             Swal.close();
@@ -290,8 +296,8 @@ export default function ClientBuyerOrders({
       try {
         await fetch('/api/auth/logout', { method: 'POST' });
         window.location.href = '/login';
-      } catch (error) {
-        console.error('Logout failed:', error);
+      } catch (_error) {
+        // error suppressed
       }
     }
   };
@@ -604,8 +610,8 @@ export default function ClientBuyerOrders({
               body: JSON.stringify({ orderId }),
             });
             router.refresh();
-          } catch (err) {
-            console.error('Failed to automatically delete expired order:', err);
+          } catch (_err) {
+            // error suppressed
           }
         }
         Swal.fire({
@@ -691,7 +697,7 @@ export default function ClientBuyerOrders({
                   body: JSON.stringify({ orderId }),
                 }).then(() => {
                   router.refresh();
-                }).catch(err => console.error(err));
+                }).catch((_err) => { /* ignore */ });
               }
 
               setTimeout(() => {
@@ -890,7 +896,7 @@ export default function ClientBuyerOrders({
         </div>
       </header>
 
-      <main className="container mx-auto px-4 pt-6 max-w-4xl pb-24 md:pb-12">
+      <main className={`container mx-auto px-4 pt-6 pb-24 md:pb-12 transition-all duration-300 ${activeTab === 'chats' ? 'max-w-7xl' : 'max-w-4xl'}`}>
         {activeReturnOrder ? (
           <div>
             <button
