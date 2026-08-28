@@ -251,6 +251,7 @@ export default function ClientSellerDashboard({
     address: profile?.address || '',
     category: profile?.category || '',
     bankAccount: profile?.bankAccount || '',
+    ipaymuVa: profile?.ipaymuVa || '',
     description: profile?.description || '',
     logoUrl: profile?.logoUrl || '',
     email: userEmail || '',
@@ -2404,15 +2405,24 @@ export default function ClientSellerDashboard({
                   </div>
 
                   <div>
-                    <label className="block text-body-small font-medium text-text-secondary mb-1">Informasi Rekening Bank</label>
+                    <label className="block text-body-small font-medium text-text-secondary mb-1">Informasi Rekening Bank (BCA/BRI/dll)</label>
                     <input 
                       type="text" 
                       value={formData.bankAccount}
                       onChange={(e) => setFormData({...formData, bankAccount: e.target.value})}
-                      className="input-field w-full"
+                      className="input-field w-full mb-4"
                       placeholder="Contoh: BCA - 1234567890 a.n Budi"
                     />
-                    <p className="text-caption text-text-secondary mt-1">Rekening ini digunakan untuk pencairan dana (payout) hasil penjualan Anda.</p>
+
+                    <label className="block text-body-small font-medium text-text-secondary mb-1">Virtual Account (VA) iPaymu Khusus Penjual</label>
+                    <input 
+                      type="text" 
+                      value={formData.ipaymuVa}
+                      onChange={(e) => setFormData({...formData, ipaymuVa: e.target.value})}
+                      className="input-field w-full border-brand-primary/50 bg-brand-primary/5 focus:bg-brand-primary/10 transition-colors"
+                      placeholder="Masukkan 16 digit VA iPaymu Anda (Contoh: 1179...)"
+                    />
+                    <p className="text-caption text-text-secondary mt-1">Jika diisi, pembayaran dari pembeli otomatis terbelah/split dan langsung masuk ke saldo iPaymu Anda tanpa perlu manual transfer.</p>
                   </div>
                 </div>
 

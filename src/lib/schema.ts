@@ -29,6 +29,7 @@ export const sellerProfiles = sqliteTable('seller_profiles', {
   address: text('address'),
   category: text('category'),
   bankAccount: text('bank_account'),
+  ipaymuVa: text('ipaymu_va'), // VA khusus iPaymu untuk keperluan routing / otomatisasi transfer
   logoUrl: text('logo_url'),
   description: text('description'),
   approvalStatus: text('approval_status', { enum: ['pending', 'approved', 'rejected'] }).default('pending'),

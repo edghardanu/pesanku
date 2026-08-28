@@ -46,9 +46,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Pembayaran sudah diproses sebelumnya' }, { status: 400 });
     }
 
-    // Ambil data produk untuk nama produk
-    const { products } = await import('@/lib/schema');
+    // Ambil data produk untuk nama produk dan mengetahui Penjual
+    const { products, sellerProfiles } = await import('@/lib/schema');
     const product = await db.select().from(products).where(eq(products.id, order.productId)).get();
+
+    // Ambil detail Penjual untuk VA iPaymu (jika ada)
+    let sellerVa = undefined;
+    let sellerSplitAmount = undefined;
+    if (product) {
+      const sellerProfile = await db.select().from(sellerProfiles).where(eq(sellerProfiles.userId, product.sellerId)).get();
+      if (sellerProfile && sellerProfile.ipaymuVa) {
+        sellerVa = sellerProfile.ipaymuVa;
+        // Gunakan split yang tersimpan di order (jika null, default ke 50%)
+        sellerSplitAmount = order.sellerSplitAmount ?? Math.floor(order.totalPrice * 0.5);
+      }
+    }
 
     // Ambil data lengkap user (termasuk no HP) dari database
     const userRecord = await db.select().from(users).where(eq(users.id, user.id)).get();
@@ -62,6 +74,8 @@ export async function POST(req: Request) {
       buyerEmail: user.email,
       buyerPhone: userRecord?.phone || '08000000000',
       qty: order.qty,
+      sellerVa: sellerVa,
+      sellerSplitAmount: sellerSplitAmount,
     });
 
     // Simpan data pembayaran awal di database (pending)

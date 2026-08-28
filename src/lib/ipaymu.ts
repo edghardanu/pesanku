@@ -67,6 +67,8 @@ export interface IPaymuCreatePaymentParams {
   buyerEmail: string;
   buyerPhone: string;
   qty?: number;
+  sellerVa?: string;            // iPaymu VA Penjual (jika ada) untuk split payment
+  sellerSplitAmount?: number;   // Nominal bagibhasil penjual
 }
 
 /**
@@ -77,6 +79,7 @@ export interface IPaymuCreatePaymentParams {
 export async function createRedirectPayment(params: IPaymuCreatePaymentParams): Promise<IPaymuRedirectResponse> {
   const baseUrl = getBaseUrl();
   const siteBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const va = getVa();
 
   const body: Record<string, unknown> = {
     product:     [params.productName],
@@ -92,8 +95,20 @@ export async function createRedirectPayment(params: IPaymuCreatePaymentParams): 
     buyerPhone:  params.buyerPhone || '08000000000',
   };
 
+  // NONAKTIFKAN SEMENTARA: Agar berjalan sebagai sistem Escrow (Rekening Bersama)
+  // Tempat di mana uang fisik tertahan 100% di akun Admin demi keamanan.
+  /*
+  if (params.sellerVa && params.sellerSplitAmount && params.sellerSplitAmount > 0) {
+    if (params.sellerSplitAmount > params.amount) {
+       throw new Error("Bagian penjual tidak boleh lebih besar dari total pembayaran");
+    }
+    body.account = va;                                // VA Utama (Admin)
+    body.route = [params.sellerVa];                   // List VA Sub-Account (Penjual)
+    body.routeValue = [params.sellerSplitAmount];     // Nominal fix yang masuk ke Penjual
+  }
+  */
+
   const { signature, timestamp } = generateSignature(body);
-  const va = getVa();
 
   const response = await fetch(`${baseUrl}/payment`, {
     method: 'POST',
