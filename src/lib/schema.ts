@@ -103,6 +103,8 @@ export const orders = sqliteTable('orders', {
   returnReason: text('return_reason'),
   returnProofUrl: text('return_proof_url'),
   returnDate: text('return_date'),
+  returnBankCode: text('return_bank_code'),
+  returnBankAccount: text('return_bank_account'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 

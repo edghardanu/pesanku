@@ -13,7 +13,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const { orderId, status, deliveryProofUrl, dispatchReceiptUrl, cancelReason, returnReason, returnProofUrl } = await req.json() as {
+    const { orderId, status, deliveryProofUrl, dispatchReceiptUrl, cancelReason, returnReason, returnProofUrl, returnBankCode, returnBankAccount } = await req.json() as {
       orderId?: string;
       status?: unknown;
       deliveryProofUrl?: unknown;
@@ -21,6 +21,8 @@ export async function PUT(req: Request) {
       cancelReason?: string;
       returnReason?: string;
       returnProofUrl?: string;
+      returnBankCode?: string;
+      returnBankAccount?: string;
     };
 
     if (!orderId || !status) {
@@ -177,6 +179,8 @@ export async function PUT(req: Request) {
     if (status === 'return_pending') {
       updateFields.returnReason = returnReason || 'Tidak ada alasan';
       updateFields.returnProofUrl = uploadedReturnProofUrl || null;
+      updateFields.returnBankCode = returnBankCode || null;
+      updateFields.returnBankAccount = returnBankAccount || null;
       updateFields.returnDate = new Intl.DateTimeFormat('id-ID', {
         weekday: 'long',
         day: 'numeric',

@@ -2405,16 +2405,7 @@ export default function ClientSellerDashboard({
                   </div>
 
                   <div>
-                    <label className="block text-body-small font-medium text-text-secondary mb-1">Informasi Rekening Bank (BCA/BRI/dll)</label>
-                    <input 
-                      type="text" 
-                      value={formData.bankAccount}
-                      onChange={(e) => setFormData({...formData, bankAccount: e.target.value})}
-                      className="input-field w-full mb-4"
-                      placeholder="Contoh: BCA - 1234567890 a.n Budi"
-                    />
-
-                    <label className="block text-body-small font-medium text-text-secondary mb-1">Virtual Account (VA) iPaymu Khusus Penjual</label>
+                    <label className="block text-body-small font-medium text-text-secondary mb-1">Informasi Rekening Pencairan Dana (Virtual Account iPaymu)</label>
                     <input 
                       type="text" 
                       value={formData.ipaymuVa}
@@ -2422,7 +2413,7 @@ export default function ClientSellerDashboard({
                       className="input-field w-full border-brand-primary/50 bg-brand-primary/5 focus:bg-brand-primary/10 transition-colors"
                       placeholder="Masukkan 16 digit VA iPaymu Anda (Contoh: 1179...)"
                     />
-                    <p className="text-caption text-text-secondary mt-1">Jika diisi, pembayaran dari pembeli otomatis terbelah/split dan langsung masuk ke saldo iPaymu Anda tanpa perlu manual transfer.</p>
+                    <p className="text-caption text-text-secondary mt-1">Rekening VA iPaymu ini digunakan oleh Admin untuk mengirimkan dana hasil penjualan ke akun Anda.</p>
                   </div>
                 </div>
 

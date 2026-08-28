@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star, Trash2, Truck, ScanLine, Search, RotateCcw, Upload } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star, Trash2, Truck, ScanLine, Search, RotateCcw, Upload, DollarSign } from "lucide-react";
 import Swal from "sweetalert2";
 import dynamic from "next/dynamic";
 const QRScannerModal = dynamic(() => import("@/components/QRScannerModal"), { ssr: false });
@@ -44,6 +44,8 @@ export default function ClientBuyerOrders({
   const [activeReturnOrder, setActiveReturnOrder] = useState<BuyerOrderViewItem | null>(null);
   const [returnReason, setReturnReason] = useState("");
   const [returnPhoto, setReturnPhoto] = useState<string | null>(null);
+  const [returnBankCode, setReturnBankCode] = useState("");
+  const [returnBankAccount, setReturnBankAccount] = useState("");
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
   const [cancelledExpiredOrderIds, setCancelledExpiredOrderIds] = useState<string[]>([]);
   const [selectedChatOrderId, setSelectedChatOrderId] = useState<string | null>(null);
@@ -821,7 +823,9 @@ export default function ClientBuyerOrders({
                       orderId: activeReturnOrder.orderId,
                       status: 'return_pending',
                       returnReason: returnReason,
-                      returnProofUrl: returnPhoto
+                      returnProofUrl: returnPhoto,
+                      returnBankCode: returnBankCode,
+                      returnBankAccount: returnBankAccount
                     })
                   });
 
@@ -925,6 +929,35 @@ export default function ClientBuyerOrders({
                     rows={4}
                     className="input-field w-full border border-border bg-base rounded-xl px-4 py-3 focus:border-brand-primary focus:outline-none placeholder-text-secondary text-text-primary"
                   />
+                </div>
+
+                <div className="bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-4 space-y-4">
+                  <h3 className="font-bold text-sm text-brand-primary mb-2 flex items-center gap-2">
+                    <DollarSign className="w-4 h-4" /> Informasi Rekening Pengembalian Dana
+                  </h3>
+                  <div>
+                    <label className="block text-xs font-semibold text-text-secondary mb-1">Nama Bank (Cth: BCA, BRI, BNI) <span className="text-status-error">*</span></label>
+                    <input
+                      type="text"
+                      required
+                      value={returnBankCode}
+                      onChange={(e) => setReturnBankCode(e.target.value)}
+                      placeholder="Masukkan nama bank tujuan"
+                      className="input-field w-full text-sm border border-border bg-base rounded-xl px-4 py-2.5 focus:border-brand-primary focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-text-secondary mb-1">Nomor Rekening & Atas Nama <span className="text-status-error">*</span></label>
+                    <input
+                      type="text"
+                      required
+                      value={returnBankAccount}
+                      onChange={(e) => setReturnBankAccount(e.target.value)}
+                      placeholder="Cth: 1234567890 a/n Budi Santoso"
+                      className="input-field w-full text-sm border border-border bg-base rounded-xl px-4 py-2.5 focus:border-brand-primary focus:outline-none"
+                    />
+                    <p className="text-[10px] text-text-secondary mt-1">Pastikan valid, dana akan ditransfer otomatis melalui sistem iPaymu.</p>
+                  </div>
                 </div>
 
                 <div className="flex gap-4 pt-2">
