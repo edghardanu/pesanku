@@ -93,6 +93,8 @@ export async function createRedirectPayment(params: IPaymuCreatePaymentParams): 
     buyerName:   params.buyerName,
     buyerEmail:  params.buyerEmail,
     buyerPhone:  params.buyerPhone || '08000000000',
+    expired:     24,
+    expiredType: 'hours'
   };
 
   // NONAKTIFKAN SEMENTARA: Agar berjalan sebagai sistem Escrow (Rekening Bersama)

@@ -198,12 +198,12 @@ export default function ClientBuyerOrders({
           const createdTime = new Date(order.createdAt).getTime();
           const elapsed = Math.floor((now - createdTime) / 1000);
 
-          if (elapsed >= 600 && !cancelledExpiredOrderIds.includes(order.orderId)) {
+          if (elapsed >= 86400 && !cancelledExpiredOrderIds.includes(order.orderId)) {
             setCancelledExpiredOrderIds(prev => [...prev, order.orderId]);
-
+            
             // Delete order from localOrders immediately
             setLocalOrders(prev => prev.filter(o => o.orderId !== order.orderId));
-
+            
             try {
               await fetch('/api/orders/cancel', {
                 method: 'DELETE',
@@ -574,7 +574,7 @@ export default function ClientBuyerOrders({
       const createdTime = new Date(createdAt).getTime();
       const now = new Date().getTime();
       const elapsed = Math.floor((now - createdTime) / 1000);
-      if (elapsed >= 600) {
+      if (elapsed >= 86400) {
         if (!cancelledExpiredOrderIds.includes(orderId)) {
           setCancelledExpiredOrderIds(prev => [...prev, orderId]);
           setLocalOrders(prev => prev.filter(o => o.orderId !== orderId));
@@ -592,32 +592,14 @@ export default function ClientBuyerOrders({
         Swal.fire({
           icon: 'error',
           title: 'Waktu Pembayaran Habis',
-          text: 'Batas waktu pembayaran 10 menit telah habis. Pesanan Anda telah dihapus secara otomatis.',
+          text: 'Batas waktu pembayaran 24 jam telah habis. Pesanan Anda telah dihapus secara otomatis.',
           confirmButtonColor: '#800000',
         });
         return;
       }
     }
 
-    // Konfirmasi sebelum redirect ke iPaymu
-    const result = await Swal.fire({
-      title: 'Bayar via iPaymu',
-      html: `<div class="flex flex-col items-center">
-        <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-        </div>
-        <p class="text-sm mb-2">Total pembayaran:</p>
-        <p class="text-2xl font-bold text-green-600 mb-4">Rp ${totalHarga.toLocaleString('id-ID')}</p>
-        <p class="text-xs text-gray-500">Anda akan diarahkan ke halaman pembayaran iPaymu untuk menyelesaikan transaksi dengan berbagai metode (VA, e-Wallet, QRIS, dll).</p>
-      </div>`,
-      showCancelButton: true,
-      confirmButtonText: 'Lanjut Bayar',
-      cancelButtonText: 'Batal',
-      confirmButtonColor: '#10b981',
-      cancelButtonColor: '#94a3b8',
-    });
 
-    if (!result.isConfirmed) return;
 
     // Tampilkan loading
     Swal.fire({
