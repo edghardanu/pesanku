@@ -31,7 +31,7 @@ export default function ClientBuyerOrders({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [qrisUrl, setQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS');
+
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [localOrders, setLocalOrders] = useState<BuyerOrderViewItem[]>(orders);
   const [bottomNavLoading, setBottomNavLoading] = useState<'home' | 'catalog' | null>(null);
@@ -102,15 +102,7 @@ export default function ClientBuyerOrders({
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
   const [qtyDrafts, setQtyDrafts] = useState<Record<string, string>>({});
 
-  // Load the active QRIS from localStorage
-  useEffect(() => {
-    const savedQris = localStorage.getItem('adminQrisUrl');
-    if (savedQris) {
-      setTimeout(() => {
-        setQrisUrl(savedQris);
-      }, 0);
-    }
-  }, []);
+
 
   useEffect(() => {
     if (user?.role === 'pembeli') {
@@ -574,27 +566,8 @@ export default function ClientBuyerOrders({
     }
   };
 
-  const handleDownloadQris = async (qrisImageUrl: string, totalHarga: number) => {
-    try {
-      const response = await fetch(qrisImageUrl);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `QRIS-Pesanku-Rp${totalHarga.toLocaleString('id-ID').replace(/\./g, '')}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch {
-      // Fallback: buka gambar di tab baru jika fetch gagal
-      window.open(qrisImageUrl, '_blank');
-    }
-  };
 
   const handlePayment = async (orderId: string, totalHarga: number, createdAt?: string | Date | null) => {
-    let qrisTimerInterval: NodeJS.Timeout;
-
     if (createdAt) {
       const createdTime = new Date(createdAt).getTime();
       const now = new Date().getTime();
@@ -624,156 +597,61 @@ export default function ClientBuyerOrders({
       }
     }
 
-    const { value: file } = await Swal.fire({
-      title: 'Pembayaran (QRIS)',
-      html: `
-        <div class="flex flex-col items-center">
-          <div class="mb-5 bg-brand-primary w-full max-w-[260px] rounded-2xl p-4 shadow-md flex flex-col items-center">
-            <p class="text-white/90 text-sm mb-3 font-medium tracking-wide">Sisa waktu pembayaran :</p>
-            <div class="flex items-center gap-2 justify-center">
-              <div class="bg-white rounded-xl w-[46px] h-[46px] flex items-center justify-center text-brand-primary font-bold text-lg shadow-sm" id="qris-h">00</div>
-              <span class="text-white/80 font-black text-lg -mt-1">:</span>
-              <div class="bg-white rounded-xl w-[46px] h-[46px] flex items-center justify-center text-brand-primary font-bold text-lg shadow-sm" id="qris-m">10</div>
-              <span class="text-white/80 font-black text-lg -mt-1">:</span>
-              <div class="bg-white rounded-xl w-[46px] h-[46px] flex items-center justify-center text-brand-primary font-bold text-lg shadow-sm" id="qris-s">00</div>
-            </div>
-          </div>
-          <p class="text-sm mb-4">Silakan scan kode QRIS berikut untuk membayar sejumlah <strong>Rp ${totalHarga.toLocaleString('id-ID')}</strong></p>
-          <div class="w-48 h-48 border border-gray-200 rounded-xl overflow-hidden mb-1 shadow-sm">
-            <img src="${qrisUrl}" alt="QRIS Admin" class="w-full h-full object-cover" />
-          </div>
-          <button
-            id="btn-download-qris"
-            type="button"
-            style="margin-top:10px;margin-bottom:6px;display:inline-flex;align-items:center;gap:6px;padding:7px 18px;border-radius:999px;background:transparent;border:1.5px solid #800000;color:#800000;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.2s,color 0.2s;"
-            onmouseover="this.style.background='#800000';this.style.color='#fff';"
-            onmouseout="this.style.background='transparent';this.style.color='#800000';"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Unduh Gambar QR
-          </button>
+    // Konfirmasi sebelum redirect ke iPaymu
+    const result = await Swal.fire({
+      title: 'Bayar via iPaymu',
+      html: `<div class="flex flex-col items-center">
+        <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
         </div>
-      `,
-      input: 'file',
-      inputAttributes: {
-        'accept': 'image/*',
-        'aria-label': 'Upload Bukti Transfer'
-      },
+        <p class="text-sm mb-2">Total pembayaran:</p>
+        <p class="text-2xl font-bold text-green-600 mb-4">Rp ${totalHarga.toLocaleString('id-ID')}</p>
+        <p class="text-xs text-gray-500">Anda akan diarahkan ke halaman pembayaran iPaymu untuk menyelesaikan transaksi dengan berbagai metode (VA, e-Wallet, QRIS, dll).</p>
+      </div>`,
       showCancelButton: true,
-      confirmButtonText: 'Kirim Bukti Pembayaran',
+      confirmButtonText: 'Lanjut Bayar',
       cancelButtonText: 'Batal',
-      confirmButtonColor: '#800000',
-      didOpen: () => {
-        const dlBtn = document.getElementById('btn-download-qris');
-        if (dlBtn) {
-          dlBtn.addEventListener('click', () => handleDownloadQris(qrisUrl, totalHarga));
-        }
-
-        const hEl = document.getElementById('qris-h');
-        const mEl = document.getElementById('qris-m');
-        const sEl = document.getElementById('qris-s');
-
-        let timeLeft = 600; // default 10 minutes
-        if (createdAt) {
-          const createdTime = new Date(createdAt).getTime();
-          const now = new Date().getTime();
-          const elapsed = Math.floor((now - createdTime) / 1000);
-          timeLeft = Math.max(0, 600 - elapsed);
-        }
-
-        if (hEl && mEl && sEl) {
-          qrisTimerInterval = setInterval(() => {
-            timeLeft--;
-            if (timeLeft <= 0) {
-              clearInterval(qrisTimerInterval);
-              Swal.close();
-
-              if (!cancelledExpiredOrderIds.includes(orderId)) {
-                setCancelledExpiredOrderIds(prev => [...prev, orderId]);
-                setLocalOrders(prev => prev.filter(o => o.orderId !== orderId));
-                fetch('/api/orders/cancel', {
-                  method: 'DELETE',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ orderId }),
-                }).then(() => {
-                  router.refresh();
-                }).catch((_err) => { /* ignore */ });
-              }
-
-              setTimeout(() => {
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Waktu Pembayaran Habis',
-                  text: 'Batas waktu pembayaran 10 menit telah habis. Pesanan Anda telah dihapus secara otomatis.',
-                  confirmButtonColor: '#800000',
-                });
-              }, 300);
-            } else {
-              const h = Math.floor(timeLeft / 3600).toString().padStart(2, '0');
-              const m = Math.floor((timeLeft % 3600) / 60).toString().padStart(2, '0');
-              const s = (timeLeft % 60).toString().padStart(2, '0');
-              hEl.innerText = h;
-              mEl.innerText = m;
-              sEl.innerText = s;
-            }
-          }, 1000);
-        }
-      },
-      willClose: () => {
-        if (qrisTimerInterval) clearInterval(qrisTimerInterval);
-      },
-      preConfirm: (file) => {
-        if (!file) {
-          Swal.showValidationMessage('Bukti pembayaran wajib dilampirkan!');
-          return false;
-        }
-        return file;
-      }
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#94a3b8',
     });
 
-    if (file) {
-      Swal.fire({
-        title: 'Mengunggah Bukti...',
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
+    if (!result.isConfirmed) return;
+
+    // Tampilkan loading
+    Swal.fire({
+      title: 'Menyiapkan Pembayaran...',
+      html: '<p class="text-sm text-gray-500">Menghubungi server iPaymu, harap tunggu.</p>',
+      allowOutsideClick: false,
+      didOpen: () => { Swal.showLoading(); },
+    });
+
+    try {
+      const res = await fetch('/api/ipaymu/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
       });
 
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const proofUrl = e.target?.result as string;
-        try {
-          const res = await fetch('/api/checkout/payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              orderId: orderId,
-              proofUrl: proofUrl
-            })
-          });
+      const data = await res.json();
 
-          const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal membuat pembayaran');
+      }
 
-          if (!res.ok) {
-            throw new Error(data.error || 'Terjadi kesalahan saat mengunggah bukti.');
-          }
-
-          Swal.fire({
-            icon: 'success',
-            title: 'Berhasil!',
-            text: 'Bukti pembayaran Anda telah dikirim dan sedang menunggu verifikasi.',
-            confirmButtonColor: '#10b981',
-          }).then(() => {
-            router.refresh();
-          });
-
-        } catch (error) {
-          const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
-          Swal.fire('Gagal!', errMsg, 'error');
-        }
-      };
-      reader.readAsDataURL(file);
+      if (data.paymentUrl) {
+        // Redirect ke halaman pembayaran iPaymu
+        window.location.href = data.paymentUrl;
+      } else {
+        throw new Error('URL pembayaran tidak tersedia');
+      }
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Memproses Pembayaran',
+        text: errMsg,
+        confirmButtonColor: '#800000',
+      });
     }
   };
 
