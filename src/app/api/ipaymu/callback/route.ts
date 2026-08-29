@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { orders, payments } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { checkTransactionStatus } from '@/lib/ipaymu';
 
 /**
  * iPaymu Callback / Notify URL
@@ -41,6 +42,30 @@ export async function POST(req: Request) {
 
     if (!referenceId) {
       return NextResponse.json({ message: 'No reference_id provided' }, { status: 400 });
+    }
+
+    // [SECURITY PATCH] Lapis Dua: Cross-Check ke Server iPaymu Asli
+    // Hacker bisa memalsukan callback (spoofing webhook) dengan mengirim status=berhasil.
+    // Oleh karena itu, kita paksa ambil data transaksi LANGSUNG dari iPaymu berbekal trxId ini.
+    if (trxId) {
+      try {
+        const verifyData = await checkTransactionStatus(trxId.toString());
+        
+        // Memastikan request sukses (Status=200) dari API pengecekan
+        if (verifyData.Status === 200 && verifyData.Data) {
+          const expectedStatus = parseInt(statusCode);
+          const iPaymuRealStatus = verifyData.Data.Status; // Angka status asli di server
+          
+          // Jika status yang diklaim berhasil (1) tapi di server iPaymu status aslinya bukan 1 atau 6 (menyimpan proses)
+          if ((expectedStatus === 1 || status === 'berhasil') && (iPaymuRealStatus !== 1 && iPaymuRealStatus !== 6)) {
+            console.error(`[WARNING] SERANGAN HACKER! Webhook spoofing terdeteksi untuk order: ${referenceId}`);
+            return NextResponse.json({ message: 'Forbidden. Invalid Transaction Verification' }, { status: 403 });
+          }
+        }
+      } catch (err) {
+        console.error('[WARNING] Gagal saat memverifikasi keamanan transaksi dengan iPaymu:', err);
+        // Teruskan pemrosesan jika terjadi galat (fall-back)
+      }
     }
 
     // Cari order
