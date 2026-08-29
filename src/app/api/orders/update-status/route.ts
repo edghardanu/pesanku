@@ -164,6 +164,49 @@ export async function PUT(req: Request) {
         uploadedReturnProofUrl = returnProofUrl;
       }
     }
+    
+    // ── OTOMATISASI PENCAIRAN DANA (SEBELUM UPDATE DB AGAR BISA DIBATALKAN JIKA GAGAL) ──
+    let diprosesDisbursement = false;
+    let payoutAmount = 0;
+    
+    if (status === 'completed' && orderObj.status !== 'completed') {
+      payoutAmount = orderObj.totalPrice || 0;
+      const { sellerProfiles } = await import('@/lib/schema');
+      
+      const sellerProfile = await db.select().from(sellerProfiles).where(eq(sellerProfiles.userId, sellerId)).get();
+      const rawBankAccount = sellerProfile?.bankAccount || 'Unknown Bank';
+
+      const { executeDisbursement } = await import('@/lib/ipaymu');
+      const disbursementRes = await executeDisbursement({
+         amount: payoutAmount,
+         bankAccount: rawBankAccount,
+         referenceId: orderId,
+         notes: `Pesanku - Pembayaran Lunas untuk Order ${orderId}`
+      });
+
+      if (!disbursementRes.success) {
+        return NextResponse.json({ error: `Pencairan otomatis gagal: ${disbursementRes.error}` }, { status: 400 });
+      }
+      diprosesDisbursement = true;
+    } else if (status === 'returned' && orderObj.status !== 'returned') {
+      // Penjual menyetujui return -> Pengembalian dana 100% secara otomatis ke Pembeli
+      payoutAmount = orderObj.totalPrice || 0;
+      const buyerBank = `${orderObj.returnBankCode || ''} ${orderObj.returnBankAccount || ''}`.trim();
+
+      const { executeDisbursement } = await import('@/lib/ipaymu');
+      const disbursementRes = await executeDisbursement({
+         amount: payoutAmount,
+         bankAccount: buyerBank,
+         referenceId: `REF-${orderId}`,
+         notes: `Pesanku - Refund Pesanan ${orderId}`
+      });
+
+      if (!disbursementRes.success) {
+        return NextResponse.json({ error: `Pengembalian dana (Refund) gagal: ${disbursementRes.error}` }, { status: 400 });
+      }
+      // diprosesDisbursement tidak diset true di sini karena tabel payouts khusus pencairan penjual
+      // Untuk return pencatatannya selesai dengan status 'returned' pada tabel orders saja.
+    }
 
     // ── UPDATE STATUS PESANAN ───────────────────────────────────────────────
     const updateFields: any = { status };
@@ -214,13 +257,22 @@ export async function PUT(req: Request) {
       const sellerShare = orderObj.sellerSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
       await addRetainedBalance(sellerId, sellerShare);
     } else if (status === 'completed' && orderObj.status !== 'completed') {
-      // 1. Cairkan 50% dari retained ke available
-      const sellerShare = orderObj.sellerSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
-      await releaseRetainedToAvailable(sellerId, sellerShare);
+      if (diprosesDisbursement) {
+        // Hapus retainedBalance yang sebelumnya tertahan
+        const retainedAmount = orderObj.sellerSplitAmount ?? Math.floor(payoutAmount * 0.5);
+        await deductRetainedBalance(sellerId, retainedAmount);
 
-      // 2. Cairkan sisa 50% lagi dari admin ke available
-      const adminShare = orderObj.adminSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
-      await addAvailableBalance(sellerId, adminShare);
+        // 3. Catat di tabel payouts (sebagai tanda transfer fisik ke rekening telah diproses)
+        const { payouts } = await import('@/lib/schema');
+        await db.insert(payouts).values({
+           id: crypto.randomUUID(),
+           sellerId: sellerId,
+           amountRequested: payoutAmount,
+           netAmount: payoutAmount,
+           status: 'processed',
+           processedAt: new Date()
+        });
+      }
     } else if (status === 'returned' && orderObj.status !== 'returned') {
       // Potong 50% dari retainedBalance karena pesanan dikembalikan
       const sellerShare = orderObj.sellerSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);

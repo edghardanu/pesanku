@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Swal from "sweetalert2";
+import { formatCountdown } from "@/lib/format";
 
 type OtpStep = "email" | "otp";
 
@@ -167,12 +168,6 @@ export default function OtpVerificationForm() {
     otpInputRefs.current[lastIndex]?.focus();
   };
 
-  // Format countdown
-  const formatCountdown = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
 
   return (
     <div className="w-full max-w-md mx-auto">

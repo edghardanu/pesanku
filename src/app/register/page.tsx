@@ -4,11 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { ShoppingBag, Store, User, Eye, EyeOff, ArrowLeft, Home, ShoppingCart, FileText, Sun, Moon } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingBag, Store, User, Eye, EyeOff, ArrowLeft, Home, ShoppingCart, FileText } from "lucide-react";
+import { motion } from "framer-motion";
+import { useDarkMode } from '@/hooks';
+import { formatCountdown } from '@/lib/format';
 
 export default function RegisterPage() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
   const router = useRouter();
   const [role, setRole] = useState<'buyer' | 'seller'>('buyer');
   const [publicStats, setPublicStats] = useState({ totalUmkm: "...", avgRating: "..." });
@@ -27,24 +29,12 @@ export default function RegisterPage() {
   const [logoUrl, setLogoUrl] = useState<string>('');
 
   // === OTP States ===
-  const [otpStep, setOtpStep] = useState(false); // true = tampilkan form OTP
+  const [otpStep, setOtpStep] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
   const [otpDigits, setOtpDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  useEffect(() => {
-    setTimeout(() => {
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        setIsDarkMode(true);
-        document.documentElement.classList.add('dark');
-      } else {
-        setIsDarkMode(false);
-        document.documentElement.classList.remove('dark');
-      }
-    }, 0);
-  }, []);
 
   // Countdown timer OTP
   useEffect(() => {
@@ -52,18 +42,6 @@ export default function RegisterPage() {
     const timer = setInterval(() => setOtpCountdown((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
   }, [otpCountdown]);
-
-  const toggleDarkMode = () => {
-    if (isDarkMode) {
-      document.documentElement.classList.remove('dark');
-      localStorage.theme = 'light';
-      setIsDarkMode(false);
-    } else {
-      document.documentElement.classList.add('dark');
-      localStorage.theme = 'dark';
-      setIsDarkMode(true);
-    }
-  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -94,6 +72,7 @@ export default function RegisterPage() {
       role: role,
       storeName: formData.get("storeName"),
       address: formData.get("address"),
+      bankAccount: formData.get("bankAccount"),
       logoUrl: logoUrl
     };
 
@@ -231,298 +210,312 @@ export default function RegisterPage() {
     }
   };
 
-  const formatCountdown = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+
+
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row-reverse bg-white dark:bg-gray-950 relative overflow-x-hidden">
       {/* Left Form Section */}
       <div className="flex-[1.2] relative z-10 w-full lg:w-3/5 lg:h-screen lg:overflow-y-auto px-4 sm:px-8 py-6 lg:py-12">
-      <div className="w-full max-w-xl mx-auto flex flex-col px-0 lg:px-8 pt-4 pb-8">
-      
+        <div className="w-full max-w-xl mx-auto flex flex-col px-0 lg:px-8 pt-4 pb-8">
 
-      <div className="w-full flex-1 flex flex-col pb-24 md:pb-12">
 
-        <Link href="/" className="flex justify-center items-center gap-3 mb-10 hover:opacity-80 transition-opacity">
-          <ShoppingBag className="w-10 h-10 text-brand-primary" />
-          <span className="text-display-1 text-brand-primary font-bold text-3xl">pesanku</span>
-        </Link>
+          <div className="w-full flex-1 flex flex-col pb-24 md:pb-12">
 
-      <div className="w-full">
-        <h1 className="text-2xl font-bold text-text-primary mb-1 text-center">Daftar Akun Baru</h1>
-        <p className="text-body-base text-text-secondary mb-5 text-center">
-          Pilih peran Anda dan lengkapi data untuk mulai bergabung.
-        </p>
+            <Link href="/" className="flex justify-center items-center gap-3 mb-10 hover:opacity-80 transition-opacity">
+              <ShoppingBag className="w-10 h-10 text-brand-primary" />
+              <span className="text-display-1 text-brand-primary font-bold text-3xl">pesanku</span>
+            </Link>
 
-        {otpStep ? (
-          /* ============ OTP VERIFICATION STEP ============ */
-          <div className="space-y-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-brand-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold text-text-primary">Verifikasi Email Anda</h2>
-              <p className="text-sm text-text-secondary mt-2">
-                Kode 6 digit telah dikirim ke <span className="font-semibold text-text-primary">{registeredEmail}</span>
+            <div className="w-full">
+              <h1 className="text-2xl font-bold text-text-primary mb-1 text-center">Daftar Akun Baru</h1>
+              <p className="text-body-base text-text-secondary mb-5 text-center">
+                Pilih peran Anda dan lengkapi data untuk mulai bergabung.
               </p>
-            </div>
 
-            {/* 6 Digit OTP Boxes */}
-            <div className="flex justify-center gap-2 sm:gap-3">
-              {otpDigits.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={(el) => { otpInputRefs.current[index] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpDigitChange(index, e.target.value)}
-                  onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                  onPaste={index === 0 ? handleOtpPaste : undefined}
-                  className="w-11 h-14 sm:w-12 sm:h-14 text-center text-xl font-bold border-2 border-border rounded-xl bg-surface text-text-primary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
-                  disabled={otpLoading}
-                />
-              ))}
-            </div>
-
-            {/* Countdown */}
-            {otpCountdown > 0 ? (
-              <p className="text-center text-sm text-text-secondary">
-                Kode berlaku selama <span className="font-semibold text-brand-primary">{formatCountdown(otpCountdown)}</span>
-              </p>
-            ) : (
-              <p className="text-center text-sm text-status-error font-medium">
-                Kode telah kedaluwarsa.
-              </p>
-            )}
-
-            {/* Verify Button */}
-            <button
-              onClick={handleVerifyOtp}
-              disabled={otpLoading || otpDigits.join("").length < 6}
-              className="btn-primary w-full py-3 text-lg disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {otpLoading ? (
-                <>
-                  <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Memverifikasi...
-                </>
-              ) : (
-                "Verifikasi & Aktifkan Akun"
-              )}
-            </button>
-
-            {/* Resend */}
-            <div className="flex items-center justify-center">
-              <button
-                onClick={handleResendOtp}
-                disabled={otpLoading || otpCountdown > 0}
-                className="text-sm text-brand-primary hover:text-brand-primary-hover font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                Kirim Ulang Kode
-              </button>
-            </div>
-          </div>
-        ) : success ? (
-          <div className="p-4 bg-status-success/10 text-status-success rounded-lg mb-6 text-center">
-            <p className="font-semibold">Registrasi berhasil!</p>
-            <p className="text-sm mt-1">Mengarahkan Anda ke halaman masuk...</p>
-          </div>
-        ) : (
-          <>
-            {/* Role Selection */}
-            <div className="grid grid-cols-2 gap-4 mb-5">
-              <button 
-                type="button"
-                onClick={() => setRole('buyer')}
-                className={`p-4 border rounded-xl flex items-center justify-center gap-2 transition-all ${
-                  role === 'buyer' 
-                    ? 'border-brand-primary bg-brand-primary/5 text-brand-primary ring-2 ring-brand-primary/20' 
-                    : 'border-border bg-surface text-text-secondary hover:bg-border/30'
-                }`}
-              >
-                <User className="w-5 h-5" />
-                <span className="font-semibold text-sm">Pembeli</span>
-              </button>
-              
-              <button 
-                type="button"
-                onClick={() => setRole('seller')}
-                className={`p-4 border rounded-xl flex items-center justify-center gap-2 transition-all ${
-                  role === 'seller' 
-                    ? 'border-brand-secondary bg-brand-secondary/10 text-brand-secondary ring-2 ring-brand-secondary/20' 
-                    : 'border-border bg-surface text-text-secondary hover:bg-border/30'
-                }`}
-              >
-                <Store className="w-5 h-5" />
-                <span className="font-semibold text-sm">Penjual</span>
-              </button>
-            </div>
-
-            {error && (
-              <div className="p-3 bg-status-error/10 text-status-error rounded-lg mb-6 text-sm font-medium">
-                {error}
-              </div>
-            )}
-
-            <form className="space-y-3" onSubmit={handleSubmit}>
-              <div className="flex flex-col items-center mb-6">
-                <label className="block text-body-small font-medium text-text-primary mb-2">
-                  {role === 'seller' ? 'Foto/Logo UMKM' : 'Foto Profil Pengguna'}
-                </label>
-                <div className="flex flex-col items-center gap-3">
-                   {logoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={logoUrl} alt="Logo" className="w-32 h-32 rounded-3xl object-cover border-4 border-white shadow-md" />
-                   ) : (
-                      <div className="w-32 h-32 rounded-3xl bg-base border-2 border-dashed border-border flex flex-col items-center justify-center text-text-secondary gap-1">
-                        <span className="text-sm font-semibold">Foto</span>
-                      </div>
-                   )}
-                   <div className="flex flex-col items-center mt-1">
-                     <input 
-                       type="file" 
-                       accept="image/*" 
-                       id="upload-logo"
-                       className="hidden"
-                       onChange={handleImageChange}
-                     />
-                     <label htmlFor="upload-logo" className="cursor-pointer text-sm font-semibold text-brand-primary border border-brand-primary px-5 py-2 rounded-lg hover:bg-brand-primary hover:text-white transition-colors block mb-1">
-                       Pilih Foto
-                     </label>
-                     <p className="text-[9px] text-text-secondary">Maks 2MB (JPG/PNG)</p>
-                   </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-body-small font-medium text-text-primary mb-1">
-                  Nama Lengkap
-                </label>
-                <input 
-                  type="text" 
-                  name="name"
-                  placeholder="Masukkan nama lengkap"
-                  className="input-field"
-                  required
-                />
-              </div>
-
-              {role === 'seller' && (
-                <>
-                  <div>
-                    <label className="block text-body-small font-medium text-text-primary mb-1">
-                      Nama Toko / UMKM
-                    </label>
-                    <input 
-                      type="text" 
-                      name="storeName"
-                      placeholder="Contoh: Ayam Bakar Pak Budi"
-                      className="input-field"
-                      required
-                    />
+              {otpStep ? (
+                /* ============ OTP VERIFICATION STEP ============ */
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-brand-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <h2 className="text-xl font-bold text-text-primary">Verifikasi Email Anda</h2>
+                    <p className="text-sm text-text-secondary mt-2">
+                      Kode 6 digit telah dikirim ke <span className="font-semibold text-text-primary">{registeredEmail}</span>
+                    </p>
                   </div>
-                </>
-              )}
 
-              <div>
-                <label className="block text-body-small font-medium text-text-primary mb-1">
-                  {role === 'seller' ? 'Alamat Lengkap Toko' : 'Alamat Lengkap Pengiriman'}
-                </label>
-                <textarea 
-                  name="address"
-                  placeholder={role === 'seller' ? "Masukkan alamat lengkap toko Anda" : "Masukkan alamat lengkap rumah Anda"}
-                  className="input-field min-h-[50px] text-sm py-2 resize-none"
-                  required
-                />
-              </div>
+                  {/* 6 Digit OTP Boxes */}
+                  <div className="flex justify-center gap-2 sm:gap-3">
+                    {otpDigits.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={(el) => { otpInputRefs.current[index] = el; }}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpDigitChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        onPaste={index === 0 ? handleOtpPaste : undefined}
+                        className="w-11 h-14 sm:w-12 sm:h-14 text-center text-xl font-bold border-2 border-border rounded-xl bg-surface text-text-primary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
+                        disabled={otpLoading}
+                      />
+                    ))}
+                  </div>
 
-              <div>
-                <label className="block text-body-small font-medium text-text-primary mb-1">
-                  Email
-                </label>
-                <input 
-                  type="email" 
-                  name="email"
-                  placeholder="Masukkan email aktif"
-                  className="input-field"
-                  required
-                />
-              </div>
+                  {/* Countdown */}
+                  {otpCountdown > 0 ? (
+                    <p className="text-center text-sm text-text-secondary">
+                      Kode berlaku selama <span className="font-semibold text-brand-primary">{formatCountdown(otpCountdown)}</span>
+                    </p>
+                  ) : (
+                    <p className="text-center text-sm text-status-error font-medium">
+                      Kode telah kedaluwarsa.
+                    </p>
+                  )}
 
-              <div>
-                <label className="block text-body-small font-medium text-text-primary mb-1">
-                  No. Handphone (WhatsApp)
-                </label>
-                <input 
-                  type="tel" 
-                  name="phone"
-                  placeholder="08xxxxxxxxxx"
-                  className="input-field"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-body-small font-medium text-text-primary mb-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <input 
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    placeholder="Minimal 8 karakter"
-                    className="input-field pr-10"
-                    required
-                  />
+                  {/* Verify Button */}
                   <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-secondary hover:text-text-primary"
+                    onClick={handleVerifyOtp}
+                    disabled={otpLoading || otpDigits.join("").length < 6}
+                    className="btn-primary w-full py-3 text-lg disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
+                    {otpLoading ? (
+                      <>
+                        <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Memverifikasi...
+                      </>
                     ) : (
-                      <Eye className="w-5 h-5" />
+                      "Verifikasi & Aktifkan Akun"
                     )}
                   </button>
+
+                  {/* Resend */}
+                  <div className="flex items-center justify-center">
+                    <button
+                      onClick={handleResendOtp}
+                      disabled={otpLoading || otpCountdown > 0}
+                      className="text-sm text-brand-primary hover:text-brand-primary-hover font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Kirim Ulang Kode
+                    </button>
+                  </div>
                 </div>
+              ) : success ? (
+                <div className="p-4 bg-status-success/10 text-status-success rounded-lg mb-6 text-center">
+                  <p className="font-semibold">Registrasi berhasil!</p>
+                  <p className="text-sm mt-1">Mengarahkan Anda ke halaman masuk...</p>
+                </div>
+              ) : (
+                <>
+                  {/* Role Selection */}
+                  <div className="grid grid-cols-2 gap-4 mb-5">
+                    <button
+                      type="button"
+                      onClick={() => setRole('buyer')}
+                      className={`p-4 border rounded-xl flex items-center justify-center gap-2 transition-all ${role === 'buyer'
+                        ? 'border-brand-primary bg-brand-primary/5 text-brand-primary ring-2 ring-brand-primary/20'
+                        : 'border-border bg-surface text-text-secondary hover:bg-border/30'
+                        }`}
+                    >
+                      <User className="w-5 h-5" />
+                      <span className="font-semibold text-sm">Pembeli</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRole('seller')}
+                      className={`p-4 border rounded-xl flex items-center justify-center gap-2 transition-all ${role === 'seller'
+                        ? 'border-brand-secondary bg-brand-secondary/10 text-brand-secondary ring-2 ring-brand-secondary/20'
+                        : 'border-border bg-surface text-text-secondary hover:bg-border/30'
+                        }`}
+                    >
+                      <Store className="w-5 h-5" />
+                      <span className="font-semibold text-sm">Penjual</span>
+                    </button>
+                  </div>
+
+                  {error && (
+                    <div className="p-3 bg-status-error/10 text-status-error rounded-lg mb-6 text-sm font-medium">
+                      {error}
+                    </div>
+                  )}
+
+                  <form className="space-y-3" onSubmit={handleSubmit}>
+                    <div className="flex flex-col items-center mb-6">
+                      <label className="block text-body-small font-medium text-text-primary mb-2">
+                        {role === 'seller' ? 'Foto/Logo UMKM' : 'Foto Profil Pengguna'}
+                      </label>
+                      <div className="flex flex-col items-center gap-3">
+                        {logoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={logoUrl} alt="Logo" className="w-32 h-32 rounded-3xl object-cover border-4 border-white shadow-md" />
+                        ) : (
+                          <div className="w-32 h-32 rounded-3xl bg-base border-2 border-dashed border-border flex flex-col items-center justify-center text-text-secondary gap-1">
+                            <span className="text-sm font-semibold">Foto</span>
+                          </div>
+                        )}
+                        <div className="flex flex-col items-center mt-1">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            id="upload-logo"
+                            className="hidden"
+                            onChange={handleImageChange}
+                          />
+                          <label htmlFor="upload-logo" className="cursor-pointer text-sm font-semibold text-brand-primary border border-brand-primary px-5 py-2 rounded-lg hover:bg-brand-primary hover:text-white transition-colors block mb-1">
+                            Pilih Foto
+                          </label>
+                          <p className="text-[9px] text-text-secondary">Maks 2MB (JPG/PNG)</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-body-small font-medium text-text-primary mb-1">
+                        Nama Lengkap
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        placeholder="Masukkan nama lengkap"
+                        className="input-field"
+                        required
+                      />
+                    </div>
+
+                    {role === 'seller' && (
+                      <>
+                        <div>
+                          <label className="block text-body-small font-medium text-text-primary mb-1">
+                            Nama Toko / UMKM
+                          </label>
+                          <input
+                            type="text"
+                            name="storeName"
+                            placeholder="Contoh: Ayam Bakar Pak Budi"
+                            className="input-field"
+                            required
+                          />
+                        </div>
+                        <div className="mt-3">
+                          <label className="block text-body-small font-medium text-text-primary mb-1">
+                            Informasi Rekening Pencairan Dana
+                          </label>
+                          <input
+                            type="text"
+                            name="bankAccount"
+                            placeholder="Contoh: BCA - 1234567890 a/n Budi Santoso"
+                            className="input-field"
+                            required
+                          />
+                          <p className="text-[11px] text-text-secondary mt-1">
+                            Digunakan untuk pencairan dana hasil penjualan Anda.
+                          </p>
+                        </div>
+                      </>
+                    )}
+
+                    <div>
+                      <label className="block text-body-small font-medium text-text-primary mb-1">
+                        {role === 'seller' ? 'Alamat Lengkap Toko' : 'Alamat Lengkap Pengiriman'}
+                      </label>
+                      <textarea
+                        name="address"
+                        placeholder={role === 'seller' ? "Masukkan alamat lengkap toko Anda" : "Masukkan alamat lengkap rumah Anda"}
+                        className="input-field min-h-[50px] text-sm py-2 resize-none"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-body-small font-medium text-text-primary mb-1">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="Masukkan email aktif"
+                        className="input-field"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-body-small font-medium text-text-primary mb-1">
+                        No. Handphone (WhatsApp)
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        placeholder="08xxxxxxxxxx"
+                        className="input-field"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-body-small font-medium text-text-primary mb-1">
+                        Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="password"
+                          placeholder="Minimal 8 karakter"
+                          className="input-field pr-10"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-secondary hover:text-text-primary"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-5 h-5" />
+                          ) : (
+                            <Eye className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button disabled={loading} type="submit" className="btn-primary w-full mt-6 py-3 text-lg disabled:opacity-50">
+                      {loading ? "Memproses..." : "Daftar"}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              <div className="mt-8 text-center">
+                <p className="text-body-small text-text-secondary">
+                  Sudah punya akun?{' '}
+                  <Link href="/login" className="text-brand-primary font-medium hover:underline">
+                    Masuk
+                  </Link>
+                </p>
               </div>
+            </div>
 
-              <button disabled={loading} type="submit" className="btn-primary w-full mt-6 py-3 text-lg disabled:opacity-50">
-                {loading ? "Memproses..." : "Daftar"}
-              </button>
-            </form>
-          </>
-        )}
-
-        <div className="mt-8 text-center">
-          <p className="text-body-small text-text-secondary">
-            Sudah punya akun?{' '}
-            <Link href="/login" className="text-brand-primary font-medium hover:underline">
-              Masuk
-            </Link>
-          </p>
+          </div>
         </div>
-      </div>
-
-      </div>
-      </div>
       </div>
 
       {/* Right Image Section (Now visually on Left) */}
       <div className="flex order-first lg:order-none w-full lg:w-2/5 h-44 sm:h-52 lg:h-screen lg:sticky lg:top-0 relative shadow-lg lg:shadow-[10px_0px_30px_-15px_rgba(0,0,0,0.3)] bg-brand-primary overflow-hidden">
-        
-        
-        
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img 
-          src="https://images.unsplash.com/photo-1555126634-323283e090fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
+
+
+
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://images.unsplash.com/photo-1555126634-323283e090fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
           alt="Toko UMKM Lokal"
           className="absolute inset-0 w-full h-full object-cover opacity-90"
         />
@@ -540,17 +533,17 @@ export default function RegisterPage() {
               </div>
               <span className="text-4xl lg:text-7xl font-extrabold text-brand-primary tracking-wide drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">pesanku</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-5xl font-extrabold text-white mb-2 lg:mb-4 leading-tight">Mulai<br className="hidden sm:block"/><span className="text-white drop-shadow-md">Perjalananmu</span></h2>
+            <h2 className="text-2xl sm:text-3xl lg:text-5xl font-extrabold text-white mb-2 lg:mb-4 leading-tight">Mulai<br className="hidden sm:block" /><span className="text-white drop-shadow-md">Perjalananmu</span></h2>
             <p className="text-sm sm:text-base lg:text-lg text-white/90 leading-relaxed mb-4 lg:mb-6 hidden sm:block lg:block">Bergabung ribuan pelanggan dan mitra UMKM yang saling terhubung dalam platform Pesanku.</p>
             <div className="hidden sm:grid grid-cols-2 gap-4">
-               <div className="bg-brand-primary rounded-2xl p-4 border border-white/10 shadow-md">
-                 <div className="text-3xl font-bold text-white mb-1">{publicStats.totalUmkm}</div>
-                 <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Mitra UMKM</div>
-               </div>
-               <div className="bg-brand-primary rounded-2xl p-4 border border-white/10 shadow-md">
-                 <div className="text-3xl font-bold text-white mb-1 flex items-center gap-1">{publicStats.avgRating} <span className="text-2xl text-yellow-400">★</span></div>
-                 <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Kepuasan Pelanggan</div>
-               </div>
+              <div className="bg-brand-primary rounded-2xl p-4 border border-white/10 shadow-md">
+                <div className="text-3xl font-bold text-white mb-1">{publicStats.totalUmkm}</div>
+                <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Mitra UMKM</div>
+              </div>
+              <div className="bg-brand-primary rounded-2xl p-4 border border-white/10 shadow-md">
+                <div className="text-3xl font-bold text-white mb-1 flex items-center gap-1">{publicStats.avgRating} <span className="text-2xl text-yellow-400">★</span></div>
+                <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Kepuasan Pelanggan</div>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -558,14 +551,14 @@ export default function RegisterPage() {
 
       {/* Mobile Bottom Navigation Bar (Register Page) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-surface border-t border-border px-4 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
-        <Link 
-          href="/" 
+        <Link
+          href="/"
           className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
         >
           <Home className="w-6 h-6 stroke-[1.5]" />
           <span>Beranda</span>
         </Link>
-        
+
         <div className="w-1/4 flex flex-col justify-end items-center relative pb-2 h-full">
           <Link
             href="/#katalog"
@@ -578,16 +571,16 @@ export default function RegisterPage() {
           </Link>
           <span className="text-text-secondary mt-1">Belanja</span>
         </div>
-        
-        <Link 
+
+        <Link
           href="/buyer/orders"
           className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
         >
           <FileText className="w-6 h-6 stroke-[1.5]" />
           <span>Pesanan</span>
         </Link>
-        
-        <Link 
+
+        <Link
           href="/login"
           className="flex flex-col items-center gap-1.5 w-1/4 text-brand-primary font-semibold pb-2"
         >

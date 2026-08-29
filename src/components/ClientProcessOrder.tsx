@@ -15,6 +15,7 @@ function ProcessOrderContent() {
   const apiStatusRef = useRef<'pending' | 'success' | 'error'>('pending');
   const apiErrorRef = useRef("");
   const checkoutCountRef = useRef(1);
+  const apiDataRef = useRef<{ orderId?: string } | null>(null);
 
   useEffect(() => {
     // Only process API once
@@ -58,6 +59,7 @@ function ProcessOrderContent() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Terjadi kesalahan saat memproses pesanan.');
         checkoutCountRef.current = typeof data.itemCount === 'number' ? data.itemCount : 1;
+        apiDataRef.current = data;
         if (source === 'store') sessionStorage.removeItem('pesanku-store-checkout');
         apiStatusRef.current = 'success';
       })
@@ -93,7 +95,7 @@ function ProcessOrderContent() {
         setTimeout(() => {
           if (apiStatusRef.current === 'success') {
             router.refresh();
-            router.push(`/buyer/orders?checkout=success&count=${checkoutCountRef.current}`);
+            router.push(`/buyer/orders?checkout=success&count=${checkoutCountRef.current}&autoPay=${apiDataRef.current?.orderId || ''}`);
           } else {
             Swal.fire('Gagal!', apiErrorRef.current || 'Terjadi kesalahan.', 'error').then(() => {
               router.push("/");

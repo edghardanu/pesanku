@@ -2,40 +2,20 @@
 import { useState, useEffect } from "react";
 import { Moon, Sun } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useDarkMode } from "@/hooks";
 
 export default function GlobalThemeToggle() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => {
-      setMounted(true);
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        setIsDarkMode(true);
-        document.documentElement.classList.add('dark');
-      } else {
-        setIsDarkMode(false);
-        document.documentElement.classList.remove('dark');
-      }
-    }, 0);
+    setMounted(true);
   }, []);
-
-  const toggleDarkMode = () => {
-    if (isDarkMode) {
-      document.documentElement.classList.remove('dark');
-      localStorage.theme = 'light';
-      setIsDarkMode(false);
-    } else {
-      document.documentElement.classList.add('dark');
-      localStorage.theme = 'dark';
-      setIsDarkMode(true);
-    }
-  };
 
   if (!mounted) return null;
 
   return (
-    <button 
+    <button
       onClick={toggleDarkMode}
       className={`fixed z-[99] p-3 rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-transform hover:scale-110 flex items-center justify-center 
         ${isDarkMode ? 'bg-slate-800 border border-slate-700 shadow-brand-secondary/20' : 'bg-white border border-gray-100 shadow-brand-primary/20'}
@@ -67,7 +47,7 @@ export default function GlobalThemeToggle() {
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {/* Invisible spacer to maintain button size */}
       <div className="w-6 h-6 opacity-0"></div>
     </button>

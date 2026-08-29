@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,8 @@ import SellerPreorderCalendar from "@/components/SellerPreorderCalendar";
 import SellerPromotionCenter from "@/components/SellerPromotionCenter";
 import { validateProductVariants } from "@/lib/productVariants";
 import { formatChatTimeWIB, formatShortDateTimeWIB, WIB_TIMEZONE } from "@/lib/promotionFormatting";
-
+import { useDarkMode } from "@/hooks";
+import { escapeQuotes as escapeQuotesUtil } from "@/lib/format";
 import Swal from 'sweetalert2';
 
 type Product = {
@@ -80,45 +81,20 @@ export default function ClientSellerDashboard({
     const syncTimer = window.setTimeout(() => setSellerOrders(initialSellerOrders), 0);
     return () => window.clearTimeout(syncTimer);
   }, [initialSellerOrders]);
-  
+
   const incomingCount = sellerOrders.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length;
-  
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
-  useEffect(() => {
-    setTimeout(() => {
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-        setIsDarkMode(true);
-      } else {
-        document.documentElement.classList.remove('dark');
-        setIsDarkMode(false);
-      }
-    }, 0);
-  }, []);
-
-
-  const toggleDarkMode = () => {
-    if (isDarkMode) {
-      document.documentElement.classList.remove('dark');
-      localStorage.theme = 'light';
-      setIsDarkMode(false);
-    } else {
-      document.documentElement.classList.add('dark');
-      localStorage.theme = 'dark';
-      setIsDarkMode(true);
-    }
-  };
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
 
   const [localProducts, setLocalProducts] = useState(myProducts);
-  
+
   const [notifications, setNotifications] = useState({ newOrders: [] as any[], unreadChats: [] as any[], chatThreads: [] as any[] });
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isNotifDesktopOpen, setIsNotifDesktopOpen] = useState(false);
 
   // Poll for real-time updates on products, notifications, AND seller orders
   const isInitialLoad = useRef(true);
-  
+
   useEffect(() => {
     let abortController: AbortController | null = null;
 
@@ -134,7 +110,7 @@ export default function ClientSellerDashboard({
           fetch(`/api/seller/notifications?t=${Date.now()}`, { cache: 'no-store', signal }),
           fetch(`/api/seller/orders?t=${Date.now()}`, { cache: 'no-store', signal }),
         ]);
-        
+
         if (prodRes.ok) {
           const data = await prodRes.json();
           if (data.products) setLocalProducts(data.products);
@@ -154,73 +130,73 @@ export default function ClientSellerDashboard({
             });
           }
         }
-        
+
         if (notifRes.ok) {
           const data = await notifRes.json();
           setNotifications(prev => {
-             const newOrders = data.newOrders || [];
-             const unreadChats = data.unreadChats || [];
-             
-             if (!isInitialLoad.current) {
-               if (newOrders.length > prev.newOrders.length) {
-                 if ('Notification' in window && Notification.permission === 'granted') {
-                   new Notification('Pesanan Baru Masuk!', { body: 'Anda mendapat pesanan baru.' });
-                 }
-                 Swal.fire({
-                   toast: true,
-                   position: 'top-end',
-                   icon: 'info',
-                   title: 'Pesanan Baru Masuk!',
-                   showConfirmButton: false,
-                   timer: 5000,
-                   timerProgressBar: true
-                 });
-                 // Try to play a subtle ping sound if possible
-                 try {
-                   const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-                   audio.volume = 0.5;
-                   audio.play().catch(e => { /* ignore */ });
-                 } catch(e) {}
-               }
-               
-               if (unreadChats.length > prev.unreadChats.length) {
-                 if ('Notification' in window && Notification.permission === 'granted') {
-                   new Notification('Pesan Baru!', { body: 'Ada pesan baru dari pembeli.' });
-                 }
-                 Swal.fire({
-                   toast: true,
-                   position: 'top-end',
-                   icon: 'info',
-                   title: 'Pesan Baru dari Pembeli!',
-                   showConfirmButton: false,
-                   timer: 5000,
-                   timerProgressBar: true
-                 });
-                 try {
-                   const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-                   audio.volume = 0.5;
-                   audio.play().catch(e => { /* ignore */ });
-                 } catch(e) {}
-               }
-             }
-             
-             // Check if anything actually changed to prevent re-renders
-             const chatThreads = data.chatThreads || [];
-             if (
-               newOrders.length === prev.newOrders.length && 
-               unreadChats.length === prev.unreadChats.length &&
-               chatThreads.length === prev.chatThreads.length
-             ) {
-               return prev;
-             }
-             
-             return {
-                newOrders,
-                unreadChats,
-                chatThreads
-             };
+            const newOrders = data.newOrders || [];
+            const unreadChats = data.unreadChats || [];
+
+            if (!isInitialLoad.current) {
+              if (newOrders.length > prev.newOrders.length) {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                  new Notification('Pesanan Baru Masuk!', { body: 'Anda mendapat pesanan baru.' });
+                }
+                Swal.fire({
+                  toast: true,
+                  position: 'top-end',
+                  icon: 'info',
+                  title: 'Pesanan Baru Masuk!',
+                  showConfirmButton: false,
+                  timer: 5000,
+                  timerProgressBar: true
+                });
+                // Try to play a subtle ping sound if possible
+                try {
+                  const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                  audio.volume = 0.5;
+                  audio.play().catch(e => { /* ignore */ });
+                } catch (e) { }
+              }
+
+              if (unreadChats.length > prev.unreadChats.length) {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                  new Notification('Pesan Baru!', { body: 'Ada pesan baru dari pembeli.' });
+                }
+                Swal.fire({
+                  toast: true,
+                  position: 'top-end',
+                  icon: 'info',
+                  title: 'Pesan Baru dari Pembeli!',
+                  showConfirmButton: false,
+                  timer: 5000,
+                  timerProgressBar: true
+                });
+                try {
+                  const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                  audio.volume = 0.5;
+                  audio.play().catch(e => { /* ignore */ });
+                } catch (e) { }
+              }
+            }
+
+            // Check if anything actually changed to prevent re-renders
+            const chatThreads = data.chatThreads || [];
+            if (
+              newOrders.length === prev.newOrders.length &&
+              unreadChats.length === prev.unreadChats.length &&
+              chatThreads.length === prev.chatThreads.length
+            ) {
+              return prev;
+            }
+
+            return {
+              newOrders,
+              unreadChats,
+              chatThreads
+            };
           });
-          
+
           // After the first successful fetch evaluation, it's no longer the initial load
           setTimeout(() => {
             isInitialLoad.current = false;
@@ -300,7 +276,7 @@ export default function ClientSellerDashboard({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderIds })
-      }).catch((_e) => {});
+      }).catch((_e) => { });
 
       setNotifications(prev => ({ ...prev, newOrders: [] }));
     }
@@ -440,7 +416,7 @@ export default function ClientSellerDashboard({
           });
 
           const data = await res.json();
-          
+
           if (!res.ok) {
             throw new Error(data.error || 'Terjadi kesalahan saat mengunggah bukti.');
           }
@@ -502,13 +478,13 @@ export default function ClientSellerDashboard({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               orderId,
-              status: currentStatus, 
+              status: currentStatus,
               dispatchReceiptUrl
             })
           });
 
           const data = await res.json();
-          
+
           if (!res.ok) {
             throw new Error(data.error || 'Terjadi kesalahan saat mengunggah bukti.');
           }
@@ -545,7 +521,7 @@ export default function ClientSellerDashboard({
       const res = await fetch(`/api/chat?orderId=${orderId}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Gagal memuat obrolan');
       const { messages, status, productId } = await res.json();
-      
+
       const chatHistory: ChatMessage[] = messages || [];
 
       const hasSellerOpening = chatHistory.some((m: ChatMessage) => m.sender === 'seller' || m.role === 'penjual' || m.role === 'admin');
@@ -554,24 +530,24 @@ export default function ClientSellerDashboard({
         chatHistory.unshift({
           sender: 'seller', // Add this to render on the right side
           role: 'penjual',
-          text: isChatOnly 
+          text: isChatOnly
             ? `Halo kak! Apakah ada yang bisa kami bantu seputar produk <b>${productName}</b>?`
             : `Halo kak! Tadi kakak melakukan pemesanan untuk <b>${productName}</b> ya?`,
-          createdAt: chatHistory[0]?.createdAt 
-            ? new Date(new Date(chatHistory[0].createdAt).getTime() - 60000).toISOString() 
+          createdAt: chatHistory[0]?.createdAt
+            ? new Date(new Date(chatHistory[0].createdAt).getTime() - 60000).toISOString()
             : new Date().toISOString(),
           isRead: false
         });
       }
 
-    const renderSingleOfferCard = (pId: string, pName: string, pPrice: string, pImage: string, isMe: boolean) => {
-      const cleanImg = pImage || "/street-food-festival.jpg";
-      const bgCard = isMe ? 'bg-white/10' : 'bg-surface border border-border';
-      const textTitle = isMe ? 'text-white' : 'text-text-primary';
-      const textPrice = isMe ? 'text-yellow-200' : 'text-brand-primary';
-      const buttonBg = isMe ? 'bg-white text-brand-primary hover:bg-white/95' : 'bg-brand-primary text-white hover:bg-brand-primary-hover';
-      
-      return `
+      const renderSingleOfferCard = (pId: string, pName: string, pPrice: string, pImage: string, isMe: boolean) => {
+        const cleanImg = pImage || "/street-food-festival.jpg";
+        const bgCard = isMe ? 'bg-white/10' : 'bg-surface border border-border';
+        const textTitle = isMe ? 'text-white' : 'text-text-primary';
+        const textPrice = isMe ? 'text-yellow-200' : 'text-brand-primary';
+        const buttonBg = isMe ? 'bg-white text-brand-primary hover:bg-white/95' : 'bg-brand-primary text-white hover:bg-brand-primary-hover';
+
+        return `
         <div class="flex flex-col gap-2.5 p-2.5 rounded-xl ${bgCard} w-full min-w-0 max-w-[260px] shadow-sm text-left">
           <div class="flex gap-3 items-center">
             <div class="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-base relative border border-white/10">
@@ -596,40 +572,40 @@ export default function ClientSellerDashboard({
           </div>
         </div>
       `;
-    };
+      };
 
-    const renderMsgs = () => chatHistory.map((c: ChatMessage) => {
-      const isMe = (c.senderId && profile?.userId && c.senderId === profile.userId) || c.sender === 'seller';
-      
-      const trimmedText = (c.text || '').trim();
-      let bubbleContent = escapeQuotes(c.text || "").replace(/\n/g, '<br/>');
-      
-      const offerMatch = bubbleContent.match(/\[PRODUK_OFFER\|(.*?)\|(.*?)\|(.*?)\|(.*?)\]/);
-      if (offerMatch) {
-        const fullMatch = offerMatch[0];
-        bubbleContent = bubbleContent.replace(fullMatch, "").replace(/<br\/>/g, '\n').trim().replace(/\n/g, '<br/>');
-        const pId = offerMatch[1];
-        const pName = offerMatch[2];
-        const pPrice = offerMatch[3];
-        const pImage = offerMatch[4];
-        const cardHtml = renderSingleOfferCard(pId, pName, pPrice, pImage, isMe);
-        
-        if (bubbleContent && bubbleContent !== '<br/>') {
-          bubbleContent = `<div>${bubbleContent}</div><div class="mt-2.5">${cardHtml}</div>`;
-        } else {
-          bubbleContent = cardHtml;
-        }
-      } else if (trimmedText.startsWith('[CHAT_IMG|') && trimmedText.endsWith(']')) {
-        const imgDataUrl = trimmedText.slice(10, -1);
-        bubbleContent = `<div class="mt-1 w-full max-w-[200px] md:max-w-[240px] rounded-lg overflow-hidden cursor-pointer bg-black/10 flex items-center justify-center p-1" onclick="if(event.target.tagName !== 'BUTTON') Swal.fire({imageUrl: '${imgDataUrl}', imageWidth: 500, confirmButtonText: 'Tutup', confirmButtonColor: '#ff5c35', customClass:{popup:'bg-surface text-text-primary rounded-xl'}})">
+      const renderMsgs = () => chatHistory.map((c: ChatMessage) => {
+        const isMe = (c.senderId && profile?.userId && c.senderId === profile.userId) || c.sender === 'seller';
+
+        const trimmedText = (c.text || '').trim();
+        let bubbleContent = escapeQuotes(c.text || "").replace(/\n/g, '<br/>');
+
+        const offerMatch = bubbleContent.match(/\[PRODUK_OFFER\|(.*?)\|(.*?)\|(.*?)\|(.*?)\]/);
+        if (offerMatch) {
+          const fullMatch = offerMatch[0];
+          bubbleContent = bubbleContent.replace(fullMatch, "").replace(/<br\/>/g, '\n').trim().replace(/\n/g, '<br/>');
+          const pId = offerMatch[1];
+          const pName = offerMatch[2];
+          const pPrice = offerMatch[3];
+          const pImage = offerMatch[4];
+          const cardHtml = renderSingleOfferCard(pId, pName, pPrice, pImage, isMe);
+
+          if (bubbleContent && bubbleContent !== '<br/>') {
+            bubbleContent = `<div>${bubbleContent}</div><div class="mt-2.5">${cardHtml}</div>`;
+          } else {
+            bubbleContent = cardHtml;
+          }
+        } else if (trimmedText.startsWith('[CHAT_IMG|') && trimmedText.endsWith(']')) {
+          const imgDataUrl = trimmedText.slice(10, -1);
+          bubbleContent = `<div class="mt-1 w-full max-w-[200px] md:max-w-[240px] rounded-lg overflow-hidden cursor-pointer bg-black/10 flex items-center justify-center p-1" onclick="if(event.target.tagName !== 'BUTTON') Swal.fire({imageUrl: '${imgDataUrl}', imageWidth: 500, confirmButtonText: 'Tutup', confirmButtonColor: '#ff5c35', customClass:{popup:'bg-surface text-text-primary rounded-xl'}})">
           <img src="${imgDataUrl}" alt="Photo" class="w-full h-auto object-cover rounded hover:opacity-90 transition-opacity" />
         </div>`;
-      }
+        }
 
-      if (isMe) {
-        // ── PENJUAL / Saya (Kanan) ──────────────────────────────────────
-        const tickStyle = c.isRead ? "color:#60a5fa;" : "opacity:0.6;";
-        return `
+        if (isMe) {
+          // ── PENJUAL / Saya (Kanan) ──────────────────────────────────────
+          const tickStyle = c.isRead ? "color:#60a5fa;" : "opacity:0.6;";
+          return `
           <div class="flex justify-end items-end gap-2 mt-3">
             <div style="background:#800000;color:#fff;border-radius:14px 14px 4px 14px;padding:10px 14px;max-width:78%;font-size:13.5px;text-align:left;box-shadow:0 2px 8px rgba(128,0,0,0.18);">
               ${bubbleContent}
@@ -643,10 +619,10 @@ export default function ClientSellerDashboard({
             </div>
           </div>
         `;
-      } else {
-        // ── PEMBELI (Kiri) ───────────────────────────────────────────────
-        const buyerInitial = (buyerName || 'P').charAt(0).toUpperCase();
-        return `
+        } else {
+          // ── PEMBELI (Kiri) ───────────────────────────────────────────────
+          const buyerInitial = (buyerName || 'P').charAt(0).toUpperCase();
+          return `
           <div class="flex justify-start items-end gap-2 mt-3">
             <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#e2e8f0,#cbd5e1);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,0.12);border:1.5px solid rgba(128,0,0,0.2);">
               <span style="font-size:12px;font-weight:700;color:#800000;">${buyerInitial}</span>
@@ -660,20 +636,20 @@ export default function ClientSellerDashboard({
             </div>
           </div>
         `;
-      }
-    }).join('');
+        }
+      }).join('');
 
-    const renderProductList = () => {
-      const activeProducts = localProducts;
-      if (activeProducts.length === 0) {
-        return `<div class="text-xs text-text-secondary text-center py-8">Tidak ada produk di toko Anda.</div>`;
-      }
-      return activeProducts.map(p => {
-        const imageUrl = p.imageUrl || "/street-food-festival.jpg";
-        const priceStr = `Rp ${p.price.toLocaleString('id-ID')}`;
-        const cleanName = p.name.replace(/"/g, '&quot;');
-        const cleanDesc = (p.description || '').replace(/"/g, '&quot;');
-        return `
+      const renderProductList = () => {
+        const activeProducts = localProducts;
+        if (activeProducts.length === 0) {
+          return `<div class="text-xs text-text-secondary text-center py-8">Tidak ada produk di toko Anda.</div>`;
+        }
+        return activeProducts.map(p => {
+          const imageUrl = p.imageUrl || "/street-food-festival.jpg";
+          const priceStr = `Rp ${p.price.toLocaleString('id-ID')}`;
+          const cleanName = p.name.replace(/"/g, '&quot;');
+          const cleanDesc = (p.description || '').replace(/"/g, '&quot;');
+          return `
           <div class="flex gap-3 p-3 bg-surface hover:bg-brand-primary/5 border border-border rounded-xl transition-all group duration-200 text-left">
             <div class="w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden shrink-0 bg-base relative border border-border/50">
               <img src="${imageUrl}" alt="${cleanName}" class="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -692,13 +668,13 @@ export default function ClientSellerDashboard({
             </div>
           </div>
         `;
-      }).join('');
-    };
+        }).join('');
+      };
 
-    Swal.fire({
-      title: `Chat: ${buyerName}`,
-      width: 'min(95vw, 950px)',
-      html: `
+      Swal.fire({
+        title: `Chat: ${buyerName}`,
+        width: 'min(95vw, 950px)',
+        html: `
         <style>
           #store-products-list::-webkit-scrollbar {
             width: 8px !important;
@@ -772,55 +748,72 @@ export default function ClientSellerDashboard({
           </div>
         </div>
       `,
-      showConfirmButton: false,
-      showCloseButton: true,
-      customClass: {
-        popup: 'bg-surface text-text-primary rounded-2xl border border-border shadow-2xl',
-        title: 'text-lg font-bold border-b border-border pb-3 mb-0 text-left w-full text-text-primary',
-        htmlContainer: 'mt-4 w-full px-0',
-        closeButton: 'focus:outline-none'
-      },
-      didOpen: () => {
-        const input = document.getElementById('chat-input') as HTMLInputElement;
-        const sendBtn = document.getElementById('send-chat');
-        const chatBox = document.getElementById('chat-box');
-        const chatMessages = document.getElementById('chat-messages');
-        const productsList = document.getElementById('store-products-list');
-        
-        const popup = Swal.getPopup();
-        popup?.addEventListener('click', (e) => {
-          const target = e.target as HTMLElement;
-          const viewCalendarBtn = target.closest('.view-product-calendar-btn');
-          if (viewCalendarBtn) {
-            const pId = viewCalendarBtn.getAttribute('data-product-id');
-            if (pId) {
-              Swal.close();
-              setSelectedProductIdFilter(pId);
-              setActiveTab('produk');
-              
-              // Scroll to calendar
-              setTimeout(() => {
-                const calendarEl = document.getElementById('preorder-calendar-title');
-                if (calendarEl) {
-                  calendarEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-              }, 150);
+        showConfirmButton: false,
+        showCloseButton: true,
+        customClass: {
+          popup: 'bg-surface text-text-primary rounded-2xl border border-border shadow-2xl',
+          title: 'text-lg font-bold border-b border-border pb-3 mb-0 text-left w-full text-text-primary',
+          htmlContainer: 'mt-4 w-full px-0',
+          closeButton: 'focus:outline-none'
+        },
+        didOpen: () => {
+          const input = document.getElementById('chat-input') as HTMLInputElement;
+          const sendBtn = document.getElementById('send-chat');
+          const chatBox = document.getElementById('chat-box');
+          const chatMessages = document.getElementById('chat-messages');
+          const productsList = document.getElementById('store-products-list');
+
+          const popup = Swal.getPopup();
+          popup?.addEventListener('click', (e) => {
+            const target = e.target as HTMLElement;
+            const viewCalendarBtn = target.closest('.view-product-calendar-btn');
+            if (viewCalendarBtn) {
+              const pId = viewCalendarBtn.getAttribute('data-product-id');
+              if (pId) {
+                Swal.close();
+                setSelectedProductIdFilter(pId);
+                setActiveTab('produk');
+
+                // Scroll to calendar
+                setTimeout(() => {
+                  const calendarEl = document.getElementById('preorder-calendar-title');
+                  if (calendarEl) {
+                    calendarEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                }, 150);
+              }
             }
-          }
-          
-          const confirmBtn = target.closest('.confirm-presale-btn');
-          if (confirmBtn) {
-            const pId = confirmBtn.getAttribute('data-product-id') || '';
-            const pName = confirmBtn.getAttribute('data-product-name');
-            const pPrice = confirmBtn.getAttribute('data-product-price') || '';
-            const pImage = confirmBtn.getAttribute('data-product-image') || '';
-            
-            if (pName) {
-              const todayStr = new Date().toISOString().split('T')[0];
-              
-              Swal.fire({
-                title: 'Konfirmasi Jadwal',
-                html: `
+
+            const confirmBtn = target.closest('.confirm-presale-btn');
+            if (confirmBtn) {
+              const pId = confirmBtn.getAttribute('data-product-id') || '';
+              const pName = confirmBtn.getAttribute('data-product-name');
+              const pPrice = confirmBtn.getAttribute('data-product-price') || '';
+              const pImage = confirmBtn.getAttribute('data-product-image') || '';
+
+              if (pName) {
+                let defaultDateStr = new Date().toISOString().split('T')[0];
+                const datePattern = /tanggal\s+(\d{2}\/\d{2}\/\d{4})/;
+                
+                // Cari dari dalam kontainer chat langsung
+                const chatContainer = document.getElementById('chat-messages');
+                if (chatContainer) {
+                  // Ambil seluruh teks dari bubble pembeli (karena menggunakan inline stylings)
+                  const buyerBubbles = chatContainer.querySelectorAll('div[style*="#f3f4f6"]');
+                  for (let i = buyerBubbles.length - 1; i >= 0; i--) {
+                    const text = buyerBubbles[i].textContent || '';
+                    const match = text.match(datePattern);
+                    if (match) {
+                      const [dd, mm, yyyy] = match[1].split('/');
+                      defaultDateStr = `${yyyy}-${mm}-${dd}`;
+                      break;
+                    }
+                  }
+                }
+
+                Swal.fire({
+                  title: 'Konfirmasi Jadwal',
+                  html: `
                   <div class="text-left space-y-4 pt-2">
                     <div class="rounded-xl border border-gray-200 bg-gray-50 p-3">
                       <p class="font-semibold text-gray-900">${pName.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
@@ -828,7 +821,7 @@ export default function ClientSellerDashboard({
                     </div>
                     <div>
                       <label for="presale-confirm-date" class="mb-1.5 block text-sm font-semibold text-gray-700">Tanggal pengiriman</label>
-                      <input id="presale-confirm-date" type="date" value="${todayStr}" class="swal2-input m-0 w-full" style="height:44px;font-size:14px;" />
+                      <input id="presale-confirm-date" type="date" value="${defaultDateStr}" class="swal2-input m-0 w-full" style="height:44px;font-size:14px;" />
                     </div>
                     <div>
                       <label for="presale-confirm-reason" class="mb-1.5 block text-sm font-semibold text-gray-700">Alasan/Catatan jadwal <span class="font-normal text-gray-400">(opsional)</span></label>
@@ -836,78 +829,78 @@ export default function ClientSellerDashboard({
                     </div>
                   </div>
                 `,
-                showCancelButton: true,
-                confirmButtonText: 'Kirim Konfirmasi',
-                cancelButtonText: 'Batal',
-                confirmButtonColor: '#800000',
-                focusConfirm: false,
-                customClass: {
-                  popup: 'rounded-3xl',
-                  confirmButton: 'rounded-xl font-bold px-5 py-2.5',
-                  cancelButton: 'rounded-xl font-bold px-5 py-2.5'
-                },
-                preConfirm: () => {
-                  const dateInput = document.getElementById('presale-confirm-date') as HTMLInputElement;
-                  const reasonInput = document.getElementById('presale-confirm-reason') as HTMLTextAreaElement;
-                  if (!dateInput.value) {
-                    Swal.showValidationMessage('Tanggal pengiriman wajib diisi!');
-                    return false;
+                  showCancelButton: true,
+                  confirmButtonText: 'Kirim Konfirmasi',
+                  cancelButtonText: 'Batal',
+                  confirmButtonColor: '#800000',
+                  focusConfirm: false,
+                  customClass: {
+                    popup: 'rounded-3xl',
+                    confirmButton: 'rounded-xl font-bold px-5 py-2.5',
+                    cancelButton: 'rounded-xl font-bold px-5 py-2.5'
+                  },
+                  preConfirm: () => {
+                    const dateInput = document.getElementById('presale-confirm-date') as HTMLInputElement;
+                    const reasonInput = document.getElementById('presale-confirm-reason') as HTMLTextAreaElement;
+                    if (!dateInput.value) {
+                      Swal.showValidationMessage('Tanggal pengiriman wajib diisi!');
+                      return false;
+                    }
+
+                    const parts = dateInput.value.split('-');
+                    return { dateStr: `${parts[2]}/${parts[1]}/${parts[0]}`, reason: reasonInput.value.trim() };
                   }
-                  
-                  const parts = dateInput.value.split('-');
-                  return { dateStr: `${parts[2]}/${parts[1]}/${parts[0]}`, reason: reasonInput.value.trim() };
-                }
-              }).then((res) => {
-                if (res.isConfirmed && res.value) {
-                  const { dateStr, reason } = res.value;
-                  let confirmMsg = `Halo kak! Pesanan Pre-Order Anda untuk produk **${pName}** kami jadwalkan pengirimannya pada **${dateStr}** (Bisa Diproses).`;
-                  if (reason) {
-                    confirmMsg += `\n\nCatatan dari kami: \n*"${reason}"*`;
+                }).then((res) => {
+                  if (res.isConfirmed && res.value) {
+                    const { dateStr, reason } = res.value;
+                    let confirmMsg = `Halo kak! Pesanan Pre-Order Anda untuk produk **${pName}** kami jadwalkan pengirimannya pada **${dateStr}** (Bisa Diproses).`;
+                    if (reason) {
+                      confirmMsg += `\n\nCatatan dari kami: \n*"${reason}"*`;
+                    }
+                    confirmMsg += `\n\nSilakan klik tombol produk di bawah ini lalu lakukan *Checkout* (Pesan Sekarang) untuk menyelesaikan pesanan Anda. Terima kasih!`;
+                    confirmMsg += `\n\n[PRODUK_OFFER|${pId}|${pName}|${pPrice}|${pImage}]`;
+
+                    sendMessage(confirmMsg);
+                    setTimeout(() => {
+                      handleOpenChat(orderId, buyerName, productName);
+                    }, 400);
                   }
-                  confirmMsg += `\n\nSilakan klik tombol produk di bawah ini lalu lakukan *Checkout* (Pesan Sekarang) untuk menyelesaikan pesanan Anda. Terima kasih!`;
-                  confirmMsg += `\n\n[PRODUK_OFFER|${pId}|${pName}|${pPrice}|${pImage}]`;
-                  
-                  sendMessage(confirmMsg);
-                  setTimeout(() => {
-                    handleOpenChat(orderId, buyerName, productName);
-                  }, 400);
-                }
-              });
+                });
+              }
             }
-          }
-        });
-        
-        let editingId: string | null = null;
-        if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+          });
 
-        const toggleBtn = document.getElementById('toggle-products-btn');
-        const toggleIcon = document.getElementById('toggle-products-icon');
-        const productsColumn = document.getElementById('products-column');
-        
-        let isProductsOpen = true;
-        
-        toggleBtn?.addEventListener('click', () => {
-          isProductsOpen = !isProductsOpen;
-          if (isProductsOpen) {
-            productsList!.style.display = 'block';
-            toggleIcon!.style.transform = 'rotate(0deg)';
-            productsColumn!.classList.remove('h-auto', 'md:h-auto');
-            productsColumn!.classList.add('h-[280px]', 'md:h-[400px]');
-          } else {
-            productsList!.style.display = 'none';
-            toggleIcon!.style.transform = 'rotate(180deg)';
-            productsColumn!.classList.remove('h-[280px]', 'md:h-[400px]');
-            productsColumn!.classList.add('h-auto', 'md:h-auto');
-          }
-        });
+          let editingId: string | null = null;
+          if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
 
-        const sendProductOffer = async (pId: string, pName: string, pPrice: string, pImage: string) => {
-          const offerCode = `[PRODUK_OFFER|${pId}|${pName}|${pPrice}|${pImage}]`;
-          const now = new Date();
-          const time = formatChatTimeWIB(now);
-          const msgId = 'msg-' + Date.now();
-          
-          chatMessages?.insertAdjacentHTML('beforeend', `
+          const toggleBtn = document.getElementById('toggle-products-btn');
+          const toggleIcon = document.getElementById('toggle-products-icon');
+          const productsColumn = document.getElementById('products-column');
+
+          let isProductsOpen = true;
+
+          toggleBtn?.addEventListener('click', () => {
+            isProductsOpen = !isProductsOpen;
+            if (isProductsOpen) {
+              productsList!.style.display = 'block';
+              toggleIcon!.style.transform = 'rotate(0deg)';
+              productsColumn!.classList.remove('h-auto', 'md:h-auto');
+              productsColumn!.classList.add('h-[280px]', 'md:h-[400px]');
+            } else {
+              productsList!.style.display = 'none';
+              toggleIcon!.style.transform = 'rotate(180deg)';
+              productsColumn!.classList.remove('h-[280px]', 'md:h-[400px]');
+              productsColumn!.classList.add('h-auto', 'md:h-auto');
+            }
+          });
+
+          const sendProductOffer = async (pId: string, pName: string, pPrice: string, pImage: string) => {
+            const offerCode = `[PRODUK_OFFER|${pId}|${pName}|${pPrice}|${pImage}]`;
+            const now = new Date();
+            const time = formatChatTimeWIB(now);
+            const msgId = 'msg-' + Date.now();
+
+            chatMessages?.insertAdjacentHTML('beforeend', `
             <div class="flex justify-end mt-3 group" id="msg-bubble-${msgId}">
               <div class="flex flex-col items-end justify-center mr-2 gap-1.5 opacity-80" id="${msgId}-actions" style="display:none;">
                 <button class="chat-del-btn text-[10px] text-status-error flex items-center gap-1 hover:text-red-700 transition-colors bg-status-error/5 px-2 py-0.5 rounded-full" data-id="${msgId}">
@@ -923,107 +916,107 @@ export default function ClientSellerDashboard({
               </div>
             </div>
           `);
-          if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+            if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
 
-          try {
-            const sendRes = await fetch('/api/chat', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ orderId, text: offerCode })
-            });
-            const { id: realId } = await sendRes.json();
-            
-            const delBtn = document.querySelector(`.chat-del-btn[data-id="${msgId}"]`);
-            if (delBtn) delBtn.setAttribute('data-id', realId);
-            
-            const msgBubble = document.getElementById(`msg-bubble-${msgId}`);
-            if (msgBubble) msgBubble.id = `msg-bubble-${realId}`;
-            
-            const msgText = document.getElementById(`msg-text-${msgId}`);
-            if (msgText) msgText.id = `msg-text-${realId}`;
-            
-            const actionsBlock = document.getElementById(`${msgId}-actions`);
-            if (actionsBlock) actionsBlock.style.display = 'flex';
+            try {
+              const sendRes = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, text: offerCode })
+              });
+              const { id: realId } = await sendRes.json();
 
-            const containerBlock = document.getElementById(`${msgId}-container`);
-            if (containerBlock) containerBlock.classList.remove('opacity-50');
+              const delBtn = document.querySelector(`.chat-del-btn[data-id="${msgId}"]`);
+              if (delBtn) delBtn.setAttribute('data-id', realId);
 
-            const ticks = document.getElementById(`${msgId}-ticks`);
-            if (ticks) {
-              ticks.classList.remove('text-text-primary/60');
-              ticks.classList.add('text-white');
+              const msgBubble = document.getElementById(`msg-bubble-${msgId}`);
+              if (msgBubble) msgBubble.id = `msg-bubble-${realId}`;
+
+              const msgText = document.getElementById(`msg-text-${msgId}`);
+              if (msgText) msgText.id = `msg-text-${realId}`;
+
+              const actionsBlock = document.getElementById(`${msgId}-actions`);
+              if (actionsBlock) actionsBlock.style.display = 'flex';
+
+              const containerBlock = document.getElementById(`${msgId}-container`);
+              if (containerBlock) containerBlock.classList.remove('opacity-50');
+
+              const ticks = document.getElementById(`${msgId}-ticks`);
+              if (ticks) {
+                ticks.classList.remove('text-text-primary/60');
+                ticks.classList.add('text-white');
+              }
+            } catch (err) {
+              // error suppressed
             }
-          } catch (err) {
-            // error suppressed
-          }
-        };
+          };
 
-        productsList?.addEventListener('click', (e) => {
-          const btn = (e.target as HTMLElement).closest('.offer-product-btn');
-          if (btn) {
-            const pId = btn.getAttribute('data-id');
-            const pName = btn.getAttribute('data-name');
-            const pPrice = btn.getAttribute('data-price');
-            const pImage = btn.getAttribute('data-img');
-            if (pId && pName && pPrice) {
-              sendProductOffer(pId, pName, pPrice, pImage || '');
+          productsList?.addEventListener('click', (e) => {
+            const btn = (e.target as HTMLElement).closest('.offer-product-btn');
+            if (btn) {
+              const pId = btn.getAttribute('data-id');
+              const pName = btn.getAttribute('data-name');
+              const pPrice = btn.getAttribute('data-price');
+              const pImage = btn.getAttribute('data-img');
+              if (pId && pName && pPrice) {
+                sendProductOffer(pId, pName, pPrice, pImage || '');
+              }
             }
-          }
-        });
-        
-        chatBox?.addEventListener('click', async (e) => {
-          const target = e.target as HTMLElement;
-          if (target.classList.contains('chat-del-btn')) {
-            const id = target.getAttribute('data-id');
-            const bubble = document.getElementById(`msg-bubble-${id}`);
-            if (bubble) bubble.style.display = 'none';
-            await fetch('/api/chat', {
-              method: 'DELETE',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ id })
-            });
-          }
-          if (target.classList.contains('chat-edit-btn')) {
-            const id = target.getAttribute('data-id');
-            const text = target.getAttribute('data-text');
-            if (id && text && input) {
-              editingId = id;
-              input.value = text;
-              input.focus();
-            }
-          }
-        });
+          });
 
-        const sendMessage = async (overrideMsg?: string) => {
-          let msg = overrideMsg;
-          if (!msg) {
-            if (!input.value.trim()) return;
-            msg = input.value;
-          }
-          
-          if (editingId && !overrideMsg) {
-            const id = editingId;
-            editingId = null;
+          chatBox?.addEventListener('click', async (e) => {
+            const target = e.target as HTMLElement;
+            if (target.classList.contains('chat-del-btn')) {
+              const id = target.getAttribute('data-id');
+              const bubble = document.getElementById(`msg-bubble-${id}`);
+              if (bubble) bubble.style.display = 'none';
+              await fetch('/api/chat', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+              });
+            }
+            if (target.classList.contains('chat-edit-btn')) {
+              const id = target.getAttribute('data-id');
+              const text = target.getAttribute('data-text');
+              if (id && text && input) {
+                editingId = id;
+                input.value = text;
+                input.focus();
+              }
+            }
+          });
+
+          const sendMessage = async (overrideMsg?: string) => {
+            let msg = overrideMsg;
+            if (!msg) {
+              if (!input.value.trim()) return;
+              msg = input.value;
+            }
+
+            if (editingId && !overrideMsg) {
+              const id = editingId;
+              editingId = null;
+              input.value = '';
+              const textSpan = document.getElementById(`msg-text-${id}`);
+              const editBtn = document.querySelector(`.chat-edit-btn[data-id="${id}"]`);
+              if (textSpan) textSpan.innerText = msg;
+              if (editBtn) editBtn.setAttribute('data-text', escapeQuotes(msg));
+              await fetch('/api/chat', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, text: msg })
+              });
+              return;
+            }
+
+            const now = new Date();
+            const time = formatChatTimeWIB(now);
+            const msgId = 'msg-' + Date.now();
+
             input.value = '';
-            const textSpan = document.getElementById(`msg-text-${id}`);
-            const editBtn = document.querySelector(`.chat-edit-btn[data-id="${id}"]`);
-            if (textSpan) textSpan.innerText = msg;
-            if (editBtn) editBtn.setAttribute('data-text', escapeQuotes(msg));
-            await fetch('/api/chat', {
-              method: 'PUT',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ id, text: msg })
-            });
-            return;
-          }
 
-          const now = new Date();
-          const time = formatChatTimeWIB(now);
-          const msgId = 'msg-' + Date.now();
-          
-          input.value = '';
-          
-          chatMessages?.insertAdjacentHTML('beforeend', `
+            chatMessages?.insertAdjacentHTML('beforeend', `
             <div class="flex justify-end mt-3 group" id="msg-bubble-${msgId}">
               <div class="flex flex-col items-end justify-center mr-2 gap-1.5 opacity-80" id="${msgId}-actions" style="display:none;">
                 <button class="chat-edit-btn text-[10px] text-brand-primary flex items-center gap-1 hover:text-brand-primary-hover transition-colors bg-brand-primary/5 px-2 py-0.5 rounded-full" data-id="${msgId}" data-text="${escapeQuotes(msg)}">
@@ -1042,94 +1035,94 @@ export default function ClientSellerDashboard({
               </div>
             </div>
           `);
-          if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+            if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
 
-          try {
-            const sendRes = await fetch('/api/chat', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ orderId, text: msg })
-            });
-
-            if (!sendRes.ok) throw new Error("API failed");
-
-            const { id: realId } = await sendRes.json();
-            
-            // Set REAL ID to buttons so they can be clicked (check if they exist first!)
-            const editBtn = document.querySelector(`.chat-edit-btn[data-id="${msgId}"]`);
-            if (editBtn) editBtn.setAttribute('data-id', realId);
-            
-            const delBtn = document.querySelector(`.chat-del-btn[data-id="${msgId}"]`);
-            if (delBtn) delBtn.setAttribute('data-id', realId);
-            
-            const msgBubble = document.getElementById(`msg-bubble-${msgId}`);
-            if (msgBubble) msgBubble.id = `msg-bubble-${realId}`;
-            
-            const msgText = document.getElementById(`msg-text-${msgId}`);
-            if (msgText) msgText.id = `msg-text-${realId}`;
-            
-            const actionsBlock = document.getElementById(`${msgId}-actions`);
-            if (actionsBlock) actionsBlock.style.display = 'flex';
-
-            const c = document.getElementById(`${msgId}-container`);
-            if (c) c.classList.remove('opacity-50');
-            // Pesan berhasil terkirim, tetapi centang tetap abu-abu sampai pembeli membacanya.
-          } catch (e) {
-            // error suppressed
-          }
-        };
-
-        sendBtn?.addEventListener('click', () => sendMessage());
-        input?.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') sendMessage();
-        });
-
-        const handleImageUpload = (e: Event, inputElement: HTMLInputElement) => {
-          const file = (e.target as HTMLInputElement).files?.[0];
-          if (file) {
-            if (file.size > 2 * 1024 * 1024) {
-              Swal.fire({
-                icon: 'error',
-                title: 'Ukuran Terlalu Besar',
-                text: 'Maksimum ukuran foto adalah 2MB.',
-                confirmButtonColor: '#ff5c35'
+            try {
+              const sendRes = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, text: msg })
               });
-              inputElement.value = '';
-              return;
+
+              if (!sendRes.ok) throw new Error("API failed");
+
+              const { id: realId } = await sendRes.json();
+
+              // Set REAL ID to buttons so they can be clicked (check if they exist first!)
+              const editBtn = document.querySelector(`.chat-edit-btn[data-id="${msgId}"]`);
+              if (editBtn) editBtn.setAttribute('data-id', realId);
+
+              const delBtn = document.querySelector(`.chat-del-btn[data-id="${msgId}"]`);
+              if (delBtn) delBtn.setAttribute('data-id', realId);
+
+              const msgBubble = document.getElementById(`msg-bubble-${msgId}`);
+              if (msgBubble) msgBubble.id = `msg-bubble-${realId}`;
+
+              const msgText = document.getElementById(`msg-text-${msgId}`);
+              if (msgText) msgText.id = `msg-text-${realId}`;
+
+              const actionsBlock = document.getElementById(`${msgId}-actions`);
+              if (actionsBlock) actionsBlock.style.display = 'flex';
+
+              const c = document.getElementById(`${msgId}-container`);
+              if (c) c.classList.remove('opacity-50');
+              // Pesan berhasil terkirim, tetapi centang tetap abu-abu sampai pembeli membacanya.
+            } catch (e) {
+              // error suppressed
             }
-            const reader = new FileReader();
-            reader.onload = (re) => {
-              const base64 = re.target?.result as string;
-              sendMessage(`[CHAT_IMG|${base64}]`);
-              inputElement.value = '';
-              document.getElementById('attachment-menu')?.classList.add('hidden');
-            };
-            reader.readAsDataURL(file);
-          }
-        };
+          };
 
-        const cameraUpload = document.getElementById('chat-camera-upload') as HTMLInputElement;
-        cameraUpload?.addEventListener('change', (e) => handleImageUpload(e, cameraUpload));
-        
-        const galleryUpload = document.getElementById('chat-gallery-upload') as HTMLInputElement;
-        galleryUpload?.addEventListener('change', (e) => handleImageUpload(e, galleryUpload));
+          sendBtn?.addEventListener('click', () => sendMessage());
+          input?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+          });
 
-        const attachmentToggle = document.getElementById('attachment-toggle');
-        attachmentToggle?.addEventListener('click', (e) => {
+          const handleImageUpload = (e: Event, inputElement: HTMLInputElement) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+              if (file.size > 2 * 1024 * 1024) {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Ukuran Terlalu Besar',
+                  text: 'Maksimum ukuran foto adalah 2MB.',
+                  confirmButtonColor: '#ff5c35'
+                });
+                inputElement.value = '';
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = (re) => {
+                const base64 = re.target?.result as string;
+                sendMessage(`[CHAT_IMG|${base64}]`);
+                inputElement.value = '';
+                document.getElementById('attachment-menu')?.classList.add('hidden');
+              };
+              reader.readAsDataURL(file);
+            }
+          };
+
+          const cameraUpload = document.getElementById('chat-camera-upload') as HTMLInputElement;
+          cameraUpload?.addEventListener('change', (e) => handleImageUpload(e, cameraUpload));
+
+          const galleryUpload = document.getElementById('chat-gallery-upload') as HTMLInputElement;
+          galleryUpload?.addEventListener('change', (e) => handleImageUpload(e, galleryUpload));
+
+          const attachmentToggle = document.getElementById('attachment-toggle');
+          attachmentToggle?.addEventListener('click', (e) => {
             e.stopPropagation();
             document.getElementById('attachment-menu')?.classList.toggle('hidden');
-        });
+          });
 
-        // Close menu when clicking outside
-        document.addEventListener('click', (e) => {
+          // Close menu when clicking outside
+          document.addEventListener('click', (e) => {
             const menu = document.getElementById('attachment-menu');
             const toggle = document.getElementById('attachment-toggle');
             if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target as Node) && e.target !== toggle) {
-                menu.classList.add('hidden');
+              menu.classList.add('hidden');
             }
-        });
-      }
-    });
+          });
+        }
+      });
 
     } catch (error) {
       Swal.fire('Terjadi Kesalahan', 'Gagal memuat obrolan', 'error');
@@ -1139,7 +1132,7 @@ export default function ClientSellerDashboard({
   const handleMarkNotifsRead = async (orderId?: string, chatId?: string) => {
     try {
       const payload: any = {};
-      
+
       // If we mark a chat read from notifications it probably shouldn't just be one message, but the whole chat thread.
       // But for simplicity, we pass the chat message ID returned in unreadChats.
       if (orderId) payload.orderIds = [orderId];
@@ -1190,13 +1183,13 @@ export default function ClientSellerDashboard({
             <div className="p-4 text-center text-text-secondary text-sm">Belum ada notifikasi baru</div>
           )}
           {notifications.newOrders.map((order: any) => (
-            <div 
-              key={order.id} 
-              onClick={() => { 
+            <div
+              key={order.id}
+              onClick={() => {
                 handleMarkNotifsRead(order.id, undefined);
-                setActiveTab('pesanan_masuk'); 
-                if (isDesktop) setIsNotifDesktopOpen(false); else setIsNotifOpen(false); 
-              }} 
+                setActiveTab('pesanan_masuk');
+                if (isDesktop) setIsNotifDesktopOpen(false); else setIsNotifOpen(false);
+              }}
               className="p-3 bg-brand-primary/5 hover:bg-brand-primary/10 rounded-lg cursor-pointer transition-colors border border-brand-primary/20"
             >
               <div className="flex gap-3">
@@ -1212,13 +1205,13 @@ export default function ClientSellerDashboard({
             </div>
           ))}
           {notifications.unreadChats.map((chat: any) => (
-            <div 
-              key={chat.id} 
-              onClick={() => { 
+            <div
+              key={chat.id}
+              onClick={() => {
                 handleMarkNotifsRead(undefined, chat.id);
-                handleOpenChat(chat.orderId, chat.senderName, chat.productName); 
-                if (isDesktop) setIsNotifDesktopOpen(false); else setIsNotifOpen(false); 
-              }} 
+                handleOpenChat(chat.orderId, chat.senderName, chat.productName);
+                if (isDesktop) setIsNotifDesktopOpen(false); else setIsNotifOpen(false);
+              }}
               className="p-3 bg-blue-500/5 hover:bg-blue-500/10 rounded-lg cursor-pointer transition-colors border border-blue-500/20"
             >
               <div className="flex gap-3">
@@ -1249,7 +1242,7 @@ export default function ClientSellerDashboard({
     <div className="min-h-screen bg-base flex flex-col md:flex-row">
       {/* Mobile Sidebar Overlay */}
       {isMobileSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={() => setIsMobileSidebarOpen(false)}
         />
@@ -1262,7 +1255,7 @@ export default function ClientSellerDashboard({
             <ShoppingBag className="w-8 h-8 text-brand-primary" />
             <span className="text-h2 text-brand-primary font-bold">pesanku</span>
           </Link>
-          <button 
+          <button
             className="md:hidden text-text-secondary absolute top-4 right-4"
             onClick={() => setIsMobileSidebarOpen(false)}
           >
@@ -1273,26 +1266,24 @@ export default function ClientSellerDashboard({
             <p className="text-body-base font-semibold text-brand-primary truncate">{profile?.storeName || 'Toko Saya'}</p>
           </div>
         </div>
-        
+
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          <button 
+          <button
             onClick={() => handleTabChange('produk')}
-            className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${
-              activeTab === 'produk' 
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
+            className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'produk'
+                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <Package className="w-5 h-5" />
             Produk Preorder
           </button>
-          <button 
+          <button
             onClick={() => handleTabChange('pesanan_masuk')}
-            className={`w-full flex items-center justify-between p-3 rounded-lg font-medium transition-all text-left hover-btn ${
-              activeTab === 'pesanan_masuk' 
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
+            className={`w-full flex items-center justify-between p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'pesanan_masuk'
+                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-3">
               <Bell className="w-5 h-5" />
@@ -1310,13 +1301,12 @@ export default function ClientSellerDashboard({
               return null;
             })()}
           </button>
-          <button 
+          <button
             onClick={() => handleTabChange('chat_pembeli')}
-            className={`w-full flex items-center justify-between p-3 rounded-lg font-medium transition-all text-left hover-btn ${
-              activeTab === 'chat_pembeli' 
-                ? 'bg-blue-500/10 text-blue-500 font-semibold' 
+            className={`w-full flex items-center justify-between p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'chat_pembeli'
+                ? 'bg-blue-500/10 text-blue-500 font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-3">
               <MessageCircle className="w-5 h-5" />
@@ -1330,33 +1320,30 @@ export default function ClientSellerDashboard({
           </button>
           <button
             onClick={() => handleTabChange('promosi')}
-            className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${
-              activeTab === 'promosi'
+            className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'promosi'
                 ? 'bg-brand-primary/10 text-brand-primary font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <Megaphone className="w-5 h-5" />
             Promosi Produk
           </button>
-          <button 
+          <button
             onClick={() => handleTabChange('keuangan')}
-            className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${
-              activeTab === 'keuangan' 
-                ? 'bg-status-success/10 text-status-success font-semibold' 
+            className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'keuangan'
+                ? 'bg-status-success/10 text-status-success font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <DollarSign className="w-5 h-5" />
             Keuangan & Saldo
           </button>
-          <button 
+          <button
             onClick={() => handleTabChange('pesanan_dikembalikan')}
-            className={`w-full flex items-center justify-between p-3 rounded-lg font-medium transition-all text-left hover-btn ${
-              activeTab === 'pesanan_dikembalikan' 
-                ? 'bg-amber-500/10 text-amber-600 font-semibold' 
+            className={`w-full flex items-center justify-between p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'pesanan_dikembalikan'
+                ? 'bg-amber-500/10 text-amber-600 font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-3">
               <RotateCcw className="w-5 h-5" />
@@ -1374,22 +1361,21 @@ export default function ClientSellerDashboard({
               return null;
             })()}
           </button>
-          <button 
+          <button
             onClick={() => handleTabChange('pengaturan')}
-            className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${
-              activeTab === 'pengaturan' 
-                ? 'bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary font-semibold' 
+            className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'pengaturan'
+                ? 'bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary font-semibold'
                 : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-            }`}
+              }`}
           >
             <Settings className="w-5 h-5" />
             Pengaturan Toko
           </button>
         </nav>
-        
+
         <div className="p-4 border-t border-border flex flex-col gap-2">
 
-          <button 
+          <button
             onClick={toggleDarkMode}
             className="flex items-center justify-between p-3 text-text-secondary hover:text-text-primary hover:bg-border/40 dark:hover:bg-slate-800/80 hover-btn rounded-lg font-medium transition-colors w-full cursor-pointer"
             aria-label="Toggle Dark Mode"
@@ -1402,7 +1388,7 @@ export default function ClientSellerDashboard({
               {isDarkMode ? 'Dark' : 'Light'}
             </span>
           </button>
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center gap-3 p-3 text-status-error w-full hover:bg-status-error/10 hover-btn rounded-lg font-medium transition-colors"
           >
@@ -1429,13 +1415,13 @@ export default function ClientSellerDashboard({
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
                 className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors relative flex items-center justify-center w-9 h-9 border border-border hover-btn cursor-pointer shadow-sm"
                 title="Notifikasi"
               >
                 <motion.div initial={{ rotate: 0 }} whileHover={{ rotate: 15 }} className="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-primary"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-primary"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
                 </motion.div>
                 {totalNotifs > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-error px-1 text-[9px] font-bold text-white shadow-sm animate-pulse-slow">
@@ -1454,7 +1440,7 @@ export default function ClientSellerDashboard({
               <Settings className="w-4 h-4 text-brand-primary" />
             </button>
 
-            <button 
+            <button
               onClick={toggleDarkMode}
               className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors relative overflow-hidden flex items-center justify-center w-9 h-9 border border-border hover-btn cursor-pointer"
               aria-label="Toggle Dark Mode"
@@ -1490,21 +1476,21 @@ export default function ClientSellerDashboard({
 
         {/* Topbar Desktop */}
         <header className="hidden md:flex items-center justify-end px-10 pt-6 pb-2 sticky top-0 z-40 bg-base/80 backdrop-blur-sm -mb-8">
-           <div className="relative">
-             <button 
-               className="flex items-center justify-center p-2 rounded-xl border border-border bg-surface text-text-secondary hover:text-brand-primary hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all relative cursor-pointer shadow-sm"
-               title="Notifikasi"
-               onClick={() => setIsNotifDesktopOpen(!isNotifDesktopOpen)}
-             >
-               <Bell className="w-5 h-5" />
-               {totalNotifs > 0 && (
-                 <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-error px-1 text-[9px] font-bold text-white shadow-sm animate-pulse-slow ring-2 ring-surface">
-                   {totalNotifs > 99 ? '99+' : totalNotifs}
-                 </span>
-               )}
-             </button>
-             {isNotifDesktopOpen && renderNotificationsDropdown(true)}
-           </div>
+          <div className="relative">
+            <button
+              className="flex items-center justify-center p-2 rounded-xl border border-border bg-surface text-text-secondary hover:text-brand-primary hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all relative cursor-pointer shadow-sm"
+              title="Notifikasi"
+              onClick={() => setIsNotifDesktopOpen(!isNotifDesktopOpen)}
+            >
+              <Bell className="w-5 h-5" />
+              {totalNotifs > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-error px-1 text-[9px] font-bold text-white shadow-sm animate-pulse-slow ring-2 ring-surface">
+                  {totalNotifs > 99 ? '99+' : totalNotifs}
+                </span>
+              )}
+            </button>
+            {isNotifDesktopOpen && renderNotificationsDropdown(true)}
+          </div>
         </header>
 
         <div className="p-6 md:p-10 pb-28 md:pb-10 flex-1 relative">
@@ -1524,14 +1510,14 @@ export default function ClientSellerDashboard({
                   <h1 className="text-h1 mb-1 flex items-center gap-2"><Bell className="w-8 h-8 text-brand-primary" /> Pesanan Masuk</h1>
                   <p className="text-body-base text-text-secondary">Daftar semua pesanan dari pelanggan Anda.</p>
                 </div>
-                
+
                 <div className="card overflow-hidden border-border border">
-                   <div className="p-5 border-b border-border bg-surface/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <div className="p-5 border-b border-border bg-surface/50 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <h2 className="text-h3 w-full sm:w-auto">Semua Pesanan</h2>
                     <div className="relative w-full sm:w-72">
-                      <input 
-                        type="text" 
-                        placeholder="Cari pesanan atau pembeli..." 
+                      <input
+                        type="text"
+                        placeholder="Cari pesanan atau pembeli..."
                         className="input-field pl-10 w-full"
                         value={searchQueryPesanan}
                         onChange={(e) => setSearchQueryPesanan(e.target.value)}
@@ -1670,15 +1656,14 @@ export default function ClientSellerDashboard({
 
                                   <select
                                     disabled={order.status === 'completed'}
-                                    className={`text-xs font-semibold rounded-lg border px-2 py-1.5 outline-none cursor-pointer text-center w-[160px] ${
-                                      order.status === 'completed' ? 'bg-status-success/10 text-status-success border-status-success/20 cursor-not-allowed opacity-80' : 
-                                      order.status === 'processing' ? 'bg-brand-primary/10 text-brand-primary border-brand-primary/20' : 
-                                      order.status === 'preorder_running' ? 'bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-300' :
-                                      order.status === 'verified' ? 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20' : 
-                                      order.status === 'waiting_verification' ? 'bg-status-warning/10 text-status-warning border-status-warning/20' : 
-                                      order.status === 'cancelled' || order.status === 'returned' || order.status === 'failed' ? 'bg-status-error/10 text-status-error border-status-error/20' : 
-                                      'bg-border/60 text-text-secondary border-border'
-                                    }`}
+                                    className={`text-xs font-semibold rounded-lg border px-2 py-1.5 outline-none cursor-pointer text-center w-[160px] ${order.status === 'completed' ? 'bg-status-success/10 text-status-success border-status-success/20 cursor-not-allowed opacity-80' :
+                                        order.status === 'processing' ? 'bg-brand-primary/10 text-brand-primary border-brand-primary/20' :
+                                          order.status === 'preorder_running' ? 'bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-300' :
+                                            order.status === 'verified' ? 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20' :
+                                              order.status === 'waiting_verification' ? 'bg-status-warning/10 text-status-warning border-status-warning/20' :
+                                                order.status === 'cancelled' || order.status === 'returned' || order.status === 'failed' ? 'bg-status-error/10 text-status-error border-status-error/20' :
+                                                  'bg-border/60 text-text-secondary border-border'
+                                      }`}
                                     value={order.status ?? 'waiting_verification'}
                                     onChange={async (e) => {
                                       const newStatus = e.target.value;
@@ -1758,9 +1743,9 @@ export default function ClientSellerDashboard({
                   <h1 className="text-h1 mb-1 flex items-center gap-2"><MessageCircle className="w-8 h-8 text-brand-primary" /> Chat Pembeli</h1>
                   <p className="text-body-base text-text-secondary">Kelola daftar percakapan dengan pembeli Anda.</p>
                 </div>
-                
+
                 <div className="card overflow-hidden border-border border">
-                   <div className="p-5 border-b border-border bg-surface/50 flex justify-between items-center">
+                  <div className="p-5 border-b border-border bg-surface/50 flex justify-between items-center">
                     <h2 className="text-h3">Daftar Chat</h2>
                   </div>
                   {notifications.chatThreads.length === 0 ? (
@@ -1815,105 +1800,105 @@ export default function ClientSellerDashboard({
             )}
             {activeTab === 'produk' && (
               <>
-              <SellerPreorderCalendar
-                key={`${selectedProductIdFilter || 'all'}-${sellerOrders.map((order) => `${order.id}:${order.deliveryDate || ''}:${order.fulfillmentStatus || ''}`).join('|')}`}
-                orders={sellerOrders}
-                products={localProducts.map((product) => ({ id: product.id, name: product.name }))}
-                productIdFilter={selectedProductIdFilter}
-                onOrderStatusChange={(orderId, status, cancelReason) => {
-                  setSellerOrders(current => current.map(order => order.id === orderId ? { ...order, status, cancelReason } : order));
-                }}
-                onScheduleChange={(orderId, schedule) => {
-                  setSellerOrders(current => current.map(order => order.id === orderId ? { ...order, ...schedule } : order));
-                }}
-              />
+                <SellerPreorderCalendar
+                  key={`${selectedProductIdFilter || 'all'}-${sellerOrders.map((order) => `${order.id}:${order.deliveryDate || ''}:${order.fulfillmentStatus || ''}`).join('|')}`}
+                  orders={sellerOrders}
+                  products={localProducts.map((product) => ({ id: product.id, name: product.name }))}
+                  productIdFilter={selectedProductIdFilter}
+                  onOrderStatusChange={(orderId, status, cancelReason) => {
+                    setSellerOrders(current => current.map(order => order.id === orderId ? { ...order, status, cancelReason } : order));
+                  }}
+                  onScheduleChange={(orderId, schedule) => {
+                    setSellerOrders(current => current.map(order => order.id === orderId ? { ...order, ...schedule } : order));
+                  }}
+                />
 
-              {/* Product List */}
-              <div className="card overflow-hidden">
-                <div className="p-5 border-b border-border bg-surface/50 flex justify-between items-center">
-                  <h2 className="text-h3">Daftar Produk</h2>
-                  <Link href="/seller/product/new" className="btn-primary flex items-center gap-2 shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40 relative py-2">
-                    <Plus className="w-4 h-4" />
-                    Tambah Produk
-                  </Link>
-                </div>
-                
-                <div className="overflow-x-auto">
-                  {localProducts.length === 0 ? (
-                    <div className="p-10 text-center text-text-secondary">
-                      Belum ada produk. Silakan tambah produk preorder pertama Anda!
-                    </div>
-                  ) : (
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-border text-body-small text-text-secondary">
-                          <th className="p-4 font-medium">Info Produk</th>
-                          <th className="p-4 font-medium">Harga</th>
-                          <th className="p-4 font-medium">Jumlah Pesanan</th>
-                          <th className="p-4 font-medium text-right">Aksi</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-body-base text-text-primary">
-                        {localProducts.map(product => {
-                          const current = product.currentQty || 0;
+                {/* Product List */}
+                <div className="card overflow-hidden">
+                  <div className="p-5 border-b border-border bg-surface/50 flex justify-between items-center">
+                    <h2 className="text-h3">Daftar Produk</h2>
+                    <Link href="/seller/product/new" className="btn-primary flex items-center gap-2 shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40 relative py-2">
+                      <Plus className="w-4 h-4" />
+                      Tambah Produk
+                    </Link>
+                  </div>
 
-                          return (
-                            <tr key={product.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                              <td className="p-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-12 h-12 relative bg-border/50 rounded-md overflow-hidden shrink-0">
-                                    {product.imageUrl && (
-                                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover" sizes="48px" />
-                                    )}
+                  <div className="overflow-x-auto">
+                    {localProducts.length === 0 ? (
+                      <div className="p-10 text-center text-text-secondary">
+                        Belum ada produk. Silakan tambah produk preorder pertama Anda!
+                      </div>
+                    ) : (
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-border text-body-small text-text-secondary">
+                            <th className="p-4 font-medium">Info Produk</th>
+                            <th className="p-4 font-medium">Harga</th>
+                            <th className="p-4 font-medium">Jumlah Pesanan</th>
+                            <th className="p-4 font-medium text-right">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-body-base text-text-primary">
+                          {localProducts.map(product => {
+                            const current = product.currentQty || 0;
+
+                            return (
+                              <tr key={product.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                                <td className="p-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 relative bg-border/50 rounded-md overflow-hidden shrink-0">
+                                      {product.imageUrl && (
+                                        <Image src={product.imageUrl} alt={product.name} fill className="object-cover" sizes="48px" />
+                                      )}
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold text-text-primary line-clamp-1">{product.name}</p>
+                                      {product.variants && product.variants.length > 0 && (
+                                        <div className="mt-1.5 flex max-w-sm flex-wrap gap-1">
+                                          {product.variants.map((variant) => (
+                                            <span key={variant.name} className="rounded-full border border-brand-primary/25 bg-brand-primary/10 px-2 py-0.5 text-[10px] font-semibold text-brand-primary">
+                                              {variant.name}{variant.price !== null && variant.price !== undefined ? ` · Rp ${variant.price.toLocaleString('id-ID')}` : ''}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div>
-                                    <p className="font-semibold text-text-primary line-clamp-1">{product.name}</p>
-                                    {product.variants && product.variants.length > 0 && (
-                                      <div className="mt-1.5 flex max-w-sm flex-wrap gap-1">
-                                        {product.variants.map((variant) => (
-                                          <span key={variant.name} className="rounded-full border border-brand-primary/25 bg-brand-primary/10 px-2 py-0.5 text-[10px] font-semibold text-brand-primary">
-                                            {variant.name}{variant.price !== null && variant.price !== undefined ? ` · Rp ${variant.price.toLocaleString('id-ID')}` : ''}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
+                                </td>
+                                <td className="p-4 font-medium">Rp {product.price.toLocaleString('id-ID')}</td>
+                                <td className="p-4 font-medium">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-brand-primary text-base">{current}</span>
+                                    <span className="text-caption text-text-secondary">Pcs</span>
                                   </div>
-                                </div>
-                              </td>
-                              <td className="p-4 font-medium">Rp {product.price.toLocaleString('id-ID')}</td>
-                              <td className="p-4 font-medium">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-brand-primary text-base">{current}</span>
-                                  <span className="text-caption text-text-secondary">Pcs</span>
-                                </div>
-                              </td>
-                              <td className="p-4 text-right">
-                                <div className="flex justify-end gap-3 items-center">
-                                  <button 
-                                    onClick={() => {
-                                      setSelectedProductIdFilter(product.id);
-                                      // Scroll to calendar
-                                      const calendarEl = document.getElementById('preorder-calendar-title');
-                                      if (calendarEl) {
-                                        calendarEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                      }
-                                    }}
-                                    className="text-brand-secondary hover:text-brand-primary font-medium text-sm transition-colors cursor-pointer mr-1 bg-transparent border-none outline-none"
-                                  >
-                                    Lihat Jadwal
-                                  </button>
-                                  <button 
-                                    onClick={() => {
-                                      const variantRows = (product.variants || []).map((variant) => `
+                                </td>
+                                <td className="p-4 text-right">
+                                  <div className="flex justify-end gap-3 items-center">
+                                    <button
+                                      onClick={() => {
+                                        setSelectedProductIdFilter(product.id);
+                                        // Scroll to calendar
+                                        const calendarEl = document.getElementById('preorder-calendar-title');
+                                        if (calendarEl) {
+                                          calendarEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        }
+                                      }}
+                                      className="text-brand-secondary hover:text-brand-primary font-medium text-sm transition-colors cursor-pointer mr-1 bg-transparent border-none outline-none"
+                                    >
+                                      Lihat Jadwal
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const variantRows = (product.variants || []).map((variant) => `
                                         <div class="swal-variant-row grid grid-cols-[minmax(0,1fr)_minmax(120px,0.55fr)_36px] gap-2">
                                           <input type="text" maxlength="40" aria-label="Nama varian" placeholder="Nama varian" class="swal-variant-name input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2" value="${escapeHtml(variant.name)}">
                                           <input type="number" min="0" step="1" aria-label="Harga varian opsional" placeholder="Harga opsional" class="swal-variant-price input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2" value="${variant.price ?? ''}">
                                           <button type="button" class="swal-remove-variant rounded-md border border-red-200 text-red-500 hover:bg-red-50" aria-label="Hapus varian">×</button>
                                         </div>
                                       `).join('');
-                                      Swal.fire({
-                                        title: 'Edit Produk',
-                                        html: `
+                                        Swal.fire({
+                                          title: 'Edit Produk',
+                                          html: `
                                           <div class="flex flex-col gap-4 text-left mt-4">
                                             <div>
                                               <label class="text-caption text-text-secondary mb-1 block">Foto Produk Baru (Opsional)</label>
@@ -1962,600 +1947,551 @@ export default function ClientSellerDashboard({
                                             </div>
                                           </div>
                                         `,
-                                        showCancelButton: true,
-                                        confirmButtonText: 'Simpan Perubahan',
-                                        cancelButtonText: 'Batal',
-                                        confirmButtonColor: '#ff5c35',
-                                        cancelButtonColor: '#94a3b8',
-                                        width: '450px',
-                                        customClass: {
-                                          popup: 'bg-surface text-text-primary rounded-xl border border-border shadow-2xl',
-                                          title: 'text-text-primary text-h3',
-                                        },
-                                        didOpen: () => {
-                                          const imageInput = document.getElementById('swal-edit-image') as HTMLInputElement;
-                                          const previewContainer = document.getElementById('swal-image-preview-container');
-                                          const previewImage = document.getElementById('swal-image-preview') as HTMLImageElement;
-                                          const variantContainer = document.getElementById('swal-variant-rows');
-                                          const addVariantButton = document.getElementById('swal-add-variant');
-                                          
-                                          if (imageInput && previewContainer && previewImage) {
-                                            imageInput.addEventListener('change', function() {
-                                              const file = this.files?.[0];
-                                              if (file) {
-                                                const reader = new FileReader();
-                                                reader.onload = function(e) {
-                                                  previewImage.src = e.target?.result as string;
-                                                  previewContainer.classList.remove('hidden');
-                                                  previewContainer.classList.add('block');
-                                                };
-                                                reader.readAsDataURL(file);
-                                              }
-                                            });
-                                          }
+                                          showCancelButton: true,
+                                          confirmButtonText: 'Simpan Perubahan',
+                                          cancelButtonText: 'Batal',
+                                          confirmButtonColor: '#ff5c35',
+                                          cancelButtonColor: '#94a3b8',
+                                          width: '450px',
+                                          customClass: {
+                                            popup: 'bg-surface text-text-primary rounded-xl border border-border shadow-2xl',
+                                            title: 'text-text-primary text-h3',
+                                          },
+                                          didOpen: () => {
+                                            const imageInput = document.getElementById('swal-edit-image') as HTMLInputElement;
+                                            const previewContainer = document.getElementById('swal-image-preview-container');
+                                            const previewImage = document.getElementById('swal-image-preview') as HTMLImageElement;
+                                            const variantContainer = document.getElementById('swal-variant-rows');
+                                            const addVariantButton = document.getElementById('swal-add-variant');
 
-                                          addVariantButton?.addEventListener('click', () => {
-                                            if (!variantContainer || variantContainer.querySelectorAll('.swal-variant-row').length >= 10) return;
-                                            variantContainer.insertAdjacentHTML('beforeend', `
+                                            if (imageInput && previewContainer && previewImage) {
+                                              imageInput.addEventListener('change', function () {
+                                                const file = this.files?.[0];
+                                                if (file) {
+                                                  const reader = new FileReader();
+                                                  reader.onload = function (e) {
+                                                    previewImage.src = e.target?.result as string;
+                                                    previewContainer.classList.remove('hidden');
+                                                    previewContainer.classList.add('block');
+                                                  };
+                                                  reader.readAsDataURL(file);
+                                                }
+                                              });
+                                            }
+
+                                            addVariantButton?.addEventListener('click', () => {
+                                              if (!variantContainer || variantContainer.querySelectorAll('.swal-variant-row').length >= 10) return;
+                                              variantContainer.insertAdjacentHTML('beforeend', `
                                               <div class="swal-variant-row grid grid-cols-[minmax(0,1fr)_minmax(120px,0.55fr)_36px] gap-2">
                                                 <input type="text" maxlength="40" aria-label="Nama varian" placeholder="Nama varian" class="swal-variant-name input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2">
                                                 <input type="number" min="0" step="1" aria-label="Harga varian opsional" placeholder="Harga opsional" class="swal-variant-price input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2">
                                                 <button type="button" class="swal-remove-variant rounded-md border border-red-200 text-red-500 hover:bg-red-50" aria-label="Hapus varian">×</button>
                                               </div>
                                             `);
-                                          });
+                                            });
 
-                                          variantContainer?.addEventListener('click', (event) => {
-                                            const target = event.target as HTMLElement;
-                                            target.closest('.swal-remove-variant')?.closest('.swal-variant-row')?.remove();
-                                          });
-                                        },
-                                        preConfirm: async () => {
-                                          const name = (document.getElementById('swal-edit-name') as HTMLInputElement).value;
-                                          const batchCategory = (document.getElementById('swal-edit-category') as HTMLSelectElement).value;
-                                          const price = (document.getElementById('swal-edit-price') as HTMLInputElement).value;
-                                          const minOrder = (document.getElementById('swal-edit-minorder') as HTMLInputElement).value;
-                                          const processingTime = (document.getElementById('swal-edit-processingtime') as HTMLInputElement).value;
-                                          const variantsInput = Array.from(document.querySelectorAll('.swal-variant-row')).map((row) => ({
-                                            name: (row.querySelector('.swal-variant-name') as HTMLInputElement).value,
-                                            price: (row.querySelector('.swal-variant-price') as HTMLInputElement).value,
-                                          }));
-                                          const imageInput = document.getElementById('swal-edit-image') as HTMLInputElement;
-                                          
-                                          if (!name || !price) {
-                                            Swal.showValidationMessage('Semua kolom teks penting wajib diisi!');
-                                            return false;
-                                          }
+                                            variantContainer?.addEventListener('click', (event) => {
+                                              const target = event.target as HTMLElement;
+                                              target.closest('.swal-remove-variant')?.closest('.swal-variant-row')?.remove();
+                                            });
+                                          },
+                                          preConfirm: async () => {
+                                            const name = (document.getElementById('swal-edit-name') as HTMLInputElement).value;
+                                            const batchCategory = (document.getElementById('swal-edit-category') as HTMLSelectElement).value;
+                                            const price = (document.getElementById('swal-edit-price') as HTMLInputElement).value;
+                                            const minOrder = (document.getElementById('swal-edit-minorder') as HTMLInputElement).value;
+                                            const processingTime = (document.getElementById('swal-edit-processingtime') as HTMLInputElement).value;
+                                            const variantsInput = Array.from(document.querySelectorAll('.swal-variant-row')).map((row) => ({
+                                              name: (row.querySelector('.swal-variant-name') as HTMLInputElement).value,
+                                              price: (row.querySelector('.swal-variant-price') as HTMLInputElement).value,
+                                            }));
+                                            const imageInput = document.getElementById('swal-edit-image') as HTMLInputElement;
 
-                                          const variantResult = validateProductVariants(variantsInput);
-                                          if (!variantResult.success) {
-                                            Swal.showValidationMessage(variantResult.error);
-                                            return false;
-                                          }
-                                          
-                                          let imageUrl = '';
-                                          if (imageInput.files && imageInput.files[0]) {
-                                            const file = imageInput.files[0];
-                                            if (file.size > 2 * 1024 * 1024) {
-                                              Swal.showValidationMessage('Ukuran gambar maksimal 2MB!');
+                                            if (!name || !price) {
+                                              Swal.showValidationMessage('Semua kolom teks penting wajib diisi!');
                                               return false;
                                             }
-                                            // Convert to base64
-                                            const reader = new FileReader();
-                                            imageUrl = await new Promise((resolve) => {
-                                              reader.onload = (e) => resolve(e.target?.result as string);
-                                              reader.readAsDataURL(file);
-                                            });
+
+                                            const variantResult = validateProductVariants(variantsInput);
+                                            if (!variantResult.success) {
+                                              Swal.showValidationMessage(variantResult.error);
+                                              return false;
+                                            }
+
+                                            let imageUrl = '';
+                                            if (imageInput.files && imageInput.files[0]) {
+                                              const file = imageInput.files[0];
+                                              if (file.size > 2 * 1024 * 1024) {
+                                                Swal.showValidationMessage('Ukuran gambar maksimal 2MB!');
+                                                return false;
+                                              }
+                                              // Convert to base64
+                                              const reader = new FileReader();
+                                              imageUrl = await new Promise((resolve) => {
+                                                reader.onload = (e) => resolve(e.target?.result as string);
+                                                reader.readAsDataURL(file);
+                                              });
+                                            }
+
+                                            return {
+                                              name,
+                                              price: parseInt(price),
+                                              min: product.preorderMinQty || 1,
+                                              imageUrl,
+                                              minOrderQty: parseInt(minOrder),
+                                              processingTime,
+                                              batchCategory,
+                                              variants: variantResult.variants
+                                            };
                                           }
-
-                                          return { 
-                                            name, 
-                                            price: parseInt(price), 
-                                            min: product.preorderMinQty || 1, 
-                                            imageUrl,
-                                            minOrderQty: parseInt(minOrder),
-                                            processingTime,
-                                            batchCategory,
-                                            variants: variantResult.variants
-                                          };
-                                        }
-                                      }).then(async (result) => {
-                                        if (result.isConfirmed) {
-                                          Swal.fire({
-                                            title: 'Menyimpan...',
-                                            allowOutsideClick: false,
-                                            customClass: {
-                                              popup: 'bg-surface text-text-primary rounded-xl border border-border shadow-2xl',
-                                              title: 'text-text-primary'
-                                            },
-                                            didOpen: () => Swal.showLoading()
-                                          });
-                                          
-                                          try {
-                                            const res = await fetch('/api/products', {
-                                              method: 'PUT',
-                                              headers: { 'Content-Type': 'application/json' },
-                                              body: JSON.stringify({
-                                                id: product.id,
-                                                name: result.value.name,
-                                                price: result.value.price,
-                                                minQty: result.value.min,
-                                                imageUrl: result.value.imageUrl,
-                                                minOrderQty: result.value.minOrderQty,
-                                                processingTime: result.value.processingTime,
-                                                batchCategory: result.value.batchCategory,
-                                                variants: result.value.variants
-                                              })
-                                            });
-
-                                            if (!res.ok) throw new Error('Gagal memperbarui produk');
-
+                                        }).then(async (result) => {
+                                          if (result.isConfirmed) {
                                             Swal.fire({
-                                              icon: 'success',
-                                              title: 'Berhasil',
-                                              text: 'Produk berhasil diperbarui!',
-                                              timer: 1500,
-                                              showConfirmButton: false,
+                                              title: 'Menyimpan...',
+                                              allowOutsideClick: false,
                                               customClass: {
                                                 popup: 'bg-surface text-text-primary rounded-xl border border-border shadow-2xl',
                                                 title: 'text-text-primary'
-                                              }
-                                            }).then(() => {
-                                              window.location.reload();
+                                              },
+                                              didOpen: () => Swal.showLoading()
                                             });
-                                          } catch (error) {
-                                            Swal.fire('Gagal', 'Terjadi kesalahan saat menyimpan', 'error');
+
+                                            try {
+                                              const res = await fetch('/api/products', {
+                                                method: 'PUT',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                  id: product.id,
+                                                  name: result.value.name,
+                                                  price: result.value.price,
+                                                  minQty: result.value.min,
+                                                  imageUrl: result.value.imageUrl,
+                                                  minOrderQty: result.value.minOrderQty,
+                                                  processingTime: result.value.processingTime,
+                                                  batchCategory: result.value.batchCategory,
+                                                  variants: result.value.variants
+                                                })
+                                              });
+
+                                              if (!res.ok) throw new Error('Gagal memperbarui produk');
+
+                                              Swal.fire({
+                                                icon: 'success',
+                                                title: 'Berhasil',
+                                                text: 'Produk berhasil diperbarui!',
+                                                timer: 1500,
+                                                showConfirmButton: false,
+                                                customClass: {
+                                                  popup: 'bg-surface text-text-primary rounded-xl border border-border shadow-2xl',
+                                                  title: 'text-text-primary'
+                                                }
+                                              }).then(() => {
+                                                window.location.reload();
+                                              });
+                                            } catch (error) {
+                                              Swal.fire('Gagal', 'Terjadi kesalahan saat menyimpan', 'error');
+                                            }
                                           }
-                                        }
-                                      });
-                                    }}
-                                    className="text-brand-primary font-medium hover:underline text-sm"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDeleteProduct(product.id, product.name)}
-                                    className="text-status-error font-medium hover:underline text-sm"
-                                  >
-                                    Hapus
-                                  </button>
+                                        });
+                                      }}
+                                      className="text-brand-primary font-medium hover:underline text-sm"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteProduct(product.id, product.name)}
+                                      className="text-status-error font-medium hover:underline text-sm"
+                                    >
+                                      Hapus
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'promosi' && (
+              <SellerPromotionCenter
+                offers={promotionOffers}
+                initialRequests={promotionRequests}
+                products={localProducts.map((product) => ({ id: product.id, name: product.name }))}
+              />
+            )}
+
+            {activeTab === 'keuangan' && (
+              <div className="space-y-6">
+                <h1 className="text-h1 mb-1">Keuangan & Saldo</h1>
+                <p className="text-body-base text-text-secondary mb-8">Pantau penghasilan dan transaksi pesanan Anda di sini.</p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
+                  <div className="card p-6 border-status-success border-2 shadow-sm rounded-xl">
+                    <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Total Saldo Bersih</h3>
+                    <p className="text-2xl sm:text-3xl font-bold text-status-success">
+                      Rp {sellerOrders.filter(o => o.status === 'completed').reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
+                    </p>
+                  </div>
+                  <div className="card p-6 border-border border rounded-xl bg-surface/30">
+                    <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Ditahan Admin (Dalam Proses)</h3>
+                    <p className="text-2xl sm:text-3xl font-bold text-brand-primary">
+                      Rp {sellerOrders.filter(o => ['verified', 'preorder_running', 'processing'].includes(o.status || '')).reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - (curr.adminSplitAmount ?? 0) - feeAdmin - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
+                    </p>
+                  </div>
+                  <div className="card p-6 border-border border rounded-xl">
+                    <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Menunggu Pembayaran</h3>
+                    <p className="text-2xl sm:text-3xl font-bold text-status-warning">
+                      Rp {sellerOrders.filter(o => o.status === 'waiting_verification').reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - (curr.adminSplitAmount ?? 0) - feeAdmin - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="card overflow-hidden">
+                  <div className="p-5 border-b border-border bg-surface/50 flex justify-between items-center">
+                    <h2 className="text-h3">Daftar Transaksi Pesanan</h2>
+                  </div>
+
+                  <div className="overflow-x-auto w-full">
+                    {sellerOrders.length === 0 ? (
+                      <div className="p-10 text-center text-text-secondary flex flex-col items-center">
+                        <Info className="w-12 h-12 text-brand-secondary/50 mb-4" />
+                        <p>Belum ada transaksi. Terus promosikan pre-order Anda!</p>
+                      </div>
+                    ) : (
+                      <table className="w-full text-left border-collapse text-sm">
+                        <thead>
+                          <tr className="border-b border-border text-xs text-text-secondary bg-surface/30 whitespace-nowrap">
+                            <th className="p-3 font-medium">ID Order</th>
+                            <th className="p-3 font-medium">Tanggal</th>
+                            <th className="p-3 font-medium">Nama Pesanan</th>
+                            <th className="p-3 font-medium text-center">Qty</th>
+                            <th className="p-3 font-medium text-right text-status-warning">Ditahan</th>
+                            <th className="p-3 font-medium text-right text-status-error">Biaya Admin</th>
+                            <th className="p-3 font-medium text-right text-status-error">Biaya Aplikasi</th>
+                            <th className="p-3 font-medium text-right text-status-error">Biaya Jasa</th>
+                            <th className="p-3 font-medium text-right">Total Transaksi</th>
+                            <th className="p-3 font-medium text-right">Net Masuk Saldo</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-body-base text-text-primary">
+                          {sellerOrders.map(order => (
+                            <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                              <td className="p-3">
+                                <span className="font-mono text-xs text-text-primary whitespace-nowrap">{order.id}</span>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-xs text-text-secondary whitespace-nowrap">
+                                  {formatShortDateTimeWIB(order.createdAt || Date.now())}
+                                </span>
+                              </td>
+                              <td className="p-3 min-w-[150px]">
+                                <p className="font-bold text-text-primary text-sm line-clamp-2">{order.productName}</p>
+                                <p className="text-[11px] text-text-secondary mt-1">Oleh: {order.buyerName}</p>
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className="text-xs text-text-secondary">{order.qty} porsi</span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <span className="text-sm font-semibold text-status-warning/90 whitespace-nowrap">
+                                  {order.status !== 'completed' && (order.adminSplitAmount ?? 0) > 0 ? `-Rp ${(order.adminSplitAmount ?? 0).toLocaleString('id-ID')}` : '-'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
+                                  {feeAdmin > 0 ? `-Rp ${feeAdmin.toLocaleString('id-ID')}` : '-'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
+                                  {feeAplikasi > 0 ? `-Rp ${feeAplikasi.toLocaleString('id-ID')}` : '-'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
+                                  {feeJasa > 0 ? `-Rp ${feeJasa.toLocaleString('id-ID')}` : '-'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <span className="font-semibold text-text-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <div className="flex flex-col items-end">
+                                  <span className="font-bold text-status-success">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' ? 0 : (order.adminSplitAmount ?? 0)) - feeAdmin - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
                                 </div>
                               </td>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab === 'promosi' && (
-            <SellerPromotionCenter
-              offers={promotionOffers}
-              initialRequests={promotionRequests}
-              products={localProducts.map((product) => ({ id: product.id, name: product.name }))}
-            />
-          )}
-
-          {activeTab === 'keuangan' && (
-            <div className="space-y-6">
-              <h1 className="text-h1 mb-1">Keuangan & Saldo</h1>
-              <p className="text-body-base text-text-secondary mb-8">Pantau penghasilan dan transaksi pesanan Anda di sini.</p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
-                <div className="card p-6 border-status-success border-2 shadow-sm rounded-xl">
-                  <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Total Saldo Bersih</h3>
-                  <p className="text-2xl sm:text-3xl font-bold text-status-success">
-                    Rp {sellerOrders.filter(o => o.status === 'completed').reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
-                  </p>
-                </div>
-                <div className="card p-6 border-border border rounded-xl bg-surface/30">
-                  <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Ditahan Admin (Dalam Proses)</h3>
-                  <p className="text-2xl sm:text-3xl font-bold text-brand-primary">
-                    Rp {sellerOrders.filter(o => ['verified', 'preorder_running', 'processing'].includes(o.status || '')).reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - (curr.adminSplitAmount ?? 0) - feeAdmin - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
-                  </p>
-                </div>
-                <div className="card p-6 border-border border rounded-xl">
-                  <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Menunggu Pembayaran</h3>
-                  <p className="text-2xl sm:text-3xl font-bold text-status-warning">
-                    Rp {sellerOrders.filter(o => o.status === 'waiting_verification').reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - (curr.adminSplitAmount ?? 0) - feeAdmin - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
-                  </p>
-                </div>
-              </div>
-
-              <div className="card overflow-hidden">
-                <div className="p-5 border-b border-border bg-surface/50 flex justify-between items-center">
-                  <h2 className="text-h3">Daftar Transaksi Pesanan</h2>
-                </div>
-                
-                <div className="overflow-x-auto w-full">
-                  {sellerOrders.length === 0 ? (
-                    <div className="p-10 text-center text-text-secondary flex flex-col items-center">
-                      <Info className="w-12 h-12 text-brand-secondary/50 mb-4" />
-                      <p>Belum ada transaksi. Terus promosikan pre-order Anda!</p>
-                    </div>
-                  ) : (
-                    <table className="w-full text-left border-collapse text-sm">
-                      <thead>
-                        <tr className="border-b border-border text-xs text-text-secondary bg-surface/30 whitespace-nowrap">
-                          <th className="p-3 font-medium">ID Order</th>
-                          <th className="p-3 font-medium">Tanggal</th>
-                          <th className="p-3 font-medium">Nama Pesanan</th>
-                          <th className="p-3 font-medium text-center">Qty</th>
-                          <th className="p-3 font-medium text-right text-status-warning">Ditahan</th>
-                          <th className="p-3 font-medium text-right text-status-error">Biaya Admin</th>
-                          <th className="p-3 font-medium text-right text-status-error">Biaya Aplikasi</th>
-                          <th className="p-3 font-medium text-right text-status-error">Biaya Jasa</th>
-                          <th className="p-3 font-medium text-right">Total Transaksi</th>
-                          <th className="p-3 font-medium text-right">Net Masuk Saldo</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-body-base text-text-primary">
-                        {sellerOrders.map(order => (
-                          <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                            <td className="p-3">
-                              <span className="font-mono text-xs text-text-primary whitespace-nowrap">{order.id}</span>
-                            </td>
-                            <td className="p-3">
-                              <span className="text-xs text-text-secondary whitespace-nowrap">
-                                {formatShortDateTimeWIB(order.createdAt || Date.now())}
-                              </span>
-                            </td>
-                            <td className="p-3 min-w-[150px]">
-                              <p className="font-bold text-text-primary text-sm line-clamp-2">{order.productName}</p>
-                              <p className="text-[11px] text-text-secondary mt-1">Oleh: {order.buyerName}</p>
-                            </td>
-                            <td className="p-3 text-center">
-                              <span className="text-xs text-text-secondary">{order.qty} porsi</span>
-                            </td>
-                            <td className="p-4 text-right">
-                              <span className="text-sm font-semibold text-status-warning/90 whitespace-nowrap">
-                                {order.status !== 'completed' && (order.adminSplitAmount ?? 0) > 0 ? `-Rp ${(order.adminSplitAmount ?? 0).toLocaleString('id-ID')}` : '-'}
-                              </span>
-                            </td>
-                            <td className="p-4 text-right">
-                              <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
-                                {feeAdmin > 0 ? `-Rp ${feeAdmin.toLocaleString('id-ID')}` : '-'}
-                              </span>
-                            </td>
-                            <td className="p-4 text-right">
-                              <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
-                                {feeAplikasi > 0 ? `-Rp ${feeAplikasi.toLocaleString('id-ID')}` : '-'}
-                              </span>
-                            </td>
-                            <td className="p-4 text-right">
-                              <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
-                                {feeJasa > 0 ? `-Rp ${feeJasa.toLocaleString('id-ID')}` : '-'}
-                              </span>
-                            </td>
-                            <td className="p-4 text-right">
-                              <span className="font-semibold text-text-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</span>
-                            </td>
-                            <td className="p-4 text-right">
-                              <div className="flex flex-col items-end">
-                                <span className="font-bold text-status-success">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' ? 0 : (order.adminSplitAmount ?? 0)) - feeAdmin - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'pengaturan' && (
-            <div className="space-y-6 max-w-2xl">
-              <h1 className="text-h1 mb-1">Pengaturan Toko</h1>
-              <p className="text-body-base text-text-secondary mb-8">Kelola informasi UMKM dan detail pencairan dana Anda.</p>
-              
-              <form onSubmit={handleSaveProfile} className="card p-6 space-y-6">
-                {saveMessage && (
-                  <div className={`p-4 rounded-lg text-sm font-medium ${saveMessage.includes('berhasil') ? 'bg-status-success/10 text-status-success' : 'bg-status-error/10 text-status-error'}`}>
-                    {saveMessage}
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
-                )}
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-body-small font-medium text-text-secondary mb-1">Foto Profil Toko</label>
-                    <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 relative bg-gray-200 rounded-full overflow-hidden shrink-0 border border-border">
-                        {formData.logoUrl ? (
-                          <Image src={formData.logoUrl} alt="Logo Toko" fill className="object-cover" sizes="80px" />
-                        ) : (
-                          <Store className="w-8 h-8 text-text-secondary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                        )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'pengaturan' && (
+              <div className="space-y-6 max-w-2xl">
+                <h1 className="text-h1 mb-1">Pengaturan Toko</h1>
+                <p className="text-body-base text-text-secondary mb-8">Kelola informasi UMKM dan detail pencairan dana Anda.</p>
+
+                <form onSubmit={handleSaveProfile} className="card p-6 space-y-6">
+                  {saveMessage && (
+                    <div className={`p-4 rounded-lg text-sm font-medium ${saveMessage.includes('berhasil') ? 'bg-status-success/10 text-status-success' : 'bg-status-error/10 text-status-error'}`}>
+                      {saveMessage}
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-body-small font-medium text-text-secondary mb-1">Foto Profil Toko</label>
+                      <div className="flex items-center gap-4">
+                        <div className="w-20 h-20 relative bg-gray-200 rounded-full overflow-hidden shrink-0 border border-border">
+                          {formData.logoUrl ? (
+                            <Image src={formData.logoUrl} alt="Logo Toko" fill className="object-cover" sizes="80px" />
+                          ) : (
+                            <Store className="w-8 h-8 text-text-secondary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                          )}
+                        </div>
+                        <div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            id="store-logo"
+                            className="hidden"
+                            ref={fileInputRef}
+                            onChange={handleImageChange}
+                          />
+                          <label
+                            htmlFor="store-logo"
+                            className="btn-outline px-4 py-2 flex items-center gap-2 cursor-pointer text-sm"
+                          >
+                            <Upload className="w-4 h-4" /> Ubah Foto
+                          </label>
+                          <p className="text-caption text-text-secondary mt-2">Format: JPG/PNG. Maks 2MB.</p>
+                        </div>
                       </div>
-                      <div>
-                        <input 
-                          type="file" 
-                          accept="image/*"
-                          id="store-logo"
-                          className="hidden"
-                          ref={fileInputRef}
-                          onChange={handleImageChange}
+                    </div>
+
+                    <div>
+                      <label className="block text-body-small font-medium text-text-secondary mb-1">Nama Toko *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.storeName}
+                        onChange={(e) => setFormData({ ...formData, storeName: e.target.value })}
+                        className="input-field w-full"
+                        placeholder="Masukkan nama UMKM Anda"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-body-small font-medium text-text-secondary mb-1">Email *</label>
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="input-field w-full"
+                        placeholder="Masukkan alamat email Anda"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-body-small font-medium text-text-secondary mb-1">Password Lama</label>
+                      <div className="relative">
+                        <input
+                          type={showOldPassword ? "text" : "password"}
+                          value={formData.oldPassword}
+                          onChange={(e) => setFormData({ ...formData, oldPassword: e.target.value })}
+                          className="input-field w-full pr-10"
+                          placeholder="Masukkan password lama untuk mengubahnya"
                         />
-                        <label 
-                          htmlFor="store-logo"
-                          className="btn-outline px-4 py-2 flex items-center gap-2 cursor-pointer text-sm"
+                        <button
+                          type="button"
+                          onClick={() => setShowOldPassword(!showOldPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary focus:outline-none"
                         >
-                          <Upload className="w-4 h-4" /> Ubah Foto
-                        </label>
-                        <p className="text-caption text-text-secondary mt-2">Format: JPG/PNG. Maks 2MB.</p>
+                          {showOldPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
                       </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-body-small font-medium text-text-secondary mb-1">Nama Toko *</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={formData.storeName}
-                      onChange={(e) => setFormData({...formData, storeName: e.target.value})}
-                      className="input-field w-full"
-                      placeholder="Masukkan nama UMKM Anda"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-body-small font-medium text-text-secondary mb-1">Email *</label>
-                    <input 
-                      type="email" 
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="input-field w-full"
-                      placeholder="Masukkan alamat email Anda"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-body-small font-medium text-text-secondary mb-1">Password Lama</label>
-                    <div className="relative">
-                      <input 
-                        type={showOldPassword ? "text" : "password"} 
-                        value={formData.oldPassword}
-                        onChange={(e) => setFormData({...formData, oldPassword: e.target.value})}
-                        className="input-field w-full pr-10"
-                        placeholder="Masukkan password lama untuk mengubahnya"
+                    <div>
+                      <label className="block text-body-small font-medium text-text-secondary mb-1">Password Baru</label>
+                      <div className="relative">
+                        <input
+                          type={showNewPassword ? "text" : "password"}
+                          value={formData.password}
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          className="input-field w-full pr-10 bg-brand-primary/5 focus:bg-brand-primary/10 border-brand-primary/20 focus:border-brand-primary/50 transition-colors"
+                          placeholder="Kosongkan jika tidak ingin mengubah password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-primary/70 hover:text-brand-primary focus:outline-none"
+                        >
+                          {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-body-small font-medium text-text-secondary mb-1">Alamat Toko</label>
+                      <textarea
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        className="input-field w-full min-h-[100px] py-3"
+                        placeholder="Masukkan alamat lengkap toko"
+                      ></textarea>
+                    </div>
+
+                    <div>
+                      <div className="mb-1 flex items-center justify-between gap-3">
+                        <label htmlFor="store-description" className="block text-body-small font-medium text-text-secondary">
+                          Deskripsi Toko
+                        </label>
+                        <span className="text-caption text-text-secondary">
+                          {formData.description.length}/500
+                        </span>
+                      </div>
+                      <textarea
+                        id="store-description"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        maxLength={500}
+                        rows={4}
+                        className="input-field w-full resize-y py-3"
+                        placeholder="Ceritakan tentang toko dan produk unggulan Anda"
                       />
-                      <button 
-                        type="button"
-                        onClick={() => setShowOldPassword(!showOldPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary focus:outline-none"
-                      >
-                        {showOldPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
+                      <p className="text-caption text-text-secondary mt-1">
+                        Deskripsi ini akan ditampilkan pada halaman toko yang dilihat pembeli.
+                      </p>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-body-small font-medium text-text-secondary mb-1">Password Baru</label>
-                    <div className="relative">
-                      <input 
-                        type={showNewPassword ? "text" : "password"} 
-                        value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        className="input-field w-full pr-10 bg-brand-primary/5 focus:bg-brand-primary/10 border-brand-primary/20 focus:border-brand-primary/50 transition-colors"
-                        placeholder="Kosongkan jika tidak ingin mengubah password"
+
+                    <div>
+                      <label className="block text-body-small font-medium text-text-secondary mb-1">Kategori Produk</label>
+                      <select
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        className="input-field w-full"
+                      >
+                        <option value="">Pilih Kategori</option>
+                        <option value="Makanan Berat">Makanan Berat</option>
+                        <option value="Jajanan / Snack">Jajanan / Snack</option>
+                        <option value="Minuman">Minuman</option>
+                        <option value="Bahan Mentah">Bahan Mentah</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-body-small font-medium text-text-secondary mb-1">Informasi Rekening Pencairan Dana</label>
+                      <input
+                        type="text"
+                        value={formData.bankAccount || ''}
+                        onChange={(e) => setFormData({ ...formData, bankAccount: e.target.value })}
+                        className="input-field w-full border-brand-primary/50 bg-brand-primary/5 focus:bg-brand-primary/10 transition-colors"
+                        placeholder="Contoh: BCA - 1234567890 a/n Budi Santoso"
                       />
-                      <button 
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-primary/70 hover:text-brand-primary focus:outline-none"
-                      >
-                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
+                      <p className="text-caption text-text-secondary mt-1">Otomatisasi pencairan dana akan dikirimkan langsung ke nomor rekening ini.</p>
                     </div>
                   </div>
-                  
-                  <div>
-                    <label className="block text-body-small font-medium text-text-secondary mb-1">Alamat Toko</label>
-                    <textarea 
-                      value={formData.address}
-                      onChange={(e) => setFormData({...formData, address: e.target.value})}
-                      className="input-field w-full min-h-[100px] py-3"
-                      placeholder="Masukkan alamat lengkap toko"
-                    ></textarea>
-                  </div>
 
-                  <div>
-                    <div className="mb-1 flex items-center justify-between gap-3">
-                      <label htmlFor="store-description" className="block text-body-small font-medium text-text-secondary">
-                        Deskripsi Toko
-                      </label>
-                      <span className="text-caption text-text-secondary">
-                        {formData.description.length}/500
-                      </span>
-                    </div>
-                    <textarea
-                      id="store-description"
-                      value={formData.description}
-                      onChange={(e) => setFormData({...formData, description: e.target.value})}
-                      maxLength={500}
-                      rows={4}
-                      className="input-field w-full resize-y py-3"
-                      placeholder="Ceritakan tentang toko dan produk unggulan Anda"
-                    />
-                    <p className="text-caption text-text-secondary mt-1">
-                      Deskripsi ini akan ditampilkan pada halaman toko yang dilihat pembeli.
-                    </p>
+                  <div className="pt-4 border-t border-border flex justify-end">
+                    <button type="submit" disabled={isSaving} className="btn-primary min-w-[150px]">
+                      {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                    </button>
                   </div>
+                </form>
 
-                  <div>
-                    <label className="block text-body-small font-medium text-text-secondary mb-1">Kategori Produk</label>
-                    <select 
-                      value={formData.category}
-                      onChange={(e) => setFormData({...formData, category: e.target.value})}
-                      className="input-field w-full"
-                    >
-                      <option value="">Pilih Kategori</option>
-                      <option value="Makanan Berat">Makanan Berat</option>
-                      <option value="Jajanan / Snack">Jajanan / Snack</option>
-                      <option value="Minuman">Minuman</option>
-                      <option value="Bahan Mentah">Bahan Mentah</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-body-small font-medium text-text-secondary mb-1">Informasi Rekening Pencairan Dana (Virtual Account iPaymu)</label>
-                    <input 
-                      type="text" 
-                      value={formData.ipaymuVa}
-                      onChange={(e) => setFormData({...formData, ipaymuVa: e.target.value})}
-                      className="input-field w-full border-brand-primary/50 bg-brand-primary/5 focus:bg-brand-primary/10 transition-colors"
-                      placeholder="Masukkan 16 digit VA iPaymu Anda (Contoh: 1179...)"
-                    />
-                    <p className="text-caption text-text-secondary mt-1">Rekening VA iPaymu ini digunakan oleh Admin untuk mengirimkan dana hasil penjualan ke akun Anda.</p>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-border flex justify-end">
-                  <button type="submit" disabled={isSaving} className="btn-primary min-w-[150px]">
-                    {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                {/* Mobile Logout Button (Visible only on mobile since desktop has it in sidebar) */}
+                <div className="md:hidden mt-8 border-t border-border pt-8">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center justify-center gap-2 p-4 rounded-xl font-medium text-status-error bg-status-error/10 hover:bg-status-error hover:text-white transition-all cursor-pointer"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    Keluar dari Akun
                   </button>
                 </div>
-              </form>
-
-              {/* Mobile Logout Button (Visible only on mobile since desktop has it in sidebar) */}
-              <div className="md:hidden mt-8 border-t border-border pt-8">
-                <button 
-                  onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-2 p-4 rounded-xl font-medium text-status-error bg-status-error/10 hover:bg-status-error hover:text-white transition-all cursor-pointer"
-                >
-                  <LogOut className="w-5 h-5" />
-                  Keluar dari Akun
-                </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {activeTab === 'pesanan_dikembalikan' && (
-            <div className="space-y-6">
-              <div className="flex flex-col gap-1">
-                <h1 className="text-h1 mb-1 flex items-center gap-2">
-                  <RotateCcw className="w-8 h-8 text-amber-500" />
-                  Pesanan Dikembalikan
-                </h1>
-                <p className="text-body-base text-text-secondary">
-                  Daftar permintaan pengembalian (return) pesanan yang diajukan oleh pembeli.
-                </p>
-              </div>
+            {activeTab === 'pesanan_dikembalikan' && (
+              <div className="space-y-6">
+                <div className="flex flex-col gap-1">
+                  <h1 className="text-h1 mb-1 flex items-center gap-2">
+                    <RotateCcw className="w-8 h-8 text-amber-500" />
+                    Pesanan Dikembalikan
+                  </h1>
+                  <p className="text-body-base text-text-secondary">
+                    Daftar permintaan pengembalian (return) pesanan yang diajukan oleh pembeli.
+                  </p>
+                </div>
 
-              <div className="space-y-4">
-                {(() => {
-                  const returnOrders = sellerOrders.filter(o => o.status === 'return_pending' || o.status === 'returned');
-                  if (returnOrders.length === 0) {
-                    return (
-                      <div className="card p-12 text-center flex flex-col items-center justify-center">
-                        <RotateCcw className="w-12 h-12 text-text-secondary mb-4 opacity-50 stroke-[1.5]" />
-                        <h3 className="text-lg font-bold text-text-primary mb-1">Belum Ada Pengajuan Return</h3>
-                        <p className="text-text-secondary text-sm max-w-sm">
-                          Saat ini tidak ada pembeli yang mengajukan pengembalian pesanan secara aktif.
-                        </p>
-                      </div>
-                    );
-                  }
+                <div className="space-y-4">
+                  {(() => {
+                    const returnOrders = sellerOrders.filter(o => o.status === 'return_pending' || o.status === 'returned');
+                    if (returnOrders.length === 0) {
+                      return (
+                        <div className="card p-12 text-center flex flex-col items-center justify-center">
+                          <RotateCcw className="w-12 h-12 text-text-secondary mb-4 opacity-50 stroke-[1.5]" />
+                          <h3 className="text-lg font-bold text-text-primary mb-1">Belum Ada Pengajuan Return</h3>
+                          <p className="text-text-secondary text-sm max-w-sm">
+                            Saat ini tidak ada pembeli yang mengajukan pengembalian pesanan secara aktif.
+                          </p>
+                        </div>
+                      );
+                    }
 
-                  return returnOrders.map((order) => {
-                    const isReturned = order.status === 'returned';
+                    return returnOrders.map((order) => {
+                      const isReturned = order.status === 'returned';
 
-                    const handleConfirmReturn = async () => {
-                      try {
-                        const result = await Swal.fire({
-                          title: 'Konfirmasi Pengembalian?',
-                          text: 'Apakah Anda yakin ingin menyetujui pengembalian pesanan ini dan mengembalikan dana kepada pembeli?',
-                          icon: 'question',
-                          showCancelButton: true,
-                          confirmButtonText: 'Ya, Setujui',
-                          cancelButtonText: 'Batal',
-                          confirmButtonColor: '#10b981',
-                          cancelButtonColor: '#6b7280',
-                          customClass: {
-                            popup: 'bg-surface text-text-primary rounded-xl',
-                          }
-                        });
-
-                        if (result.isConfirmed) {
-                          const res = await fetch('/api/orders/update-status', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              orderId: order.id,
-                              status: 'returned'
-                            })
-                          });
-
-                          if (!res.ok) {
-                            const data = await res.json();
-                            throw new Error(data.error || 'Gagal menyetujui pengembalian');
-                          }
-
-                          await Swal.fire({
-                            icon: 'success',
-                            title: 'Pengembalian Disetujui',
-                            text: 'Status pesanan berhasil diubah menjadi Dikembalikan.',
-                            confirmButtonColor: '#ff5c35'
-                          });
-
-                          window.location.reload();
-                        }
-                      } catch (err: any) {
-                        Swal.fire({
-                          icon: 'error',
-                          title: 'Gagal',
-                          text: err.message || 'Terjadi kesalahan sistem.',
-                          confirmButtonColor: '#ff5c35'
-                        });
-                      }
-                    };
-
-                    const handleCancelReturn = async () => {
-                      const result = await Swal.fire({
-                        title: 'Batalkan Pengajuan Return?',
-                        text: 'Apakah Anda yakin ingin membatalkan/menolak pengembalian pesanan ini?',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Iya',
-                        cancelButtonText: 'Batal',
-                        confirmButtonColor: '#ef4444',
-                        cancelButtonColor: '#6b7280',
-                        customClass: {
-                          popup: 'bg-surface text-text-primary rounded-xl',
-                        }
-                      });
-
-                      if (result.isConfirmed) {
+                      const handleConfirmReturn = async () => {
                         try {
-                          const res = await fetch('/api/orders/update-status', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              orderId: order.id,
-                              status: 'processing'
-                            })
+                          const result = await Swal.fire({
+                            title: 'Konfirmasi Pengembalian?',
+                            text: 'Apakah Anda yakin ingin menyetujui pengembalian pesanan ini dan mengembalikan dana kepada pembeli?',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Ya, Setujui',
+                            cancelButtonText: 'Batal',
+                            confirmButtonColor: '#10b981',
+                            cancelButtonColor: '#6b7280',
+                            customClass: {
+                              popup: 'bg-surface text-text-primary rounded-xl',
+                            }
                           });
 
-                          if (!res.ok) {
-                            const data = await res.json();
-                            throw new Error(data.error || 'Gagal membatalkan pengajuan return');
+                          if (result.isConfirmed) {
+                            const res = await fetch('/api/orders/update-status', {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                orderId: order.id,
+                                status: 'returned'
+                              })
+                            });
+
+                            if (!res.ok) {
+                              const data = await res.json();
+                              throw new Error(data.error || 'Gagal menyetujui pengembalian');
+                            }
+
+                            await Swal.fire({
+                              icon: 'success',
+                              title: 'Pengembalian Disetujui',
+                              text: 'Status pesanan berhasil diubah menjadi Dikembalikan.',
+                              confirmButtonColor: '#ff5c35'
+                            });
+
+                            window.location.reload();
                           }
-
-                          await Swal.fire({
-                            icon: 'success',
-                            title: 'Pengajuan Return Dibatalkan',
-                            text: 'Status pesanan dikembalikan menjadi diproses oleh Anda.',
-                            confirmButtonColor: '#ff5c35'
-                          });
-
-                          window.location.reload();
                         } catch (err: any) {
                           Swal.fire({
                             icon: 'error',
@@ -2564,125 +2500,174 @@ export default function ClientSellerDashboard({
                             confirmButtonColor: '#ff5c35'
                           });
                         }
-                      }
-                    };
+                      };
 
-                    return (
-                      <div key={order.id} className="card p-6 border border-border hover:shadow-md transition-shadow relative">
-                        {isReturned ? (
-                          <span className="absolute top-6 right-6 px-3 py-1 bg-emerald-100 text-emerald-700 font-bold text-xs rounded-full">
-                            Telah Dikembalikan
-                          </span>
-                        ) : (
-                          <span className="absolute top-6 right-6 px-3 py-1 bg-amber-100 text-amber-700 font-bold text-xs rounded-full animate-pulse">
-                            Menunggu Konfirmasi
-                          </span>
-                        )}
+                      const handleCancelReturn = async () => {
+                        const result = await Swal.fire({
+                          title: 'Batalkan Pengajuan Return?',
+                          text: 'Apakah Anda yakin ingin membatalkan/menolak pengembalian pesanan ini?',
+                          icon: 'warning',
+                          showCancelButton: true,
+                          confirmButtonText: 'Iya',
+                          cancelButtonText: 'Batal',
+                          confirmButtonColor: '#ef4444',
+                          cancelButtonColor: '#6b7280',
+                          customClass: {
+                            popup: 'bg-surface text-text-primary rounded-xl',
+                          }
+                        });
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                          <div className="space-y-3">
-                            <div>
-                              <span className="text-caption text-text-secondary block font-medium">Order ID</span>
-                              <span className="font-mono text-sm font-semibold">{order.id}</span>
-                            </div>
-                            
-                            <div>
-                              <span className="text-caption text-text-secondary block font-medium">Nama Pembeli</span>
-                              <span className="text-sm font-bold text-text-primary">{order.buyerName}</span>
-                            </div>
+                        if (result.isConfirmed) {
+                          try {
+                            const res = await fetch('/api/orders/update-status', {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                orderId: order.id,
+                                status: 'processing'
+                              })
+                            });
 
-                            <div>
-                              <span className="text-caption text-text-secondary block font-medium">Alamat Pembeli</span>
-                              <span className="text-sm text-text-primary">{order.buyerAddress || 'Tidak ada alamat'}</span>
-                            </div>
+                            if (!res.ok) {
+                              const data = await res.json();
+                              throw new Error(data.error || 'Gagal membatalkan pengajuan return');
+                            }
 
-                            <div>
-                              <span className="text-caption text-text-secondary block font-medium">Nama Pesanan</span>
-                              <span className="text-sm font-semibold text-text-primary">{order.productName}</span>
-                              {order.selectedVariant && (
-                                <span className="text-xs text-brand-primary block font-semibold font-mono">Varian: {order.selectedVariant}</span>
-                              )}
-                            </div>
+                            await Swal.fire({
+                              icon: 'success',
+                              title: 'Pengajuan Return Dibatalkan',
+                              text: 'Status pesanan dikembalikan menjadi diproses oleh Anda.',
+                              confirmButtonColor: '#ff5c35'
+                            });
 
-                            <div>
-                              <span className="text-caption text-text-secondary block font-medium">Jumlah Pesanan</span>
-                              <span className="text-sm text-text-primary">{order.qty} porsi</span>
-                            </div>
+                            window.location.reload();
+                          } catch (err: any) {
+                            Swal.fire({
+                              icon: 'error',
+                              title: 'Gagal',
+                              text: err.message || 'Terjadi kesalahan sistem.',
+                              confirmButtonColor: '#ff5c35'
+                            });
+                          }
+                        }
+                      };
 
-                            <div>
-                              <span className="text-caption text-text-secondary block font-medium">Harga Total Pesanan</span>
-                              <span className="text-sm font-bold text-brand-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</span>
-                            </div>
-                          </div>
+                      return (
+                        <div key={order.id} className="card p-6 border border-border hover:shadow-md transition-shadow relative">
+                          {isReturned ? (
+                            <span className="absolute top-6 right-6 px-3 py-1 bg-emerald-100 text-emerald-700 font-bold text-xs rounded-full">
+                              Telah Dikembalikan
+                            </span>
+                          ) : (
+                            <span className="absolute top-6 right-6 px-3 py-1 bg-amber-100 text-amber-700 font-bold text-xs rounded-full animate-pulse">
+                              Menunggu Konfirmasi
+                            </span>
+                          )}
 
-                          <div className="space-y-4 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-6">
-                            <div>
-                              <span className="text-caption text-text-secondary block font-medium">Alasan Pengembalian</span>
-                              <p className="text-sm text-text-primary bg-base dark:bg-slate-800/50 p-3 rounded-xl border border-border italic">
-                                "{order.returnReason || 'Tidak ada alasan.'}"
-                              </p>
-                            </div>
-
-                            {order.returnProofUrl && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                            <div className="space-y-3">
                               <div>
-                                <span className="text-caption text-text-secondary block font-medium mb-1.5">Foto Bukti Pengembalian</span>
-                                <div 
-                                  onClick={() => {
-                                    Swal.fire({
-                                      title: 'Foto Bukti Pengembalian',
-                                      imageUrl: order.returnProofUrl as string,
-                                      imageWidth: 500,
-                                      imageAlt: 'Bukti Pengembalian',
-                                      confirmButtonText: 'Tutup',
-                                      confirmButtonColor: '#ff5c35',
-                                    });
-                                  }}
-                                  className="relative w-28 h-28 rounded-xl overflow-hidden border border-border cursor-pointer hover:opacity-80 transition-opacity group bg-base"
-                                >
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={order.returnProofUrl} alt="Bukti Return" className="w-full h-full object-cover" />
-                                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Eye className="w-5 h-5 text-white" />
+                                <span className="text-caption text-text-secondary block font-medium">Order ID</span>
+                                <span className="font-mono text-sm font-semibold">{order.id}</span>
+                              </div>
+
+                              <div>
+                                <span className="text-caption text-text-secondary block font-medium">Nama Pembeli</span>
+                                <span className="text-sm font-bold text-text-primary">{order.buyerName}</span>
+                              </div>
+
+                              <div>
+                                <span className="text-caption text-text-secondary block font-medium">Alamat Pembeli</span>
+                                <span className="text-sm text-text-primary">{order.buyerAddress || 'Tidak ada alamat'}</span>
+                              </div>
+
+                              <div>
+                                <span className="text-caption text-text-secondary block font-medium">Nama Pesanan</span>
+                                <span className="text-sm font-semibold text-text-primary">{order.productName}</span>
+                                {order.selectedVariant && (
+                                  <span className="text-xs text-brand-primary block font-semibold font-mono">Varian: {order.selectedVariant}</span>
+                                )}
+                              </div>
+
+                              <div>
+                                <span className="text-caption text-text-secondary block font-medium">Jumlah Pesanan</span>
+                                <span className="text-sm text-text-primary">{order.qty} porsi</span>
+                              </div>
+
+                              <div>
+                                <span className="text-caption text-text-secondary block font-medium">Harga Total Pesanan</span>
+                                <span className="text-sm font-bold text-brand-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</span>
+                              </div>
+                            </div>
+
+                            <div className="space-y-4 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-6">
+                              <div>
+                                <span className="text-caption text-text-secondary block font-medium">Alasan Pengembalian</span>
+                                <p className="text-sm text-text-primary bg-base dark:bg-slate-800/50 p-3 rounded-xl border border-border italic">
+                                  "{order.returnReason || 'Tidak ada alasan.'}"
+                                </p>
+                              </div>
+
+                              {order.returnProofUrl && (
+                                <div>
+                                  <span className="text-caption text-text-secondary block font-medium mb-1.5">Foto Bukti Pengembalian</span>
+                                  <div
+                                    onClick={() => {
+                                      Swal.fire({
+                                        title: 'Foto Bukti Pengembalian',
+                                        imageUrl: order.returnProofUrl as string,
+                                        imageWidth: 500,
+                                        imageAlt: 'Bukti Pengembalian',
+                                        confirmButtonText: 'Tutup',
+                                        confirmButtonColor: '#ff5c35',
+                                      });
+                                    }}
+                                    className="relative w-28 h-28 rounded-xl overflow-hidden border border-border cursor-pointer hover:opacity-80 transition-opacity group bg-base"
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={order.returnProofUrl} alt="Bukti Return" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Eye className="w-5 h-5 text-white" />
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
 
-                            {order.returnDate && (
-                              <div>
-                                <span className="text-caption text-text-secondary block font-medium">Tanggal Pengajuan</span>
-                                <span className="text-xs text-text-secondary">{order.returnDate instanceof Date ? order.returnDate.toLocaleDateString() : String(order.returnDate)}</span>
-                              </div>
-                            )}
+                              {order.returnDate && (
+                                <div>
+                                  <span className="text-caption text-text-secondary block font-medium">Tanggal Pengajuan</span>
+                                  <span className="text-xs text-text-secondary">{order.returnDate instanceof Date ? order.returnDate.toLocaleDateString() : String(order.returnDate)}</span>
+                                </div>
+                              )}
 
-                            {!isReturned && (
-                              <div className="flex gap-3 pt-3 flex-wrap">
-                                <button
-                                  onClick={handleConfirmReturn}
-                                  className="btn-primary bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                                >
-                                  <CheckCircle className="w-3.5 h-3.5" /> Konfirmasi
-                                </button>
-                                <button
-                                  onClick={handleCancelReturn}
-                                  className="btn-outline border-status-error text-status-error hover:bg-status-error/10 px-4 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
-                                >
-                                  <XCircle className="w-3.5 h-3.5" /> Batalkan
-                                </button>
-                              </div>
-                            )}
+                              {!isReturned && (
+                                <div className="flex gap-3 pt-3 flex-wrap">
+                                  <button
+                                    onClick={handleConfirmReturn}
+                                    className="btn-primary bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5" /> Konfirmasi
+                                  </button>
+                                  <button
+                                    onClick={handleCancelReturn}
+                                    className="btn-outline border-status-error text-status-error hover:bg-status-error/10 px-4 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+                                  >
+                                    <XCircle className="w-3.5 h-3.5" /> Batalkan
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  });
-                })()}
+                      );
+                    });
+                  })()}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
 
       {/* Mobile Bottom Navigation Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-4 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
@@ -2690,19 +2675,19 @@ export default function ClientSellerDashboard({
           <Store className="w-6 h-6 stroke-[1.5]" />
           <span>Beranda</span>
         </Link>
-        
-        <button 
-          onClick={() => handleTabChange('produk')} 
+
+        <button
+          onClick={() => handleTabChange('produk')}
           className={`flex flex-col items-center gap-1.5 w-[20%] transition-colors pb-2 ${activeTab === 'produk' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
         >
           <Package className={`w-6 h-6 stroke-[1.5] ${activeTab === 'produk' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
           <span>Produk</span>
         </button>
-        
+
         <div className="w-[20%] flex flex-col justify-end items-center relative pb-2 h-full">
           <div className="absolute bottom-6 flex justify-center w-full">
-            <Link 
-              href="/seller/product/new" 
+            <Link
+              href="/seller/product/new"
               className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105"
             >
               <Plus className="w-7 h-7 stroke-2" />
@@ -2710,15 +2695,15 @@ export default function ClientSellerDashboard({
           </div>
           <span className="text-text-secondary mt-1">Tambah</span>
         </div>
-        
-        <button 
-          onClick={() => handleTabChange('keuangan')} 
+
+        <button
+          onClick={() => handleTabChange('keuangan')}
           className={`flex flex-col items-center gap-1.5 w-[20%] transition-colors pb-2 ${activeTab === 'keuangan' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
         >
           <DollarSign className={`w-6 h-6 stroke-[1.5] ${activeTab === 'keuangan' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
           <span>Transaksi</span>
         </button>
-        
+
         <button
           type="button"
           onClick={() => handleTabChange('promosi')}

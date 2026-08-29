@@ -83,7 +83,7 @@ function PaymentReturnContent() {
             </div>
             <h2 className="text-2xl font-bold text-text-primary mb-2">Pembayaran Berhasil!</h2>
             <p className="text-text-secondary text-sm mb-2">
-              Pembayaran Anda untuk pesanan <span className="font-semibold text-text-primary">{orderId}</span> telah berhasil diproses melalui iPaymu.
+              Pembayaran Anda untuk pesanan <span className="font-semibold text-text-primary">{orderId}</span> telah berhasil diproses.
             </p>
             <p className="text-text-secondary text-xs mb-8">
               Pesanan Anda akan segera diverifikasi oleh penjual.

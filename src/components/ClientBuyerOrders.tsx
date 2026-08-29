@@ -12,6 +12,7 @@ import { DotLottieReact } from "@/lib/dotlottie";
 import { formatOrderDateTimeWIB, formatChatTimeWIB, WIB_TIMEZONE } from "@/lib/promotionFormatting";
 import { AuthUser, BuyerOrderViewItem, ChatMessage } from "@/types";
 import ChatInterface from "@/components/ChatInterface";
+import { useDarkMode } from "@/hooks";
 
 export default function ClientBuyerOrders({
   orders,
@@ -30,9 +31,8 @@ export default function ClientBuyerOrders({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
 
-
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [localOrders, setLocalOrders] = useState<BuyerOrderViewItem[]>(orders);
   const [bottomNavLoading, setBottomNavLoading] = useState<'home' | 'catalog' | null>(null);
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
@@ -243,30 +243,7 @@ export default function ClientBuyerOrders({
     return () => window.clearTimeout(timer);
   }, [bottomNavLoading]);
 
-  // Check initial mode for dark mode
-  useEffect(() => {
-    setTimeout(() => {
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        setIsDarkMode(true);
-        document.documentElement.classList.add('dark');
-      } else {
-        setIsDarkMode(false);
-        document.documentElement.classList.remove('dark');
-      }
-    }, 0);
-  }, []);
 
-  const toggleDarkMode = () => {
-    if (isDarkMode) {
-      document.documentElement.classList.remove('dark');
-      localStorage.theme = 'light';
-      setIsDarkMode(false);
-    } else {
-      document.documentElement.classList.add('dark');
-      localStorage.theme = 'dark';
-      setIsDarkMode(true);
-    }
-  };
 
   const formatOrderDate = (date: string | Date | null) => {
     if (!date) return 'Tanggal tidak tersedia';
@@ -622,21 +599,63 @@ export default function ClientBuyerOrders({
       }
 
       if (data.paymentUrl) {
-        // Redirect ke halaman pembayaran iPaymu
         window.location.href = data.paymentUrl;
       } else {
         throw new Error('URL pembayaran tidak tersedia');
       }
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
-      Swal.fire({
-        icon: 'error',
-        title: 'Gagal Memproses Pembayaran',
-        text: errMsg,
-        confirmButtonColor: '#800000',
-      });
+
+      if (errMsg.toLowerCase().includes('ipaymu') || errMsg.toLowerCase().includes('invalid ip')) {
+        const userMsg = 'Mohon maaf, sistem layanan pembayaran sedang mengalami kendala. Silakan coba beberapa saat lagi atau hubungi tim bantuan.';
+        const isDev = process.env.NODE_ENV === 'development';
+
+        const diagnosticHtml = isDev ? `
+              <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg text-left border border-dashed border-red-300 dark:border-red-800/50 mt-4">
+                <span class="text-[11px] text-red-800 dark:text-red-400 font-bold uppercase tracking-wide">Diagnostic Code (DEV ONLY)</span>
+                <p class="text-[13px] text-red-700 dark:text-red-300 mt-1.5 mb-0 font-mono break-all font-medium">${errMsg}</p>
+              </div>
+        ` : '';
+
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Memproses Pembayaran',
+          html: `
+            <div class="text-center">
+              <p class="mb-0 text-text-secondary text-[15px]">${userMsg}</p>
+              ${diagnosticHtml}
+            </div>
+          `,
+          confirmButtonColor: '#800000',
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Memproses Pembayaran',
+          text: errMsg,
+          confirmButtonColor: '#800000',
+        });
+      }
     }
   };
+
+  const autoPayProcessed = useRef(false);
+  useEffect(() => {
+    const autoPayId = searchParams.get('autoPay');
+    if (autoPayId && !autoPayProcessed.current && localOrders.length > 0) {
+      autoPayProcessed.current = true;
+      const targetOrder = localOrders.find(o => o.orderId === autoPayId);
+      if (targetOrder && targetOrder.status === 'waiting_verification') {
+        const total = targetOrder.totalPrice + (feeAplikasi || 0) + (feeJasa || 0) + (feeAdmin || 0);
+        handlePayment(targetOrder.orderId, total, targetOrder.createdAt);
+
+        // Remove the autoPay param from url so it doesn't refire on reload
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('autoPay');
+        window.history.replaceState({}, '', newUrl.toString());
+      }
+    }
+  }, [searchParams, localOrders, feeAplikasi, feeJasa, feeAdmin]);
 
 
   // chatsCount: semua unread dari semua order (karena tab chat menghubungkan ke semua percakapan)
@@ -1148,8 +1167,8 @@ export default function ClientBuyerOrders({
 
                   const steps = [
                     { label: 'Pesanan Dibuat', completed: true, date: order.createdAt },
-                    { label: 'Menunggu Pembayaran', completed: isVerified || isPreorderRunning || isProcessing || isCompleted, active: isWaitingPayment && !order.paymentId, date: order.paymentId ? 'Telah Dibayar' : '' },
-                    { label: 'Verifikasi Pembayaran', completed: isVerified || isPreorderRunning || isProcessing || isCompleted, active: isWaitingPayment && !!order.paymentId, date: '' },
+                    { label: 'Menunggu Pembayaran', completed: isVerified || isPreorderRunning || isProcessing || isCompleted, active: isWaitingPayment, date: '' },
+                    { label: 'Telah Dibayar', completed: isVerified || isPreorderRunning || isProcessing || isCompleted, active: false, date: '' },
                     { label: 'Menunggu Konfirmasi Penjual', completed: isPreorderRunning || isProcessing || isCompleted, active: isVerified, date: '' },
                     { label: 'Diproses Penjual', completed: isProcessing || isCompleted, active: isPreorderRunning, date: isPreorderRunning || isProcessing || isCompleted ? 'Tanggal telah dikonfirmasi' : '' },
                     { label: 'Barang Dikirim', completed: isCompleted, active: isProcessing, date: '' },
@@ -1566,8 +1585,8 @@ export default function ClientBuyerOrders({
                         )}
 
                         {(() => {
-                          const isWaitingPayment = order.status === 'waiting_verification' && !order.paymentId;
-                          const isPendingVerif = order.status === 'waiting_verification' && !!order.paymentId;
+                          const isWaitingPayment = order.status === 'waiting_verification';
+                          const isPendingVerif = order.status === 'waiting_verification' && !!order.paymentId && false; // disabled logic, all go to waiting payment instead
                           const isVerified = order.status === 'verified';
                           const isCompleted = order.status === 'completed';
                           const isCancelled = order.status === 'cancelled';
@@ -1591,7 +1610,7 @@ export default function ClientBuyerOrders({
                               )}
                               {isVerified && (
                                 <span className="px-3 py-1 bg-brand-primary/10 text-brand-primary rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                  <Clock className="w-3.5 h-3.5" /> Menunggu Konf. Penjual
+                                  <Clock className="w-3.5 h-3.5" /> Menunggu Konfirmasi Penjual
                                 </span>
                               )}
                               {order.status === 'processing' && (

@@ -32,6 +32,7 @@ import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import { UmkmItem, OrderItem, TicketItem, VerificationItem, PromotionOfferItem, PromotionRequestItem } from "@/types";
 import AdminPromotionManager from "@/components/AdminPromotionManager";
+import { useDarkMode } from "@/hooks";
 
 type ClientAdminDashboardProps = {
   stats: {
@@ -57,40 +58,19 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   const [searchQueryUmkm, setSearchQueryUmkm] = useState('');
   const [searchQueryPesanan, setSearchQueryPesanan] = useState('');
 
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
   const [feeAplikasi, setFeeAplikasi] = useState<number>(0);
   const [feeJasa, setFeeJasa] = useState<number>(0);
   const [feeAdmin, setFeeAdmin] = useState<number>(0);
   const [feeLoading, setFeeLoading] = useState(false);
+
   useEffect(() => {
     fetch('/api/settings').then(r => r.json()).then(d => {
-      setFeeAplikasi(d.fee_aplikasi || 0); setFeeJasa(d.fee_jasa || 0); setFeeAdmin(d.fee_admin || 0);
+      setFeeAplikasi(d.fee_aplikasi || 0);
+      setFeeJasa(d.fee_jasa || 0);
+      setFeeAdmin(d.fee_admin || 0);
     }).catch((_e) => {});
   }, []);
-
-  useEffect(() => {
-    setTimeout(() => {
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-        setIsDarkMode(true);
-      } else {
-        document.documentElement.classList.remove('dark');
-        setIsDarkMode(false);
-      }
-    }, 0);
-  }, []);
-
-  const toggleDarkMode = () => {
-    if (isDarkMode) {
-      document.documentElement.classList.remove('dark');
-      localStorage.theme = 'light';
-      setIsDarkMode(false);
-    } else {
-      document.documentElement.classList.add('dark');
-      localStorage.theme = 'dark';
-      setIsDarkMode(true);
-    }
-  };
 
   const [selectedMonth, setSelectedMonth] = useState<string>('8'); // Default Agustus
   const [selectedYear, setSelectedYear] = useState<string>('2026'); // Default 2026

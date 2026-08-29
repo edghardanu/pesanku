@@ -14,6 +14,7 @@ import { ProductItem, AuthUser } from "@/types";
 import ProductRating from "@/components/ProductRating";
 import PreChatModal from '@/components/PreChatModal';
 import { WIB_TIMEZONE } from "@/lib/promotionFormatting";
+import { useDarkMode } from "@/hooks";
 import makananBeratImage from "../../public/categories/makanan-berat.png";
 import minumanImage from "../../public/categories/minuman.png";
 import cemilanImage from "../../public/categories/cemilan.png";
@@ -70,7 +71,7 @@ export default function ClientHome({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [isPriceFilterOpen, setIsPriceFilterOpen] = useState(false);
   const [priceSortOrder, setPriceSortOrder] = useState<'asc' | 'desc' | null>(null);
@@ -114,23 +115,11 @@ export default function ClientHome({
     return () => clearInterval(interval);
   }, [flowInView]);
 
-  useEffect(() => {
-    setTimeout(() => {
-      // Check initial mode
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        setIsDarkMode(true);
-        document.documentElement.classList.add('dark');
-      } else {
-        setIsDarkMode(false);
-        document.documentElement.classList.remove('dark');
-      }
-    }, 0);
-  }, []);
-
   const [orderCount, setOrderCount] = useState(0);
 
   // Pre-Chat Modal State
   const [isPreChatModalOpen, setIsPreChatModalOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [chatTarget, setChatTarget] = useState<any>(null);
 
   useEffect(() => {
@@ -145,18 +134,6 @@ export default function ClientHome({
         .catch((_e) => {});
     }
   }, [user]);
-
-  const toggleDarkMode = () => {
-    if (isDarkMode) {
-      document.documentElement.classList.remove('dark');
-      localStorage.theme = 'light';
-      setIsDarkMode(false);
-    } else {
-      document.documentElement.classList.add('dark');
-      localStorage.theme = 'dark';
-      setIsDarkMode(true);
-    }
-  };
 
   const scrollToCatalog = () => {
     const catalogSection = document.getElementById('katalog');
@@ -424,7 +401,7 @@ export default function ClientHome({
                           onFocus={() => setIsSearchFocused(true)}
                           onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                           placeholder="Cari menu..."
-                          className={`input-field w-full pl-4 pr-10 rounded-full focus:bg-surface transition-all duration-300 border-transparent focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/10 ${isScrolled ? 'bg-base' : 'bg-white/95 text-black'}`}
+                          className={`input-field w-full pl-4 pr-10 rounded-full focus:bg-surface transition-all duration-300 border-transparent focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/10 ${isScrolled ? 'bg-base' : 'bg-surface/95 text-text-primary'}`}
                         />
                         <button
                           onClick={() => {
@@ -468,7 +445,7 @@ export default function ClientHome({
                                     )}
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
-                                      <p className="text-xs text-text-secondary truncate text-black truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
+                                      <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
                                     </div>
                                   </button>
                                 ))
@@ -1036,10 +1013,10 @@ export default function ClientHome({
                           </h3>
                           {seller.averageRating > 0 ? (
                             <div className="flex items-center justify-center scale-90">
-                              <ProductRating averageRating={seller.averageRating} ratingCount={seller.totalCount} className="[&>span]:text-slate-700" />
+                              <ProductRating averageRating={seller.averageRating} ratingCount={seller.totalCount} className="[&>span]:text-text-secondary" />
                             </div>
                           ) : (
-                            <span className="text-[10px]" style={{ color: '#64748b' }}>Belum ada rating</span>
+                            <span className="text-[10px] text-text-secondary">Belum ada rating</span>
                           )}
                         </div>
                       </div>
@@ -1127,10 +1104,10 @@ export default function ClientHome({
                   onClick={() => { setIsCategoryDropdownOpen(!isCategoryDropdownOpen); setIsPriceFilterOpen(false); }}
                   className={`relative flex items-center justify-between w-36 sm:w-44 bg-white border px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all duration-300 group hover:border-brand-primary/60 outline-none focus:border-brand-primary ${isCategoryDropdownOpen ? 'border-brand-primary shadow-sm' : 'border-gray-300'}`}
                 >
-                  <span className={`absolute -top-2 left-3 px-1.5 text-[10px] sm:text-[11px] font-medium bg-white transition-colors duration-300 z-10 ${isCategoryDropdownOpen ? 'text-brand-primary' : 'text-gray-500 group-hover:text-brand-primary/80'}`}>
+                  <span className={`absolute -top-2 left-3 px-1.5 text-[10px] sm:text-[11px] font-medium bg-surface transition-colors duration-300 z-10 ${isCategoryDropdownOpen ? 'text-brand-primary' : 'text-text-secondary group-hover:text-brand-primary/80'}`}>
                     Kategori Makanan
                   </span>
-                  <span className="text-[13px] sm:text-sm font-semibold text-gray-800 truncate text-left w-full">
+                  <span className="text-[13px] sm:text-sm font-semibold text-text-primary truncate text-left w-full">
                     {localCategoryFilter || 'Terpopuler'}
                   </span>
                   <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 shrink-0 transition-transform duration-300 ml-1 ${isCategoryDropdownOpen ? 'rotate-180 text-brand-primary' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1143,7 +1120,7 @@ export default function ClientHome({
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute left-0 mt-3 w-48 bg-white dark:bg-surface border border-gray-100 rounded-xl shadow-xl overflow-hidden z-50 ring-1 ring-black/5"
+                    className="absolute left-0 mt-3 w-48 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50 ring-1 ring-black/5"
                   >
                     <div className="p-2 flex flex-col gap-1">
                       {['Semua Makanan', 'Makanan Manis', 'Makanan Pedas', 'Makanan Gurih'].map(cat => (
@@ -1152,7 +1129,7 @@ export default function ClientHome({
                           onClick={() => { setLocalCategoryFilter(cat === 'Semua Makanan' ? null : (localCategoryFilter === cat ? null : cat)); setIsCategoryDropdownOpen(false); }}
                           className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium relative ${((cat === 'Semua Makanan' && !localCategoryFilter) || localCategoryFilter === cat)
                             ? 'bg-brand-primary/5 text-brand-primary'
-                            : 'hover:bg-brand-primary/5 hover:text-brand-primary text-gray-700'
+                            : 'hover:bg-brand-primary/5 hover:text-brand-primary text-text-primary'
                             }`}
                         >
                           {cat}
@@ -1172,10 +1149,10 @@ export default function ClientHome({
                   onClick={() => { setIsPriceFilterOpen(!isPriceFilterOpen); setIsCategoryDropdownOpen(false); }}
                   className={`relative flex items-center justify-between w-36 sm:w-44 bg-white border px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all duration-300 group hover:border-brand-primary/60 outline-none focus:border-brand-primary ${isPriceFilterOpen ? 'border-brand-primary shadow-sm' : 'border-gray-300'}`}
                 >
-                  <span className={`absolute -top-2 left-3 px-1.5 text-[10px] sm:text-[11px] font-medium bg-white transition-colors duration-300 z-10 ${isPriceFilterOpen ? 'text-brand-primary' : 'text-gray-500 group-hover:text-brand-primary/80'}`}>
+                  <span className={`absolute -top-2 left-3 px-1.5 text-[10px] sm:text-[11px] font-medium bg-surface transition-colors duration-300 z-10 ${isPriceFilterOpen ? 'text-brand-primary' : 'text-text-secondary group-hover:text-brand-primary/80'}`}>
                     Urutkan Harga
                   </span>
-                  <span className="text-[13px] sm:text-sm font-semibold text-gray-800 truncate text-left w-full">
+                  <span className="text-[13px] sm:text-sm font-semibold text-text-primary truncate text-left w-full">
                     {priceSortOrder === 'asc' ? 'Termurah' : (priceSortOrder === 'desc' ? 'Termahal' : 'Relevansi')}
                   </span>
                   <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 shrink-0 transition-transform duration-300 ml-1 ${isPriceFilterOpen ? 'rotate-180 text-brand-primary' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1189,19 +1166,19 @@ export default function ClientHome({
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 sm:left-0 sm:right-auto mt-3 w-48 sm:w-56 bg-white dark:bg-surface border border-gray-100 rounded-xl shadow-xl overflow-hidden z-50 ring-1 ring-black/5"
+                    className="absolute right-0 sm:left-0 sm:right-auto mt-3 w-48 sm:w-56 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50 ring-1 ring-black/5"
                   >
                     <div className="p-2 flex flex-col gap-1">
                       <button
                         onClick={() => { setPriceSortOrder('asc'); setIsPriceFilterOpen(false); }}
-                        className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium relative ${priceSortOrder === 'asc' ? 'bg-brand-primary/5 text-brand-primary' : 'hover:bg-brand-primary/5 hover:text-brand-primary text-gray-700'}`}
+                        className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium relative ${priceSortOrder === 'asc' ? 'bg-brand-primary/5 text-brand-primary' : 'hover:bg-brand-primary/5 hover:text-brand-primary text-text-primary'}`}
                       >
                         Dari Termurah
                         {priceSortOrder === 'asc' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-brand-primary rounded-r-full" />}
                       </button>
                       <button
                         onClick={() => { setPriceSortOrder('desc'); setIsPriceFilterOpen(false); }}
-                        className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium relative ${priceSortOrder === 'desc' ? 'bg-brand-primary/5 text-brand-primary' : 'hover:bg-brand-primary/5 hover:text-brand-primary text-gray-700'}`}
+                        className={`flex items-center px-3 py-2.5 w-full text-left rounded-lg transition-colors text-sm font-medium relative ${priceSortOrder === 'desc' ? 'bg-brand-primary/5 text-brand-primary' : 'hover:bg-brand-primary/5 hover:text-brand-primary text-text-primary'}`}
                       >
                         Dari Termahal
                         {priceSortOrder === 'desc' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-brand-primary rounded-r-full" />}
@@ -1295,30 +1272,30 @@ export default function ClientHome({
                             {/* Rating Badge */}
                             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm px-2.5 py-0.5 rounded-full flex items-center justify-center gap-1 shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-gray-100 z-10 min-w-[50px]">
                               <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-yellow-500 shrink-0" />
-                              <span className="text-[10px] sm:text-[11px] font-bold text-gray-800 leading-none pb-[1px]">{(product.averageRating ?? 0) > 0 ? product.averageRating!.toFixed(1) : 'Baru'}</span>
+                              <span className="text-[10px] sm:text-[11px] font-bold text-text-primary leading-none pb-[1px]">{(product.averageRating ?? 0) > 0 ? product.averageRating!.toFixed(1) : 'Baru'}</span>
                             </div>
                           </div>
 
                           {/* Right Content Area */}
                           <div className="flex flex-col flex-1 min-w-0 pt-0.5">
                             {/* Title */}
-                            <h3 className="text-[13px] sm:text-sm font-bold text-gray-900 dark:text-gray-100 leading-snug line-clamp-2 mb-1 group-hover:text-brand-primary transition-colors">
+                            <h3 className="text-[13px] sm:text-sm font-bold text-text-primary leading-snug line-clamp-2 mb-1 group-hover:text-brand-primary transition-colors">
                               {product.name}
                             </h3>
 
                             {/* Subtitle / Tags */}
-                            <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mb-1.5 line-clamp-1">
+                            <p className="text-[11px] text-text-secondary truncate mb-1.5 line-clamp-1">
                               {product.sellerName || 'Toko'} • {(product as any).category || 'Makanan'}
                             </p>
 
                             <div className="mb-auto"></div>
 
                             {/* Location / Meta Info */}
-                            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-gray-500 font-medium mb-1 w-full overflow-hidden">
+                            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-text-secondary font-medium mb-1 w-full overflow-hidden">
                               <Calendar className="w-3.5 h-3.5 text-brand-primary shrink-0" />
                               <span className="truncate">{deadlineText}</span>
                             </div>
-                            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-gray-500 font-medium mb-1 w-full overflow-hidden">
+                            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-text-secondary font-medium mb-1 w-full overflow-hidden">
                               <MapPin className="w-3.5 h-3.5 text-[#ff4b4b] shrink-0" />
                               <span className="truncate">{product.sellerAddress || product.storeAddress || 'Alamat tidak tersedia'}</span>
                             </div>

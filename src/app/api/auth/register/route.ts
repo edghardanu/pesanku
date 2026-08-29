@@ -99,15 +99,15 @@ Tim ${appName}`;
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, email, phone, password, role, storeName, address } = body;
+    const { name, email, phone, password, role, storeName, address, bankAccount } = body;
 
     // Validasi input
     if (!name || !email || !password || !role) {
       return NextResponse.json({ message: 'Semua field wajib diisi' }, { status: 400 });
     }
 
-    if (role === 'seller' && (!storeName || !address)) {
-      return NextResponse.json({ message: 'Nama toko dan alamat wajib diisi untuk penjual' }, { status: 400 });
+    if (role === 'seller' && (!storeName || !address || !bankAccount)) {
+      return NextResponse.json({ message: 'Nama toko, alamat, dan info rekening wajib diisi untuk penjual' }, { status: 400 });
     }
 
     // Cek email apakah sudah ada
@@ -152,6 +152,7 @@ export async function POST(req: Request) {
         userId: userId,
         storeName: storeName,
         address: address,
+        bankAccount: bankAccount,
         logoUrl: body.logoUrl || null,
         approvalStatus: 'pending', // Perlu approval admin sesuai PRD
       });

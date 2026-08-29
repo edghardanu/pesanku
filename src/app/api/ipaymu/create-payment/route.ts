@@ -35,7 +35,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Pesanan sudah tidak bisa dibayar pada tahap ini' }, { status: 400 });
     }
 
-    // Pastikan belum ada pembayaran
     const existingPayment = await db
       .select()
       .from(payments)
@@ -43,6 +42,17 @@ export async function POST(req: Request) {
       .get();
 
     if (existingPayment) {
+      if (existingPayment.proofUrl?.startsWith('ipaymu:')) {
+        const sessionId = existingPayment.proofUrl.split(':')[1];
+        const env = process.env.IPAYMU_ENV || 'production';
+        const baseUrl = env === 'sandbox' ? 'https://sandbox.ipaymu.com/payment' : 'https://my.ipaymu.com/payment';
+        return NextResponse.json({
+          message: 'Melanjutkan pembayaran sebelumnya',
+          paymentUrl: `${baseUrl}/${sessionId}`,
+          sessionId: sessionId,
+          paymentId: existingPayment.id,
+        }, { status: 200 });
+      }
       return NextResponse.json({ error: 'Pembayaran sudah diproses sebelumnya' }, { status: 400 });
     }
 

@@ -1,42 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Eye, EyeOff, ArrowLeft, Home, FileText, User, Sun, Moon } from "lucide-react";
+import { ShoppingBag, Eye, EyeOff, ArrowLeft, Home, FileText, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from 'sweetalert2';
+import { useDarkMode } from '@/hooks';
 
 export default function LoginPage() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  
-  useEffect(() => {
-    setTimeout(() => {
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        setIsDarkMode(true);
-        document.documentElement.classList.add('dark');
-      } else {
-        setIsDarkMode(false);
-        document.documentElement.classList.remove('dark');
-      }
-    }, 0);
-  }, []);
-
-  const toggleDarkMode = () => {
-    if (isDarkMode) {
-      document.documentElement.classList.remove('dark');
-      localStorage.theme = 'light';
-      setIsDarkMode(false);
-    } else {
-      document.documentElement.classList.add('dark');
-      localStorage.theme = 'dark';
-      setIsDarkMode(true);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -214,13 +191,13 @@ export default function LoginPage() {
             <h2 className="text-2xl sm:text-3xl lg:text-5xl font-extrabold text-white mb-2 lg:mb-4 leading-tight">Dukung Kuliner<br className="hidden sm:block"/> UMKM Lokal</h2>
             <p className="text-sm sm:text-base lg:text-lg text-white/90 max-w-lg leading-relaxed mb-4 lg:mb-6 hidden sm:block lg:block">Nikmati hidangan lezat dan segar langsung dari tangan ahlinya, dukung pengusaha kecil di sekitarmu.</p>
             <div className="hidden sm:flex gap-4">
-               <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
-                 <div className="text-3xl font-bold text-brand-primary mb-1">Cepat</div>
-                 <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Akses Langsung</div>
+               <div className="flex-1 bg-brand-primary backdrop-blur-md rounded-2xl p-4 border border-white/20">
+                 <div className="text-3xl font-bold text-white mb-1">Cepat</div>
+                 <div className="text-xs text-white font-medium uppercase tracking-wider">Akses Langsung</div>
                </div>
-               <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
-                 <div className="text-3xl font-bold text-brand-primary mb-1">Aman</div>
-                 <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Transaksi Terjamin</div>
+               <div className="flex-1 bg-brand-primary backdrop-blur-md rounded-2xl p-4 border border-white/20">
+                 <div className="text-3xl font-bold text-white mb-1">Aman</div>
+                 <div className="text-xs text-white font-medium uppercase tracking-wider">Transaksi Terjamin</div>
                </div>
             </div>
           </motion.div>

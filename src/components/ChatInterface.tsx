@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Search, Send, Paperclip, Camera, Image, ChevronLeft, Calendar,
   Check, CheckCheck, Loader2, MessageCircle, X, ExternalLink,
-  ShoppingBag, Trash2, ArrowLeft, Info, ShoppingCart, User
+  ShoppingBag, Trash2, ArrowLeft, Info, ShoppingCart, User, Clock
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
@@ -470,7 +470,16 @@ export default function ChatInterface({
 
   // Seller: Schedule Negotiation dialog
   const handleSellerConfirmSchedule = async (pId: string, pName: string, pPriceStr: string, pImage: string) => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    let defaultDateStr = new Date().toISOString().split('T')[0];
+    const buyerDatePattern = /tanggal\s+(\d{2}\/\d{2}\/\d{4})/;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const match = (messages[i].text || '').match(buyerDatePattern);
+      if (match) {
+        const [dd, mm, yyyy] = match[1].split('/');
+        defaultDateStr = `${yyyy}-${mm}-${dd}`;
+        break;
+      }
+    }
 
     const { value: negotiationResult } = await Swal.fire({
       title: 'Konfirmasi Kesanggupan Preorder',
@@ -482,7 +491,7 @@ export default function ChatInterface({
           </div>
           <div>
             <label class="block text-xs font-bold text-text-secondary mb-1">Tanggal Pengiriman <span class="text-status-error">*</span></label>
-            <input id="presale-confirm-date" type="date" value="${todayStr}" class="input-field w-full" />
+            <input id="presale-confirm-date" type="date" value="${defaultDateStr}" class="input-field w-full" />
           </div>
           <div>
             <label class="block text-xs font-bold text-text-secondary mb-1">Catatan Jadwal <span class="text-xs font-normal text-text-secondary ml-1">(Opsional)</span></label>
@@ -569,13 +578,24 @@ export default function ChatInterface({
                     <ExternalLink className="w-3.5 h-3.5" />
                     Lihat Produk
                   </a>
-                  <button
-                    onClick={() => handleBuyerOrderNow(pId, pName, pPrice)}
-                    className="w-full bg-status-success hover:bg-emerald-600 text-white text-xs font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 active:scale-95 border-none cursor-pointer"
-                  >
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                    Pesan Sekarang
-                  </button>
+                  {isSender ? (
+                    <button
+                      disabled
+                      className="w-full bg-white/20 text-white/60 text-[10px] font-bold py-2 px-2 rounded-lg flex items-center justify-center gap-1 cursor-not-allowed border-none shadow-inner"
+                      title="Menunggu persetujuan dan jadwal dari penjual"
+                    >
+                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      Menunggu Konfirmasi Penjual
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleBuyerOrderNow(pId, pName, pPrice)}
+                      className="w-full bg-status-success hover:bg-emerald-600 text-white text-xs font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 active:scale-95 border-none cursor-pointer"
+                    >
+                      <ShoppingCart className="w-3.5 h-3.5" />
+                      Pesan Sekarang
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
