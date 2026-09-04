@@ -54,12 +54,16 @@ export async function POST(req: Request) {
 
         // Memastikan request sukses (Status=200) dari API pengecekan
         if (verifyData.Status === 200 && verifyData.Data) {
-          const expectedStatus = parseInt(statusCode);
-          const iPaymuRealStatus = verifyData.Data.Status; // Angka status asli di server
+          const expectedStatus = parseInt(statusCode, 10);
+          const rawRealStatus = verifyData.Data.Status ?? verifyData.Data.status ?? verifyData.Data.StatusCode ?? verifyData.Data.statusCode;
+          const realStatusNum = Number(rawRealStatus);
+          const realStatusStr = String(rawRealStatus || '').toLowerCase();
 
-          // Jika status yang diklaim berhasil (1) tapi di server iPaymu status aslinya bukan 1 atau 6 (menyimpan proses)
-          if ((expectedStatus === 1 || status === 'berhasil') && (iPaymuRealStatus !== 1 && iPaymuRealStatus !== 6)) {
-            console.error(`[WARNING] SERANGAN HACKER! Webhook spoofing terdeteksi untuk order: ${referenceId}`);
+          const isClaimedSuccess = expectedStatus === 1 || status === 'berhasil' || status === 'paid' || statusCode === '1';
+          const isRealSuccess = realStatusNum === 1 || realStatusNum === 6 || realStatusStr === '1' || realStatusStr === '6' || realStatusStr === 'berhasil' || realStatusStr === 'paid' || realStatusStr === 'success';
+
+          if (isClaimedSuccess && !isRealSuccess) {
+            console.error(`[WARNING] Webhook spoofing terdeteksi untuk order: ${referenceId}, real status: ${rawRealStatus}`);
             return NextResponse.json({ message: 'Forbidden. Invalid Transaction Verification' }, { status: 403 });
           }
         }
