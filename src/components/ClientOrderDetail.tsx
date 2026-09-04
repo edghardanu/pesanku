@@ -227,20 +227,20 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
                                 }
 
                                 const channelMap: Record<string, string> = {
-                                    'VA': 'Virtual Account',
-                                    'TRANSFER': 'Virtual Account',
-                                    'BANKTRANSFER': 'Virtual Account',
-                                    'BCA': 'Virtual Account (Bank Central Asia)',
-                                    'MANDIRI': 'Virtual Account (Bank Mandiri)',
-                                    'BNI': 'Virtual Account (Bank Negara Indonesia)',
-                                    'BRI': 'Virtual Account (Bank Rakyat Indonesia)',
-                                    'CIMB': 'Virtual Account (Bank CIMB Niaga)',
-                                    'PERMATA': 'Virtual Account (Bank Permata)',
-                                    'BSI': 'Virtual Account (Bank Syariah Indonesia)',
-                                    'BAG': 'Virtual Account (Bank Artha Graha)',
+                                    'VA': 'Virtual Account (BCA / Mandiri / BNI / BRI)',
+                                    'TRANSFER': 'Virtual Account (BCA / Mandiri / BNI / BRI)',
+                                    'BANKTRANSFER': 'Virtual Account (BCA / Mandiri / BNI / BRI)',
+                                    'BCA': 'Virtual Account BCA (Bank Central Asia)',
+                                    'MANDIRI': 'Virtual Account Mandiri',
+                                    'BNI': 'Virtual Account BNI (Bank Negara Indonesia)',
+                                    'BRI': 'Virtual Account BRI (Bank Rakyat Indonesia)',
+                                    'CIMB': 'Virtual Account CIMB Niaga',
+                                    'PERMATA': 'Virtual Account Permata',
+                                    'BSI': 'Virtual Account BSI (Bank Syariah Indonesia)',
+                                    'BAG': 'Virtual Account Artha Graha',
                                     'QRIS': 'QRIS',
-                                    'ALFAMART': 'Alfamart Retail',
-                                    'INDOMARET': 'Indomaret Retail',
+                                    'ALFAMART': 'Alfamart',
+                                    'INDOMARET': 'Indomaret',
                                 };
 
                                 const channelName = channelMap[viaCode] || `Virtual Account (${viaCode})`;
