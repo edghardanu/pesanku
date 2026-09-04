@@ -147,12 +147,12 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Metode Pembayaran</p>
                 <p className="text-sm font-extrabold text-gray-800 mt-1">{channelName}</p>
               </div>
-              {sid && sid !== 'undefined' && (
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No. Referensi / Transaksi ID</p>
-                  <code className="text-xs font-mono font-bold text-gray-700 bg-white px-2.5 py-1 rounded border border-gray-200 block mt-1 max-w-full break-all">{sid}</code>
-                </div>
-              )}
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No. Referensi / Transaksi ID</p>
+                <code className="text-xs font-mono font-bold text-gray-700 bg-white px-2.5 py-1 rounded border border-gray-200 block mt-1 max-w-full break-all">
+                  {sid && sid !== 'undefined' ? sid : order.id}
+                </code>
+              </div>
             </div>
           </div>
 
