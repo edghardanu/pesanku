@@ -35,6 +35,34 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
     return formatDateTimeWIB(date);
   };
 
+  const proofUrl = order.paymentProofUrl;
+  let sid = '';
+  let viaCode = 'VA';
+  if (proofUrl && proofUrl.startsWith('ipaymu:')) {
+    const parts = proofUrl.split(':');
+    sid = parts[1] || '';
+    viaCode = (parts[2] || 'VA').toUpperCase();
+  }
+
+  const channelMap: Record<string, string> = {
+    'VA': 'Virtual Account',
+    'TRANSFER': 'Virtual Account',
+    'BANKTRANSFER': 'Virtual Account',
+    'BCA': 'Virtual Account (Bank Central Asia)',
+    'MANDIRI': 'Virtual Account (Bank Mandiri)',
+    'BNI': 'Virtual Account (Bank Negara Indonesia)',
+    'BRI': 'Virtual Account (Bank Rakyat Indonesia)',
+    'CIMB': 'Virtual Account (Bank CIMB Niaga)',
+    'PERMATA': 'Virtual Account (Bank Permata)',
+    'BSI': 'Virtual Account (Bank Syariah Indonesia)',
+    'BAG': 'Virtual Account (Bank Artha Graha)',
+    'QRIS': 'QRIS',
+    'ALFAMART': 'Alfamart Retail',
+    'INDOMARET': 'Indomaret Retail',
+  };
+
+  const channelName = channelMap[viaCode] || `Virtual Account (${viaCode})`;
+
   const getStatusBadge = (status: string | null) => {
     switch (status) {
       case 'pending':
@@ -96,7 +124,7 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
             </div>
           </div>
 
-          <div className="invoice-section invoice-parties p-8 grid grid-cols-1 md:grid-cols-2 gap-8 border-b border-gray-100">
+          <div className="invoice-section invoice-parties p-8 grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-gray-100">
             {/* Seller */}
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Diterbitkan Oleh (Penjual)</p>
@@ -111,6 +139,20 @@ export default function ClientInvoice({ order, feeAplikasi = 0, feeJasa = 0, fee
               <p className="text-gray-600 text-sm mt-1">{order.buyerEmail}</p>
               <p className="text-gray-600 text-sm mt-1">{order.buyerPhone || '-'}</p>
               <p className="text-gray-600 text-sm mt-1 leading-relaxed max-w-[250px]">{order.buyerAddress || '-'}</p>
+            </div>
+
+            {/* Payment Method & Reference */}
+            <div className="md:col-span-2 pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/80 p-4 rounded-xl">
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Metode Pembayaran</p>
+                <p className="text-sm font-extrabold text-gray-800 mt-1">{channelName}</p>
+              </div>
+              {sid && sid !== 'undefined' && (
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No. Referensi / Transaksi ID</p>
+                  <code className="text-xs font-mono font-bold text-gray-700 bg-white px-2.5 py-1 rounded border border-gray-200 block mt-1 max-w-full break-all">{sid}</code>
+                </div>
+              )}
             </div>
           </div>
 

@@ -239,4 +239,6 @@ export interface InvoiceOrder {
   buyerEmail?: string | null;
   buyerPhone?: string | null;
   buyerAddress?: string | null;
+  paymentProofUrl?: string | null;
+  paymentStatus?: string | null;
 }

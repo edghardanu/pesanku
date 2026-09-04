@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { orders, products, users, sellerProfiles, settings } from "@/lib/schema";
+import { orders, products, users, sellerProfiles, settings, payments } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import ClientInvoice from "@/components/ClientInvoice";
@@ -36,11 +36,15 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       
       sellerName: sellerProfiles.storeName,
       sellerAddress: sellerProfiles.address,
+
+      paymentProofUrl: payments.proofUrl,
+      paymentStatus: payments.verificationStatus,
     })
     .from(orders)
     .innerJoin(products, eq(orders.productId, products.id))
     .innerJoin(users, eq(orders.buyerId, users.id))
     .innerJoin(sellerProfiles, eq(products.sellerId, sellerProfiles.userId))
+    .leftJoin(payments, eq(orders.id, payments.orderId))
     .where(eq(orders.id, id))
     .get();
 

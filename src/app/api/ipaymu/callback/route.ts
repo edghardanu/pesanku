@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     const referenceId = body.reference_id || body.referenceId || body.referece_id || '';
     const status = (body.status || '').toLowerCase();
     const statusCode = body.status_code || body.statusCode || '';
-    const via = body.via || '';
+    const via = body.via || body.payment_channel || body.channel || body.paymentChannel || body.bank || '';
 
     console.error(`[iPaymu Callback] trx_id=${trxId} sid=${sid} ref=${referenceId} status=${status} code=${statusCode} via=${via}`);
 
