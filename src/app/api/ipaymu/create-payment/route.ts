@@ -44,16 +44,22 @@ export async function POST(req: Request) {
     if (existingPayment) {
       if (existingPayment.proofUrl?.startsWith('ipaymu:')) {
         const sessionId = existingPayment.proofUrl.split(':')[1];
-        const env = process.env.IPAYMU_ENV || 'production';
-        const baseUrl = env === 'sandbox' ? 'https://sandbox.ipaymu.com/payment' : 'https://my.ipaymu.com/payment';
-        return NextResponse.json({
-          message: 'Melanjutkan pembayaran sebelumnya',
-          paymentUrl: `${baseUrl}/${sessionId}`,
-          sessionId: sessionId,
-          paymentId: existingPayment.id,
-        }, { status: 200 });
+        if (sessionId) {
+          const env = process.env.IPAYMU_ENV || 'production';
+          const baseUrl = env === 'sandbox' ? 'https://sandbox.ipaymu.com/payment' : 'https://my.ipaymu.com/payment';
+          return NextResponse.json({
+            message: 'Melanjutkan pembayaran sebelumnya',
+            paymentUrl: `${baseUrl}/${sessionId}`,
+            sessionId: sessionId,
+            paymentId: existingPayment.id,
+          }, { status: 200 });
+        } else {
+          // Invalid/empty session id, delete and let it recrate
+          await db.delete(payments).where(eq(payments.id, existingPayment.id));
+        }
+      } else {
+        return NextResponse.json({ error: 'Pembayaran sudah diproses sebelumnya' }, { status: 400 });
       }
-      return NextResponse.json({ error: 'Pembayaran sudah diproses sebelumnya' }, { status: 400 });
     }
 
     // Ambil data produk untuk nama produk dan mengetahui Penjual
