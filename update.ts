@@ -1,0 +1,1 @@
+import { db } from './src/lib/db'; import { products } from './src/lib/schema'; import { eq } from 'drizzle-orm'; async function run() { await db.update(products).set({ minOrderQty: 10 }).where(eq(products.name, 'Bakso Telur')); console.log('Updated DB'); } run();  

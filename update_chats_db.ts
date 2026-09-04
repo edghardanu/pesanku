@@ -1,0 +1,32 @@
+import { db } from './src/lib/db';
+import { chatMessages as chats } from './src/lib/schema';
+import { eq, like, or } from 'drizzle-orm';
+
+async function updateChats() {
+    const allChats = await db.select().from(chats).where(
+        or(
+            like(chats.text, '%Tadi kakak melakukan pemesanan untuk%'),
+            like(chats.text, '%Silakan sampaikan Surat Penawaran Anda dengan detail untuk pesanan%')
+        )
+    );
+
+    let updated = 0;
+    for (const chat of allChats) {
+        // Extract the product name from between <b> and </b>
+        const match = chat.text.match(/<b>(.*?)<\/b>/);
+        if (match) {
+            const productName = match[1];
+            const newText = `Halo kak! Pesanan untuk <b>${productName}</b> sudah kami terima. Jika kakak ingin mengajukan penawaran (nego harga, porsi, atau waktu pengiriman), silakan klik icon lampiran (📎) lalu pilih <b>Surat Penawaran</b> ya.`;
+
+            await db.update(chats)
+                .set({ text: newText })
+                .where(eq(chats.id, chat.id));
+            updated++;
+        }
+    }
+
+    console.log(`Updated ${updated} chat messages.`);
+    process.exit(0);
+}
+
+updateChats().catch(console.error);
