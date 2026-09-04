@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import {
   Search, Send, Paperclip, Camera, Image, ChevronLeft, Calendar, FileText,
   Check, CheckCheck, Loader2, MessageCircle, X, ExternalLink,
-  ShoppingBag, Trash2, ArrowLeft, Info, ShoppingCart, User, Clock
+  ShoppingBag, Trash2, ArrowLeft, Info, ShoppingCart, User, Clock, CheckCircle2
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
@@ -942,6 +942,21 @@ export default function ChatInterface({
     // 3. Regular text content
     const isSellerApprovalMsg = !isSender && mode === "buyer" && text.includes("**SETUJUI**") && !text.includes("belum");
 
+    const isPaidOrder = (() => {
+      if (['verified', 'processing', 'completed', 'preorder_running'].includes(activeSessionStatus || '')) return true;
+      if (buyerOrders && buyerOrders.length > 0) {
+        const currentOrder = buyerOrders.find(o => 
+          o.orderId === selectedOrderId || 
+          (activeThread?.orderIds && activeThread.orderIds.includes(o.orderId)) ||
+          (activeThread?.productId && o.productId === activeThread.productId)
+        );
+        if (currentOrder && ['verified', 'processing', 'completed', 'preorder_running'].includes(currentOrder.status || '')) {
+          return true;
+        }
+      }
+      return false;
+    })();
+
     return (
       <div className="flex flex-col gap-2 w-full">
         <p
@@ -949,68 +964,74 @@ export default function ChatInterface({
           dangerouslySetInnerHTML={{ __html: renderRichText(text) }}
         />
         {isSellerApprovalMsg && (
-          <button
-            onClick={async () => {
-              // Parse out qty and date
-              const qtyMatch = text.match(/untuk \*\*(.*?)\*\*/);
-              const dateMatch = text.match(/pada tanggal \*\*(.*?)\*\*/);
+          isPaidOrder ? (
+            <div className="w-full bg-emerald-600 text-white text-[11px] font-bold py-2.5 px-3 rounded-lg flex items-center justify-center gap-1.5 mt-1 mb-1 shadow-sm border border-emerald-500 select-none">
+              <CheckCircle2 className="w-3.5 h-3.5 text-white" /> Sudah Dibayar
+            </div>
+          ) : (
+            <button
+              onClick={async () => {
+                // Parse out qty and date
+                const qtyMatch = text.match(/untuk \*\*(.*?)\*\*/);
+                const dateMatch = text.match(/pada tanggal \*\*(.*?)\*\*/);
 
-              const sQtyNum = qtyMatch ? parseInt(qtyMatch[1]) : 1;
-              const rawDate = dateMatch ? dateMatch[1] : '';
-              const dateParts = rawDate.split('/');
-              let formattedDate = rawDate;
-              if (dateParts.length === 3) {
-                formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
-              }
-
-              try {
-                Swal.fire({
-                  title: 'Menyiapkan Pembayaran...',
-                  allowOutsideClick: false,
-                  didOpen: () => Swal.showLoading()
-                });
-
-                const checkoutRes = await fetch('/api/checkout', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    productId: activeSessionProductId || activeThread?.productId || '',
-                    qty: sQtyNum,
-                    deliveryDate: formattedDate,
-                    chatOrderId: selectedOrderId
-                  })
-                });
-
-                const checkoutData = await checkoutRes.json();
-                if (!checkoutRes.ok) throw new Error(checkoutData.error || 'Gagal memproses pesanan.');
-
-                const activeOrderId = checkoutData.orderId || selectedOrderId;
-                const payRes = await fetch('/api/ipaymu/create-payment', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ orderId: activeOrderId }),
-                });
-
-                const payData = await payRes.json();
-                if (!payRes.ok) throw new Error(payData.error || 'Gagal membuat URL pembayaran.');
-
-                if (payData.paymentUrl) {
-                  window.location.href = payData.paymentUrl;
-                } else {
-                  throw new Error('URL pembayaran tidak tersedia.');
+                const sQtyNum = qtyMatch ? parseInt(qtyMatch[1]) : 1;
+                const rawDate = dateMatch ? dateMatch[1] : '';
+                const dateParts = rawDate.split('/');
+                let formattedDate = rawDate;
+                if (dateParts.length === 3) {
+                  formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
                 }
-              } catch (err: any) {
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Gagal Memproses',
-                  text: err.message || 'Terjadi kesalahan saat memproses pembayaran.'
-                });
-              }
-            }}
-            className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white text-[11px] font-bold py-2.5 px-3 rounded-lg flex items-center justify-center gap-1.5 active:scale-95 border-none cursor-pointer mt-1 mb-1 shadow-sm"
-          >
-            <Check className="w-3.5 h-3.5" /> Bayar Sekarang
-          </button>
+
+                try {
+                  Swal.fire({
+                    title: 'Menyiapkan Pembayaran...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                  });
+
+                  const checkoutRes = await fetch('/api/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      productId: activeSessionProductId || activeThread?.productId || '',
+                      qty: sQtyNum,
+                      deliveryDate: formattedDate,
+                      chatOrderId: selectedOrderId
+                    })
+                  });
+
+                  const checkoutData = await checkoutRes.json();
+                  if (!checkoutRes.ok) throw new Error(checkoutData.error || 'Gagal memproses pesanan.');
+
+                  const activeOrderId = checkoutData.orderId || selectedOrderId;
+                  const payRes = await fetch('/api/ipaymu/create-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId: activeOrderId }),
+                  });
+
+                  const payData = await payRes.json();
+                  if (!payRes.ok) throw new Error(payData.error || 'Gagal membuat URL pembayaran.');
+
+                  if (payData.paymentUrl) {
+                    window.location.href = payData.paymentUrl;
+                  } else {
+                    throw new Error('URL pembayaran tidak tersedia.');
+                  }
+                } catch (err: any) {
+                  Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Memproses',
+                    text: err.message || 'Terjadi kesalahan saat memproses pembayaran.'
+                  });
+                }
+              }}
+              className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white text-[11px] font-bold py-2.5 px-3 rounded-lg flex items-center justify-center gap-1.5 active:scale-95 border-none cursor-pointer mt-1 mb-1 shadow-sm"
+            >
+              <Check className="w-3.5 h-3.5" /> Bayar Sekarang
+            </button>
+          )
         )}
       </div>
     );
@@ -1250,7 +1271,7 @@ export default function ChatInterface({
                             )}
 
                             {/* Bubble item content */}
-                            <div className="max-w-[75%] md:max-w-[65%] flex flex-col">
+                            <div className="max-w-[88%] sm:max-w-[80%] md:max-w-[75%] flex flex-col">
                               {/* Store name indicator for receiver */}
                               {!isSender && (
                                 <span className="text-[10px] font-bold text-brand-primary/80 mb-1 pl-1 select-none tracking-wide">

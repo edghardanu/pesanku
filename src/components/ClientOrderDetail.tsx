@@ -135,11 +135,11 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
             </div>
 
             {/* Main Content Area */}
-            <div className="flex flex-col lg:flex-row flex-1 overflow-hidden lg:overflow-visible p-4 md:p-6 gap-4 md:gap-6 w-full max-w-[1600px] mx-auto items-start">
+            <div className="flex flex-col xl:flex-row flex-1 overflow-hidden xl:overflow-visible p-3 sm:p-4 md:p-6 gap-4 md:gap-6 w-full max-w-[1600px] mx-auto items-start">
                 {/* Left Side: Order Form */}
                 <div className="flex-1 min-w-0 w-full bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col">
                     {/* Form Header Info Grid */}
-                    <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-x-8 gap-y-6">
+                    <div className="p-4 sm:p-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                         {/* Slot 1 (Left Col): Nama */}
                         <div>
                             <div className="flex items-start gap-2 text-[13px] text-gray-900 mt-2">
@@ -242,22 +242,22 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
                                 const channelName = channelMap[viaCode] || `Virtual Account (${viaCode})`;
 
                                 return (
-                                    <div className="flex flex-col gap-1.5 bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 max-w-xs shadow-sm">
-                                        <div className="flex items-center gap-2">
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-extrabold bg-emerald-600 text-white">
+                                    <div className="flex flex-col gap-1.5 bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 w-full shadow-sm">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-extrabold bg-emerald-600 text-white shrink-0">
                                                 ✓ Lunas
                                             </span>
                                             <span className="text-[11px] font-bold text-emerald-800">Verifikasi Otomatis System</span>
                                         </div>
                                         <div className="text-[12px] text-gray-700 space-y-1 pt-1 border-t border-emerald-200/60">
-                                            <div className="flex items-center justify-between">
+                                            <div className="flex items-center justify-between gap-2 flex-wrap">
                                                 <span className="text-gray-500 font-medium">Metode:</span>
                                                 <span className="font-bold text-gray-900">{channelName}</span>
                                             </div>
                                             {sid && sid !== 'undefined' && (
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <span className="text-gray-500 font-medium">No. Ref:</span>
-                                                    <code className="text-[11px] bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-800 font-mono font-semibold">{sid}</code>
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                                    <span className="text-gray-500 font-medium shrink-0">No. Ref:</span>
+                                                    <code className="text-[11px] bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-800 font-mono font-semibold break-all max-w-full">{sid}</code>
                                                 </div>
                                             )}
                                         </div>
@@ -375,7 +375,7 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
                 </div>
 
                 {/* Right Side: Chatter */}
-                <div className="w-full lg:w-[320px] xl:w-[360px] 2xl:w-[420px] bg-white border border-gray-300 rounded shadow-sm flex flex-col shrink-0 mt-4 lg:mt-0 lg:h-[calc(100vh-180px)] static lg:sticky lg:top-4 overflow-hidden">
+                <div className="w-full xl:w-[360px] 2xl:w-[420px] bg-white border border-gray-300 rounded shadow-sm flex flex-col shrink-0 mt-4 xl:mt-0 xl:h-[calc(100vh-180px)] static xl:sticky xl:top-4 overflow-hidden">
                     <ChatInterface
                         mode="buyer"
                         user={user || null}
