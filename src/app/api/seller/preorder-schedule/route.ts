@@ -126,7 +126,7 @@ export async function PUT(req: Request) {
     };
     const key = `${schedulePrefix(user.id)}${body.orderId}`;
 
-    const newStatus = (order.status === 'waiting_verification' || order.status === 'verified') ? 'preorder_running' : order.status;
+    const newStatus = (order.status === 'waiting_verification') ? 'verified' : order.status;
 
     await db.transaction(async (tx) => {
       await tx.insert(settings)

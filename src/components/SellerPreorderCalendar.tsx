@@ -35,9 +35,9 @@ const fulfillmentOptions: Array<{ value: FulfillmentStatus; label: string }> = [
 
 const fulfillmentStyles: Record<FulfillmentStatus, { label: string; badge: string; dot: string }> = {
   scheduled: { label: 'Terjadwal', badge: 'bg-blue-500/10 text-blue-700 dark:text-blue-300', dot: 'bg-blue-500' },
-  preparing: { label: 'Disiapkan', badge: 'bg-amber-500/10 text-amber-700 dark:text-amber-300', dot: 'bg-amber-500' },
-  ready: { label: 'Siap Dikirim', badge: 'bg-violet-500/10 text-violet-700 dark:text-violet-300', dot: 'bg-violet-500' },
-  shipped: { label: 'Dikirim', badge: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300', dot: 'bg-cyan-500' },
+  preparing: { label: 'Sedang Disiapkan', badge: 'bg-orange-500/10 text-orange-700 dark:text-orange-300', dot: 'bg-orange-500' },
+  ready: { label: 'Siap Dikirim', badge: 'bg-purple-500/10 text-purple-700 dark:text-purple-300', dot: 'bg-purple-500' },
+  shipped: { label: 'Dalam Pengiriman', badge: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300', dot: 'bg-cyan-500' },
   delivered: { label: 'Terkirim', badge: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' },
 };
 
@@ -120,22 +120,22 @@ export default function SellerPreorderCalendar({
     [visibleMonth],
   );
 
-  const hasSellerSchedule = (order: OrderItem) => Boolean(order.deliveryDate && order.fulfillmentStatus);
-  const isPendingStatus = (order: OrderItem) => ['waiting_verification', 'verified'].includes(order.status || '');
+  const hasScheduleDate = (order: OrderItem) => Boolean(order.deliveryDate || order.requestedDeliveryDate);
+  const getOrderDate = (order: OrderItem) => order.deliveryDate || order.requestedDeliveryDate;
 
-  const scheduledOrders = filteredOrders.filter(order => hasSellerSchedule(order) && !isPendingStatus(order));
+  const scheduledOrders = filteredOrders.filter(order => hasScheduleDate(order) && !['cancelled', 'returned'].includes(order.status || ''));
   const unscheduledOrders = filteredOrders.filter((order) => {
-    return (!hasSellerSchedule(order) || isPendingStatus(order)) && !['cancelled', 'returned', 'completed'].includes(order.status || '');
+    return !hasScheduleDate(order) && !['cancelled', 'returned', 'completed'].includes(order.status || '');
   });
 
-  const selectedDayOrders = scheduledOrders.filter((order) => order.deliveryDate === selectedDate);
+  const selectedDayOrders = scheduledOrders.filter((order) => getOrderDate(order) === selectedDate);
 
   const monthPrefix = `${visibleMonth.getFullYear()}-${String(visibleMonth.getMonth() + 1).padStart(2, '0')}`;
-  const monthOrders = scheduledOrders.filter((order) => order.deliveryDate?.startsWith(monthPrefix));
+  const monthOrders = scheduledOrders.filter((order) => getOrderDate(order)?.startsWith(monthPrefix));
   const shippedSelected = scheduledOrders.filter((order) => {
     const isShippedFulfillment = ['ready', 'shipped', 'delivered'].includes(order.fulfillmentStatus || '');
     const isShippedStatus = ['processing', 'completed'].includes(order.status || '');
-    const isSelected = order.deliveryDate === selectedDate;
+    const isSelected = getOrderDate(order) === selectedDate;
     return isSelected && (isShippedFulfillment || isShippedStatus);
   }).length;
 
@@ -273,125 +273,7 @@ export default function SellerPreorderCalendar({
     }
   };
 
-  const konfirmasiPesanan = async (order: OrderItem) => {
-    const defaultDeliveryDate = order.deliveryDate || order.requestedDeliveryDate || selectedDate || todayKey;
-    const result = await Swal.fire({
-      title: 'Konfirmasi Pesanan',
-      html: `
-        <div class="seller-confirm-form space-y-4 pt-2 text-left">
-          <div class="rounded-xl border border-gray-200 bg-gray-50 p-3">
-            <p class="font-semibold text-gray-900">${escapeHtml(order.productName || 'Produk')}</p>
-            <p class="mt-1 text-sm text-gray-500">${escapeHtml(order.buyerName || 'Pembeli')} · ${order.qty} porsi</p>
-            ${order.requestedDeliveryDate ? `<p class="mt-1 text-sm text-gray-500">Tanggal yang diminta pembeli: <span class="font-semibold text-brand-primary">${escapeHtml(formatLongDate(order.requestedDeliveryDate))}</span></p>` : ''}
-          </div>
-          <div>
-            <label for="confirmation-delivery-date" class="mb-1.5 block text-sm font-semibold text-gray-700">Jadwal pengiriman</label>
-            <input id="confirmation-delivery-date" type="date" value="${defaultDeliveryDate}" class="swal2-input m-0 w-full" />
-            <p class="mt-2 text-xs leading-relaxed text-gray-500">Tanggal sudah terisi otomatis. Ubah hanya jika jadwal pengiriman perlu disesuaikan.</p>
-          </div>
-          <div>
-            <label for="confirmation-schedule-reason" class="mb-1.5 block text-sm font-semibold text-gray-700">Alasan/Catatan <span class="font-normal text-gray-400">(opsional)</span></label>
-            <textarea id="confirmation-schedule-reason" maxlength="500" rows="3" class="w-full resize-y rounded-lg border border-gray-300 p-3 text-sm outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" placeholder="Isi jika tanggal atau jadwal perlu diberi penjelasan">${escapeHtml(order.scheduleReason || '')}</textarea>
-          </div>
-          <p class="text-center text-sm text-gray-600">Pesanan akan dikonfirmasi dan statusnya diteruskan ke pembeli.</p>
-        </div>
-      `,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Ya, Konfirmasi',
-      cancelButtonText: 'Batal',
-      confirmButtonColor: '#10b981',
-      focusConfirm: false,
-      customClass: {
-        popup: 'seller-confirm-popup',
-        icon: 'seller-confirm-icon',
-        title: 'seller-confirm-title',
-        htmlContainer: 'seller-confirm-content',
-        actions: 'seller-confirm-actions',
-        confirmButton: 'seller-confirm-button',
-        cancelButton: 'seller-confirm-button',
-      },
-      preConfirm: () => {
-        const deliveryDate = (document.getElementById('confirmation-delivery-date') as HTMLInputElement)?.value;
-        const scheduleReason = (document.getElementById('confirmation-schedule-reason') as HTMLTextAreaElement)?.value.trim() || null;
-        if (!deliveryDate) {
-          Swal.showValidationMessage('Tanggal pengiriman wajib dipilih.');
-          return false;
-        }
-        return { deliveryDate, scheduleReason };
-      },
-    });
 
-    if (!result.isConfirmed || !result.value) return;
-
-    try {
-      Swal.fire({ title: 'Memproses...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const response = await fetch('/api/seller/preorder-schedule', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: order.id,
-          deliveryDate: result.value.deliveryDate,
-          fulfillmentStatus: order.fulfillmentStatus || 'scheduled',
-          scheduleReason: result.value.scheduleReason,
-          confirmOrder: true,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Pesanan tidak dapat dikonfirmasi.');
-
-      setLocalOrders((current) => current.map((item) => item.id === order.id
-        ? {
-          ...item,
-          status: data.status,
-          deliveryDate: data.schedule.deliveryDate,
-          fulfillmentStatus: data.schedule.fulfillmentStatus,
-          scheduleReason: data.schedule.scheduleReason,
-          scheduleUpdatedAt: data.schedule.updatedAt,
-        }
-        : item));
-      onOrderStatusChange?.(order.id, data.status);
-      onScheduleChange?.(order.id, {
-        status: data.status,
-        deliveryDate: data.schedule.deliveryDate,
-        fulfillmentStatus: data.schedule.fulfillmentStatus,
-        scheduleReason: data.schedule.scheduleReason,
-        scheduleUpdatedAt: data.schedule.updatedAt,
-      });
-      setSelectedDate(data.schedule.deliveryDate);
-      const scheduledDate = fromDateKey(data.schedule.deliveryDate);
-      setVisibleMonth(new Date(scheduledDate.getFullYear(), scheduledDate.getMonth(), 1));
-      router.refresh();
-      await Swal.fire('Berhasil', 'Pesanan berhasil dikonfirmasi dan jadwal pengiriman telah disimpan.', 'success');
-    } catch (error) {
-      await Swal.fire('Gagal', error instanceof Error ? error.message : 'Pesanan tidak dapat dikonfirmasi.', 'error');
-    }
-  };
-
-  const batalkanPesanan = (order: OrderItem) => {
-    Swal.fire({
-      title: 'Perhatian!',
-      html: `
-        <p class="mb-4 text-gray-600">Pesanan ini akan dibatalkan secara permanen, lalu diteruskan kepada Pembeli.</p>
-        <div class="text-left w-full mt-2">
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Alasan Pembatalan (Opsional)</label>
-          <textarea id="cancel-reason" class="w-full rounded-lg border border-gray-300 p-3 text-sm outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary placeholder:text-gray-400 min-h-[100px] resize-y" placeholder="Misal: Stok bahan baku telah habis..."></textarea>
-        </div>
-      `,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Ya, Batalkan',
-      cancelButtonText: 'Batal',
-      confirmButtonColor: '#ef4444',
-      preConfirm: () => {
-        return (document.getElementById('cancel-reason') as HTMLTextAreaElement)?.value || undefined;
-      },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        updateOrderStatus(order.id, 'cancelled', 'Pesanan berhasil dibatalkan', result.value);
-      }
-    });
-  };
 
   return (
     <section className="card mb-8 overflow-hidden border border-border" aria-labelledby="preorder-calendar-title">
@@ -418,25 +300,25 @@ export default function SellerPreorderCalendar({
       </div>
 
       <div className="grid grid-cols-1 gap-3 border-b border-border p-4 sm:grid-cols-5 sm:p-5">
-        <div className="rounded-xl border border-border bg-base p-4">
+        <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4">
           <p className="text-[10px] sm:text-xs font-medium text-text-secondary line-clamp-1">Terjadwal Bulan Ini</p>
-          <p className="mt-1 text-2xl font-bold text-text-primary">{monthOrders.length}</p>
+          <p className="mt-1 text-2xl font-bold text-blue-700 dark:text-blue-300">{monthOrders.length}</p>
         </div>
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+        <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-4">
           <p className="text-[10px] sm:text-xs font-medium text-text-secondary line-clamp-1">Belum Dijadwalkan</p>
-          <p className="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-300">{unscheduledOrders.length}</p>
+          <p className="mt-1 text-2xl font-bold text-orange-700 dark:text-orange-300">{unscheduledOrders.length}</p>
+        </div>
+        <div className="rounded-xl border border-purple-500/30 bg-purple-500/5 p-4">
+          <p className="text-[10px] sm:text-xs font-medium text-text-secondary line-clamp-1">Siap Dikirim (Tgl Terpilih)</p>
+          <p className="mt-1 text-2xl font-bold text-purple-700 dark:text-purple-300">{shippedSelected}</p>
         </div>
         <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4">
-          <p className="text-[10px] sm:text-xs font-medium text-text-secondary line-clamp-1">Siap (Tgl Terpilih)</p>
-          <p className="mt-1 text-2xl font-bold text-cyan-700 dark:text-cyan-300">{shippedSelected}</p>
+          <p className="text-[10px] sm:text-xs font-medium text-text-secondary line-clamp-1">Total Dalam Pengiriman</p>
+          <p className="mt-1 text-2xl font-bold text-cyan-700 dark:text-cyan-300">{totalShipped}</p>
         </div>
-        <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4">
-          <p className="text-[10px] sm:text-xs font-medium text-text-secondary line-clamp-1">Total Dikirim</p>
-          <p className="mt-1 text-2xl font-bold text-blue-700 dark:text-blue-300">{totalShipped}</p>
-        </div>
-        <div className="rounded-xl border border-status-success/30 bg-status-success/5 p-4">
-          <p className="text-[10px] sm:text-xs font-medium text-text-secondary line-clamp-1">Total Sampai</p>
-          <p className="mt-1 text-2xl font-bold text-status-success dark:text-emerald-400">{totalDelivered}</p>
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+          <p className="text-[10px] sm:text-xs font-medium text-text-secondary line-clamp-1">Total Terkirim</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-400">{totalDelivered}</p>
         </div>
       </div>
 
@@ -456,7 +338,7 @@ export default function SellerPreorderCalendar({
           <div className="grid grid-cols-7 overflow-hidden rounded-b-xl border-x border-b border-border">
             {calendarDays.map((date) => {
               const dateKey = toDateKey(date);
-              const dayOrders = scheduledOrders.filter((order) => order.deliveryDate === dateKey);
+              const dayOrders = scheduledOrders.filter((order) => getOrderDate(order) === dateKey);
               const isCurrentMonth = date.getMonth() === visibleMonth.getMonth();
               const isSelected = selectedDate === dateKey;
               const isToday = todayKey === dateKey;
@@ -471,10 +353,10 @@ export default function SellerPreorderCalendar({
                 >
                   <span
                     className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full text-xs font-semibold transition-all shadow-sm ${dayOrders.length > 0
-                        ? fulfillmentStyles[dayOrders[0].fulfillmentStatus || 'scheduled'].dot + ' text-white'
-                        : isToday
-                          ? 'bg-brand-primary text-white'
-                          : 'text-text-primary hover:bg-border/60'
+                      ? fulfillmentStyles[dayOrders[0].fulfillmentStatus || 'scheduled'].dot + ' text-white'
+                      : isToday
+                        ? 'bg-brand-primary text-white'
+                        : 'text-text-primary hover:bg-border/60'
                       }`}
                     title="Lihat Detail Jadwal"
                   >
@@ -524,22 +406,19 @@ export default function SellerPreorderCalendar({
                   statusLabel = 'Selesai (Barang Sudah Sampai)';
                   statusBadge = 'bg-status-success/10 text-status-success border border-status-success/20';
                 } else if (order.status === 'processing') {
-                  statusLabel = 'Barang sedang Dikirim';
-                  statusBadge = 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20';
+                  statusLabel = 'Dikirim';
+                  statusBadge = 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20';
                 } else if (order.status === 'cancelled') {
                   statusLabel = 'Dibatalkan';
                   statusBadge = 'bg-status-error/10 text-status-error border border-status-error/20';
                 } else if (order.status === 'returned') {
                   statusLabel = 'Dikembalikan Pembeli';
                   statusBadge = 'bg-status-error/10 text-status-error border border-status-error/20';
-                } else if (order.status === 'verified') {
-                  statusLabel = 'Sudah Dibayar';
+                } else if (order.status === 'verified' || order.status === 'preorder_running') {
+                  statusLabel = 'Diproses (Sudah Dibayar)';
                   statusBadge = 'bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20';
-                } else if (order.status === 'preorder_running') {
-                  statusLabel = 'Diproses Penjual';
-                  statusBadge = 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20';
                 } else if (order.status === 'waiting_verification') {
-                  statusLabel = 'Menunggu Konfirmasi';
+                  statusLabel = 'Menunggu Pembayaran';
                   statusBadge = 'bg-status-warning/10 text-status-warning border border-status-warning/20';
                 }
 
@@ -567,9 +446,8 @@ export default function SellerPreorderCalendar({
                       <p className="flex items-center gap-2 font-bold text-text-primary"><Wallet className="h-3.5 w-3.5 shrink-0 text-status-success" />Rp {(order.totalPrice || 0).toLocaleString('id-ID')}</p>
                     </div>
                     {order.status === 'waiting_verification' ? (
-                      <div className="flex gap-2 mt-3">
-                        <button onClick={() => konfirmasiPesanan(order)} className="flex-1 rounded-lg bg-brand-primary px-3 py-2 text-xs font-bold text-white hover:bg-brand-primary-hover">Konfirmasi</button>
-                        <button onClick={() => batalkanPesanan(order)} className="flex-1 rounded-lg bg-status-error px-3 py-2 text-xs font-bold text-white hover:bg-red-600">Batalkan</button>
+                      <div className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-status-warning/10 py-2.5 text-[11px] font-bold text-status-warning">
+                        Menunggu Pembayaran Pembeli
                       </div>
                     ) : (
                       <button onClick={() => saveSchedule(order)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-xs font-semibold text-text-primary hover:border-brand-primary hover:text-brand-primary"><Pencil className="h-3.5 w-3.5" />Kelola Jadwal</button>
@@ -582,65 +460,6 @@ export default function SellerPreorderCalendar({
         </aside>
       </div>
 
-      <div className="border-t border-border bg-base/40 p-4 sm:p-5">
-        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="flex items-center gap-2 font-bold text-text-primary"><Clock3 className="h-5 w-5 text-amber-500" />Pesanan Belum Dijadwalkan</h3>
-            <p className="mt-1 text-xs text-text-secondary">Tentukan tanggal agar produksi dan pengiriman tidak terlewat.</p>
-          </div>
-          <span className="mt-2 w-fit rounded-full bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-700 dark:text-amber-300 sm:mt-0">{unscheduledOrders.length} pesanan</span>
-        </div>
-
-        {unscheduledOrders.length === 0 ? (
-          <div className="flex items-center gap-3 rounded-xl border border-status-success/20 bg-status-success/5 p-4 text-sm text-status-success">
-            <PackageCheck className="h-5 w-5" /> Semua pesanan aktif sudah memiliki jadwal pengiriman.
-          </div>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {unscheduledOrders.map((order) => (
-              <div key={order.id} className="flex flex-col justify-between gap-3 rounded-xl border border-border bg-surface p-4 sm:flex-row sm:items-start md:flex-col md:items-stretch 2xl:flex-row 2xl:items-start">
-                <div className="min-w-0 flex-1 space-y-1.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="truncate text-sm font-bold text-text-primary">{order.productName}</p>
-                    {order.status === 'verified' && (
-                      <span className="shrink-0 rounded-full border border-brand-secondary/20 bg-brand-secondary/10 px-2 py-1 text-[10px] font-bold text-brand-secondary">
-                        Sudah Dibayar
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-text-secondary">{order.qty} porsi · {order.id}</p>
-                  {order.requestedDeliveryDate && <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Diminta pembeli: {formatLongDate(order.requestedDeliveryDate)}</p>}
-                  {order.deliveryDate && <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-0.5">Jadwal sementara: {formatLongDate(order.deliveryDate)}</p>}
-                  {order.selectedVariant && <p className="text-xs font-semibold text-brand-primary">Varian: {order.selectedVariant}{order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}` : ''}</p>}
-
-                  <div className="mt-2 space-y-1 text-xs text-text-secondary pt-2 border-t border-border/50">
-                    <p className="flex items-center gap-1.5"><UserRound className="h-3 w-3 shrink-0" /><span className="font-semibold text-text-primary">{order.buyerName || 'Pembeli'}</span></p>
-                    {order.buyerPhone && <p className="flex items-center gap-1.5"><Phone className="h-3 w-3 shrink-0" />{order.buyerPhone}</p>}
-                    {order.buyerAddress && <p className="flex items-start gap-1.5"><MapPin className="mt-0.5 h-3 w-3 shrink-0" /><span className="line-clamp-1">{order.buyerAddress}</span></p>}
-                    {order.notes && (
-                      <div className="flex items-start gap-1.5 mt-1">
-                        <StickyNote className="mt-0.5 h-3 w-3 shrink-0 text-brand-primary" />
-                        <span className="italic text-brand-primary-dark line-clamp-2">{order.notes}</span>
-                      </div>
-                    )}
-                    <p className="flex items-center gap-1.5 font-bold text-text-primary"><Wallet className="h-3.5 w-3.5 shrink-0 text-status-success" />Rp {(order.totalPrice || 0).toLocaleString('id-ID')}</p>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 shrink-0">
-                  {order.status === 'waiting_verification' ? (
-                    <div className="flex md:flex-col lg:flex-row gap-2">
-                      <button onClick={() => konfirmasiPesanan(order)} className="flex-1 rounded-lg bg-brand-primary px-3 py-2 text-xs font-bold text-white hover:bg-brand-primary-hover">Konfirmasi</button>
-                      <button onClick={() => batalkanPesanan(order)} className="flex-1 rounded-lg bg-status-error px-3 py-2 text-xs font-bold text-white hover:bg-red-600">Batalkan</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => saveSchedule(order)} className="flex items-center justify-center gap-1.5 rounded-lg bg-brand-primary px-3 py-2 text-xs font-bold text-white hover:bg-brand-primary-hover"><Plus className="h-3.5 w-3.5" />Jadwalkan</button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </section>
   );
 }

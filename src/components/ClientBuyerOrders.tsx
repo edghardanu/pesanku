@@ -1,4 +1,5 @@
 "use client";
+import ClientOrderDetail from './ClientOrderDetail';
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -21,6 +22,7 @@ export default function ClientBuyerOrders({
   feeAplikasi = 0,
   feeJasa = 0,
   feeAdmin = 0,
+  penaltyPercentage = 0,
 }: {
   orders: BuyerOrderViewItem[];
   user?: AuthUser | null;
@@ -28,6 +30,7 @@ export default function ClientBuyerOrders({
   feeAplikasi?: number;
   feeJasa?: number;
   feeAdmin?: number;
+  penaltyPercentage?: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -39,7 +42,9 @@ export default function ClientBuyerOrders({
   const [checkoutNoticeCount, setCheckoutNoticeCount] = useState(checkoutCount);
   const [ratingLoadingOrderId, setRatingLoadingOrderId] = useState<string | null>(null);
   const hasShownCheckoutNotice = useRef(false);
-  const [activeTab, setActiveTab] = useState<'orders' | 'chats' | 'tracking'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'tracking'>('orders');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [activeReturnOrder, setActiveReturnOrder] = useState<BuyerOrderViewItem | null>(null);
   const [returnReason, setReturnReason] = useState("");
@@ -57,8 +62,8 @@ export default function ClientBuyerOrders({
       const productName = order ? order.productName : searchParams.get('productName');
 
       if (productName) {
-        setActiveTab('chats');
-        setSelectedChatOrderId(openChatOrderId);
+        setActiveTab('orders');
+        setSelectedOrderId(openChatOrderId);
       }
     }
   }, [searchParams, orders, selectedChatOrderId]);
@@ -86,9 +91,17 @@ export default function ClientBuyerOrders({
 
   const filteredLocalOrders = localOrders.filter(o => {
     if (cancelledExpiredOrderIds.includes(o.orderId)) return false;
-    if (activeTab === 'chats') return true; // Semua order punya chat
-    if (activeTab === 'tracking') return o.status !== 'chat_only' && o.status !== 'cancelled';
-    return o.status !== 'chat_only'; // Tab pesanan: sembunyikan chat_only
+    if (activeTab === 'tracking' && o.status === 'cancelled') return false;
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchStore = o.storeName?.toLowerCase().includes(q) || false;
+      const matchProduct = o.productName?.toLowerCase().includes(q) || false;
+      const matchId = o.orderId.toLowerCase().includes(q) || false;
+      if (!matchStore && !matchProduct && !matchId) return false;
+    }
+
+    return true;
   });
 
   // Untuk tab chats, pisahkan chat_only dan order biasa yg ada pesan baru dari seller
@@ -286,8 +299,8 @@ export default function ClientBuyerOrders({
     });
 
     if (result.isConfirmed) {
-      // Optimistic update: langsung hapus dari tampilan
-      setLocalOrders(prev => prev.filter(o => o.orderId !== orderId));
+      // Optimistic update: ubah status jadi cancelled
+      setLocalOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, status: 'cancelled' } : o));
 
       Swal.fire({
         title: 'Pesanan Dibatalkan',
@@ -776,7 +789,7 @@ export default function ClientBuyerOrders({
         </div>
       </header>
 
-      <main className={`container mx-auto px-4 pt-6 pb-24 md:pb-12 transition-all duration-300 ${activeTab === 'chats' ? 'max-w-7xl' : 'max-w-4xl'}`}>
+      <main className="container mx-auto px-4 pt-6 pb-24 md:pb-12 transition-all duration-300 max-w-[1500px]">
         {activeReturnOrder ? (
           <div>
             <button
@@ -986,6 +999,10 @@ export default function ClientBuyerOrders({
                     )}
                   </button>
                 </div>
+
+                <p className="text-[11px] text-text-secondary mt-2 text-center border-t border-border pt-4">
+                  Dengan mengajukan pengembalian, Anda menyetujui <Link href="/refund-policy" className="text-brand-primary hover:underline font-semibold" target="_blank">Kebijakan Pengembalian Dana</Link>.
+                </p>
               </form>
             </div>
           </div>
@@ -1019,66 +1036,18 @@ export default function ClientBuyerOrders({
               )}
             </AnimatePresence>
 
-            {/* Navigation Tabs */}
+            {/* Navigation Tabs - Lacak Pesanan removed per user request */}
             {user && (
-              <div className="mb-6 grid w-full grid-cols-3 border-b border-border" role="tablist" aria-label="Navigasi pesanan">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'orders'}
-                  onClick={() => setActiveTab('orders')}
-                  className={`relative flex min-w-0 items-center justify-center gap-1 border-b-2 px-1 py-3 text-[11px] font-semibold transition-colors sm:gap-2 sm:px-4 sm:text-sm ${activeTab === 'orders'
-                    ? 'border-brand-primary text-brand-primary'
-                    : 'border-transparent text-text-secondary hover:text-text-primary'
-                    }`}
-                >
-                  <ShoppingBag className="h-4 w-4 shrink-0" />
-                  <span className="whitespace-nowrap sm:hidden">Pesanan</span>
-                  <span className="hidden whitespace-nowrap sm:inline">Pesanan Saya</span>
+              <div className="mb-6 w-full border-b border-border pb-3" role="heading" aria-label="Pesanan Saya">
+                <div className="flex items-center gap-2 px-1 text-sm font-bold text-brand-primary">
+                  <ShoppingBag className="h-5 w-5" />
+                  <span>Pesanan Saya</span>
                   {ordersCount > 0 && (
-                    <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-primary px-1 text-[9px] font-bold text-white shadow-sm sm:static sm:h-5 sm:min-w-[20px] sm:px-1.5 sm:text-[10px]">
+                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-primary px-1.5 text-[10px] font-bold text-white shadow-sm ml-2">
                       {ordersCount}
                     </span>
                   )}
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'chats'}
-                  onClick={() => setActiveTab('chats')}
-                  className={`relative flex min-w-0 items-center justify-center gap-1 border-b-2 px-1 py-3 text-[11px] font-semibold transition-colors sm:gap-2 sm:px-4 sm:text-sm ${activeTab === 'chats'
-                    ? 'border-brand-primary text-brand-primary'
-                    : 'border-transparent text-text-secondary hover:text-text-primary'
-                    }`}
-                >
-                  <MessageCircle className="h-4 w-4 shrink-0" />
-                  <span className="whitespace-nowrap sm:hidden">Chat Penjual</span>
-                  <span className="hidden whitespace-nowrap sm:inline">Chat dengan Penjual</span>
-                  {chatsCount > 0 && (
-                    <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-primary px-1 text-[9px] font-bold text-white shadow-sm sm:static sm:h-5 sm:min-w-[20px] sm:px-1.5 sm:text-[10px]">
-                      {chatsCount}
-                    </span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'tracking'}
-                  onClick={() => setActiveTab('tracking')}
-                  className={`relative flex min-w-0 items-center justify-center gap-1 border-b-2 px-1 py-3 text-[11px] font-semibold transition-colors sm:gap-2 sm:px-4 sm:text-sm ${activeTab === 'tracking'
-                    ? 'border-brand-primary text-brand-primary'
-                    : 'border-transparent text-text-secondary hover:text-text-primary'
-                    }`}
-                >
-                  <Truck className="h-4 w-4 shrink-0" />
-                  <span className="whitespace-nowrap sm:hidden">Lacak</span>
-                  <span className="hidden whitespace-nowrap sm:inline">Lacak Pesanan Anda</span>
-                  {trackingCount > 0 && (
-                    <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-primary px-1 text-[9px] font-bold text-white shadow-sm sm:static sm:h-5 sm:min-w-[20px] sm:px-1.5 sm:text-[10px]">
-                      {trackingCount}
-                    </span>
-                  )}
-                </button>
+                </div>
               </div>
             )}
 
@@ -1116,17 +1085,6 @@ export default function ClientBuyerOrders({
                   </Link>
                 </div>
               </motion.div>
-            ) : activeTab === 'chats' ? (
-              <ChatInterface
-                mode="buyer"
-                user={user || null}
-                initialOrderId={selectedChatOrderId}
-                buyerOrders={localOrders}
-                setBuyerOrders={setLocalOrders}
-                onBack={() => {
-                  setSelectedChatOrderId(null);
-                }}
-              />
             ) : filteredLocalOrders.length === 0 ? (
               <div className="text-center py-20 bg-surface rounded-3xl border border-border mt-8 shadow-sm">
                 <div className="mx-auto w-fit relative mb-6 mt-4">
@@ -1155,605 +1113,139 @@ export default function ClientBuyerOrders({
                   {activeTab === 'tracking' ? "Kembali Belanja" : "Pesan Sekarang"}
                 </Link>
               </div>
-            ) : activeTab === 'tracking' ? (
-              <div className="flex flex-col gap-6">
-                {filteredLocalOrders.map((order) => {
-                  const isCompleted = order.status === 'completed';
-                  const isCancelled = order.status === 'cancelled';
-                  const isProcessing = order.status === 'processing';
-                  const isPreorderRunning = order.status === 'preorder_running';
-                  const isVerified = order.status === 'verified';
-                  const isWaitingPayment = order.status === 'waiting_verification';
-
-                  const steps = [
-                    { label: 'Pesanan Dibuat', completed: true, date: order.createdAt },
-                    { label: 'Menunggu Pembayaran', completed: isVerified || isPreorderRunning || isProcessing || isCompleted, active: isWaitingPayment, date: '' },
-                    { label: 'Telah Dibayar', completed: isVerified || isPreorderRunning || isProcessing || isCompleted, active: false, date: '' },
-                    { label: 'Menunggu Konfirmasi Penjual', completed: isPreorderRunning || isProcessing || isCompleted, active: isVerified, date: '' },
-                    { label: 'Diproses Penjual', completed: isProcessing || isCompleted, active: isPreorderRunning, date: isPreorderRunning || isProcessing || isCompleted ? 'Tanggal telah dikonfirmasi' : '' },
-                    { label: 'Barang Dikirim', completed: isCompleted, active: isProcessing, date: '' },
-                    { label: 'Pesanan Selesai', completed: isCompleted, active: false, date: order.ratedAt || '' }
-                  ];
-
-                  return (
-                    <div key={order.orderId} className="bg-base border border-border rounded-2xl overflow-hidden shadow-sm p-5 hover:border-brand-primary/30 transition-colors">
-                      <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
-                        <div>
-                          <h3 className="font-semibold text-text-primary text-base sm:text-lg">{order.productName}</h3>
-                          <p className="text-xs sm:text-sm text-text-secondary mt-1">Toko: <span className="font-medium text-text-primary">{order.storeName || 'Toko UMKM'}</span></p>
-                        </div>
-                        <span className="text-[10px] sm:text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full">
-                          {order.orderId}
-                        </span>
-                      </div>
-
-                      {/* MOBILE & TABLET: Vertical Timeline */}
-                      <div className="relative lg:hidden pb-4 pt-4">
-                        <div className="flex flex-col gap-6 sm:gap-8 relative z-10">
-                          {steps.map((step, idx) => {
-                            const isLast = idx === steps.length - 1;
-                            const nextStep = steps[idx + 1];
-                            const isLineActive = nextStep?.active;
-                            const isLineCompleted = nextStep?.completed;
-
-                            return (
-                              <div key={idx} className={`relative flex items-start gap-4 sm:gap-6 ${!step.completed && !step.active ? 'opacity-50 grayscale' : ''}`}>
-                                {!isLast && (
-                                  <div className={`absolute top-[32px] sm:top-[40px] left-[14px] sm:left-[18px] w-1 -bottom-6 sm:-bottom-8 rounded-full overflow-hidden ${isLineCompleted ? 'bg-brand-primary' : 'bg-gray-200 dark:bg-gray-700'}`}>
-                                    {isLineActive && <div className="w-full h-full animate-flow-vertical"></div>}
-                                  </div>
-                                )}
-                                <div className={`relative z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 ring-4 ring-base transition-all ${step.completed ? 'bg-brand-primary text-white shadow-md' : step.active ? 'bg-brand-primary/10 border-2 border-brand-primary text-brand-primary ring-brand-primary/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
-                                  {step.completed ? <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" /> : <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-current"></div>}
-                                </div>
-                                <div className="flex flex-col pt-1 sm:pt-1.5">
-                                  <span className={`text-sm sm:text-base font-bold ${step.active ? 'text-brand-primary' : step.completed ? 'text-text-primary' : 'text-text-secondary'}`}>{step.label}</span>
-                                  {step.date && <span className="text-[11px] sm:text-xs text-text-secondary mt-1">{step.date === 'Telah Dibayar' ? step.date : formatOrderDateTimeWIB(step.date)}</span>}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* DESKTOP: Horizontal Timeline */}
-                      <div className="hidden lg:block w-full pb-8 pt-4 relative">
-                        <div className="flex flex-row justify-between w-full relative z-10">
-                          {steps.map((step, idx) => {
-                            const isLast = idx === steps.length - 1;
-                            const nextStep = steps[idx + 1];
-                            const isLineActive = nextStep?.active;
-                            const isLineCompleted = nextStep?.completed;
-
-                            return (
-                              <div key={idx} className={`relative flex flex-col items-center flex-1 ${!step.completed && !step.active ? 'opacity-50 grayscale' : ''}`}>
-                                {!isLast && (
-                                  <div className={`absolute top-[18px] left-[50%] w-full h-1 rounded-full overflow-hidden ${isLineCompleted ? 'bg-brand-primary' : 'bg-gray-200 dark:bg-gray-700'}`}>
-                                    {isLineActive && <div className="w-full h-full animate-flow-horizontal"></div>}
-                                  </div>
-                                )}
-                                <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 ring-4 ring-base transition-all ${step.completed ? 'bg-brand-primary text-white shadow-md' : step.active ? 'bg-brand-primary/10 border-2 border-brand-primary text-brand-primary ring-brand-primary/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
-                                  {step.completed ? <CheckCircle className="w-5 h-5" /> : <div className="w-2.5 h-2.5 rounded-full bg-current"></div>}
-                                </div>
-                                <div className="flex flex-col items-center mt-4 text-center px-2">
-                                  <span className={`text-sm font-bold ${step.active ? 'text-brand-primary' : step.completed ? 'text-text-primary' : 'text-text-secondary'}`}>{step.label}</span>
-                                  {step.date && <span className="text-xs text-text-secondary mt-1.5">{step.date === 'Telah Dibayar' ? step.date : formatOrderDateTimeWIB(step.date)}</span>}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             ) : (
-              <div className="space-y-4">
-                {filteredLocalOrders.map((order) => {
-
-                  const clearQtyDraft = () => {
-                    setQtyDrafts(prev => {
-                      if (!(order.orderId in prev)) return prev;
-
-                      const next = { ...prev };
-                      delete next[order.orderId];
-                      return next;
-                    });
-                  };
-
-                  const updateQty = async (requestedQty: number) => {
-                    const minAllowed = order.minQty || 1;
-                    const newQty = requestedQty;
-
-                    if (!Number.isSafeInteger(newQty)) {
-                      clearQtyDraft();
-                      return;
-                    }
-
-                    if (newQty === order.qty) {
-                      clearQtyDraft();
-                      return;
-                    }
-
-                    if (newQty < minAllowed) {
-                      clearQtyDraft();
-                      Swal.fire({
-                        icon: 'warning',
-                        title: 'Batas Minimal',
-                        text: `Penjual menetapkan minimal pemesanan adalah ${minAllowed} porsi.`,
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 2000,
-                      });
-                      return;
-                    }
-
-                    if (order.maxQty && newQty > order.maxQty) {
-                      clearQtyDraft();
-                      Swal.fire({
-                        icon: 'warning',
-                        title: 'Batas Maksimal',
-                        text: `Maksimal pemesanan adalah ${order.maxQty} porsi.`,
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 2000,
-                      });
-                      return;
-                    }
-
-                    // Calculate unit price from original state
-                    const unitPrice = order.totalPrice / order.qty;
-                    const newTotalPrice = unitPrice * newQty;
-
-                    // Optimistic update
-                    setLocalOrders(prev => prev.map(o => {
-                      if (o.orderId === order.orderId) {
-                        return { ...o, qty: newQty, totalPrice: newTotalPrice };
-                      }
-                      return o;
-                    }));
-                    clearQtyDraft();
-
-                    try {
-                      const res = await fetch('/api/orders/update-qty', {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ orderId: order.orderId, qty: newQty }),
-                      });
-                      if (!res.ok) {
-                        const data = await res.json();
-                        throw new Error(data.error || 'Gagal menyimpan perubahan');
-                      }
-                    } catch (error) {
-                      // Rollback on error
-                      setLocalOrders(prev => prev.map(o => {
-                        if (o.orderId === order.orderId) {
-                          return { ...o, qty: order.qty, totalPrice: order.totalPrice };
-                        }
-                        return o;
-                      }));
-                      const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
-                      Swal.fire({
-                        icon: 'error',
-                        title: 'Gagal',
-                        text: errMsg,
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 2000,
-                      });
-                    }
-                  };
-
-                  const quantityInputValue = qtyDrafts[order.orderId] ?? String(order.qty);
-                  const quantityBaseValue = quantityInputValue ? Number(quantityInputValue) : order.qty;
-                  const orderUnitPrice = order.qty > 0 ? order.totalPrice / order.qty : 0;
-                  const draftQuantity = Number(quantityInputValue);
-                  const displayedTotalPrice = (quantityInputValue && Number.isSafeInteger(draftQuantity) && draftQuantity > 0
-                    ? orderUnitPrice * draftQuantity
-                    : order.totalPrice) + feeAplikasi + feeJasa + feeAdmin;
-                  const isQuantityLocked = order.status === 'completed' || order.status === 'cancelled' || !!order.paymentId;
-
-                  return (
-                    <div key={order.orderId} className="card p-0 border border-border overflow-hidden bg-surface">
-                      <div className="p-4 border-b border-border bg-base flex justify-between items-center gap-3">
-                        <span className="text-xs font-mono text-text-secondary truncate min-w-0">
-                          {order.status === 'chat_only'
-                            ? <><span className="font-semibold text-text-primary">{order.productName}</span> · {order.storeName || 'Toko UMKM'}</>
-                            : order.orderId}
-                        </span>
-                        <span className="text-xs text-text-secondary font-medium shrink-0">
-                          {order.status === 'chat_only' && order.lastMessageAt
-                            ? formatOrderDate(order.lastMessageAt)
-                            : formatOrderDate(order.createdAt)}
-                        </span>
-                      </div>
-                      <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-                        <div className="flex gap-4 items-center">
-                          <div className="w-16 h-16 rounded-xl bg-base dark:bg-border overflow-hidden relative shrink-0">
-                            {order.productImageUrl ? (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img src={order.productImageUrl} alt={order.productName} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-base dark:bg-border">
-                                <FileImage className="w-6 h-6 text-text-secondary" />
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-text-primary mb-1">{order.productName}</h3>
-                            <p className="text-sm text-text-secondary mb-1">Toko: {order.storeName || 'Toko UMKM'}</p>
-                            {order.selectedVariant && (
-                              <p className="mb-1 text-sm font-semibold text-brand-primary">
-                                Varian: {order.selectedVariant}
-                                {order.selectedVariantPrice !== null && order.selectedVariantPrice !== undefined
-                                  ? ` · Rp ${order.selectedVariantPrice.toLocaleString('id-ID')}`
-                                  : ''}
-                              </p>
-                            )}
-                            {order.processingTime && order.status !== 'chat_only' && (
-                              <p className="text-sm text-text-secondary mb-1">
-                                Waktu Proses: <span className="font-medium text-text-primary">{order.processingTime}</span>
-                              </p>
-                            )}
-                            {order.status !== 'chat_only' && (
-                              <>
-                                <p className="text-sm text-brand-primary font-semibold mb-2">Rp {orderUnitPrice.toLocaleString('id-ID')} / Porsi</p>
-                                <div className="flex items-center gap-3 mt-1.5">
-                                  <p className="text-sm font-medium">Jumlah:</p>
-                                  <div className={`flex items-center border border-border rounded-lg bg-base overflow-hidden focus-within:border-brand-primary focus-within:ring-2 focus-within:ring-brand-primary/20 ${isQuantityLocked ? 'opacity-50 bg-gray-100 dark:bg-gray-800' : ''}`}>
-                                    <button
-                                      type="button"
-                                      onMouseDown={(event) => event.preventDefault()}
-                                      onClick={() => void updateQty(quantityBaseValue - 1)}
-                                      disabled={isQuantityLocked}
-                                      className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
-                                      aria-label={`Kurangi jumlah ${order.productName}`}
-                                    >
-                                      -
-                                    </button>
-                                    <input
-                                      type="text"
-                                      inputMode="numeric"
-                                      pattern="[0-9]*"
-                                      autoComplete="off"
-                                      value={quantityInputValue}
-                                      disabled={isQuantityLocked}
-                                      onChange={(event) => {
-                                        const digitsOnly = event.target.value.replace(/\D/g, '');
-                                        setQtyDrafts(prev => ({ ...prev, [order.orderId]: digitsOnly }));
-                                      }}
-                                      onBlur={(event) => {
-                                        const value = event.currentTarget.value;
-                                        if (!value) {
-                                          clearQtyDraft();
-                                          return;
-                                        }
-
-                                        void updateQty(Number(value));
-                                      }}
-                                      onKeyDown={(event) => {
-                                        if (event.key === 'Enter') event.currentTarget.blur();
-                                      }}
-                                      className="w-12 border-x border-border bg-transparent px-1 py-1 text-center text-sm font-semibold text-text-primary outline-none disabled:cursor-not-allowed"
-                                      aria-label={`Jumlah porsi ${order.productName}`}
-                                    />
-                                    <button
-                                      type="button"
-                                      onMouseDown={(event) => event.preventDefault()}
-                                      onClick={() => void updateQty(quantityBaseValue + 1)}
-                                      disabled={isQuantityLocked}
-                                      className="px-2.5 py-1 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
-                                      aria-label={`Tambah jumlah ${order.productName}`}
-                                    >
-                                      +
-                                    </button>
-                                  </div>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Catatan Tambahan — full width row */}
-                      {order.status !== 'chat_only' && (
-                        <div className="px-5 pb-4 border-t border-border pt-4">
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <Pencil className="w-4 h-4 text-text-secondary" />
-                            <span className="text-xs sm:text-sm font-semibold text-text-secondary uppercase tracking-wide">Catatan Tambahan</span>
-                          </div>
-                          {editingNoteId === order.orderId ? (
-                            <div className="w-full">
-                              <textarea
-                                autoFocus
-                                value={noteInputs[order.orderId] ?? order.notes ?? ''}
-                                onChange={(e) => setNoteInputs(prev => ({ ...prev, [order.orderId]: e.target.value }))}
-                                rows={3}
-                                placeholder="Contoh: Jangan terlalu pedas ya kak, tolong dibungkus rapi..."
-                                className="w-full text-sm bg-base border-2 border-brand-primary/50 focus:border-brand-primary rounded-xl px-3 py-3 resize-none outline-none text-text-primary transition-colors leading-relaxed placeholder:text-text-secondary/40 shadow-sm"
-                              />
-                              <div className="grid grid-cols-2 gap-2 mt-2.5">
-                                <button
-                                  onClick={async () => {
-                                    const newNote = noteInputs[order.orderId] ?? order.notes ?? '';
-                                    try {
-                                      const res = await fetch('/api/orders/update-note', {
-                                        method: 'PATCH',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ orderId: order.orderId, notes: newNote }),
-                                      });
-                                      if (res.ok) {
-                                        setLocalOrders(prev => prev.map(o =>
-                                          o.orderId === order.orderId ? { ...o, notes: newNote } : o
-                                        ));
-                                        Swal.fire({ icon: 'success', title: 'Catatan Disimpan', toast: true, position: 'top-end', showConfirmButton: false, timer: 1800 });
-                                      } else {
-                                        Swal.fire({ icon: 'error', title: 'Gagal menyimpan catatan', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
-                                      }
-                                    } catch {
-                                      Swal.fire({ icon: 'error', title: 'Terjadi kesalahan', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
-                                    }
-                                    setEditingNoteId(null);
-                                  }}
-                                  className="flex items-center justify-center gap-2 py-3 bg-brand-primary text-white text-sm font-semibold rounded-xl hover:bg-brand-primary-hover active:scale-95 transition-all"
-                                >
-                                  <Save className="w-4 h-4 shrink-0" />
-                                  <span>Simpan Catatan</span>
-                                </button>
-                                <button
-                                  onClick={() => setEditingNoteId(null)}
-                                  className="flex items-center justify-center gap-2 py-3 bg-gray-100 dark:bg-gray-700 text-text-secondary text-sm font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95 transition-all"
-                                >
-                                  <X className="w-4 h-4 shrink-0" />
-                                  <span>Batal</span>
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div
-                              className="group cursor-pointer w-full"
-                              onClick={() => {
-                                setNoteInputs(prev => ({ ...prev, [order.orderId]: order.notes ?? '' }));
-                                setEditingNoteId(order.orderId);
-                              }}
-                            >
-                              {order.notes ? (
-                                <div className="flex items-start gap-2.5 bg-base border border-border rounded-xl px-3 py-3 group-hover:border-brand-primary/40 group-hover:bg-brand-primary/[0.02] active:bg-brand-primary/5 transition-all">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-brand-primary/60"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
-                                  <span className="leading-relaxed text-sm text-text-secondary flex-1 italic">&ldquo;{order.notes}&rdquo;</span>
-                                  <Pencil className="w-4 h-4 text-brand-primary/50 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
-                              ) : (
-                                <div className="flex items-center justify-center gap-2 text-sm text-text-secondary/60 hover:text-brand-primary active:text-brand-primary transition-colors border-2 border-dashed border-border hover:border-brand-primary/40 rounded-xl px-3 py-4 w-full">
-                                  <Pencil className="w-4 h-4" />
-                                  <span className="font-medium">Tap untuk menambahkan catatan...</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {order.status === 'completed' && (
-                        <div className="border-t border-border px-5 py-4">
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p className="text-sm font-bold text-text-primary">Beri Rating Produk</p>
-                              <p className="mt-0.5 text-xs text-text-secondary">
-                                {order.rating ? `Rating Anda: ${order.rating} dari 5 bintang.` : 'Pilih 1 sampai 5 bintang untuk produk ini.'}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1" role="group" aria-label={`Rating untuk ${order.productName}`}>
-                              {[1, 2, 3, 4, 5].map((value) => {
-                                const isActive = value <= (order.rating || 0);
-                                const isLoading = ratingLoadingOrderId === order.orderId;
-                                const hasRated = !!order.rating;
-                                return (
-                                  <button
-                                    key={value}
-                                    type="button"
-                                    onClick={() => !hasRated && handleProductRating(order.orderId, order.productName, value)}
-                                    disabled={isLoading || hasRated}
-                                    aria-label={`Beri ${value} bintang untuk ${order.productName}`}
-                                    aria-pressed={order.rating === value}
-                                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 ${!hasRated ? 'hover:bg-amber-50 dark:hover:bg-amber-500/10' : ''} ${isLoading ? 'cursor-wait opacity-60' : (hasRated ? 'cursor-default' : '')}`}
-                                  >
-                                    <Star className={`h-7 w-7 transition-all ${isActive ? 'fill-amber-400 text-amber-400' : `fill-transparent text-slate-300 ${!hasRated ? 'hover:text-amber-400 dark:text-slate-600' : 'dark:text-slate-700'}`}`} />
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                          {ratingLoadingOrderId === order.orderId && (
-                            <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-brand-primary" role="status">
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Menyimpan rating...
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      <div className={`px-5 pb-5 flex flex-col sm:flex-row items-start sm:items-center ${order.status === 'chat_only' ? 'justify-end' : 'justify-between'} gap-4 border-t border-border pt-4`}>
-                        {order.status !== 'chat_only' && (
-                          <div>
-                            <p className="text-xs text-text-secondary font-medium">Total Harga</p>
-                            <p className="font-bold text-lg text-brand-primary">Rp {displayedTotalPrice.toLocaleString('id-ID')}</p>
-                          </div>
-                        )}
-
-                        {(() => {
-                          const isWaitingPayment = order.status === 'waiting_verification';
-                          const isPendingVerif = order.status === 'waiting_verification' && !!order.paymentId && false; // disabled logic, all go to waiting payment instead
-                          const isVerified = order.status === 'verified';
-                          const isCompleted = order.status === 'completed';
-                          const isCancelled = order.status === 'cancelled';
-                          const isChatOnly = order.status === 'chat_only';
-
-                          return (
-
-                            <div className="w-full flex flex-col items-end gap-2">
-                              {isChatOnly && (
-                                <span className="inline-block px-3 py-1 bg-brand-primary/10 text-brand-primary rounded-full text-xs font-bold w-full sm:w-auto text-center">Tanya Produk / Pre-sales</span>
-                              )}
-                              {isWaitingPayment && !isChatOnly && (
-                                <span className="px-3 py-1 bg-status-warning/10 text-status-warning rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                  <Clock className="w-3.5 h-3.5" /> Menunggu Pembayaran
-                                </span>
-                              )}
-                              {isPendingVerif && (
-                                <span className="px-3 py-1 bg-status-warning/10 text-status-warning rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                  <Clock className="w-3.5 h-3.5" /> Menunggu Verifikasi
-                                </span>
-                              )}
-                              {isVerified && (
-                                <span className="px-3 py-1 bg-brand-primary/10 text-brand-primary rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                  <Clock className="w-3.5 h-3.5" /> Menunggu Konfirmasi Penjual
-                                </span>
-                              )}
-                              {order.status === 'processing' && (
-                                <span className="px-3 py-1 bg-brand-secondary/10 text-brand-secondary-dark dark:text-brand-secondary rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                  <Clock className="w-3.5 h-3.5" /> Barang Dikirim
-                                </span>
-                              )}
-                              {order.status === 'preorder_running' && (
-                                <span className="px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                  <Clock className="w-3.5 h-3.5" /> Diproses Penjual
-                                </span>
-                              )}
-                              {isCompleted && (
-                                <span className="px-3 py-1 bg-status-success/10 text-status-success rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                  <CheckCircle className="w-3.5 h-3.5" /> Pesanan Selesai
-                                </span>
-                              )}
-                              {isCancelled && (
-                                <div className="flex flex-col items-center sm:items-end gap-1.5 w-full sm:w-auto">
-                                  <span className="px-3 py-1 bg-status-error/10 text-status-error rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                    <XCircle className="w-3.5 h-3.5" /> Dibatalkan
-                                  </span>
-                                  {order.cancelReason && (
-                                    <span className="text-[10px] text-text-secondary pr-1 italic text-center sm:text-right max-w-[200px] line-clamp-2" title={order.cancelReason}>
-                                      "{order.cancelReason}"
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                              {order.status === 'returned' && (
-                                <span className="px-3 py-1 bg-status-error/10 text-status-error rounded-full text-xs font-bold flex items-center gap-1 w-full sm:w-auto justify-center">
-                                  <XCircle className="w-3.5 h-3.5" /> Pesanan dikembalikan oleh pembeli
-                                </span>
-                              )}
-
-                              <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto mt-1">
-                                <button
-                                  onClick={() => {
-                                    setSelectedChatOrderId(order.orderId);
-                                    setActiveTab('chats');
-                                  }}
-                                  className="relative btn-outline border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10 hover:border-brand-primary py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
-                                >
-                                  <MessageCircle className="w-3.5 h-3.5" /> Chat
-                                  {(order.unreadCount || 0) > 0 && (
-                                    <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-primary px-1 text-[9px] font-bold text-white shadow-sm ring-2 ring-surface">
-                                      {order.unreadCount}
-                                    </span>
-                                  )}
-                                </button>
-
-                                {isChatOnly && (
-                                  <button
-                                    onClick={() => handleDeleteChatSection(order.orderId, order.storeName || 'Toko UMKM')}
-                                    className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto cursor-pointer"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" /> Hapus Chat
-                                  </button>
-                                )}
-
-                                {!isChatOnly && (
-                                  <Link
-                                    href={`/invoice/${order.orderId}`}
-                                    className="btn-outline border-gray-300 text-gray-700 hover:bg-gray-50 py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
-                                  >
-                                    <Receipt className="w-3.5 h-3.5" /> Detail Pembayaran
-                                  </Link>
-                                )}
-
-                                {order.deliveryProofUrl && !isChatOnly && (
-                                  <div className="flex flex-col items-center sm:items-end w-full sm:w-auto">
-                                    <span className="text-[10px] text-text-secondary mb-1 font-semibold">Bukti Barang Sampai</span>
-                                    <div
-                                      onClick={() => {
-                                        Swal.fire({
-                                          title: `Bukti Barang Sampai`,
-                                          imageUrl: order.deliveryProofUrl as string,
-                                          imageWidth: 400,
-                                          imageAlt: 'Bukti Barang Sampai',
-                                          confirmButtonText: 'Tutup',
-                                          confirmButtonColor: '#ff5c35',
-                                          customClass: {
-                                            popup: 'bg-surface text-text-primary rounded-xl',
-                                            title: 'text-text-primary text-lg'
-                                          }
-                                        });
-                                      }}
-                                      className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-border cursor-pointer hover:opacity-80 transition-opacity shadow-sm group"
-                                    >
-                                      <img src={order.deliveryProofUrl} alt="Bukti Delivery" className="w-full h-full object-cover" />
-                                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <FileImage className="w-4 h-4 text-white" />
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Selesai Pesanan button - only if processing or preorder_running */}
-                                {(order.status === 'processing' || order.status === 'preorder_running') && (
-                                  <>
-                                    <button
-                                      onClick={() => handleCompleteOrder(order.orderId, order.productName)}
-                                      className="btn-primary bg-emerald-500 hover:bg-emerald-600 text-white py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
-                                    >
-                                      <CheckCircle className="w-3.5 h-3.5" /> Selesai Pesanan
-                                    </button>
-                                    <button
-                                      onClick={() => setActiveReturnOrder(order)}
-                                      className="btn-outline border-amber-555 border-amber-500 text-amber-600 hover:bg-amber-500/10 py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
-                                    >
-                                      <RotateCcw className="w-3.5 h-3.5" /> Return/Kembalikan Pesanan
-                                    </button>
-                                  </>
-                                )}
-
-                                {/* Only show Batalkan if not yet completed or cancelled */}
-                                {(isWaitingPayment || isPendingVerif || isVerified || order.status === 'processing') && (
-                                  <button
-                                    onClick={() => handleCancelOrder(order.orderId, order.productName)}
-                                    className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error py-1.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
-                                  >
-                                    <XCircle className="w-3.5 h-3.5" /> Batalkan
-                                  </button>
-                                )}
-
-                                {isWaitingPayment && (
-                                  <button
-                                    onClick={() => handlePayment(order.orderId, order.totalPrice + feeAplikasi + feeJasa + feeAdmin, order.createdAt)}
-                                    className="btn-primary py-1.5 px-4 text-xs flex items-center justify-center gap-2 w-full sm:w-auto"
-                                  >
-                                    <CreditCard className="w-3.5 h-3.5" /> Bayar Sekarang
-                                  </button>
-                                )}
-
-
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
+              <div className="flex w-full h-[calc(100vh-140px)] bg-white border border-border sm:rounded-xl shadow-sm overflow-hidden relative">
+                {/* SIDEBAR: Order List */}
+                <div className={`w-full md:w-[280px] lg:w-[320px] xl:w-[350px] shrink-0 border-r border-border flex flex-col h-full bg-surface-secondary/50 ${selectedOrderId ? 'hidden md:flex' : 'flex'}`}>
+                  <div className="p-4 border-b border-border bg-white flex flex-col gap-3 sticky top-0 z-10 shrink-0">
+                    <h2 className="font-bold text-lg text-text-primary flex items-center gap-2">
+                      <MessageCircle className="w-5 h-5 text-brand-primary" />
+                      Chat & Pesanan
+                    </h2>
+                    <div className="relative relative w-full h-10 bg-base rounded-full flex items-center px-4 shadow-inner border border-border focus-within:ring-2 focus-within:ring-brand-primary/20 focus-within:border-brand-primary transition-all">
+                      <Search className="w-4 h-4 text-text-secondary mr-2" />
+                      <input
+                        type="text"
+                        placeholder="Cari pesanan / toko / ID..."
+                        className="bg-transparent border-none outline-none w-full text-[13px] text-text-primary placeholder:text-text-secondary"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
                     </div>
-                  );
-                })}
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {(() => {
+                      const waitingProductIds = new Set(
+                        filteredLocalOrders
+                          .filter(o => o.status === 'waiting_verification')
+                          .map(o => o.productId)
+                      );
+                      const activeSeen = new Set<string>();
+
+                      return filteredLocalOrders.filter(order => {
+                        // Hide chat_only if there is already a waiting_verification for this product
+                        if (order.status === 'chat_only' && order.productId && waitingProductIds.has(order.productId)) {
+                          return false;
+                        }
+
+                        // Collapse duplicate waiting_verification or chat_only into 1 latest row
+                        if ((order.status === 'waiting_verification' || order.status === 'chat_only') && order.productId) {
+                          if (activeSeen.has(order.productId)) return false;
+                          activeSeen.add(order.productId);
+                        }
+
+                        return true;
+                      });
+                    })().map((order) => (
+                      <div
+                        key={order.orderId}
+                        onClick={() => setSelectedOrderId(order.orderId)}
+                        className={`p-4 justify-between items-start border-b border-border hover:bg-gray-50/80 cursor-pointer transition-colors relative flex gap-3 ${selectedOrderId === order.orderId ? 'bg-brand-primary/5' : ''}`}
+                      >
+                        {selectedOrderId === order.orderId && <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary rounded-r-full"></div>}
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-brand-primary/10 text-brand-primary font-bold text-sm border border-brand-primary/20 shrink-0 select-none shadow-sm">
+                          {(order.storeName || 'P').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start mb-0.5">
+                            <span className="font-bold text-[13px] text-gray-900 truncate pr-2">{order.storeName || 'Toko UMKM'}</span>
+                            <span className="text-[10px] text-gray-500 whitespace-nowrap">{formatOrderDate(order.createdAt).split(',')[0]}</span>
+                          </div>
+                          <div className="text-[12px] font-medium text-gray-700 truncate mb-1 pr-2">{order.productName}</div>
+
+                          {/* Status Badge */}
+                          <div className="flex items-center justify-between mt-2">
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${(order.status === 'cancelled' || order.status === 'failed') ? 'bg-red-100 text-red-700'
+                              : order.status === 'completed' ? 'bg-green-100 text-green-700'
+                                : order.status === 'waiting_verification' ? 'bg-yellow-100 text-yellow-800'
+                                  : order.status === 'chat_only' && order.negotiationStatus === 'approved' ? 'bg-emerald-100 text-emerald-700'
+                                    : order.status === 'chat_only' && order.negotiationStatus === 'rejected' ? 'bg-red-100 text-red-700'
+                                      : order.status === 'chat_only' ? 'bg-sky-100 text-sky-700'
+                                        : 'bg-indigo-100 text-indigo-700'
+                              }`}>
+                              {order.status === 'cancelled' ? 'Batal'
+                                : order.status === 'failed' ? 'Batal'
+                                  : order.status === 'completed' ? 'Selesai'
+                                    : order.status === 'waiting_verification' ? 'Menunggu Pembayaran'
+                                      : order.status === 'verified' ? 'Diproses'
+                                        : order.status === 'preorder_running' ? 'Diproses'
+                                          : order.status === 'processing' ? 'Dikirim'
+                                            : order.status === 'chat_only' && order.negotiationStatus === 'approved' ? 'Disetujui'
+                                              : order.status === 'chat_only' && order.negotiationStatus === 'rejected' ? 'Ditolak'
+                                                : order.status === 'chat_only' ? 'Penawaran'
+                                                  : 'Diproses'}
+                            </span>
+                            {(order.unreadCount || 0) > 0 ? <span className="w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">{(order.unreadCount || 0)}</span> : null}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* MAIN CONTENT: Order Detail + Chat */}
+                <div className={`flex-1 h-full bg-base overflow-y-auto ${!selectedOrderId ? 'hidden md:block' : 'block'} w-full min-w-0 relative`}>
+                  {selectedOrderId ? (
+                    <div className="w-full h-full min-w-0">
+                      {/* Mobile Back Button */}
+                      <div className="md:hidden sticky top-0 z-50 bg-white border-b border-gray-200 p-3 shadow-sm shrink-0">
+                        <button
+                          onClick={() => setSelectedOrderId(null)}
+                          className="flex items-center gap-1.5 text-gray-700 font-bold text-sm bg-gray-100 px-3 py-1.5 rounded-md hover:bg-gray-200 transition-colors"
+                        >
+                          <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar
+                        </button>
+                      </div>
+
+                      {filteredLocalOrders.filter(o => o.orderId === selectedOrderId).map((order) => (
+                        <ClientOrderDetail
+                          key={order.orderId}
+                          order={order}
+                          user={user || null}
+                          onNavigateTab={(tab: 'orders' | 'tracking' | 'chats') => { if (tab === 'orders' || tab === 'tracking') setActiveTab(tab); }}
+                          onCancelOrder={() => {
+                            handleCancelOrder(order.orderId, order.productName);
+                          }}
+                          feeAplikasi={feeAplikasi}
+                          feeJasa={feeJasa}
+                          feeAdmin={feeAdmin}
+                          penaltyPercentage={penaltyPercentage}
+
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-center p-10 bg-neutral-50 h-[calc(100vh-140px)] w-full">
+                      <div className="w-24 h-24 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary shadow-sm mb-6 animate-pulse-slow">
+                        <MessageCircle className="w-12 h-12" />
+                      </div>
+                      <h3 className="text-xl font-extrabold text-text-primary mb-2">Pilih Pesanan & Chat</h3>
+                      <p className="text-sm text-text-secondary max-w-sm leading-relaxed">
+                        Silakan pilih daftar pesanan atau percakapan di sebelah kiri untuk melihat detail pesanan beserta ruang negosiasi Anda dengan penjual.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </>
@@ -1834,6 +1326,6 @@ export default function ClientBuyerOrders({
           )}
         </div>
       </nav>
-    </div>
+    </div >
   );
 }

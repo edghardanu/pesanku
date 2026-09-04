@@ -22,7 +22,7 @@ export default async function BuyerOrdersPage({
 
   let userOrders: BuyerOrderViewItem[] = [];
   let unreadCounts: Record<string, number> = {};
-  
+
   let fullUser = null;
   if (user) {
     const dbUser = await db.select().from(users).where(eq(users.id, user.id)).get();
@@ -45,6 +45,7 @@ export default async function BuyerOrdersPage({
         selectedVariant: orders.selectedVariant,
         selectedVariantPrice: orders.selectedVariantPrice,
         createdAt: orders.createdAt,
+        productId: products.id,
         productName: products.name,
         productImageUrl: products.imageUrl,
         storeName: sellerProfiles.storeName,
@@ -71,7 +72,7 @@ export default async function BuyerOrdersPage({
     // Fetch unread chat counts
     const { chatMessages } = await import('@/lib/schema');
     const { sql } = await import('drizzle-orm');
-    
+
     const unreadChats = await db
       .select({
         orderId: chatMessages.orderId,
@@ -89,19 +90,46 @@ export default async function BuyerOrdersPage({
       return acc;
     }, {} as Record<string, number>);
 
+    // Fetch negotiation statuses
+    const negotiationMessages = await db.select({
+      orderId: chatMessages.orderId,
+      text: chatMessages.text,
+      createdAt: chatMessages.createdAt
+    }).from(chatMessages)
+      .innerJoin(users, eq(chatMessages.senderId, users.id))
+      .where(and(
+        eq(users.role, 'penjual'),
+        sql`${chatMessages.text} LIKE '%SETUJUI%' OR ${chatMessages.text} LIKE '%belum dapat kami setujui%'`
+      ))
+      .orderBy(desc(chatMessages.createdAt));
+
+    const negotiationMap: Record<string, 'approved' | 'rejected'> = {};
+    for (const msg of negotiationMessages) {
+      if (!negotiationMap[msg.orderId]) {
+        if (msg.text.includes('SETUJUI')) {
+          negotiationMap[msg.orderId] = 'approved';
+        } else if (msg.text.includes('belum dapat kami setujui')) {
+          negotiationMap[msg.orderId] = 'rejected';
+        }
+      }
+    }
+
     userOrders = userOrders.map(order => ({
       ...order,
-      unreadCount: unreadCounts[order.orderId] || 0
+      unreadCount: unreadCounts[order.orderId] || 0,
+      negotiationStatus: negotiationMap[order.orderId] ?? null
     }));
   }
 
   const allSettings = await db.select().from(settings).all();
   let feeAplikasi = 0, feeJasa = 0, feeAdmin = 0;
+  let penaltyPercentage = 0;
   allSettings.forEach((f) => {
     if (f.key === "fee_aplikasi") feeAplikasi = parseInt(f.value);
     if (f.key === "fee_jasa") feeJasa = parseInt(f.value);
     if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
+    if (f.key === "penalty_percentage") penaltyPercentage = parseInt(f.value);
   });
 
-  return <ClientBuyerOrders orders={userOrders} user={fullUser} checkoutCount={checkoutCount} feeAplikasi={feeAplikasi} feeJasa={feeJasa} feeAdmin={feeAdmin} />;
+  return <ClientBuyerOrders orders={userOrders} user={fullUser} checkoutCount={checkoutCount} feeAplikasi={feeAplikasi} feeJasa={feeJasa} feeAdmin={feeAdmin} penaltyPercentage={penaltyPercentage} />;
 }

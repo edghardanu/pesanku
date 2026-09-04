@@ -13,7 +13,6 @@ import {
   Settings,
   LogOut,
   Search,
-  QrCode,
   Menu,
   X,
   BarChart3,
@@ -25,7 +24,8 @@ import {
   LayoutDashboard,
   MoreHorizontal,
   Ticket,
-  Megaphone
+  Megaphone,
+  User
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -50,9 +50,10 @@ type ClientAdminDashboardProps = {
 
 export default function ClientAdminDashboard({ stats, userName, umkmList, ordersList = [], promotionOffers = [], promotionRequests = [] }: ClientAdminDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'pesanan' | 'verifikasi' | 'umkm' | 'promosi' | 'qris' | 'settings' | 'tickets'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'pesanan' | 'verifikasi' | 'umkm' | 'promosi' | 'settings' | 'tickets'>('overview');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [localUmkmList, setLocalUmkmList] = useState(umkmList);
   const [localPromotionRequests, setLocalPromotionRequests] = useState(promotionRequests);
   const [searchQueryUmkm, setSearchQueryUmkm] = useState('');
@@ -62,6 +63,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   const [feeAplikasi, setFeeAplikasi] = useState<number>(0);
   const [feeJasa, setFeeJasa] = useState<number>(0);
   const [feeAdmin, setFeeAdmin] = useState<number>(0);
+  const [penaltyPercentage, setPenaltyPercentage] = useState<number>(0);
   const [feeLoading, setFeeLoading] = useState(false);
 
   useEffect(() => {
@@ -69,7 +71,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
       setFeeAplikasi(d.fee_aplikasi || 0);
       setFeeJasa(d.fee_jasa || 0);
       setFeeAdmin(d.fee_admin || 0);
-    }).catch((_e) => {});
+      setPenaltyPercentage(d.penalty_percentage || 0);
+    }).catch((_e) => { });
   }, []);
 
   const [selectedMonth, setSelectedMonth] = useState<string>('8'); // Default Agustus
@@ -183,7 +186,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   };
 
   const [mockVerifications, setMockVerifications] = useState<VerificationItem[]>([]);
-  const [adminQrisUrl, setAdminQrisUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=DummyQRIS'); // Mock initial QRIS
 
   useEffect(() => {
     setTimeout(() => {
@@ -201,10 +203,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
         ]);
       }
 
-      const savedQris = localStorage.getItem('adminQrisUrl');
-      if (savedQris) {
-        setAdminQrisUrl(savedQris);
-      }
     }, 0);
   }, []);
 
@@ -314,7 +312,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
     }
   };
 
-  const handleTabChange = (tab: 'overview' | 'pesanan' | 'verifikasi' | 'umkm' | 'promosi' | 'qris' | 'settings' | 'tickets') => {
+  const handleTabChange = (tab: 'overview' | 'pesanan' | 'verifikasi' | 'umkm' | 'promosi' | 'settings' | 'tickets') => {
     if (tab === activeTab) return;
     setActiveTab(tab);
     setIsMobileSidebarOpen(false);
@@ -429,16 +427,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           </button>
 
 
-          <button
-            onClick={() => handleTabChange('qris')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'qris'
-              ? 'bg-brand-primary/10 text-brand-primary font-semibold'
-              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-              }`}
-          >
-            <QrCode className="w-5 h-5" />
-            <span>Pengaturan QRIS</span>
-          </button>
 
           <button
             onClick={() => handleTabChange('tickets')}
@@ -484,59 +472,62 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
         {/* Topbar Mobile */}
         <header className="md:hidden bg-surface/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between sticky top-0 z-50 transition-all">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsMobileSidebarOpen(true)}
-              className="p-1.5 rounded-lg hover:bg-border/60 text-text-primary mr-1 cursor-pointer"
-              aria-label="Buka Menu Sidebar"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
             <ShoppingBag className="w-6 h-6 text-brand-primary" />
             <span className="text-h3 text-brand-primary font-bold tracking-tight">pesanku admin</span>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors relative overflow-hidden flex items-center justify-center w-9 h-9 border border-border hover-btn cursor-pointer"
-              aria-label="Toggle Dark Mode"
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                {isDarkMode ? (
-                  <motion.div
-                    key="moon"
-                    initial={{ y: -20, opacity: 0, rotate: -90 }}
-                    animate={{ y: 0, opacity: 1, rotate: 0 }}
-                    exit={{ y: 20, opacity: 0, rotate: 90 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute"
+            <div className="relative">
+              <button
+                onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                className="p-1.5 rounded-full hover:bg-border/60 transition-colors flex items-center justify-center border border-border bg-surface shadow-sm cursor-pointer"
+                title="Akun Pengguna"
+              >
+                <div className="w-6 h-6 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                  <User className="w-4 h-4" />
+                </div>
+              </button>
+              {isUserDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-52 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-text-secondary">Masuk sebagai</p>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-primary/10 text-brand-primary uppercase tracking-wide">ADMIN</span>
+                    </div>
+                    <p className="font-bold text-text-primary text-sm truncate">{userName}</p>
+                  </div>
+                  <Link
+                    href="/profile"
+                    onClick={() => setIsUserDropdownOpen(false)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary hover:bg-surface-secondary transition-colors"
                   >
-                    <Moon className="w-4 h-4 text-brand-primary" />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="sun"
-                    initial={{ y: 20, opacity: 0, rotate: 90 }}
-                    animate={{ y: 0, opacity: 1, rotate: 0 }}
-                    exit={{ y: -20, opacity: 0, rotate: -90 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute"
+                    <Settings className="w-4 h-4 text-text-secondary" />
+                    Pengaturan Akun
+                  </Link>
+                  <button
+                    onClick={toggleDarkMode}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-sm text-text-primary hover:bg-surface-secondary transition-colors border-t border-border/50"
                   >
-                    <Sun className="w-4 h-4 text-brand-primary" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-status-error border border-status-error/30 hover:bg-status-error/10 hover-btn transition-colors text-xs font-semibold cursor-pointer"
-              aria-label="Logout"
-              title="Keluar / Logout"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Keluar</span>
-            </button>
+                    <span className="flex items-center gap-3">
+                      {isDarkMode ? <Moon className="w-4 h-4 text-text-secondary" /> : <Sun className="w-4 h-4 text-text-secondary" />}
+                      {isDarkMode ? 'Mode Gelap' : 'Mode Terang'}
+                    </span>
+                    <span className="text-xs bg-border/60 px-1.5 py-0.5 rounded-md font-semibold text-text-secondary">{isDarkMode ? 'Dark' : 'Light'}</span>
+                  </button>
+                  <div className="border-t border-border mt-1 pt-1">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-status-error hover:bg-status-error/10 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Keluar Akun
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
+
 
         <div className="p-4 md:p-8 pb-28 md:pb-8 flex-1 relative">
           {/* Loading Overlay */}
@@ -555,50 +546,57 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                 <p className="text-body-base text-text-secondary">Pantau aktivitas platform, verifikasi pembayaran, dan kelola UMKM.</p>
               </div>
               <div className="flex items-center gap-4">
-                <button
-                  onClick={toggleDarkMode}
-                  className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border border-border hover-btn cursor-pointer shadow-sm"
-                  aria-label="Toggle Dark Mode"
-                  title={isDarkMode ? "Ganti ke Light Mode" : "Ganti ke Dark Mode"}
-                >
-                  <AnimatePresence mode="wait" initial={false}>
-                    {isDarkMode ? (
-                      <motion.div
-                        key="moon"
-                        initial={{ y: -30, opacity: 0, rotate: -90 }}
-                        animate={{ y: 0, opacity: 1, rotate: 0 }}
-                        exit={{ y: 30, opacity: 0, rotate: 90 }}
-                        transition={{ duration: 0.3 }}
-                        className="absolute"
+                <div className="relative">
+                  <button
+                    onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                    className="flex items-center gap-2 p-1.5 pr-3 rounded-xl border border-border bg-surface hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all cursor-pointer shadow-sm"
+                    title="Akun Pengguna"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center text-white font-bold text-sm shrink-0">
+                      {(userName || 'U').charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-semibold text-text-primary max-w-[120px] truncate">{userName}</span>
+                    <svg className={`w-3.5 h-3.5 text-text-secondary transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {isUserDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-52 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 overflow-hidden">
+                      <div className="px-4 py-3 border-b border-border">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs text-text-secondary">Masuk sebagai</p>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-primary/10 text-brand-primary uppercase tracking-wide">ADMIN</span>
+                        </div>
+                        <p className="font-bold text-text-primary text-sm truncate">{userName}</p>
+                      </div>
+                      <Link
+                        href="/profile"
+                        onClick={() => setIsUserDropdownOpen(false)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary hover:bg-surface-secondary transition-colors"
                       >
-                        <Moon className="w-5 h-5 text-brand-primary" />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="sun"
-                        initial={{ y: 30, opacity: 0, rotate: 90 }}
-                        animate={{ y: 0, opacity: 1, rotate: 0 }}
-                        exit={{ y: -30, opacity: 0, rotate: -90 }}
-                        transition={{ duration: 0.3 }}
-                        className="absolute"
+                        <Settings className="w-4 h-4 text-text-secondary" />
+                        Pengaturan Akun
+                      </Link>
+                      <button
+                        onClick={toggleDarkMode}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-sm text-text-primary hover:bg-surface-secondary transition-colors border-t border-border/50"
                       >
-                        <Sun className="w-5 h-5 text-brand-primary" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </button>
-                <div className="hidden sm:block text-right">
-                  <p className="text-caption text-text-secondary">Login sebagai</p>
-                  <p className="font-semibold text-text-primary">{userName}</p>
+                        <span className="flex items-center gap-3">
+                          {isDarkMode ? <Moon className="w-4 h-4 text-text-secondary" /> : <Sun className="w-4 h-4 text-text-secondary" />}
+                          {isDarkMode ? 'Mode Gelap' : 'Mode Terang'}
+                        </span>
+                        <span className="text-xs bg-border/60 px-1.5 py-0.5 rounded-md font-semibold text-text-secondary">{isDarkMode ? 'Dark' : 'Light'}</span>
+                      </button>
+                      <div className="border-t border-border mt-1 pt-1">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-status-error hover:bg-status-error/10 transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Keluar Akun
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-status-error border border-status-error/30 hover:bg-status-error/10 hover-btn transition-colors text-sm font-semibold shadow-sm cursor-pointer"
-                  title="Keluar / Logout"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">Keluar</span>
-                </button>
               </div>
             </header>
 
@@ -759,9 +757,9 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                 <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
                   <h2 className="text-h3 w-full sm:w-auto">Semua Pesanan Penjual</h2>
                   <div className="relative w-full sm:w-72">
-                    <input 
-                      type="text" 
-                      placeholder="Cari toko, pesanan, pembeli..." 
+                    <input
+                      type="text"
+                      placeholder="Cari toko, pesanan, pembeli..."
                       className="input-field pl-10 w-full"
                       value={searchQueryPesanan}
                       onChange={(e) => setSearchQueryPesanan(e.target.value)}
@@ -787,7 +785,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                         <tr><td colSpan={7} className="p-8 text-center text-text-secondary">Tidak ada pesanan.</td></tr>
                       ) : (
                         filteredPesanan.map((order) => (
-                           <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                          <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
                             <td className="p-4 font-semibold">{order.storeName || '-'}</td>
                             <td className="p-4">
                               <span className="block font-medium">{order.productName || '-'}</span>
@@ -828,7 +826,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                 {order.status === 'verified' ? 'Sudah Dibayar oleh Pembeli' :
                                   order.status === 'ongoing' ? 'Sedang Diproses oleh Penjual' :
                                     order.status === 'completed' ? 'Selesai' :
-                                      order.status === 'waiting_verification' ? 'Sedang Menunggu Konfirmasi Penjual' :
+                                      order.status === 'waiting_verification' ? 'Sedang Menunggu Pembayaran Pembeli' :
                                         order.status === 'cancelled' ? 'DiBatalkan' :
                                           order.status}
                               </span>
@@ -1293,97 +1291,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
               </div>
             )}
 
-            {activeTab === 'qris' && (
-              <div className="card p-0 border border-border overflow-hidden max-w-2xl mx-auto">
-                <div className="p-6 border-b border-border bg-surface/50">
-                  <h2 className="text-h3 mb-1">Pengaturan QRIS Admin</h2>
-                  <p className="text-body-small text-text-secondary">Foto barcode QRIS ini akan ditampilkan kepada pembeli pada saat *checkout* pembayaran.</p>
-                </div>
-                <div className="p-8 flex flex-col items-center text-center">
-                  <div className="w-64 h-64 border-4 border-border rounded-3xl overflow-hidden mb-6 relative shadow-inner bg-base flex items-center justify-center">
-                    {adminQrisUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={adminQrisUrl} alt="QRIS Admin" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-text-secondary text-sm">Belum ada QRIS</span>
-                    )}
-                  </div>
-
-                  <div className="flex gap-4">
-                    <button
-                      onClick={async () => {
-                        const { value: file } = await Swal.fire({
-                          title: 'Perbarui QRIS',
-                          input: 'file',
-                          inputAttributes: {
-                            'accept': 'image/*',
-                            'aria-label': 'Upload foto QRIS'
-                          },
-                          showCancelButton: true,
-                          confirmButtonText: 'Simpan',
-                          cancelButtonText: 'Batal',
-                          confirmButtonColor: '#ff5c35'
-                        });
-
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (e) => {
-                            const base64Url = e.target?.result as string;
-                            setAdminQrisUrl(base64Url);
-                            localStorage.setItem('adminQrisUrl', base64Url);
-                            Swal.fire({
-                              toast: true,
-                              position: 'top-end',
-                              icon: 'success',
-                              title: 'QRIS berhasil diperbarui',
-                              showConfirmButton: false,
-                              timer: 3000
-                            });
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="btn-primary py-2 px-6 shadow-lg shadow-brand-primary/20"
-                    >
-                      Ganti Foto QRIS
-                    </button>
-
-                    {adminQrisUrl && (
-                      <button
-                        onClick={() => {
-                          Swal.fire({
-                            title: 'Hapus QRIS?',
-                            text: "Foto QRIS saat ini akan dihapus.",
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonColor: '#ef4444',
-                            cancelButtonColor: '#94a3b8',
-                            confirmButtonText: 'Ya, Hapus',
-                            cancelButtonText: 'Batal'
-                          }).then((result) => {
-                            if (result.isConfirmed) {
-                              setAdminQrisUrl('');
-                              localStorage.removeItem('adminQrisUrl');
-                              Swal.fire({
-                                toast: true,
-                                position: 'top-end',
-                                icon: 'success',
-                                title: 'QRIS berhasil dihapus',
-                                showConfirmButton: false,
-                                timer: 3000
-                              });
-                            }
-                          });
-                        }}
-                        className="btn-outline py-2 px-6 text-status-error border-status-error hover:bg-status-error/10"
-                      >
-                        Hapus
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
 
 
             {activeTab === 'settings' && (
@@ -1418,6 +1325,16 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                   </div>
                   <p className="text-4xl font-black text-status-error">-Rp {feeAdmin.toLocaleString('id-ID')}</p>
                 </div>
+                <div className="card md:p-6 border border-border">
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h2 className="text-h3">Denda Pinalti Pembatalan (%)</h2>
+                      <p className="text-sm text-text-secondary pr-4 mt-1">Dikenakan kepada pembeli (potongan persen dari total pembayaran) jika membatalkan pesanan secara sepihak.</p>
+                    </div>
+                    <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Pinalti (%)', input: 'number', inputValue: penaltyPercentage }); if (v) { setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ penalty_percentage: parseInt(v) }) }); setPenaltyPercentage(parseInt(v)); setFeeLoading(false); Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); } }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                  </div>
+                  <p className="text-4xl font-black text-status-warning">{penaltyPercentage}%</p>
+                </div>
               </div>
             )}
           </div>
@@ -1445,13 +1362,13 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
 
         <button
           onClick={() => setIsMobileSidebarOpen(true)}
-          className={`flex flex-col items-center gap-1.5 w-1/3 transition-colors pb-2 ${['promosi', 'qris', 'tickets', 'settings'].includes(activeTab)
+          className={`flex flex-col items-center gap-1.5 w-1/3 transition-colors pb-2 ${['promosi', 'tickets', 'settings'].includes(activeTab)
             ? 'text-brand-primary font-semibold'
             : 'text-text-secondary hover:text-brand-primary'
             }`}
         >
           <div className="relative">
-            <MoreHorizontal className={`w-6 h-6 stroke-[1.5] ${['promosi', 'qris', 'tickets', 'settings'].includes(activeTab) ? 'stroke-brand-primary' : ''}`} />
+            <MoreHorizontal className={`w-6 h-6 stroke-[1.5] ${['promosi', 'tickets', 'settings'].includes(activeTab) ? 'stroke-brand-primary' : ''}`} />
             {ticketsList.filter(t => t.status === 'open').length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-status-error text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{ticketsList.filter(t => t.status === 'open').length}</span>
             )}

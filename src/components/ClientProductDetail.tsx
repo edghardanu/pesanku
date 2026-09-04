@@ -9,6 +9,9 @@ import { ArrowLeft, Clock, Store, MapPin, CheckCircle, ShieldCheck, LogOut, User
 import Swal from "sweetalert2";
 import { ProductItem, AuthUser, OrderItem } from "@/types";
 import { findProductVariant, getProductUnitPrice } from "@/lib/productVariants";
+import { useCart } from "@/lib/cart";
+import CartSidebar from "@/components/CartSidebar";
+import PreChatModal from "@/components/PreChatModal";
 
 const escapeHtml = (value: string) => value
   .replaceAll('&', '&amp;')
@@ -25,12 +28,12 @@ const fulfillmentStyles: Record<string, { label: string; badge: string }> = {
   delivered: { label: 'Terkirim', badge: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20' },
 };
 
-export default function ClientProductDetail({ 
-  product: initialProduct, 
+export default function ClientProductDetail({
+  product: initialProduct,
   user,
   orders = []
-}: { 
-  product: ProductItem; 
+}: {
+  product: ProductItem;
   user: AuthUser | null;
   orders?: OrderItem[];
 }) {
@@ -41,7 +44,9 @@ export default function ClientProductDetail({
   const [notes, setNotes] = useState("");
   const [selectedVariant, setSelectedVariant] = useState("");
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
+  const [showPreChat, setShowPreChat] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
+  const { addItem: addCartItem } = useCart();
 
   const isSeller = user && user.role === 'penjual' && product.sellerId === user.id;
   const storeName = product.storeName || product.sellerName || 'toko';
@@ -102,7 +107,7 @@ export default function ClientProductDetail({
             setHasActiveOrder(data.hasActiveOrder);
           }
         })
-        .catch((_e) => {});
+        .catch((_e) => { });
     }
   }, [user, product.id]);
 
@@ -130,7 +135,7 @@ export default function ClientProductDetail({
   };
 
   const isFull = (product.currentQty || 0) >= (product.minQty || 1);
-  const minimumOrder = 1;
+  const minimumOrder = product.minOrderQty || 1;
   const maximumOrder = product.maxOrderQty || Number.MAX_SAFE_INTEGER;
   const parsedQty = Number(qtyInput);
   const selectedQty = Number.isSafeInteger(parsedQty) && parsedQty >= minimumOrder
@@ -204,53 +209,28 @@ export default function ClientProductDetail({
 
     const totalHarga = selectedQty * unitPrice;
 
-    // STEP 1: Konfirmasi Pesanan
-    const defaultAddress = user?.address || '';
-
-    const confirmResult = await Swal.fire({
-      title: 'Konfirmasi Pesanan',
-      html: `
-        <div class="text-left space-y-3">
-          <p><strong>Produk:</strong> ${product.name}</p>
-          ${selectedVariant ? `<p><strong>Varian:</strong> ${selectedVariant}</p>` : ''}
-          <p><strong>Jumlah:</strong> ${selectedQty} Porsi</p>
-          <p><strong>Total Bayar:</strong> <span class="text-brand-primary font-bold text-lg">Rp ${totalHarga.toLocaleString('id-ID')}</span></p>
-          ${notes ? `<p><strong>Catatan:</strong> ${notes}</p>` : ''}
-          <hr class="my-2 border-gray-200" />
-          <div class="mt-4">
-            <label class="block text-sm font-semibold mb-1">Pilih Tanggal Pesanan <span class="text-red-500">*</span></label>
-            <input type="date" id="order-date" lang="id" class="w-full border p-2 rounded text-sm mb-3 focus:outline-none focus:border-[#ff5c35]" required>
-            <label class="block text-sm font-semibold mb-1">Alamat Pembeli <span class="text-xs font-normal text-gray-400 ml-1">(Opsional)</span></label>
-            <textarea id="order-address" class="w-full border p-2 rounded text-sm focus:outline-none focus:border-[#ff5c35]" rows="3">${escapeHtml(defaultAddress)}</textarea>
-          </div>
-          <p class="text-sm text-text-secondary mt-3">Apakah Anda yakin ingin melanjutkan pesanan ini?</p>
-        </div>
-      `,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Ya, Lanjut Bayar',
-      cancelButtonText: 'Batal',
-      confirmButtonColor: '#10b981',
-      preConfirm: () => {
-        const dateInput = document.getElementById('order-date') as HTMLInputElement;
-        const addressInput = document.getElementById('order-address') as HTMLTextAreaElement;
-        
-        const dateVal = dateInput?.value;
-        const addressVal = addressInput?.value?.trim() || '';
-        
-        if (!dateVal) {
-          Swal.showValidationMessage('Silakan pilih tanggal pesanan');
-          return false;
-        }
-        
-        return { orderDate: dateVal, shippingAddress: addressVal };
-      }
+    addCartItem({
+      productId: product.id,
+      name: product.name,
+      price: unitPrice, // Set resolved variant price
+      qty: selectedQty,
+      minQty: product.minOrderQty || product.minQty || 1, // Store minimum order logic on cart level
+      selectedVariant: selectedVariant || undefined,
+      notes: notes,
+      sellerId: product.sellerId || '',
+      sellerName: product.sellerName || product.storeName || 'Toko UMKM',
+      imageUrl: product.imageUrl || ''
     });
 
-    if (!confirmResult.isConfirmed) return;
-
-    Swal.close();
-    router.push(`/process-order?productId=${product.id}&qty=${selectedQty}&notes=${encodeURIComponent(notes)}&variant=${encodeURIComponent(selectedVariant)}&deliveryDate=${encodeURIComponent(confirmResult.value.orderDate)}&deliveryAddress=${encodeURIComponent(confirmResult.value.shippingAddress)}`);
+    Swal.fire({
+      icon: 'success',
+      title: 'Berhasil',
+      text: `${product.name} dimasukkan ke keranjang`,
+      timer: 1500,
+      showConfirmButton: false,
+      toast: true,
+      position: 'top-end'
+    });
   };
 
   return (
@@ -273,7 +253,7 @@ export default function ClientProductDetail({
               >
                 <User className="w-5 h-5" />
               </Link>
-              <button 
+              <button
                 onClick={handleLogout}
                 className="btn-outline border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error flex items-center gap-1.5 py-1.5 px-3 text-sm font-semibold rounded-xl transition-all"
                 title="Keluar / Logout"
@@ -291,8 +271,8 @@ export default function ClientProductDetail({
           {/* Kiri: Foto Produk & Deskripsi */}
           <div className="lg:col-span-8 space-y-6">
             <div className="relative aspect-video lg:aspect-[4/3] w-full rounded-2xl overflow-hidden shadow-sm bg-surface dark:bg-border">
-              <Image 
-                src={product.imageUrl || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop'} 
+              <Image
+                src={product.imageUrl || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop'}
                 alt={product.name}
                 fill
                 sizes="(max-width: 1024px) 100vw, 66vw"
@@ -300,13 +280,12 @@ export default function ClientProductDetail({
                 priority
               />
               <div className="absolute top-4 left-4">
-                <span className={`px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-md ${
-                  isPreorderClosed
-                    ? 'bg-status-error text-white'
-                    : isFull
-                      ? 'bg-brand-accent text-white'
-                      : 'bg-brand-secondary text-slate-900'
-                }`}>
+                <span className={`px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-md ${isPreorderClosed
+                  ? 'bg-status-error text-white'
+                  : isFull
+                    ? 'bg-brand-accent text-white'
+                    : 'bg-brand-secondary text-slate-900'
+                  }`}>
                   {isFull && !isPreorderClosed ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                   {statusLabel}
                 </span>
@@ -327,7 +306,7 @@ export default function ClientProductDetail({
                 <p className="mb-6 text-xs font-medium text-text-secondary">Harga varian {selectedVariantDetails.name}</p>
               )}
               {!hasSelectedVariantPrice && <div className="mb-6" />}
-              
+
               <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed">
                 <h3 className="text-text-primary font-semibold mb-2">Deskripsi Makanan</h3>
                 <p>{product.description || 'Tidak ada deskripsi yang ditambahkan untuk produk ini.'}</p>
@@ -450,7 +429,7 @@ export default function ClientProductDetail({
                             <div className="mt-2 pt-2 border-t border-border/50 flex items-center justify-between text-[11px] font-semibold text-text-secondary">
                               <span>Tanggal Kirim:</span>
                               <span className={isScheduled ? 'text-brand-primary font-bold' : 'text-amber-500 italic'}>
-                                {isScheduled 
+                                {isScheduled
                                   ? new Date(order.deliveryDate!).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
                                   : 'Belum ditentukan'
                                 }
@@ -463,8 +442,8 @@ export default function ClientProductDetail({
                   </div>
                 )}
                 {orders.length > 0 && (
-                  <Link 
-                    href="/seller?tab=produk" 
+                  <Link
+                    href="/seller?tab=produk"
                     className="mt-4 w-full py-2.5 bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-bold rounded-xl transition-all text-center flex items-center justify-center gap-1.5 shadow-md shadow-brand-primary/10 active:scale-95 hover:scale-[1.02]"
                   >
                     Kelola Semua Jadwal
@@ -474,7 +453,7 @@ export default function ClientProductDetail({
             ) : (
               <div className="card p-6 border border-border sticky top-24 shadow-xl">
                 <h3 className="font-bold text-lg mb-4 border-b border-border pb-4">Atur Pesanan</h3>
-                
+
                 <div className="space-y-6">
                   {product.variants && product.variants.length > 0 && (
                     <fieldset>
@@ -493,7 +472,7 @@ export default function ClientProductDetail({
                               className={`min-h-10 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${isSelected
                                 ? 'border-brand-primary bg-brand-primary text-white shadow-sm'
                                 : 'border-border bg-surface text-text-primary hover:border-brand-primary hover:text-brand-primary'
-                              }`}
+                                }`}
                             >
                               {variant.name}
                               {variant.price !== null && variant.price !== undefined && (
@@ -510,12 +489,12 @@ export default function ClientProductDetail({
                   <div>
                     <label className="text-sm font-semibold text-text-primary block mb-2">Jumlah Porsi</label>
                     <div className="flex items-center border border-border rounded-xl overflow-hidden w-full max-w-[200px]">
-                      <button 
+                      <button
                         type="button"
                         onClick={() => setQtyInput(String(Math.max(minimumOrder, selectedQty - 1)))}
                         className="px-4 py-2 bg-base hover:bg-border/50 text-text-primary font-bold transition-colors border-r border-border disabled:cursor-not-allowed"
                       >-</button>
-                      <input 
+                      <input
                         type="text"
                         inputMode="numeric"
                         pattern="[0-9]*"
@@ -529,7 +508,7 @@ export default function ClientProductDetail({
                         className="w-full text-center py-2 font-semibold bg-surface text-text-primary outline-none"
                         aria-label="Jumlah porsi"
                       />
-                      <button 
+                      <button
                         type="button"
                         onClick={() => {
                           const maxQty = maximumOrder;
@@ -547,7 +526,7 @@ export default function ClientProductDetail({
                   {/* Catatan Tambahan */}
                   <div>
                     <label className="text-sm font-semibold text-text-primary block mb-2">Catatan Tambahan <span className="text-text-secondary font-normal">(Opsional)</span></label>
-                    <textarea 
+                    <textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Contoh: Jangan terlalu pedas ya kak..."
@@ -561,23 +540,28 @@ export default function ClientProductDetail({
                       <span className="text-text-secondary font-medium">Total Harga</span>
                       <span className="text-h2 font-bold text-brand-primary">Rp {(selectedQty * unitPrice).toLocaleString('id-ID')}</span>
                     </div>
-                    
-                    <button 
+
+                    <button
                       onClick={handleCheckout}
                       disabled={hasActiveOrder || isOrderUnavailable}
-                      className={`w-full py-3.5 text-lg transition-all rounded-xl ${
-                        isOrderUnavailable
-                          ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none'
-                          : hasActiveOrder
+                      className={`w-full py-3.5 text-lg transition-all rounded-xl ${isOrderUnavailable
+                        ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none'
+                        : hasActiveOrder
                           ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none'
                           : 'btn-primary shadow-lg shadow-brand-primary/20 hover:scale-[1.02]'
-                      }`}
+                        }`}
                     >
                       {isPreorderClosed
-                          ? 'Preorder Sudah Ditutup'
-                          : hasActiveOrder
-                            ? 'Selesaikan dulu pesanan anda'
-                            : 'Pesan Sekarang'}
+                        ? 'Preorder Sudah Ditutup'
+                        : hasActiveOrder
+                          ? 'Selesaikan dulu pesanan anda'
+                          : 'Tambah ke Keranjang'}
+                    </button>
+                    <button
+                      onClick={() => setShowPreChat(true)}
+                      className={`w-full mt-3 py-3.5 text-[15px] font-bold transition-all rounded-xl text-brand-primary bg-brand-primary/5 hover:bg-brand-primary/10 border border-brand-primary/20 hover:border-brand-primary/40`}
+                    >
+                      Tanya Penjual & Ajukan Penawaran
                     </button>
                   </div>
                 </div>
@@ -586,6 +570,20 @@ export default function ClientProductDetail({
           </div>
         </div>
       </main>
+      <CartSidebar />
+      <PreChatModal
+        isOpen={showPreChat}
+        onClose={() => setShowPreChat(false)}
+        target={{
+          productId: product.id,
+          productName: product.name,
+          storeName: product.storeName || product.sellerName || 'Toko',
+          sellerId: product.sellerId || '',
+          price: unitPrice, // Set resolved variant price
+          imageUrl: product.imageUrl || ''
+        }}
+        user={user}
+      />
     </div>
   );
 }

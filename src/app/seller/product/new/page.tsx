@@ -15,7 +15,7 @@ export default function NewProductPage() {
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [variantInput, setVariantInput] = useState("");
   const [variantPriceInput, setVariantPriceInput] = useState("");
-  
+
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -89,7 +89,7 @@ export default function NewProductPage() {
     setError("");
 
     const formData = new FormData(e.currentTarget);
-    const minQty = "1";
+    const minQty = formData.get("minOrderQty") || "1";
     const pendingVariantName = variantInput.trim();
     const pendingVariantPrice = variantPriceInput.trim() ? Number(variantPriceInput) : null;
     const submittedVariants = pendingVariantName && !variants.some(
@@ -172,8 +172,8 @@ export default function NewProductPage() {
               <label className="block text-body-small font-medium text-text-primary mb-1">
                 Nama Produk <span className="text-status-error">*</span>
               </label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 name="name"
                 required
                 placeholder="Contoh: Ayam Bakar Spesial"
@@ -199,7 +199,7 @@ export default function NewProductPage() {
               <label className="block text-body-small font-medium text-text-primary mb-1">
                 Deskripsi
               </label>
-              <textarea 
+              <textarea
                 name="description"
                 placeholder="Jelaskan detail produk Anda (bahan, ukuran, dll)"
                 className="input-field min-h-[100px] resize-y"
@@ -277,8 +277,8 @@ export default function NewProductPage() {
                 <label className="block text-body-small font-medium text-text-primary mb-1">
                   Harga (Rp) <span className="text-status-error">*</span>
                 </label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   name="price"
                   required
                   min="0"
@@ -291,19 +291,20 @@ export default function NewProductPage() {
                 <label className="block text-body-small font-medium text-text-primary mb-1">
                   Foto Produk
                 </label>
-                
+
                 {imagePreview ? (
                   <div className="relative border border-border rounded-xl p-2 h-40">
                     <div className="relative w-full h-full rounded-lg overflow-hidden">
-                      <Image 
-                        src={imagePreview} 
-                        alt="Preview" 
-                        fill 
+                      <Image
+                        src={imagePreview}
+                        alt="Preview"
+                        fill
+                        sizes="(max-width: 768px) 100vw, 640px"
                         className="object-cover"
                       />
                     </div>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={removeImage}
                       className="absolute -top-2 -right-2 bg-surface text-status-error rounded-full p-1 shadow-md hover:bg-status-error hover:text-white transition-colors"
                     >
@@ -312,15 +313,15 @@ export default function NewProductPage() {
                   </div>
                 ) : (
                   <div>
-                    <input 
-                      type="file" 
+                    <input
+                      type="file"
                       accept="image/*"
                       id="product-image"
                       className="hidden"
                       ref={fileInputRef}
                       onChange={handleImageChange}
                     />
-                    <label 
+                    <label
                       htmlFor="product-image"
                       className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center justify-center h-40 text-text-secondary cursor-pointer hover:border-brand-primary hover:bg-brand-primary/5 transition-colors"
                     >
@@ -336,17 +337,30 @@ export default function NewProductPage() {
 
             <div className="bg-brand-secondary/10 p-4 rounded-xl mb-6">
               <h3 className="text-body-base font-semibold text-brand-secondary-dark dark:text-brand-secondary mb-2">Pengaturan Preorder</h3>
-              
-              <div>
-              <div>
-              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-body-small font-medium text-text-primary mb-1">
+                    Minimal Beli Porsi / Item <span className="text-status-error">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="minOrderQty"
+                    required
+                    defaultValue="1"
+                    min="1"
+                    placeholder="Contoh: 5"
+                    className="input-field"
+                  />
+                  <p className="mt-1 text-xs text-text-secondary">Batas pembelian agar menguntungkan bisnis Anda (contoh: Minimal 10 porsi).</p>
+                </div>
               </div>
               <div className="mt-4">
                 <label className="block text-body-small font-medium text-text-primary mb-1">
                   Waktu Proses Pemesanan (Estimasi)
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   name="processingTime"
                   placeholder="Contoh: 2 Hari, 1 Minggu, dsb."
                   className="input-field"
@@ -355,8 +369,8 @@ export default function NewProductPage() {
             </div>
 
             <div className="flex justify-end pt-4">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
                 className="btn-primary w-full sm:w-auto px-8"
               >

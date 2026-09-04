@@ -27,6 +27,8 @@ import Swal from 'sweetalert2';
 import ProductRating from '@/components/ProductRating';
 import { getProductUnitPrice } from '@/lib/productVariants';
 import { AuthUser, ProductItem } from '@/types';
+import { useCart } from '@/lib/cart';
+import CartSidebar from '@/components/CartSidebar';
 
 type StoreView = {
   id: string;
@@ -79,190 +81,72 @@ export default function ClientStoreProfile({
   feeAdmin?: number;
 }) {
   const router = useRouter();
-  const [cart, setCart] = useState<Record<string, CartLine>>({});
+  const { items: cartItems, addItem: addCartItem, updateQty, removeItem: removeCartItem } = useCart();
   const [variantSelections, setVariantSelections] = useState<Record<string, string>>({});
   const storeDescription = seller.description?.trim();
   const joinedYear = seller.createdAt ? new Date(seller.createdAt).getFullYear() : null;
-  const cartProducts = useMemo(
-    () => products.filter((product) => cart[product.id]),
-    [cart, products],
-  );
-  const totalItems = cartProducts.reduce((total, product) => total + cart[product.id].qty, 0);
-  const totalPrice = cartProducts.reduce((total, product) => total + (
-    getProductUnitPrice(product.price, product.variants, cart[product.id].selectedVariant) * cart[product.id].qty
-  ), 0);
+
+  const getCartLine = (productId: string) => {
+    // Attempt to match the specific selected variant for this store page
+    const currentSelected = variantSelections[productId] || '';
+    return cartItems.find((ci) => ci.productId === productId && (ci.selectedVariant || '') === currentSelected)
+      || cartItems.find((ci) => ci.productId === productId);
+  };
 
   const addProduct = (product: ProductItem) => {
     if (isProductClosed(product)) {
       void Swal.fire('Preorder Ditutup', `${product.name} belum dapat dipesan.`, 'warning');
       return;
     }
-
-    setCart((current) => ({
-      ...current,
-      [product.id]: current[product.id] || {
-        qty: 1,
-        notes: '',
-        selectedVariant: variantSelections[product.id] || '',
-      },
-    }));
+    const selected = variantSelections[product.id] || '';
+    addCartItem({
+      productId: product.id,
+      name: product.name,
+      price: getProductUnitPrice(product.price, product.variants, selected),
+      selectedVariant: selected,
+      sellerId: product.sellerId || '',
+      sellerName: seller.storeName || 'Toko UMKM',
+      imageUrl: product.imageUrl || '',
+      minQty: product.minOrderQty || product.minQty || 1
+    });
   };
 
   const changeQty = (productId: string, delta: number) => {
-    setCart((current) => {
-      const line = current[productId];
-      if (!line) return current;
-      return {
-        ...current,
-        [productId]: { ...line, qty: Math.max(1, line.qty + delta) },
-      };
-    });
+    const line = getCartLine(productId);
+    if (line) {
+      updateQty(productId, line.selectedVariant, line.qty + delta);
+    }
   };
 
   const setDirectQty = (productId: string, value: string) => {
     if (value !== '' && !/^\d+$/.test(value)) return;
-
-    setCart((current) => {
-      const line = current[productId];
-      if (!line) return current;
+    const line = getCartLine(productId);
+    if (line) {
       const qty = value === '' ? 0 : Number.parseInt(value, 10);
-      return {
-        ...current,
-        [productId]: { ...line, qty: Number.isNaN(qty) ? line.qty : qty },
-      };
-    });
+      updateQty(productId, line.selectedVariant, qty);
+    }
   };
 
   const normalizeQty = (productId: string) => {
-    setCart((current) => {
-      const line = current[productId];
-      if (!line || line.qty >= 1) return current;
-      return { ...current, [productId]: { ...line, qty: 1 } };
-    });
+    const line = getCartLine(productId);
+    if (line && line.qty < 1) {
+      updateQty(productId, line.selectedVariant, 1);
+    }
   };
 
   const removeProduct = (productId: string) => {
-    setCart((current) => {
-      const next = { ...current };
-      delete next[productId];
-      return next;
-    });
+    const line = getCartLine(productId);
+    if (line) {
+      removeCartItem(productId, line.selectedVariant);
+    }
   };
 
   const selectVariant = (productId: string, selectedVariant: string) => {
     setVariantSelections((current) => ({ ...current, [productId]: selectedVariant }));
-    setCart((current) => current[productId]
-      ? { ...current, [productId]: { ...current[productId], selectedVariant } }
-      : current);
-  };
-
-  const checkout = async () => {
-    if (cartProducts.length === 0) {
-      await Swal.fire('Keranjang Kosong', 'Tambahkan produk sebelum melanjutkan checkout.', 'info');
-      return;
-    }
-
-    if (cartProducts.some((product) => cart[product.id].qty < 1)) {
-      setCart((current) => Object.fromEntries(
-        Object.entries(current).map(([productId, line]) => [
-          productId,
-          line.qty < 1 ? { ...line, qty: 1 } : line,
-        ]),
-      ));
-      await Swal.fire('Jumlah Tidak Valid', 'Jumlah setiap produk minimal 1.', 'warning');
-      return;
-    }
-
-    if (!user) {
-      const result = await Swal.fire({
-        title: 'Login Diperlukan',
-        text: 'Silakan login sebagai pembeli untuk melanjutkan checkout.',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonText: 'Masuk Sekarang',
-        cancelButtonText: 'Batal',
-        confirmButtonColor: '#ff5c35',
-      });
-      if (result.isConfirmed) router.push('/login');
-      return;
-    }
-
-    if (user.role !== 'pembeli') {
-      await Swal.fire('Akses Ditolak', 'Hanya akun pembeli yang dapat melakukan checkout.', 'warning');
-      return;
-    }
-
-    const summary = cartProducts.map((product) => {
-      const line = cart[product.id];
-      const lineTotal = getProductUnitPrice(product.price, product.variants, line.selectedVariant) * line.qty;
-      return `
-        <div class="flex justify-between gap-3 border-b border-gray-100 py-2 text-sm">
-          <span class="text-left">${escapeHtml(product.name)} <strong>× ${line.qty}</strong>${line.selectedVariant ? `<small class="block text-gray-500">Varian: ${escapeHtml(line.selectedVariant)}</small>` : ''}</span>
-          <strong>${formatRupiah(lineTotal)}</strong>
-        </div>
-      `;
-    }).join('');
-
-    const now = new Date();
-    const today = new Date(now.getTime() - (now.getTimezoneOffset() * 60_000)).toISOString().slice(0, 10);
-    const result = await Swal.fire({
-      title: 'Konfirmasi Checkout',
-      html: `
-        <div class="text-left">
-          <p class="mb-3 text-sm text-gray-500">${cartProducts.length} produk dari ${escapeHtml(seller.storeName)}</p>
-          ${summary}
-          <div class="flex justify-between text-xs text-gray-500 mt-2 pt-2 border-t border-gray-100">
-            <span>Subtotal Produk</span><span>${formatRupiah(totalPrice)}</span>
-          </div>
-          <div class="flex justify-between text-xs text-gray-500 mt-1.5">
-            <span>Biaya Aplikasi</span><span>${formatRupiah(feeAplikasi)}</span>
-          </div>
-          <div class="flex justify-between text-xs text-gray-500 mt-1.5">
-            <span>Biaya Jasa</span><span>${formatRupiah(feeJasa)}</span>
-          </div>
-          <div class="flex justify-between text-xs text-gray-500 mt-1.5 mb-2 pb-2 border-b border-gray-200">
-            <span>Biaya Platform (Admin)</span><span>${formatRupiah(feeAdmin)}</span>
-          </div>
-          <div class="mb-4 flex justify-between pt-1 text-base"><strong>Total Pesanan</strong><strong style="color:#ff5c35">${formatRupiah(totalPrice + feeAplikasi + feeJasa + feeAdmin)}</strong></div>
-          <label for="store-order-date" class="mb-1 block text-sm font-semibold">Tanggal Pesanan <span class="text-red-500">*</span></label>
-          <input id="store-order-date" type="date" min="${today}" class="mb-3 w-full rounded border p-2 text-sm focus:border-[#ff5c35] focus:outline-none" />
-          <label for="store-order-address" class="mb-1 block text-sm font-semibold">Alamat Pengiriman <span class="font-normal text-gray-400">(opsional)</span></label>
-          <textarea id="store-order-address" rows="3" class="w-full rounded border p-2 text-sm focus:border-[#ff5c35] focus:outline-none">${escapeHtml(user.address || '')}</textarea>
-        </div>
-      `,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Checkout Sekarang',
-      cancelButtonText: 'Batal',
-      confirmButtonColor: '#ff5c35',
-      preConfirm: () => {
-        const deliveryDate = (document.getElementById('store-order-date') as HTMLInputElement)?.value;
-        const deliveryAddress = (document.getElementById('store-order-address') as HTMLTextAreaElement)?.value.trim() || '';
-        if (!deliveryDate) {
-          Swal.showValidationMessage('Tanggal pesanan wajib dipilih.');
-          return false;
-        }
-        return { deliveryDate, deliveryAddress };
-      },
-    });
-
-    if (!result.isConfirmed || !result.value) return;
-
-    const checkoutItems = cartProducts.map((product) => ({
-      productId: product.id,
-      qty: cart[product.id].qty,
-      notes: cart[product.id].notes,
-      selectedVariant: cart[product.id].selectedVariant,
-      deliveryDate: result.value.deliveryDate,
-      deliveryAddress: result.value.deliveryAddress,
-    }));
-
-    sessionStorage.setItem('pesanku-store-checkout', JSON.stringify(checkoutItems));
-    router.push('/process-order?source=store');
   };
 
   return (
-    <div className={`min-h-screen bg-base ${showCatalog ? 'pb-32' : 'pb-12'}`}>
+    <div className={`min-h-screen bg-base pb-12`}>
       <header className="sticky top-0 z-50 border-b border-border bg-surface/90 backdrop-blur-md">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
@@ -386,7 +270,7 @@ export default function ClientStoreProfile({
                       .toLowerCase()
                       .replace(/[^a-z0-9]+/g, '-')
                       .replace(/^-|-$/g, '');
-                    const line = cart[product.id];
+                    const line = getCartLine(product.id);
                     const selectedVariant = line?.selectedVariant || variantSelections[product.id] || '';
                     const displayedPrice = getProductUnitPrice(product.price, product.variants, selectedVariant);
                     const productSubtotal = displayedPrice * (line?.qty || 1);
@@ -405,8 +289,8 @@ export default function ClientStoreProfile({
                             />
                             {/* Rating Badge */}
                             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm px-2.5 py-0.5 rounded-full flex items-center justify-center gap-1 shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-gray-100 text-[10px] sm:text-[11px] font-bold z-10 text-gray-800 leading-none pb-[1px] min-w-[50px]">
-                               <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-yellow-500 shrink-0" /> 
-                               {(product.averageRating ?? 0) > 0 ? (product.averageRating ?? 0).toFixed(1) : 'Baru'}
+                              <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-yellow-500 shrink-0" />
+                              {(product.averageRating ?? 0) > 0 ? (product.averageRating ?? 0).toFixed(1) : 'Baru'}
                             </div>
                           </Link>
                         </div>
@@ -420,7 +304,7 @@ export default function ClientStoreProfile({
                           <Link href={`/product/${encodeURIComponent(productSlug)}-${product.id}`}>
                             <h3 className="text-[13px] sm:text-sm font-bold text-gray-900 dark:text-gray-100 leading-snug line-clamp-2 mb-1 group-hover:text-[#ff5c35] transition-colors">{product.name}</h3>
                           </Link>
-                          
+
                           <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mb-1.5 line-clamp-1">
                             {product.description || 'Tidak ada deskripsi.'}
                           </p>
@@ -451,7 +335,7 @@ export default function ClientStoreProfile({
                                       className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold transition-colors shrink-0 whitespace-nowrap ${isSelected
                                         ? 'border-[#ff5c35] bg-[#ff5c35] text-white'
                                         : 'border-gray-200 bg-white text-gray-600 hover:border-[#ff5c35] hover:text-[#ff5c35]'
-                                      }`}
+                                        }`}
                                     >
                                       {variant.name}
                                     </button>
@@ -509,32 +393,7 @@ export default function ClientStoreProfile({
         </section>
       </main>
 
-      {showCatalog && (
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/95 px-4 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.12)] backdrop-blur-md">
-          <div className="mx-auto flex max-w-6xl items-center gap-3 sm:gap-5" aria-live="polite">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
-                <ShoppingCart className="h-5 w-5" />
-                {totalItems > 0 && (
-                  <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-primary px-1 text-[10px] font-bold text-white">{totalItems}</span>
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-xs text-text-secondary">{cartProducts.length > 0 ? `${cartProducts.length} produk · ${totalItems} item` : 'Keranjang masih kosong'}</p>
-                <p className="text-lg font-bold text-brand-primary sm:text-xl">{formatRupiah(totalPrice)}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => void checkout()}
-              disabled={cartProducts.length === 0}
-              className="btn-primary shrink-0 px-5 py-3 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 sm:min-w-40"
-            >
-              Checkout
-            </button>
-          </div>
-        </div>
-      )}
+      <CartSidebar />
     </div>
   );
 }

@@ -15,11 +15,11 @@ export default function RefundPolicyPage() {
             <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800 tracking-tight mb-4 text-center">
               Kebijakan Pengembalian Dana
             </h1>
-            <div className="w-16 h-1 bg-green-500 mx-auto rounded-full mb-4"></div>
+            <div className="w-16 h-1 bg-brand-primary mx-auto rounded-full mb-4"></div>
             <p className="text-gray-500">Terakhir diperbarui: {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
-          
-          <div className="prose prose-slate max-w-none text-slate-600 prose-headings:text-slate-800 prose-headings:font-bold prose-a:text-green-600 hover:prose-a:text-green-500">
+
+          <div className="prose prose-slate max-w-none text-slate-600 prose-headings:text-slate-800 prose-headings:font-bold prose-a:text-brand-primary hover:prose-a:text-brand-primary-hover">
             <p className="mb-6 font-medium text-slate-700">
               Di Pesanku, kepuasan pembeli adalah prioritas kami. Meski begitu, karena sistem kami berbasis sistem Pre-Order (Pesan di Muka), ada aturan ketat mengenai prosedur pengembalian dana (Refund).
             </p>
@@ -52,9 +52,9 @@ export default function RefundPolicyPage() {
               Jika Anda telah memenuhi syarat namun dana belum diterima melewati dari 14 hari kerja, silakan hubungi tim dukungan pelanggan kami untuk eskalasi kendala tiket pembayaran Anda.
             </p>
           </div>
-          
+
           <div className="mt-12 pt-8 border-t border-gray-100 flex justify-center">
-            <Link href="/" className="px-6 py-3 bg-green-50 text-green-700 font-medium rounded-xl hover:bg-green-100 transition-colors">
+            <Link href="/" className="px-6 py-3 bg-brand-primary/5 text-brand-primary font-medium rounded-xl hover:bg-brand-primary/10 transition-colors">
               Kembali ke Beranda
             </Link>
           </div>

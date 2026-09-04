@@ -15,15 +15,15 @@ export default function TermsPage() {
             <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800 tracking-tight mb-4 text-center">
               Syarat & Ketentuan
             </h1>
-            <div className="w-16 h-1 bg-green-500 mx-auto rounded-full mb-4"></div>
+            <div className="w-16 h-1 bg-brand-primary mx-auto rounded-full mb-4"></div>
             <p className="text-gray-500">Terakhir diperbarui: {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
-          
-          <div className="prose prose-slate max-w-none text-slate-600 prose-headings:text-slate-800 prose-headings:font-bold prose-a:text-green-600 hover:prose-a:text-green-500">
+
+          <div className="prose prose-slate max-w-none text-slate-600 prose-headings:text-slate-800 prose-headings:font-bold prose-a:text-brand-primary hover:prose-a:text-brand-primary-hover">
             <h2 className="text-2xl mt-8 mb-4">1. Pendahuluan</h2>
             <p className="mb-4">
-              Selamat datang di Pesanku, platform marketplace pre-order yang menghubungkan antara pembeli dan penjual (UMKM). 
-              Dengan mengakses atau menggunakan platform ini, Anda menyetujui untuk terikat dengan Syarat dan Ketentuan berikut. 
+              Selamat datang di Pesanku, platform marketplace pre-order yang menghubungkan antara pembeli dan penjual (UMKM).
+              Dengan mengakses atau menggunakan platform ini, Anda menyetujui untuk terikat dengan Syarat dan Ketentuan berikut.
               Jika Anda tidak menyetujui syarat-syarat ini, harap untuk tidak menggunakan layanan kami.
             </p>
 
@@ -51,13 +51,13 @@ export default function TermsPage() {
 
             <h2 className="text-2xl mt-8 mb-4">5. Perubahan Syarat & Ketentuan</h2>
             <p className="mb-4">
-              Kami berhak untuk memodifikasi atau mengganti Syarat dan Ketentuan ini sewaktu-waktu. 
+              Kami berhak untuk memodifikasi atau mengganti Syarat dan Ketentuan ini sewaktu-waktu.
               Setiap perubahan material akan diinformasikan kepada pengguna sebelum perubahan tersebut berlaku efektif.
             </p>
           </div>
-          
+
           <div className="mt-12 pt-8 border-t border-gray-100 flex justify-center">
-            <Link href="/" className="px-6 py-3 bg-green-50 text-green-700 font-medium rounded-xl hover:bg-green-100 transition-colors">
+            <Link href="/" className="px-6 py-3 bg-brand-primary/5 text-brand-primary font-medium rounded-xl hover:bg-brand-primary/10 transition-colors">
               Kembali ke Beranda
             </Link>
           </div>

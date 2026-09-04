@@ -13,7 +13,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const { orderId, status, deliveryProofUrl, dispatchReceiptUrl, cancelReason, returnReason, returnProofUrl, returnBankCode, returnBankAccount } = await req.json() as {
+    const { orderId, status, deliveryProofUrl, dispatchReceiptUrl, cancelReason, returnReason, returnProofUrl, returnBankCode, returnBankAccount, requestedDeliveryDate } = await req.json() as {
       orderId?: string;
       status?: unknown;
       deliveryProofUrl?: unknown;
@@ -23,6 +23,7 @@ export async function PUT(req: Request) {
       returnProofUrl?: string;
       returnBankCode?: string;
       returnBankAccount?: string;
+      requestedDeliveryDate?: string;
     };
 
     if (!orderId || !status) {
@@ -70,7 +71,7 @@ export async function PUT(req: Request) {
     }
 
     // ── FUNGSI BANTU SALDO ──────────────────────────────────────────────────
-    
+
     // Saat penjual konfirmasi (→ processing): tambahkan ke retainedBalance (saldo ditahan)
     const addRetainedBalance = async (sid: string, amount: number) => {
       const balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, sid)).get();
@@ -164,24 +165,41 @@ export async function PUT(req: Request) {
         uploadedReturnProofUrl = returnProofUrl;
       }
     }
-    
+
     // ── OTOMATISASI PENCAIRAN DANA (SEBELUM UPDATE DB AGAR BISA DIBATALKAN JIKA GAGAL) ──
     let diprosesDisbursement = false;
     let payoutAmount = 0;
-    
+
     if (status === 'completed' && orderObj.status !== 'completed') {
-      payoutAmount = orderObj.totalPrice || 0;
-      const { sellerProfiles } = await import('@/lib/schema');
-      
+      // Ambil settings untuk biaya (fee_aplikasi, fee_jasa, fee_admin)
+      // Penjual akan dipotong biaya tambahan ini pada saat pencairan akhir (Escrow)
+      const { settings, sellerProfiles } = await import('@/lib/schema');
+      const { sql } = await import('drizzle-orm');
+      const settingsData = await db.select().from(settings).where(
+        sql`${settings.key} IN ('fee_aplikasi', 'fee_jasa', 'fee_admin')`
+      ).all();
+
+      let platformFees = 0;
+      settingsData.forEach(s => {
+        if (s.key === 'fee_aplikasi' || s.key === 'fee_jasa' || s.key === 'fee_admin') {
+          platformFees += parseInt(s.value || '0', 10) || 0;
+        }
+      });
+
+      // Pencairan kedua (Escrow release): Admin mencairkan 50% saldo yang ditahan
+      // karena 50% (sellerSplitAmount) sudah dicairkan otomatis via route di awal.
+      // DILAKUKAN POTONGAN: seller dibebankan biaya platform.
+      const escrowAdminPart = orderObj.adminSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
+      payoutAmount = Math.max(0, escrowAdminPart - platformFees);
       const sellerProfile = await db.select().from(sellerProfiles).where(eq(sellerProfiles.userId, sellerId)).get();
       const rawBankAccount = sellerProfile?.bankAccount || 'Unknown Bank';
 
       const { executeDisbursement } = await import('@/lib/ipaymu');
       const disbursementRes = await executeDisbursement({
-         amount: payoutAmount,
-         bankAccount: rawBankAccount,
-         referenceId: orderId,
-         notes: `Pesanku - Pembayaran Lunas untuk Order ${orderId}`
+        amount: payoutAmount,
+        bankAccount: rawBankAccount,
+        referenceId: orderId,
+        notes: `Pesanku - Pembayaran Lunas untuk Order ${orderId}`
       });
 
       if (!disbursementRes.success) {
@@ -195,10 +213,10 @@ export async function PUT(req: Request) {
 
       const { executeDisbursement } = await import('@/lib/ipaymu');
       const disbursementRes = await executeDisbursement({
-         amount: payoutAmount,
-         bankAccount: buyerBank,
-         referenceId: `REF-${orderId}`,
-         notes: `Pesanku - Refund Pesanan ${orderId}`
+        amount: payoutAmount,
+        bankAccount: buyerBank,
+        referenceId: `REF-${orderId}`,
+        notes: `Pesanku - Refund Pesanan ${orderId}`
       });
 
       if (!disbursementRes.success) {
@@ -214,7 +232,48 @@ export async function PUT(req: Request) {
       updateFields.deliveryProofUrl = deliveryProofUrl;
     }
     if (typeof dispatchReceiptUrl === 'string' && dispatchReceiptUrl) {
-      updateFields.dispatchReceiptUrl = dispatchReceiptUrl;
+      let finalDispatchUrl = dispatchReceiptUrl;
+      // OCR processing + Cloudinary upload
+      if (dispatchReceiptUrl.startsWith('data:image')) {
+        // 1. Lakukan OCR via Tesseract.js sebelum di-upload
+        try {
+          const { createWorker } = await import('tesseract.js');
+          const worker = await createWorker('ind');
+          const ret = await worker.recognize(dispatchReceiptUrl);
+          await worker.terminate();
+
+          const text = ret.data.text;
+          const matches = text.match(/\b([A-Z0-9-]{9,25})\b/g);
+          if (matches) {
+            const withNumbers = matches.find(m => /\d/.test(m));
+            updateFields.trackingNumber = withNumbers || matches[0];
+          }
+        } catch (err) {
+          console.error("OCR Error: ", err);
+        }
+
+        // 2. Upload ke Cloudinary
+        const hasCloudinaryConfig = Boolean(
+          process.env.CLOUDINARY_CLOUD_NAME &&
+          process.env.CLOUDINARY_API_KEY &&
+          process.env.CLOUDINARY_API_SECRET
+        );
+        if (hasCloudinaryConfig) {
+          try {
+            const { v2: cloudinary } = await import('cloudinary');
+            cloudinary.config({
+              cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+              api_key: process.env.CLOUDINARY_API_KEY,
+              api_secret: process.env.CLOUDINARY_API_SECRET,
+            });
+            const uploadResponse = await cloudinary.uploader.upload(dispatchReceiptUrl, { folder: 'pesanku_dispatch' });
+            finalDispatchUrl = uploadResponse.secure_url;
+          } catch (err) {
+            console.error('Cloudinary upload dispatch receipt error:', err);
+          }
+        }
+      }
+      updateFields.dispatchReceiptUrl = finalDispatchUrl;
     }
     if (status === 'cancelled' && cancelReason) {
       updateFields.cancelReason = cancelReason;
@@ -244,7 +303,11 @@ export async function PUT(req: Request) {
     if (status === 'waiting_verification' || status === 'verified') {
       const scheduleKey = `preorder_schedule:${sellerId}:${orderId}`;
       await db.delete(settings).where(eq(settings.key, scheduleKey));
-      updateFields.deliveryDate = null;
+      // Removed updateFields.deliveryDate = null; to avoid wiping checkout dates!
+    }
+
+    if (requestedDeliveryDate) {
+      updateFields.deliveryDate = requestedDeliveryDate;
     }
 
     await db.update(orders)
@@ -252,25 +315,25 @@ export async function PUT(req: Request) {
       .where(eq(orders.id, orderId));
 
     // ── LOGIKA PEMBAGIAN SALDO 50% / 50% ───────────────────────────────────
-    if (status === 'processing' && orderObj.status !== 'processing' && orderObj.status !== 'completed' && orderObj.status !== 'return_pending') {
-      // Gunakan sellerSplitAmount yang sudah tersimpan, fallback ke 50%
-      const sellerShare = orderObj.sellerSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
-      await addRetainedBalance(sellerId, sellerShare);
+    if (status === 'verified' && orderObj.status !== 'verified' && orderObj.status !== 'processing' && orderObj.status !== 'completed' && orderObj.status !== 'return_pending') {
+      // Pembayaran dikonfirmasi → saldo ditahan (Hanya adminSplitAmount yang ditahan)
+      const escrowAmount = orderObj.adminSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
+      await addRetainedBalance(sellerId, escrowAmount);
     } else if (status === 'completed' && orderObj.status !== 'completed') {
       if (diprosesDisbursement) {
-        // Hapus retainedBalance yang sebelumnya tertahan
-        const retainedAmount = orderObj.sellerSplitAmount ?? Math.floor(payoutAmount * 0.5);
-        await deductRetainedBalance(sellerId, retainedAmount);
+        // Hapus retainedBalance yang sebelumnya tertahan (Escrow)
+        const escrowAmount = orderObj.adminSplitAmount ?? Math.floor(payoutAmount * 0.5);
+        await deductRetainedBalance(sellerId, escrowAmount);
 
         // 3. Catat di tabel payouts (sebagai tanda transfer fisik ke rekening telah diproses)
         const { payouts } = await import('@/lib/schema');
         await db.insert(payouts).values({
-           id: crypto.randomUUID(),
-           sellerId: sellerId,
-           amountRequested: payoutAmount,
-           netAmount: payoutAmount,
-           status: 'processed',
-           processedAt: new Date()
+          id: crypto.randomUUID(),
+          sellerId: sellerId,
+          amountRequested: payoutAmount,
+          netAmount: payoutAmount,
+          status: 'processed',
+          processedAt: new Date()
         });
       }
     } else if (status === 'returned' && orderObj.status !== 'returned') {

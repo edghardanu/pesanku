@@ -48,7 +48,7 @@ export async function GET(request: Request) {
         eq(orders.buyerId, orderData.buyerId),
         eq(products.sellerId, orderData.sellerId)
       ));
-    
+
     const orderIds = allBuyerOrders.map(o => o.id);
 
     // Membuka chat hanya menandai pesan dari lawan bicara sebagai telah dibaca.
@@ -62,29 +62,10 @@ export async function GET(request: Request) {
             ne(chatMessages.senderId, user.id),
             eq(chatMessages.isRead, false)
           )
-        ).catch(() => {});
+        ).catch(() => { });
     }
 
-    const existingMessage = await db
-      .select({ id: chatMessages.id })
-      .from(chatMessages)
-      .where(inArray(chatMessages.orderId, orderIds))
-      .get();
 
-    if (!existingMessage) {
-      // Auto-initialize chat with seller template!
-      const msgId = `msg_${crypto.randomBytes(8).toString('hex')}`;
-      const isChatOnly = orderData.status === 'chat_only';
-      await db.insert(chatMessages).values({
-        id: msgId,
-        orderId,
-        senderId: orderData.sellerId,
-        text: isChatOnly 
-          ? `Halo kak! Apakah ada yang bisa kami bantu seputar produk <b>${orderData.productName}</b>?`
-          : `Halo kak! Tadi kakak melakukan pemesanan untuk <b>${orderData.productName}</b> ya?`,
-        isRead: false,
-      });
-    }
 
     const messages = await db
       .select({
@@ -122,7 +103,7 @@ export async function POST(request: Request) {
     }
 
     const msgId = `msg_${crypto.randomBytes(8).toString('hex')}`;
-    
+
     await db.insert(chatMessages).values({
       id: msgId,
       orderId,

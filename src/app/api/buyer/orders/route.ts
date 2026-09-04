@@ -26,7 +26,9 @@ export async function GET() {
         selectedVariant: orders.selectedVariant,
         selectedVariantPrice: orders.selectedVariantPrice,
         createdAt: orders.createdAt,
+        productId: products.id,
         productName: products.name,
+        productPrice: products.price,
         productImageUrl: products.imageUrl,
         storeName: sellerProfiles.storeName,
         sellerId: products.sellerId,
@@ -35,8 +37,11 @@ export async function GET() {
         processingTime: products.processingTime,
         paymentId: payments.id,
         paymentStatus: payments.verificationStatus,
+        paymentProofUrl: payments.proofUrl,
         deliveryProofUrl: orders.deliveryProofUrl,
         dispatchReceiptUrl: orders.dispatchReceiptUrl,
+        trackingNumber: orders.trackingNumber,
+        deliveryDate: orders.deliveryDate,
         cancelReason: orders.cancelReason,
         rating: orders.rating,
         ratedAt: orders.ratedAt,
@@ -83,13 +88,44 @@ export async function GET() {
       return acc;
     }, {} as Record<string, number>);
 
-    userOrders = userOrders.map(order => ({
-      ...order,
-      unreadCount: unreadCounts[order.orderId] || 0,
-      lastMessageAt: lastMessageMap[order.orderId] ?? null,
-    }));
+    // Find if the seller has sent an approval or rejection for the orders
+    const negotiationMessages = await db.select({
+      orderId: chatMessages.orderId,
+      text: chatMessages.text,
+      createdAt: chatMessages.createdAt
+    }).from(chatMessages)
+      .innerJoin(users, eq(chatMessages.senderId, users.id))
+      .where(and(
+        eq(users.role, 'penjual'),
+        sql`${chatMessages.text} LIKE '%SETUJUI%' OR ${chatMessages.text} LIKE '%belum dapat kami setujui%'`
+      ))
+      .orderBy(desc(chatMessages.createdAt));
 
-    return NextResponse.json({ orders: userOrders });
+    const negotiationMap: Record<string, 'approved' | 'rejected'> = {};
+    for (const msg of negotiationMessages) {
+      if (!negotiationMap[msg.orderId]) {
+        if (msg.text.includes('SETUJUI')) {
+          negotiationMap[msg.orderId] = 'approved';
+        } else if (msg.text.includes('belum dapat kami setujui')) {
+          negotiationMap[msg.orderId] = 'rejected';
+        }
+      }
+    }
+
+    const uniqueOrders = new Map<string, typeof userOrders[0]>();
+
+    for (const order of userOrders) {
+      if (!uniqueOrders.has(order.orderId)) {
+        uniqueOrders.set(order.orderId, {
+          ...order,
+          unreadCount: unreadCounts[order.orderId] || 0,
+          lastMessageAt: lastMessageMap[order.orderId] ?? null,
+          negotiationStatus: negotiationMap[order.orderId] ?? null,
+        });
+      }
+    }
+
+    return NextResponse.json({ orders: Array.from(uniqueOrders.values()) });
   } catch (error) {
     console.error("Error fetching buyer orders:", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

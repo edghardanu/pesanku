@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Plus, FileText, Package, DollarSign, Settings, LogOut, Info, X, Upload, Store, Sun, Moon, MessageCircle, User, Menu, Megaphone, Bell, Eye, EyeOff, RotateCcw, CheckCircle, XCircle, Search } from "lucide-react";
+import { ShoppingBag, Plus, FileText, Package, DollarSign, Settings, LogOut, Info, X, Upload, Store, Sun, Moon, MessageCircle, User, Menu, Megaphone, Bell, Eye, EyeOff, RotateCcw, CheckCircle, XCircle, Search, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SellerPreorderCalendar from "@/components/SellerPreorderCalendar";
 import SellerPromotionCenter from "@/components/SellerPromotionCenter";
@@ -13,6 +13,7 @@ import { formatChatTimeWIB, formatShortDateTimeWIB, WIB_TIMEZONE } from "@/lib/p
 import { useDarkMode } from "@/hooks";
 import { escapeQuotes as escapeQuotesUtil } from "@/lib/format";
 import Swal from 'sweetalert2';
+import SellerOrderDetail from "./SellerOrderDetail";
 
 type Product = {
   id: string;
@@ -54,6 +55,7 @@ type ClientSellerDashboardProps = {
   feeJasa?: number;
   promotionOffers?: PromotionOfferItem[];
   promotionRequests?: PromotionRequestItem[];
+  penaltyPercentage?: number;
 };
 
 export default function ClientSellerDashboard({
@@ -67,15 +69,53 @@ export default function ClientSellerDashboard({
   sellerOrders: initialSellerOrders = [],
   feeAdmin = 0, feeAplikasi = 0, feeJasa = 0,
   promotionOffers = [],
-  promotionRequests = []
+  promotionRequests = [],
+  penaltyPercentage = 0,
 }: ClientSellerDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'pesanan_masuk' | 'chat_pembeli' | 'produk' | 'promosi' | 'keuangan' | 'pengaturan' | 'pesanan_dikembalikan'>('produk');
+  const [activeTab, setActiveTab] = useState<'pesanan_masuk' | 'produk' | 'promosi' | 'keuangan' | 'pengaturan' | 'pesanan_dikembalikan'>('produk');
   const [selectedProductIdFilter, setSelectedProductIdFilter] = useState<string | undefined>(undefined);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [sellerOrders, setSellerOrders] = useState<OrderItem[]>(initialSellerOrders);
   const [searchQueryPesanan, setSearchQueryPesanan] = useState('');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [viewedOrderIds, setViewedOrderIds] = useState<Set<string>>(new Set());
+
+  const handleSelectOrder = (orderId: string | null) => {
+    setSelectedOrderId(orderId);
+    if (orderId) {
+      const idsToMark = new Set<string>();
+      idsToMark.add(orderId);
+
+      // Determine which clustered orders (same buyer & product) also get marked
+      const selected = sellerOrders.find(o => o.id === orderId);
+      if (selected) {
+        const key = `${selected.productId}-${selected.buyerId || selected.buyerName}`;
+        sellerOrders.forEach(o => {
+          if (`${o.productId}-${o.buyerId || o.buyerName}` === key) {
+            idsToMark.add(o.id);
+          }
+        });
+      }
+
+      setViewedOrderIds(prev => {
+        const next = new Set(prev);
+        idsToMark.forEach(id => next.add(id));
+        return next;
+      });
+
+      // Optimistically update isRead in local state
+      setSellerOrders(prev => prev.map(o => idsToMark.has(o.id) ? { ...o, isRead: true } : o));
+
+      // Persist in DB so reloading doesn't bring back the notification
+      fetch('/api/seller/notifications/read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderIds: Array.from(idsToMark) })
+      }).catch(() => { });
+    }
+  };
 
   useEffect(() => {
     const syncTimer = window.setTimeout(() => setSellerOrders(initialSellerOrders), 0);
@@ -91,9 +131,25 @@ export default function ClientSellerDashboard({
   const [notifications, setNotifications] = useState({ newOrders: [] as any[], unreadChats: [] as any[], chatThreads: [] as any[] });
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isNotifDesktopOpen, setIsNotifDesktopOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
   // Poll for real-time updates on products, notifications, AND seller orders
   const isInitialLoad = useRef(true);
+
+  useEffect(() => {
+    const handleStatusUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const { orderId, status, requestedDeliveryDate } = customEvent.detail;
+      setSellerOrders(current => current.map(o => {
+        if (o.id === orderId) {
+          return { ...o, status, requestedDeliveryDate: requestedDeliveryDate || o.requestedDeliveryDate };
+        }
+        return o;
+      }));
+    };
+    window.addEventListener('seller-order-status-updated', handleStatusUpdate);
+    return () => window.removeEventListener('seller-order-status-updated', handleStatusUpdate);
+  }, []);
 
   useEffect(() => {
     let abortController: AbortController | null = null;
@@ -216,9 +272,28 @@ export default function ClientSellerDashboard({
 
     fetchData();
     const interval = setInterval(fetchData, 15000); // 15 seconds is much better for performance
+
+    const handleOrderStatusUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail && customEvent.detail.orderId && customEvent.detail.status) {
+        setSellerOrders(prev => prev.map(order =>
+          order.id === customEvent.detail.orderId
+            ? { ...order, status: customEvent.detail.status }
+            : order
+        ));
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('seller-order-status-updated', handleOrderStatusUpdate);
+    }
+
     return () => {
       clearInterval(interval);
       abortController?.abort(); // Cancel any in-flight request on unmount
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('seller-order-status-updated', handleOrderStatusUpdate);
+      }
     };
   }, []);
 
@@ -263,7 +338,7 @@ export default function ClientSellerDashboard({
     reader.readAsDataURL(file);
   };
 
-  const handleTabChange = (tab: 'pesanan_masuk' | 'chat_pembeli' | 'produk' | 'promosi' | 'keuangan' | 'pengaturan' | 'pesanan_dikembalikan') => {
+  const handleTabChange = (tab: 'pesanan_masuk' | 'produk' | 'promosi' | 'keuangan' | 'pengaturan' | 'pesanan_dikembalikan') => {
     if (tab === activeTab) return;
     setActiveTab(tab);
     setIsMobileSidebarOpen(false); // Close mobile sidebar on tab change
@@ -478,7 +553,7 @@ export default function ClientSellerDashboard({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               orderId,
-              status: currentStatus,
+              status: 'processing',
               dispatchReceiptUrl
             })
           });
@@ -794,7 +869,7 @@ export default function ClientSellerDashboard({
               if (pName) {
                 let defaultDateStr = new Date().toISOString().split('T')[0];
                 const datePattern = /tanggal\s+(\d{2}\/\d{2}\/\d{4})/;
-                
+
                 // Cari dari dalam kontainer chat langsung
                 const chatContainer = document.getElementById('chat-messages');
                 if (chatContainer) {
@@ -1229,7 +1304,34 @@ export default function ClientSellerDashboard({
     </>
   );
 
-  const filteredSellerOrders = sellerOrders.filter((order) => {
+  const collapsedSellerOrders = (() => {
+    const activeKeys = new Set(
+      sellerOrders
+        .filter(o => o.status !== 'chat_only' && o.status !== 'cancelled' && o.status !== 'failed' && o.status !== 'returned')
+        .map(o => `${o.productId}-${o.buyerId || o.buyerName}`)
+    );
+    const seenChatKey = new Set<string>();
+    const seenActiveKey = new Set<string>();
+
+    return sellerOrders.filter((order) => {
+      const key = `${order.productId}-${order.buyerId || order.buyerName}`;
+
+      if (order.status === 'chat_only') {
+        if (activeKeys.has(key)) return false;
+        if (seenChatKey.has(key)) return false;
+        seenChatKey.add(key);
+      }
+
+      if (order.status === 'waiting_verification') {
+        if (seenActiveKey.has(key)) return false;
+        seenActiveKey.add(key);
+      }
+
+      return true;
+    });
+  })();
+
+  const filteredSellerOrders = collapsedSellerOrders.filter((order) => {
     if (!searchQueryPesanan) return true;
     const q = searchQueryPesanan.toLowerCase();
     return (
@@ -1250,7 +1352,7 @@ export default function ClientSellerDashboard({
 
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-surface border-r border-border transform ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 flex flex-col h-screen`}>
-        <div className="p-6 border-b border-border">
+        <div className="p-5 border-b border-border">
           <Link href="/" className="flex items-center gap-2">
             <ShoppingBag className="w-8 h-8 text-brand-primary" />
             <span className="text-h2 text-brand-primary font-bold">pesanku</span>
@@ -1261,18 +1363,14 @@ export default function ClientSellerDashboard({
           >
             <X className="w-6 h-6" />
           </button>
-          <div className="mt-4 p-3 bg-brand-primary/10 rounded-lg">
-            <p className="text-caption text-text-secondary">Toko Aktif</p>
-            <p className="text-body-base font-semibold text-brand-primary truncate">{profile?.storeName || 'Toko Saya'}</p>
-          </div>
         </div>
 
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           <button
             onClick={() => handleTabChange('produk')}
             className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'produk'
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-brand-primary/10 text-brand-primary font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <Package className="w-5 h-5" />
@@ -1281,8 +1379,8 @@ export default function ClientSellerDashboard({
           <button
             onClick={() => handleTabChange('pesanan_masuk')}
             className={`w-full flex items-center justify-between p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'pesanan_masuk'
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-brand-primary/10 text-brand-primary font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <div className="flex items-center gap-3">
@@ -1290,7 +1388,7 @@ export default function ClientSellerDashboard({
               Pesanan Masuk
             </div>
             {(() => {
-              const pendingCount = sellerOrders.filter(o => o.status === 'waiting_verification').length;
+              const pendingCount = collapsedSellerOrders.filter(o => o.status === 'waiting_verification' && !viewedOrderIds.has(o.id) && !o.isRead).length;
               if (pendingCount > 0) {
                 return (
                   <span className="flex w-5 h-5 items-center justify-center rounded-full bg-brand-primary text-[10px] font-bold text-white shrink-0">
@@ -1301,28 +1399,12 @@ export default function ClientSellerDashboard({
               return null;
             })()}
           </button>
-          <button
-            onClick={() => handleTabChange('chat_pembeli')}
-            className={`w-full flex items-center justify-between p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'chat_pembeli'
-                ? 'bg-blue-500/10 text-blue-500 font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-              }`}
-          >
-            <div className="flex items-center gap-3">
-              <MessageCircle className="w-5 h-5" />
-              Chat Pembeli
-            </div>
-            {notifications.unreadChats.length > 0 && (
-              <span className="flex w-5 h-5 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">
-                {notifications.unreadChats.length}
-              </span>
-            )}
-          </button>
+
           <button
             onClick={() => handleTabChange('promosi')}
             className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'promosi'
-                ? 'bg-brand-primary/10 text-brand-primary font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-brand-primary/10 text-brand-primary font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <Megaphone className="w-5 h-5" />
@@ -1331,8 +1413,8 @@ export default function ClientSellerDashboard({
           <button
             onClick={() => handleTabChange('keuangan')}
             className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'keuangan'
-                ? 'bg-status-success/10 text-status-success font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-status-success/10 text-status-success font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <DollarSign className="w-5 h-5" />
@@ -1341,8 +1423,8 @@ export default function ClientSellerDashboard({
           <button
             onClick={() => handleTabChange('pesanan_dikembalikan')}
             className={`w-full flex items-center justify-between p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'pesanan_dikembalikan'
-                ? 'bg-amber-500/10 text-amber-600 font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              ? 'bg-amber-500/10 text-amber-600 font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
               }`}
           >
             <div className="flex items-center gap-3">
@@ -1361,20 +1443,9 @@ export default function ClientSellerDashboard({
               return null;
             })()}
           </button>
-          <button
-            onClick={() => handleTabChange('pengaturan')}
-            className={`w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-all text-left hover-btn ${activeTab === 'pengaturan'
-                ? 'bg-brand-secondary/20 text-brand-secondary-dark dark:text-brand-secondary font-semibold'
-                : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
-              }`}
-          >
-            <Settings className="w-5 h-5" />
-            Pengaturan Toko
-          </button>
         </nav>
 
-        <div className="p-4 border-t border-border flex flex-col gap-2">
-
+        <div className="p-4 border-t border-border">
           <button
             onClick={toggleDarkMode}
             className="flex items-center justify-between p-3 text-text-secondary hover:text-text-primary hover:bg-border/40 dark:hover:bg-slate-800/80 hover-btn rounded-lg font-medium transition-colors w-full cursor-pointer"
@@ -1388,28 +1459,15 @@ export default function ClientSellerDashboard({
               {isDarkMode ? 'Dark' : 'Light'}
             </span>
           </button>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 p-3 text-status-error w-full hover:bg-status-error/10 hover-btn rounded-lg font-medium transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            Keluar
-          </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-h-screen md:h-screen overflow-y-auto">
+      <main className="flex-1 flex flex-col min-h-screen md:h-screen overflow-y-auto min-w-0">
         {/* Topbar Mobile */}
         <header className="md:hidden bg-surface/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between sticky top-0 z-50 transition-all">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsMobileSidebarOpen(true)}
-              className="p-1.5 rounded-lg hover:bg-border/60 text-text-primary"
-              aria-label="Buka menu penjual"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
+
             <ShoppingBag className="w-6 h-6 text-brand-primary" />
             <span className="text-h3 text-brand-primary font-bold">pesanku</span>
           </div>
@@ -1431,56 +1489,66 @@ export default function ClientSellerDashboard({
               </button>
               {isNotifOpen && renderNotificationsDropdown(false)}
             </div>
-            <button
-              onClick={() => handleTabChange('pengaturan')}
-              className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors flex items-center justify-center w-9 h-9 border border-border hover-btn cursor-pointer"
-              aria-label="Buka Pengaturan Toko"
-              title="Pengaturan Toko"
-            >
-              <Settings className="w-4 h-4 text-brand-primary" />
-            </button>
-
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-border/60 dark:hover:bg-slate-800 transition-colors relative overflow-hidden flex items-center justify-center w-9 h-9 border border-border hover-btn cursor-pointer"
-              aria-label="Toggle Dark Mode"
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                {isDarkMode ? (
-                  <motion.div
-                    key="moon"
-                    initial={{ y: -20, opacity: 0, rotate: -90 }}
-                    animate={{ y: 0, opacity: 1, rotate: 0 }}
-                    exit={{ y: 20, opacity: 0, rotate: 90 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute"
+            <div className="relative">
+              <button
+                onClick={() => { setIsUserDropdownOpen(!isUserDropdownOpen); setIsNotifOpen(false); }}
+                className="p-1.5 rounded-full hover:bg-border/60 transition-colors flex items-center justify-center border border-border bg-surface shadow-sm cursor-pointer"
+                title="Akun Pengguna"
+              >
+                <div className="w-6 h-6 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                  <User className="w-4 h-4" />
+                </div>
+              </button>
+              {isUserDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-52 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-text-secondary">Masuk sebagai</p>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-primary/10 text-brand-primary uppercase tracking-wide">Penjual</span>
+                    </div>
+                    <p className="font-bold text-text-primary text-sm truncate">{userName}</p>
+                    <p className="text-xs text-text-secondary truncate">{profile?.storeName || 'Toko Saya'}</p>
+                  </div>
+                  <button
+                    onClick={() => { handleTabChange('pengaturan'); setIsUserDropdownOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary hover:bg-surface-secondary transition-colors"
                   >
-                    <Moon className="w-4 h-4 text-brand-primary" />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="sun"
-                    initial={{ y: 20, opacity: 0, rotate: 90 }}
-                    animate={{ y: 0, opacity: 1, rotate: 0 }}
-                    exit={{ y: -20, opacity: 0, rotate: -90 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute"
+                    <Settings className="w-4 h-4 text-text-secondary" />
+                    Pengaturan Toko
+                  </button>
+                  <button
+                    onClick={toggleDarkMode}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-sm text-text-primary hover:bg-surface-secondary transition-colors"
                   >
-                    <Sun className="w-4 h-4 text-brand-primary" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </button>
+                    <span className="flex items-center gap-3">
+                      {isDarkMode ? <Moon className="w-4 h-4 text-text-secondary" /> : <Sun className="w-4 h-4 text-text-secondary" />}
+                      {isDarkMode ? 'Mode Gelap' : 'Mode Terang'}
+                    </span>
+                    <span className="text-xs bg-border/60 px-1.5 py-0.5 rounded-md font-semibold text-text-secondary">{isDarkMode ? 'Dark' : 'Light'}</span>
+                  </button>
+                  <div className="border-t border-border mt-1 pt-1">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-status-error hover:bg-status-error/10 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Keluar Akun
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
         {/* Topbar Desktop */}
-        <header className="hidden md:flex items-center justify-end px-10 pt-6 pb-2 sticky top-0 z-40 bg-base/80 backdrop-blur-sm -mb-8">
+        <header className="hidden md:flex items-center justify-end px-10 pt-6 pb-2 sticky top-0 z-[60] bg-base/80 backdrop-blur-sm -mb-8 gap-2">
+          {/* Notification Bell */}
           <div className="relative">
             <button
               className="flex items-center justify-center p-2 rounded-xl border border-border bg-surface text-text-secondary hover:text-brand-primary hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all relative cursor-pointer shadow-sm"
               title="Notifikasi"
-              onClick={() => setIsNotifDesktopOpen(!isNotifDesktopOpen)}
+              onClick={() => { setIsNotifDesktopOpen(!isNotifDesktopOpen); setIsUserDropdownOpen(false); }}
             >
               <Bell className="w-5 h-5" />
               {totalNotifs > 0 && (
@@ -1490,6 +1558,59 @@ export default function ClientSellerDashboard({
               )}
             </button>
             {isNotifDesktopOpen && renderNotificationsDropdown(true)}
+          </div>
+
+          {/* User Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => { setIsUserDropdownOpen(!isUserDropdownOpen); setIsNotifDesktopOpen(false); }}
+              className="flex items-center gap-2 p-1.5 pr-3 rounded-xl border border-border bg-surface hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all cursor-pointer shadow-sm"
+              title="Akun Pengguna"
+            >
+              <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center text-white font-bold text-sm shrink-0">
+                {(userName || 'U').charAt(0).toUpperCase()}
+              </div>
+              <span className="text-sm font-semibold text-text-primary max-w-[120px] truncate">{userName}</span>
+              <svg className={`w-3.5 h-3.5 text-text-secondary transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            {isUserDropdownOpen && (
+              <div className="absolute right-0 top-full mt-2 w-52 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 overflow-hidden">
+                <div className="px-4 py-3 border-b border-border">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs text-text-secondary">Masuk sebagai</p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-primary/10 text-brand-primary uppercase tracking-wide">Penjual</span>
+                  </div>
+                  <p className="font-bold text-text-primary text-sm truncate">{userName}</p>
+                  <p className="text-xs text-text-secondary truncate">{profile?.storeName || 'Toko Saya'}</p>
+                </div>
+                <button
+                  onClick={() => { handleTabChange('pengaturan'); setIsUserDropdownOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary hover:bg-surface-secondary transition-colors"
+                >
+                  <Settings className="w-4 h-4 text-text-secondary" />
+                  Pengaturan Toko
+                </button>
+                <button
+                  onClick={toggleDarkMode}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-sm text-text-primary hover:bg-surface-secondary transition-colors"
+                >
+                  <span className="flex items-center gap-3">
+                    {isDarkMode ? <Moon className="w-4 h-4 text-text-secondary" /> : <Sun className="w-4 h-4 text-text-secondary" />}
+                    {isDarkMode ? 'Mode Gelap' : 'Mode Terang'}
+                  </span>
+                  <span className="text-xs bg-border/60 px-1.5 py-0.5 rounded-md font-semibold text-text-secondary">{isDarkMode ? 'Dark' : 'Light'}</span>
+                </button>
+                <div className="border-t border-border mt-1 pt-1">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-status-error hover:bg-status-error/10 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Keluar Akun
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
@@ -1505,304 +1626,161 @@ export default function ClientSellerDashboard({
 
           <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-40' : 'opacity-100'}`}>
             {activeTab === 'pesanan_masuk' && (
-              <div className="flex flex-col gap-6">
-                <div>
-                  <h1 className="text-h1 mb-1 flex items-center gap-2"><Bell className="w-8 h-8 text-brand-primary" /> Pesanan Masuk</h1>
-                  <p className="text-body-base text-text-secondary">Daftar semua pesanan dari pelanggan Anda.</p>
+              <div className="flex flex-col gap-5 w-full min-w-0">
+                <div className="flex justify-between items-center mt-2">
+                  <div>
+                    <h1 className="text-h1 mb-1 flex items-center gap-2"><Bell className="w-8 h-8 text-brand-primary" /> Pesanan Masuk</h1>
+                    <p className="text-body-base text-text-secondary">Daftar semua pesanan dari pelanggan Anda.</p>
+                  </div>
                 </div>
 
-                <div className="card overflow-hidden border-border border">
-                  <div className="p-5 border-b border-border bg-surface/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <h2 className="text-h3 w-full sm:w-auto">Semua Pesanan</h2>
-                    <div className="relative w-full sm:w-72">
-                      <input
-                        type="text"
-                        placeholder="Cari pesanan atau pembeli..."
-                        className="input-field pl-10 w-full"
-                        value={searchQueryPesanan}
-                        onChange={(e) => setSearchQueryPesanan(e.target.value)}
-                      />
-                      <Search className="w-5 h-5 text-text-secondary absolute left-3 top-2.5" />
+                <div className="flex w-full min-w-0 h-[calc(100vh-170px)] bg-surface border border-border sm:rounded-xl shadow-sm overflow-hidden relative">
+                  {/* SIDEBAR: Order List */}
+                  <div className={`w-full md:w-[220px] lg:w-[220px] xl:w-[240px] 2xl:w-[280px] shrink-0 border-r border-border flex flex-col h-full bg-surface-secondary/50 ${selectedOrderId ? 'hidden' : 'flex'}`}>
+                    <div className="p-4 border-b border-border bg-surface flex flex-col gap-3 sticky top-0 z-10 shrink-0">
+                      <h2 className="font-bold text-lg text-text-primary flex items-center gap-2">
+                        <MessageCircle className="w-5 h-5 text-brand-primary" />
+                        Daftar Pesanan
+                      </h2>
+                      <div className="relative w-full h-10 bg-base rounded-full flex items-center px-4 shadow-inner border border-border focus-within:ring-2 focus-within:ring-brand-primary/20 focus-within:border-brand-primary transition-all">
+                        <Search className="w-4 h-4 text-text-secondary mr-2" />
+                        <input
+                          type="text"
+                          placeholder="Cari pesanan / pembeli..."
+                          className="bg-transparent border-none outline-none w-full text-[13px] text-text-primary placeholder:text-text-secondary"
+                          value={searchQueryPesanan}
+                          onChange={(e) => setSearchQueryPesanan(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                      {filteredSellerOrders.length === 0 ? (
+                        <div className="p-10 text-center text-text-secondary">
+                          Belum ada pesanan masuk.
+                        </div>
+                      ) : (
+                        filteredSellerOrders.map((order) => (
+                          <div
+                            key={order.id}
+                            onClick={() => handleSelectOrder(order.id)}
+                            className={`p-4 justify-between items-start border-b border-border hover:bg-surface-secondary cursor-pointer transition-colors relative flex gap-3 ${selectedOrderId === order.id ? 'bg-brand-primary/5' : ''}`}
+                          >
+                            {selectedOrderId === order.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary rounded-r-full"></div>}
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-brand-primary/10 text-brand-primary font-bold text-sm border border-brand-primary/20 shrink-0 select-none shadow-sm">
+                              {(order.buyerName || 'B').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start mb-0.5">
+                                <span className="font-bold text-[13px] text-text-primary truncate pr-2">{order.buyerName || 'Pembeli'}</span>
+                                <span className="text-[10px] text-text-secondary whitespace-nowrap">{formatShortDateTimeWIB(order.createdAt || Date.now()).split(' ')[0]}</span>
+                              </div>
+                              <div className="text-[12px] font-medium text-text-primary truncate mb-1 pr-2">{order.productName}</div>
+
+                              <div className="flex items-center justify-between mt-2">
+                                <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${(order.status === 'cancelled' || order.status === 'failed') ? 'bg-red-100 text-red-700'
+                                  : order.status === 'completed' ? 'bg-green-100 text-green-700'
+                                    : order.status === 'waiting_verification' ? 'bg-yellow-100 text-yellow-800'
+                                      : order.status === 'chat_only' ? 'bg-sky-100 text-sky-700'
+                                        : 'bg-indigo-100 text-indigo-700'
+                                  }`}>
+                                  {order.status === 'cancelled' ? 'Batal'
+                                    : order.status === 'failed' ? 'Batal'
+                                      : order.status === 'completed' ? 'Selesai'
+                                        : order.status === 'waiting_verification' ? 'Menunggu Bayar'
+                                          : order.status === 'verified' ? 'Pesanan Masuk'
+                                            : order.status === 'preorder_running' ? 'Dijadwalkan'
+                                              : order.status === 'processing' ? 'Proses'
+                                                : order.status === 'chat_only' ? 'Penawaran'
+                                                  : 'Proses'}
+                                </span>
+                                {(order.isRead === false) ? <span className="w-2 h-2 bg-red-500 rounded-full"></span> : null}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
-                  {filteredSellerOrders.length === 0 ? (
-                    <div className="p-10 text-center text-text-secondary">
-                      Belum ada pesanan masuk.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto w-full">
-                      <table className="w-full text-left border-collapse text-sm">
-                        <thead>
-                          <tr className="border-b border-border text-body-small text-text-secondary bg-surface/50 whitespace-nowrap">
-                            <th className="p-3 font-medium">ID Order</th>
-                            <th className="p-3 font-medium">Tanggal</th>
-                            <th className="p-3 font-medium">Nama Pesanan</th>
-                            <th className="p-3 font-medium text-center">Qty</th>
-                            <th className="p-3 font-medium">Pembeli</th>
-                            <th className="p-3 font-medium text-right text-status-warning">Ditahan</th>
-                            <th className="p-3 font-medium text-right text-status-error">Biaya Admin</th>
-                            <th className="p-3 font-medium text-right text-status-error">Biaya Aplikasi</th>
-                            <th className="p-3 font-medium text-right text-status-error">Biaya Jasa</th>
-                            <th className="p-3 font-medium text-right">Net Saldo</th>
-                            <th className="p-3 font-medium text-center">Invoice</th>
-                            <th className="p-3 font-medium text-center">Dokumen & Bukti</th>
-                            <th className="p-3 font-medium text-center">Jadwal Pengiriman</th>
-                            <th className="p-3 font-medium text-right">Aksi Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-body-base text-text-primary">
-                          {filteredSellerOrders.map(order => (
-                            <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                              <td className="p-3">
-                                <div className="flex items-center gap-1.5 font-mono text-xs text-text-primary whitespace-nowrap">
-                                  {order.id}
-                                  {(order.isRead === false || order.isRead === null) && (
-                                    <span className="relative flex h-2 w-2 shrink-0 md:inline-flex" title="Pesanan Baru (Belum Dibuka)">
-                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-error opacity-75"></span>
-                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-status-error"></span>
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                <span className="text-xs text-text-secondary whitespace-nowrap">
-                                  {formatShortDateTimeWIB(order.createdAt || Date.now())}
-                                </span>
-                              </td>
-                              <td className="p-3 min-w-[150px]">
-                                <p className="font-bold text-text-primary text-sm line-clamp-2">{order.productName}</p>
-                                {order.selectedVariant && (
-                                  <p className="text-[10px] font-semibold text-brand-primary">
-                                    Varian: {order.selectedVariant}
-                                  </p>
-                                )}
-                                {order.notes && (
-                                  <p className="text-[10px] text-brand-secondary-dark dark:text-brand-secondary mt-0.5 italic max-w-[180px] truncate">Catatan: "{order.notes}"</p>
-                                )}
-                              </td>
-                              <td className="p-3 text-center">
-                                <span className="text-xs text-text-secondary">{order.qty} porsi</span>
-                              </td>
-                              <td className="p-3 min-w-[140px]">
-                                <p className="text-xs font-semibold text-text-primary truncate max-w-[140px]">{order.buyerName}</p>
-                                {order.buyerPhone && <p className="text-[10px] text-text-secondary">{order.buyerPhone}</p>}
-                              </td>
-                              <td className="p-4 text-right">
-                                <span className="text-sm font-semibold text-status-warning/90 whitespace-nowrap">
-                                  {order.status !== 'completed' && (order.adminSplitAmount ?? 0) > 0 ? `-Rp ${(order.adminSplitAmount ?? 0).toLocaleString('id-ID')}` : '-'}
-                                </span>
-                              </td>
-                              <td className="p-4 text-right">
-                                <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
-                                  {feeAdmin > 0 ? `-Rp ${feeAdmin.toLocaleString('id-ID')}` : '-'}
-                                </span>
-                              </td>
-                              <td className="p-4 text-right">
-                                <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
-                                  {feeAplikasi > 0 ? `-Rp ${feeAplikasi.toLocaleString('id-ID')}` : '-'}
-                                </span>
-                              </td>
-                              <td className="p-4 text-right">
-                                <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
-                                  {feeJasa > 0 ? `-Rp ${feeJasa.toLocaleString('id-ID')}` : '-'}
-                                </span>
-                              </td>
-                              <td className="p-4 text-right">
-                                <div className="flex flex-col items-end">
-                                  <span className="font-bold text-brand-primary">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' ? 0 : (order.adminSplitAmount ?? 0)) - feeAdmin - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
-                                </div>
-                              </td>
-                              <td className="p-3 text-center align-middle">
-                                <Link href={`/invoice/${order.id}`} target="_blank" className="inline-flex items-center justify-center w-8 h-8 bg-surface border border-border hover:border-brand-primary/50 text-text-secondary hover:text-brand-primary rounded-lg transition-all shadow-sm" title="Unduh Invoice">
-                                  <FileText className="w-4 h-4" />
-                                </Link>
-                              </td>
-                              <td className="p-3 align-top min-w-[130px]">
-                                <div className="flex flex-col gap-1.5 w-full">
-                                  {order.proofUrl ? (
-                                    <button onClick={() => Swal.fire({ title: 'Bukti Pembayaran', imageUrl: order.proofUrl as string, imageWidth: 400 })} className="text-[10px] w-full py-1 rounded bg-brand-primary/10 text-brand-primary font-semibold border-brand-primary/20 border transition-colors hover:bg-brand-primary hover:text-white">Bayar: Lihat</button>
-                                  ) : (
-                                    <span className="text-[10px] w-full text-center py-1 rounded bg-surface-secondary text-text-secondary border border-transparent">Bayar: -</span>
-                                  )}
 
-                                  {order.dispatchReceiptUrl ? (
-                                    <button onClick={() => Swal.fire({ title: 'Resi Pengiriman', imageUrl: order.dispatchReceiptUrl as string, imageWidth: 400 })} className="text-[10px] w-full py-1 rounded bg-brand-secondary/10 text-brand-secondary font-semibold border-brand-secondary/20 border transition-colors hover:bg-brand-secondary hover:text-white">Bukti Kirim: Lihat</button>
-                                  ) : (
-                                    <button onClick={() => handleUploadDispatchReceipt(order.id, order.status || 'verified')} className="text-[10px] w-full py-1 rounded border border-dashed border-text-secondary/50 text-text-secondary hover:text-brand-secondary hover:border-brand-secondary transition-colors">Bukti Kirim: Upload</button>
-                                  )}
-
-                                  {order.deliveryProofUrl ? (
-                                    <button onClick={() => Swal.fire({ title: 'Bukti Tiba', imageUrl: order.deliveryProofUrl as string, imageWidth: 400 })} className="text-[10px] w-full py-1 rounded bg-status-success/10 text-status-success font-semibold border-status-success/20 border transition-colors hover:bg-status-success hover:text-white">Bukti Tiba: Lihat</button>
-                                  ) : (
-                                    <button onClick={() => handleUploadDeliveryProof(order.id)} className="text-[10px] w-full py-1 rounded border border-dashed border-text-secondary/50 text-text-secondary hover:text-status-success hover:border-status-success transition-colors">Bukti Tiba: Upload</button>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="p-4 text-center">
-                                {order.deliveryDate ? (
-                                  <span className="text-xs font-semibold text-brand-primary whitespace-nowrap bg-brand-primary/10 px-2 py-1 rounded-md">
-                                    {new Date(order.deliveryDate).toLocaleDateString('id-ID', {
-                                      day: 'numeric',
-                                      month: 'short',
-                                      year: 'numeric'
-                                    })}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-text-secondary/50 italic">-</span>
-                                )}
-                              </td>
-                              <td className="p-4 text-right">
-                                <div className="flex flex-col items-end gap-2">
-
-                                  <select
-                                    disabled={order.status === 'completed'}
-                                    className={`text-xs font-semibold rounded-lg border px-2 py-1.5 outline-none cursor-pointer text-center w-[160px] ${order.status === 'completed' ? 'bg-status-success/10 text-status-success border-status-success/20 cursor-not-allowed opacity-80' :
-                                        order.status === 'processing' ? 'bg-brand-primary/10 text-brand-primary border-brand-primary/20' :
-                                          order.status === 'preorder_running' ? 'bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-300' :
-                                            order.status === 'verified' ? 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20' :
-                                              order.status === 'waiting_verification' ? 'bg-status-warning/10 text-status-warning border-status-warning/20' :
-                                                order.status === 'cancelled' || order.status === 'returned' || order.status === 'failed' ? 'bg-status-error/10 text-status-error border-status-error/20' :
-                                                  'bg-border/60 text-text-secondary border-border'
-                                      }`}
-                                    value={order.status ?? 'waiting_verification'}
-                                    onChange={async (e) => {
-                                      const newStatus = e.target.value;
-                                      const statusSelect = e.currentTarget;
-                                      const previousStatus = order.status ?? 'waiting_verification';
-
-                                      if ((newStatus === 'preorder_running' || newStatus === 'processing') && !order.deliveryDate) {
-                                        Swal.fire({
-                                          icon: 'warning',
-                                          title: 'Konfirmasi Tanggal Diperlukan',
-                                          text: 'Silakan lakukan konfirmasi tanggal pesanan terlebih dahulu di fitur "Produk Preorder" pada bagian "Pesanan Belum Dijadwalkan".',
-                                          confirmButtonColor: '#ff5c35'
-                                        });
-                                        statusSelect.value = previousStatus;
-                                        return;
-                                      }
-
-                                      try {
-                                        Swal.fire({
-                                          title: 'Loading...',
-                                          allowOutsideClick: false,
-                                          didOpen: () => Swal.showLoading()
-                                        });
-                                        const res = await fetch('/api/orders/update-status', {
-                                          method: 'PUT',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ orderId: order.id, status: newStatus })
-                                        });
-                                        const data = await res.json();
-                                        if (!res.ok) throw new Error(data.error || 'Gagal memperbarui status');
-                                        setSellerOrders(current => current.map(item => {
-                                          if (item.id === order.id) {
-                                            if (newStatus === 'waiting_verification' || newStatus === 'verified') {
-                                              return { ...item, status: newStatus, deliveryDate: null, fulfillmentStatus: null, scheduleReason: null };
-                                            }
-                                            return { ...item, status: newStatus };
-                                          }
-                                          return item;
-                                        }));
-                                        router.refresh();
-                                        Swal.fire({
-                                          icon: 'success', title: 'Berhasil', text: 'Status pesanan diperbarui!', timer: 1500, showConfirmButton: false
-                                        });
-                                      } catch (error: unknown) {
-                                        statusSelect.value = previousStatus;
-                                        const errMsg = error instanceof Error ? error.message : 'Gagal memperbarui status';
-                                        Swal.fire('Error', errMsg, 'error');
-                                      }
-                                    }}
-                                  >
-                                    <option value="waiting_verification" className="text-text-primary bg-base">
-                                      Menunggu Pembayaran
-                                    </option>
-                                    <option value="verified" className="text-text-primary bg-base">
-                                      Sudah Dibayar
-                                    </option>
-                                    <option value="preorder_running" className="text-text-primary bg-base">Diproses Penjual</option>
-                                    <option value="processing" className="text-text-primary bg-base">Barang Dikirim</option>
-                                    {order.status === 'completed' && <option value="completed" className="text-status-success bg-base">Selesai</option>}
-                                    <option value="returned" className="text-status-error bg-base">Pesanan Dikembalikan</option>
-                                    <option value="cancelled" className="text-status-error bg-base">Dibatalkan</option>
-                                  </select>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                  {/* MAIN CONTENT: Order Detail + Chat */}
+                  <div className={`flex-1 h-full bg-base overflow-y-auto ${!selectedOrderId ? 'hidden' : 'block'} w-full min-w-0 relative`}>
+                    {selectedOrderId ? (
+                      <div className="w-full h-full min-w-0">
+                        {/* Desktop & Mobile Back Button */}
+                        <div className="sticky top-0 z-50 bg-surface border-b border-border p-3 shadow-sm shrink-0">
+                          <button
+                            onClick={() => setSelectedOrderId(null)}
+                            className="flex items-center gap-1.5 text-text-primary font-bold text-sm bg-surface-secondary px-3 py-1.5 rounded-md hover:bg-border/50 transition-colors"
+                          >
+                            <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Pesanan
+                          </button>
+                        </div>
+                        {filteredSellerOrders.filter(o => o.id === selectedOrderId).map(order => (
+                          <SellerOrderDetail
+                            key={order.id}
+                            order={order}
+                            onBack={() => setSelectedOrderId(null)}
+                            user={{
+                              id: profile?.userId || '',
+                              name: profile?.storeName || '',
+                              role: 'penjual',
+                              email: '',
+                              phone: profile?.phone || ''
+                            }}
+                            onUpdateStatus={async (newStatus) => {
+                              try {
+                                Swal.fire({ title: 'Loading...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                                const res = await fetch('/api/orders/update-status', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ orderId: order.id, status: newStatus })
+                                });
+                                const data = await res.json();
+                                if (!res.ok) throw new Error(data.error || 'Gagal memperbarui status');
+                                setSellerOrders(current => current.map(item => {
+                                  if (item.id === order.id) {
+                                    if (newStatus === 'waiting_verification' || newStatus === 'verified') {
+                                      return { ...item, status: newStatus, deliveryDate: null, fulfillmentStatus: null, scheduleReason: null };
+                                    }
+                                    return { ...item, status: newStatus };
+                                  }
+                                  return item;
+                                }));
+                                router.refresh();
+                                Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Status pesanan diperbarui!', timer: 1500, showConfirmButton: false });
+                              } catch (error: unknown) {
+                                const errMsg = error instanceof Error ? error.message : 'Gagal memperbarui status';
+                                Swal.fire('Error', errMsg, 'error');
+                              }
+                            }}
+                            onUploadDispatch={async (id, currentStatus) => handleUploadDispatchReceipt(id, currentStatus)}
+                            onUploadDelivery={async (id) => handleUploadDeliveryProof(id)}
+                            feeAdmin={feeAdmin}
+                            feeAplikasi={feeAplikasi}
+                            feeJasa={feeJasa}
+                            penaltyPercentage={penaltyPercentage}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-text-secondary p-6">
+                        <ShoppingBag className="w-16 h-16 mb-4 text-border opacity-50" />
+                        <p className="font-bold text-lg text-text-primary">Pilih Pesanan</p>
+                        <p className="text-center text-sm max-w-[250px] mt-2">
+                          Silakan pilih salah satu pesanan dari daftar di samping untuk melihat detail dan chat dengan pembeli.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
-            {activeTab === 'chat_pembeli' && (
-              <div className="flex flex-col gap-6">
-                <div>
-                  <h1 className="text-h1 mb-1 flex items-center gap-2"><MessageCircle className="w-8 h-8 text-brand-primary" /> Chat Pembeli</h1>
-                  <p className="text-body-base text-text-secondary">Kelola daftar percakapan dengan pembeli Anda.</p>
-                </div>
 
-                <div className="card overflow-hidden border-border border">
-                  <div className="p-5 border-b border-border bg-surface/50 flex justify-between items-center">
-                    <h2 className="text-h3">Daftar Chat</h2>
-                  </div>
-                  {notifications.chatThreads.length === 0 ? (
-                    <div className="p-10 text-center text-text-secondary">
-                      Belum ada obrolan dengan pembeli.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="border-b border-border text-body-small text-text-secondary bg-surface/50">
-                            <th className="p-4 font-medium">Pembeli</th>
-                            <th className="p-4 font-medium">Pesan Terakhir</th>
-                            <th className="p-4 font-medium">Aksi</th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-body-base text-text-primary">
-                          {notifications.chatThreads.map(thread => (
-                            <tr key={thread.orderId} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
-                              <td className="p-4">
-                                <div className="font-semibold flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
-                                    <User className="w-4 h-4" />
-                                  </div>
-                                  <div>
-                                    {thread.buyerName}
-                                    {thread.unreadCount > 0 && <span className="ml-2 inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-brand-primary text-[10px] font-bold text-white px-1.5">{thread.unreadCount}</span>}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="p-4">
-                                <div className="text-sm line-clamp-1 text-text-secondary w-64">{formatMessageSnippet(thread.latestMessage)}</div>
-                                <div className="text-[10px] text-text-secondary/60 mt-1">{thread.latestMessageAt ? formatShortDateTimeWIB(thread.latestMessageAt) : ''}</div>
-                              </td>
-                              <td className="p-4">
-                                <button
-                                  onClick={() => handleOpenChat(thread.orderId, thread.buyerName || '', thread.productName)}
-                                  className="text-xs font-semibold text-brand-primary hover:bg-brand-primary/10 transition-colors flex items-center gap-1.5 border border-brand-primary/30 px-3 py-1.5 rounded-lg"
-                                >
-                                  <MessageCircle className="w-3.5 h-3.5" />
-                                  Buka Chat
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
             {activeTab === 'produk' && (
               <>
                 <SellerPreorderCalendar
                   key={`${selectedProductIdFilter || 'all'}-${sellerOrders.map((order) => `${order.id}:${order.deliveryDate || ''}:${order.fulfillmentStatus || ''}`).join('|')}`}
-                  orders={sellerOrders}
+                  orders={collapsedSellerOrders}
                   products={localProducts.map((product) => ({ id: product.id, name: product.name }))}
                   productIdFilter={selectedProductIdFilter}
                   onOrderStatusChange={(orderId, status, cancelReason) => {
@@ -2134,19 +2112,19 @@ export default function ClientSellerDashboard({
                   <div className="card p-6 border-status-success border-2 shadow-sm rounded-xl">
                     <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Total Saldo Bersih</h3>
                     <p className="text-2xl sm:text-3xl font-bold text-status-success">
-                      Rp {sellerOrders.filter(o => o.status === 'completed').reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
+                      Rp {sellerOrders.filter(o => o.status === 'completed').reduce((acc, curr) => acc + Math.max(0, (curr.totalPrice || 0) - feeAplikasi - feeJasa - feeAdmin), 0).toLocaleString('id-ID')}
                     </p>
                   </div>
                   <div className="card p-6 border-border border rounded-xl bg-surface/30">
                     <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Ditahan Admin (Dalam Proses)</h3>
                     <p className="text-2xl sm:text-3xl font-bold text-brand-primary">
-                      Rp {sellerOrders.filter(o => ['verified', 'preorder_running', 'processing'].includes(o.status || '')).reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - (curr.adminSplitAmount ?? 0) - feeAdmin - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
+                      Rp {sellerOrders.filter(o => ['verified', 'preorder_running', 'processing'].includes(o.status || '')).reduce((acc, curr) => acc + Math.max(0, (curr.adminSplitAmount ?? Math.floor((curr.totalPrice || 0) * 0.5)) - feeAdmin - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
                     </p>
                   </div>
                   <div className="card p-6 border-border border rounded-xl">
                     <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Menunggu Pembayaran</h3>
                     <p className="text-2xl sm:text-3xl font-bold text-status-warning">
-                      Rp {sellerOrders.filter(o => o.status === 'waiting_verification').reduce((acc, curr) => acc + Math.max(0, curr.totalPrice - (curr.adminSplitAmount ?? 0) - feeAdmin - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
+                      Rp {sellerOrders.filter(o => o.status === 'waiting_verification').reduce((acc, curr) => acc + (curr.totalPrice || 0), 0).toLocaleString('id-ID')}
                     </p>
                   </div>
                 </div>
@@ -2198,7 +2176,7 @@ export default function ClientSellerDashboard({
                               </td>
                               <td className="p-4 text-right">
                                 <span className="text-sm font-semibold text-status-warning/90 whitespace-nowrap">
-                                  {order.status !== 'completed' && (order.adminSplitAmount ?? 0) > 0 ? `-Rp ${(order.adminSplitAmount ?? 0).toLocaleString('id-ID')}` : '-'}
+                                  {order.status !== 'completed' && order.status !== 'waiting_verification' && order.status !== 'cancelled' ? `-Rp ${(order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5)).toLocaleString('id-ID')}` : '-'}
                                 </span>
                               </td>
                               <td className="p-4 text-right">
@@ -2217,11 +2195,11 @@ export default function ClientSellerDashboard({
                                 </span>
                               </td>
                               <td className="p-4 text-right">
-                                <span className="font-semibold text-text-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</span>
+                                <span className="font-bold text-text-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</span>
                               </td>
                               <td className="p-4 text-right">
                                 <div className="flex flex-col items-end">
-                                  <span className="font-bold text-status-success">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' ? 0 : (order.adminSplitAmount ?? 0)) - feeAdmin - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
+                                  <span className="font-bold text-status-success">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' || order.status === 'waiting_verification' || order.status === 'cancelled' ? 0 : (order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5))) - feeAdmin - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
                                 </div>
                               </td>
                             </tr>
@@ -2671,20 +2649,24 @@ export default function ClientSellerDashboard({
 
       {/* Mobile Bottom Navigation Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-4 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
-        <Link href="/" className="flex flex-col items-center gap-1.5 w-[20%] text-text-secondary hover:text-brand-primary pb-2">
-          <Store className="w-6 h-6 stroke-[1.5]" />
-          <span>Beranda</span>
-        </Link>
 
         <button
           onClick={() => handleTabChange('produk')}
-          className={`flex flex-col items-center gap-1.5 w-[20%] transition-colors pb-2 ${activeTab === 'produk' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+          className={`flex flex-col items-center gap-1.5 flex-1 transition-colors pb-2 ${activeTab === 'produk' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
         >
           <Package className={`w-6 h-6 stroke-[1.5] ${activeTab === 'produk' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
           <span>Produk</span>
         </button>
 
-        <div className="w-[20%] flex flex-col justify-end items-center relative pb-2 h-full">
+        <button
+          onClick={() => handleTabChange('keuangan')}
+          className={`flex flex-col items-center gap-1.5 flex-1 transition-colors pb-2 ${activeTab === 'keuangan' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+        >
+          <DollarSign className={`w-6 h-6 stroke-[1.5] ${activeTab === 'keuangan' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
+          <span>Transaksi</span>
+        </button>
+
+        <div className="flex-1 flex flex-col justify-end items-center relative pb-2 h-full">
           <div className="absolute bottom-6 flex justify-center w-full">
             <Link
               href="/seller/product/new"
@@ -2697,20 +2679,21 @@ export default function ClientSellerDashboard({
         </div>
 
         <button
-          onClick={() => handleTabChange('keuangan')}
-          className={`flex flex-col items-center gap-1.5 w-[20%] transition-colors pb-2 ${activeTab === 'keuangan' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+          type="button"
+          onClick={() => handleTabChange('promosi')}
+          className={`flex flex-col items-center gap-1.5 flex-1 transition-colors pb-2 ${activeTab === 'promosi' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
         >
-          <DollarSign className={`w-6 h-6 stroke-[1.5] ${activeTab === 'keuangan' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
-          <span>Transaksi</span>
+          <Megaphone className={`w-6 h-6 stroke-[1.5] ${activeTab === 'promosi' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
+          <span>Promosi</span>
         </button>
 
         <button
           type="button"
-          onClick={() => handleTabChange('promosi')}
-          className={`flex flex-col items-center gap-1.5 w-[20%] transition-colors pb-2 ${activeTab === 'promosi' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+          onClick={() => handleTabChange('pengaturan')}
+          className={`flex flex-col items-center gap-1.5 flex-1 transition-colors pb-2 ${activeTab === 'pengaturan' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
         >
-          <Megaphone className={`w-6 h-6 stroke-[1.5] ${activeTab === 'promosi' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
-          <span>Promosi</span>
+          <User className={`w-6 h-6 stroke-[1.5] ${activeTab === 'pengaturan' ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
+          <span>Profil</span>
         </button>
       </nav>
     </div>

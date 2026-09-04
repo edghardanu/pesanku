@@ -5,16 +5,16 @@
 import React from 'react';
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  waiting_verification: { label: 'Menunggu Verifikasi', className: 'bg-status-warning/10 text-status-warning border-status-warning/20' },
-  verified:             { label: 'Terverifikasi',        className: 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20' },
-  preorder_running:     { label: 'Preorder Berjalan',    className: 'bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-300' },
-  processing:           { label: 'Diproses',             className: 'bg-brand-primary/10 text-brand-primary border-brand-primary/20' },
-  completed:            { label: 'Selesai',              className: 'bg-status-success/10 text-status-success border-status-success/20' },
-  cancelled:            { label: 'Dibatalkan',           className: 'bg-status-error/10 text-status-error border-status-error/20' },
-  failed:               { label: 'Gagal',                className: 'bg-status-error/10 text-status-error border-status-error/20' },
-  return_pending:       { label: 'Dikembalikan (Proses)',className: 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-300' },
-  returned:             { label: 'Dikembalikan',         className: 'bg-status-error/10 text-status-error border-status-error/20' },
-  chat_only:            { label: 'Chat',                 className: 'bg-blue-50 text-blue-600 border-blue-200' },
+  waiting_verification: { label: 'Menunggu Pembayaran', className: 'bg-status-warning/10 text-status-warning border-status-warning/20' },
+  verified: { label: 'Diproses', className: 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20' },
+  preorder_running: { label: 'Diproses', className: 'bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-300' },
+  processing: { label: 'Dikirim', className: 'bg-indigo-500/10 text-indigo-700 border-indigo-500/20 dark:text-indigo-300' },
+  completed: { label: 'Selesai', className: 'bg-status-success/10 text-status-success border-status-success/20' },
+  cancelled: { label: 'Dibatalkan', className: 'bg-status-error/10 text-status-error border-status-error/20' },
+  failed: { label: 'Gagal', className: 'bg-status-error/10 text-status-error border-status-error/20' },
+  return_pending: { label: 'Dikembalikan (Proses)', className: 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-300' },
+  returned: { label: 'Dikembalikan', className: 'bg-status-error/10 text-status-error border-status-error/20' },
+  chat_only: { label: 'Chat', className: 'bg-blue-50 text-blue-600 border-blue-200' },
 };
 
 interface SellerStatusBadgeProps {

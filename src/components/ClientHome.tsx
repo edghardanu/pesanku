@@ -10,6 +10,8 @@ import Swal from "sweetalert2";
 import dynamic from "next/dynamic";
 const QRScannerModal = dynamic(() => import("@/components/QRScannerModal"), { ssr: false });
 import HelpWidget from "@/components/HelpWidget";
+import CartSidebar from "@/components/CartSidebar";
+import { useCart } from "@/lib/cart";
 import { ProductItem, AuthUser } from "@/types";
 import ProductRating from "@/components/ProductRating";
 import PreChatModal from '@/components/PreChatModal';
@@ -63,6 +65,7 @@ export default function ClientHome({
   categoryFilter?: string;
 }) {
   const router = useRouter();
+  const { addItem: addCartItem } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
@@ -70,6 +73,7 @@ export default function ClientHome({
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
@@ -131,7 +135,7 @@ export default function ClientHome({
             setOrderCount(data.count);
           }
         })
-        .catch((_e) => {});
+        .catch((_e) => { });
     }
   }, [user]);
 
@@ -513,13 +517,6 @@ export default function ClientHome({
               {user ? (
                 <div className="flex items-center gap-2">
                   <Link
-                    href="/profile"
-                    className={`flex items-center justify-center p-2 rounded-xl transition-all mr-1 border ${isScrolled ? 'border-transparent text-text-secondary hover:text-brand-primary hover:bg-brand-primary/5' : 'border-white/30 text-white hover:bg-white/15'}`}
-                    title="Profil Akun"
-                  >
-                    <User className="w-5 h-5" />
-                  </Link>
-                  <Link
                     href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'}
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-all duration-200 shadow-lg active:scale-95 hover:-translate-y-0.5 relative ${isScrolled ? 'bg-brand-primary text-white shadow-brand-primary/20 hover:bg-brand-primary-hover hover:shadow-brand-primary/40' : 'bg-white text-brand-primary shadow-black/10 hover:bg-white/90 hover:shadow-black/20'}`}
                   >
@@ -530,14 +527,44 @@ export default function ClientHome({
                       </span>
                     )}
                   </Link>
-                  <button
-                    onClick={handleLogout}
-                    className={`border flex items-center gap-1.5 py-2 px-3 text-sm font-semibold rounded-xl transition-all ${isScrolled ? 'border-status-error/40 text-status-error hover:bg-status-error/10 hover:border-status-error' : 'border-white/50 text-white hover:bg-white/15 hover:border-white'}`}
-                    title="Keluar / Logout"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span className="hidden lg:inline">Keluar</span>
-                  </button>
+
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                      className={`flex items-center justify-center p-2 rounded-xl transition-all border ${isScrolled ? 'border-transparent text-text-secondary hover:text-brand-primary hover:bg-brand-primary/5' : 'border-white/30 text-white hover:bg-white/15'}`}
+                      title="Profil Akun"
+                    >
+                      <User className="w-5 h-5" />
+                    </button>
+                    {isUserDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-surface border border-border rounded-xl shadow-xl z-[100] py-1 overflow-hidden">
+                        <div className="px-4 py-3 border-b border-border">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs text-text-secondary">Masuk sebagai</p>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-primary/10 text-brand-primary uppercase tracking-wide">{user.role}</span>
+                          </div>
+                          <p className="font-bold text-text-primary text-sm truncate">{user.name}</p>
+                        </div>
+                        <Link
+                          href="/profile"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary hover:bg-surface-secondary transition-colors"
+                        >
+                          <User className="w-4 h-4 text-text-secondary" />
+                          Pengaturan Akun
+                        </Link>
+                        <div className="border-t border-border mt-1 pt-1">
+                          <button
+                            onClick={() => { setIsUserDropdownOpen(false); handleLogout(); }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-status-error hover:bg-status-error/10 transition-colors"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            Keluar Akun
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <>
@@ -607,6 +634,54 @@ export default function ClientHome({
                   )}
                 </AnimatePresence>
               </button>
+
+              {/* Mobile User Icon and Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => user ? setIsUserDropdownOpen(!isUserDropdownOpen) : router.push('/login')}
+                  className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 ${isScrolled ? 'hover:bg-brand-primary/10' : 'hover:bg-white/15'}`}
+                  aria-label="Profil Akun"
+                  title="Profil Akun"
+                >
+                  <User className={`w-5 h-5 ${isScrolled ? 'text-text-primary' : 'text-white'}`} />
+                </button>
+                {isUserDropdownOpen && user && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-surface border border-border rounded-xl shadow-xl z-[100] py-1 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs text-text-secondary">Masuk sebagai</p>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-primary/10 text-brand-primary uppercase tracking-wide">{user.role}</span>
+                      </div>
+                      <p className="font-bold text-text-primary text-sm truncate">{user.name}</p>
+                    </div>
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsUserDropdownOpen(false)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-text-primary hover:bg-surface-secondary transition-colors"
+                    >
+                      <User className="w-4 h-4 text-text-secondary" />
+                      Pengaturan Akun
+                    </Link>
+                    <Link
+                      href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'}
+                      onClick={() => setIsUserDropdownOpen(false)}
+                      className="md:hidden w-full flex items-center gap-3 px-4 py-3 text-sm text-text-primary hover:bg-surface-secondary transition-colors"
+                    >
+                      {user.role === 'admin' || user.role === 'penjual' ? <LayoutDashboard className="w-4 h-4 text-text-secondary" /> : <ShoppingBag className="w-4 h-4 text-text-secondary" />}
+                      {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard' : 'Pesanan Saya'}
+                    </Link>
+                    <div className="border-t border-border mt-1 pt-1">
+                      <button
+                        onClick={() => { setIsUserDropdownOpen(false); handleLogout(); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-status-error hover:bg-status-error/10 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Keluar Akun
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -908,16 +983,16 @@ export default function ClientHome({
                   transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
                   className="flex justify-center lg:justify-end items-center relative mt-10 md:mt-12 lg:mt-0 lg:-mr-12 xl:-mr-20"
                 >
-                  <Image 
-                    src="/animasi-nobg.png" 
-                    alt="Animasi Pesanku" 
+                  <Image
+                    src="/animasi-nobg.png"
+                    alt="Animasi Pesanku"
                     width={1600}
                     height={1600}
                     quality={100}
                     unoptimized={true}
                     priority
-                    className="w-full sm:w-[85%] md:w-[75%] lg:w-full xl:w-[115%] max-w-[500px] lg:max-w-none object-contain transition-transform duration-700 ease-out hover:scale-[1.03] lg:origin-right" 
-                    style={{ filter: 'drop-shadow(0 25px 35px rgba(0,0,0,0.6))' }} 
+                    className="w-full sm:w-[85%] md:w-[75%] lg:w-full xl:w-[115%] max-w-[500px] lg:max-w-none object-contain transition-transform duration-700 ease-out hover:scale-[1.03] lg:origin-right"
+                    style={{ filter: 'drop-shadow(0 25px 35px rgba(0,0,0,0.6))' }}
                   />
                 </motion.div>
 
@@ -1238,16 +1313,7 @@ export default function ClientHome({
                   {currentProducts.map((product) => {
                     const productImageUrl = product.imageUrl ?? "/street-food-festival.jpg";
 
-                    // Format deadline
-                    let deadlineText = "Tidak ada batas waktu";
-                    if (product.deadlineDate) {
-                      deadlineText = new Date(product.deadlineDate).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                        timeZone: WIB_TIMEZONE,
-                      });
-                    }
+
 
                     return (
                       <motion.div variants={itemVariants} key={product.id}>
@@ -1289,12 +1355,7 @@ export default function ClientHome({
                             </p>
 
                             <div className="mb-auto"></div>
-
                             {/* Location / Meta Info */}
-                            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-text-secondary font-medium mb-1 w-full overflow-hidden">
-                              <Calendar className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                              <span className="truncate">{deadlineText}</span>
-                            </div>
                             <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-text-secondary font-medium mb-1 w-full overflow-hidden">
                               <MapPin className="w-3.5 h-3.5 text-[#ff4b4b] shrink-0" />
                               <span className="truncate">{product.sellerAddress || product.storeAddress || 'Alamat tidak tersedia'}</span>
@@ -1313,12 +1374,31 @@ export default function ClientHome({
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleInternalPresalesChat(product.storeName || product.sellerName || 'Toko UMKM', product.id, product.name, product.sellerId || '', product.sellerLogoUrl || product.sellerAvatar, product.price, product.imageUrl || '');
+                                  addCartItem({
+                                    productId: product.id,
+                                    name: product.name,
+                                    price: product.price,
+                                    sellerId: product.sellerId || '',
+                                    sellerName: product.sellerName || product.storeName || 'Toko UMKM',
+                                    imageUrl: product.imageUrl || '',
+                                    minQty: product.minOrderQty || product.minQty || 1
+                                  });
+
+                                  // Optional sweet alert feedback
+                                  Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil dimasukkan',
+                                    text: `${product.name} dimasukkan ke pesanan`,
+                                    timer: 1200,
+                                    showConfirmButton: false,
+                                    toast: true,
+                                    position: 'top-end'
+                                  });
                                 }}
-                                className="w-full flex items-center justify-center gap-1 bg-brand-primary text-white py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-brand-primary-hover transition-colors relative z-20 group/btn"
+                                className="w-full flex items-center justify-center gap-1 bg-brand-primary text-white py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-brand-primary-hover transition-colors relative z-20 group/btn shadow-md"
                               >
-                                <MessageCircle className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
-                                <span className="truncate">Chat Penjual</span>
+                                <ShoppingBag className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
+                                <span className="truncate">Tambah Pesanan</span>
                               </button>
                             </div>
                           </div>
@@ -1600,6 +1680,34 @@ export default function ClientHome({
           <p className="text-body-base text-white/90 mb-8 max-w-md mx-auto">
             Platform preorder makanan dan minuman dari UMKM lokal terpercaya. Pesan langsung dari ahlinya.
           </p>
+
+          {/* Payment Methods */}
+          <div className="flex flex-col items-center mb-8">
+            <p className="text-white/70 text-xs uppercase tracking-widest mb-3 font-bold">Metode Pembayaran</p>
+            <div className="flex flex-wrap justify-center gap-2.5 max-w-lg">
+              <div className="px-3 py-1 bg-white text-blue-900 font-black italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">BCA</div>
+              <div className="px-3 py-1 bg-white text-orange-500 font-black italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">BNI</div>
+              <div className="px-3 py-1 bg-white text-yellow-500 font-black italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">Mandiri</div>
+              <div className="px-3 py-1 bg-white text-blue-600 font-black italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">BRI</div>
+              <div className="px-3 py-1 bg-white text-purple-600 font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">OVO</div>
+              <div className="px-3 py-1 bg-white text-blue-500 font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">DANA</div>
+              <div className="px-3 py-1 bg-white text-green-600 font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">GoPay</div>
+              <div className="px-3 py-1 bg-white text-orange-600 font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">ShopeePay</div>
+              <div className="px-3 py-1 bg-[#ED2C39] text-white font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px] border border-white/20">QRIS</div>
+            </div>
+          </div>
+
+          {/* Navigasi Legalitas */}
+          <div className="flex flex-wrap justify-center gap-4 md:gap-6 text-sm text-white/90 font-medium mb-8">
+            <Link href="/faq" className="hover:text-white hover:underline transition-all">FAQ</Link>
+            <span className="text-white/40 hidden sm:inline">•</span>
+            <Link href="/refund-policy" className="hover:text-white hover:underline transition-all">Refund Policy</Link>
+            <span className="text-white/40 hidden sm:inline">•</span>
+            <Link href="/terms" className="hover:text-white hover:underline transition-all">Syarat & Ketentuan</Link>
+            <span className="text-white/40 hidden sm:inline">•</span>
+            <Link href="/kontak" className="hover:text-white hover:underline transition-all">Kontak</Link>
+          </div>
+
           <p className="text-caption text-white/70">
             &copy; {new Date().getFullYear()} Pesanku. All rights reserved.
           </p>
@@ -1685,6 +1793,7 @@ export default function ClientHome({
         </div>
       </nav>
       <HelpWidget />
+      <CartSidebar />
     </>
   );
 }

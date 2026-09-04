@@ -11,14 +11,14 @@ export const dynamic = 'force-dynamic';
 
 export default async function SellerDashboard() {
   const user = await getUserFromSession();
-  
+
   if (!user || user.role !== 'penjual') {
     redirect('/login');
   }
 
   // Fetch Seller Profile
   const profile = await db.select().from(sellerProfiles).where(eq(sellerProfiles.userId, user.id)).get();
-  
+
   // Fetch Products
   const rawProducts = await db.select().from(products)
     .where(eq(products.sellerId, user.id))
@@ -51,12 +51,12 @@ export default async function SellerDashboard() {
     sellerSplitAmount: orders.sellerSplitAmount,
     isRead: orders.isRead,
   })
-  .from(orders)
-  .innerJoin(products, eq(orders.productId, products.id))
-  .innerJoin(users, eq(orders.buyerId, users.id))
-  .leftJoin(payments, eq(orders.id, payments.orderId))
-  .where(and(eq(products.sellerId, user.id), ne(orders.status, 'chat_only')))
-  .orderBy(desc(orders.createdAt));
+    .from(orders)
+    .innerJoin(products, eq(orders.productId, products.id))
+    .innerJoin(users, eq(orders.buyerId, users.id))
+    .leftJoin(payments, eq(orders.id, payments.orderId))
+    .where(and(eq(products.sellerId, user.id), ne(orders.status, 'chat_only')))
+    .orderBy(desc(orders.createdAt));
 
   const activeCount = myProducts.filter(p => p.status === 'active' || p.status === 'draft').length;
   const waitingCount = myProducts.filter(p => p.status === 'draft' && (p.currentQty || 0) < (p.preorderMinQty || 1)).length;
@@ -66,10 +66,12 @@ export default async function SellerDashboard() {
   let feeAdmin = 0;
   let feeAplikasi = 0;
   let feeJasa = 0;
+  let penaltyPercentage = 10;
   feeSettings.forEach(f => {
     if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
     if (f.key === "fee_aplikasi") feeAplikasi = parseInt(f.value);
     if (f.key === "fee_jasa") feeJasa = parseInt(f.value);
+    if (f.key === "penalty_percentage") penaltyPercentage = parseInt(f.value);
   });
 
   const schedulePrefix = `preorder_schedule:${user.id}:`;
@@ -139,7 +141,7 @@ export default async function SellerDashboard() {
     .orderBy(desc(productPromotions.requestedAt));
 
   return (
-    <ClientSellerDashboard 
+    <ClientSellerDashboard
       profile={profile ?? undefined}
       myProducts={myProducts}
       activeCount={activeCount}
@@ -153,6 +155,7 @@ export default async function SellerDashboard() {
       promotionOffers={sellerPromotionOffers}
       promotionRequests={sellerPromotionRequests}
       userEmail={user.email}
+      penaltyPercentage={penaltyPercentage}
     />
   );
 }

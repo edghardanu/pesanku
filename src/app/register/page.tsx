@@ -487,7 +487,11 @@ export default function RegisterPage() {
                       </div>
                     </div>
 
-                    <button disabled={loading} type="submit" className="btn-primary w-full mt-6 py-3 text-lg disabled:opacity-50">
+                    <div className="mt-4 mb-1 text-[11px] text-text-secondary text-center">
+                      Dengan mendaftar, Anda menyetujui <Link href="/terms" target="_blank" className="text-brand-primary hover:underline font-semibold">Syarat & Ketentuan</Link> Pesanku.
+                    </div>
+
+                    <button disabled={loading} type="submit" className="btn-primary w-full mt-2 py-3 text-lg disabled:opacity-50">
                       {loading ? "Memproses..." : "Daftar"}
                     </button>
                   </form>

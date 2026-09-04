@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const rawItems: any[] = Array.isArray(body.items)
       ? body.items
-      : [{ productId: body.productId, qty: body.qty, notes: body.notes, selectedVariant: body.selectedVariant, deliveryDate: body.deliveryDate, deliveryAddress: body.deliveryAddress }];
+      : [{ productId: body.productId, qty: body.qty, notes: body.notes, selectedVariant: body.selectedVariant, deliveryDate: body.deliveryDate, deliveryAddress: body.deliveryAddress, chatOrderId: body.chatOrderId }];
 
     if (rawItems.length < 1 || rawItems.length > 50) {
       return NextResponse.json({ error: 'Keranjang harus berisi 1 sampai 50 produk' }, { status: 400 });
@@ -58,11 +58,6 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: 'Salah satu produk tidak ditemukan' }, { status: 404 });
         }
 
-        if (sellerId && product.sellerId !== sellerId) {
-          return NextResponse.json({ error: 'Checkout hanya dapat berisi produk dari satu toko' }, { status: 400 });
-        }
-        sellerId = product.sellerId;
-
         const deadlinePassed = Boolean(product.deadlineDate && product.deadlineDate.getTime() < Date.now());
         const preorderClosed = ['closed', 'processing', 'completed'].includes(product.status || '') || deadlinePassed;
         if (preorderClosed) {
@@ -90,7 +85,7 @@ export async function POST(req: Request) {
         if (item.chatOrderId) {
           // Verify it's actually their order
           const existingOrder = await tx.select().from(orders).where(eq(orders.id, item.chatOrderId)).get();
-          if (existingOrder && existingOrder.buyerId === user.id && existingOrder.status === 'chat_only') {
+          if (existingOrder && existingOrder.buyerId === user.id && (existingOrder.status === 'chat_only' || existingOrder.status === 'waiting_verification')) {
             await tx.update(orders).set({
               qty: item.qty,
               totalPrice,

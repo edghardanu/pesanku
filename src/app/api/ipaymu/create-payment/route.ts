@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { orders, payments, users } from '@/lib/schema';
 import { getUserFromSession } from '@/lib/auth';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { createRedirectPayment } from '@/lib/ipaymu';
 import crypto from 'crypto';
 
@@ -75,11 +75,26 @@ export async function POST(req: Request) {
     // Ambil data lengkap user (termasuk no HP) dari database
     const userRecord = await db.select().from(users).where(eq(users.id, user.id)).get();
 
+    // Ambil settings untuk biaya (fee_aplikasi, fee_jasa, fee_admin)
+    const { settings } = await import('@/lib/schema');
+    const settingsData = await db.select().from(settings).where(
+      sql`${settings.key} IN ('fee_aplikasi', 'fee_jasa', 'fee_admin')`
+    ).all();
+
+    let platformFees = 0;
+    settingsData.forEach(s => {
+      if (s.key === 'fee_aplikasi' || s.key === 'fee_jasa' || s.key === 'fee_admin') {
+        platformFees += parseInt(s.value || '0', 10) || 0;
+      }
+    });
+
+    const finalAmount = order.totalPrice + platformFees;
+
     // Buat pembayaran Redirect melalui iPaymu
     const result = await createRedirectPayment({
       orderId: orderId,
       productName: product?.name || 'Produk Pesanku',
-      amount: order.totalPrice,
+      amount: finalAmount,
       buyerName: user.name,
       buyerEmail: user.email,
       buyerPhone: userRecord?.phone || '08000000000',

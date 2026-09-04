@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { orders, payments } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { checkTransactionStatus } from '@/lib/ipaymu';
+import crypto from 'crypto';
 
 /**
  * iPaymu Callback / Notify URL
@@ -21,7 +22,7 @@ import { checkTransactionStatus } from '@/lib/ipaymu';
 export async function POST(req: Request) {
   try {
     let body: Record<string, string>;
-    
+
     // iPaymu can send as application/x-www-form-urlencoded or JSON
     const contentType = req.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
@@ -50,12 +51,12 @@ export async function POST(req: Request) {
     if (trxId) {
       try {
         const verifyData = await checkTransactionStatus(trxId.toString());
-        
+
         // Memastikan request sukses (Status=200) dari API pengecekan
         if (verifyData.Status === 200 && verifyData.Data) {
           const expectedStatus = parseInt(statusCode);
           const iPaymuRealStatus = verifyData.Data.Status; // Angka status asli di server
-          
+
           // Jika status yang diklaim berhasil (1) tapi di server iPaymu status aslinya bukan 1 atau 6 (menyimpan proses)
           if ((expectedStatus === 1 || status === 'berhasil') && (iPaymuRealStatus !== 1 && iPaymuRealStatus !== 6)) {
             console.error(`[WARNING] SERANGAN HACKER! Webhook spoofing terdeteksi untuk order: ${referenceId}`);
@@ -92,6 +93,32 @@ export async function POST(req: Request) {
         await db.update(orders).set({
           status: 'verified',
         }).where(eq(orders.id, referenceId));
+
+        // Tambahkan saldo tertahan untuk penjual
+        try {
+          const { products, sellerBalances } = await import('@/lib/schema');
+          const productObj = await db.select({ sellerId: products.sellerId }).from(products).where(eq(products.id, order.productId)).get();
+          if (productObj) {
+            // Yang ditahan (Escrow) adalah 50% sisanya (adminSplitAmount). 
+            // 50% awalnya (sellerSplitAmount) sudah otomatis masuk rekening penjual oleh iPaymu route!
+            const escrowAmount = order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5);
+            const balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, productObj.sellerId)).get();
+            if (!balanceObj) {
+              await db.insert(sellerBalances).values({
+                id: crypto.randomUUID(),
+                sellerId: productObj.sellerId,
+                availableBalance: 0, // Kita set 0 karena DP sudah masuk bank mereka
+                retainedBalance: escrowAmount,
+              });
+            } else {
+              await db.update(sellerBalances)
+                .set({ retainedBalance: (balanceObj.retainedBalance || 0) + escrowAmount })
+                .where(eq(sellerBalances.id, balanceObj.id));
+            }
+          }
+        } catch (balanceErr) {
+          console.error('[iPaymu Callback] Balance retention error:', balanceErr);
+        }
       }
 
       console.error(`[iPaymu Callback] ✅ Payment SUCCESS for order ${referenceId}`);

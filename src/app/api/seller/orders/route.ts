@@ -15,6 +15,7 @@ export async function GET() {
 
     const sellerOrders = await db.select({
       id: orders.id,
+      buyerId: orders.buyerId,
       productId: orders.productId,
       qty: orders.qty,
       totalPrice: orders.totalPrice,
@@ -28,9 +29,11 @@ export async function GET() {
       buyerPhone: users.phone,
       buyerAddress: sql<string>`COALESCE(${orders.deliveryAddress}, ${users.address})`.as('buyerAddress'),
       requestedDeliveryDate: orders.deliveryDate,
+      minOrderQty: products.minOrderQty,
       proofUrl: payments.proofUrl,
       deliveryProofUrl: orders.deliveryProofUrl,
       dispatchReceiptUrl: orders.dispatchReceiptUrl,
+      trackingNumber: orders.trackingNumber,
       adminSplitAmount: orders.adminSplitAmount,
       sellerSplitAmount: orders.sellerSplitAmount,
       returnReason: orders.returnReason,
@@ -38,14 +41,21 @@ export async function GET() {
       returnDate: orders.returnDate,
       isRead: orders.isRead,
     })
-    .from(orders)
-    .innerJoin(products, eq(orders.productId, products.id))
-    .innerJoin(users, eq(orders.buyerId, users.id))
-    .leftJoin(payments, eq(orders.id, payments.orderId))
-    .where(and(eq(products.sellerId, user.id), ne(orders.status, 'chat_only')))
-    .orderBy(desc(orders.createdAt));
+      .from(orders)
+      .innerJoin(products, eq(orders.productId, products.id))
+      .innerJoin(users, eq(orders.buyerId, users.id))
+      .leftJoin(payments, eq(orders.id, payments.orderId))
+      .where(eq(products.sellerId, user.id))
+      .orderBy(desc(orders.createdAt));
 
-    return NextResponse.json({ orders: sellerOrders });
+    const uniqueOrdersMap = new Map<string, typeof sellerOrders[0]>();
+    for (const order of sellerOrders) {
+      if (!uniqueOrdersMap.has(order.id)) {
+        uniqueOrdersMap.set(order.id, order);
+      }
+    }
+
+    return NextResponse.json({ orders: Array.from(uniqueOrdersMap.values()) });
   } catch (error) {
     console.error('Seller orders fetch error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

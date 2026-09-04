@@ -21,11 +21,11 @@ export type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];
 
 // ── Label Status Pesanan (Bahasa Indonesia) ────────────────
 export const ORDER_STATUS_LABEL: Record<string, string> = {
-  waiting_verification: 'Menunggu Verifikasi',
-  verified: 'Terverifikasi',
-  preorder_running: 'Preorder Berjalan',
+  waiting_verification: 'Menunggu Pembayaran',
+  verified: 'Diproses',
+  preorder_running: 'Diproses',
   failed: 'Gagal',
-  processing: 'Diproses',
+  processing: 'Dikirim',
   completed: 'Selesai',
   cancelled: 'Dibatalkan',
   chat_only: 'Chat',
@@ -37,8 +37,8 @@ export const ORDER_STATUS_LABEL: Record<string, string> = {
 export const ORDER_STATUS_COLOR: Record<string, string> = {
   waiting_verification: 'bg-yellow-100 text-yellow-800',
   verified: 'bg-blue-100 text-blue-800',
-  preorder_running: 'bg-purple-100 text-purple-800',
-  processing: 'bg-orange-100 text-orange-800',
+  preorder_running: 'bg-blue-100 text-blue-800',
+  processing: 'bg-indigo-100 text-indigo-800',
   completed: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
   failed: 'bg-red-100 text-red-800',

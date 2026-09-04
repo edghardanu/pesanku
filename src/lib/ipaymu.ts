@@ -98,18 +98,16 @@ export async function createRedirectPayment(params: IPaymuCreatePaymentParams): 
     expiredType: 'hours'
   };
 
-  // NONAKTIFKAN SEMENTARA: Agar berjalan sebagai sistem Escrow (Rekening Bersama)
-  // Tempat di mana uang fisik tertahan 100% di akun Admin demi keamanan.
-  /*
+  // AKTIFKAN split logic agar 50% cair otomatis ke penjual di awal.
+  // 50% sisa akan tertahan (Escrow) di Admin dan cair ketika pesanan Selesai.
   if (params.sellerVa && params.sellerSplitAmount && params.sellerSplitAmount > 0) {
     if (params.sellerSplitAmount > params.amount) {
-       throw new Error("Bagian penjual tidak boleh lebih besar dari total pembayaran");
+      throw new Error("Bagian penjual tidak boleh lebih besar dari total pembayaran");
     }
     body.account = va;                                // VA Utama (Admin)
     body.route = [params.sellerVa];                   // List VA Sub-Account (Penjual)
-    body.routeValue = [params.sellerSplitAmount];     // Nominal fix yang masuk ke Penjual
+    body.routeValue = [params.sellerSplitAmount];     // Nominal fix yang masuk ke Penjual (Tahap awal / DP 50%)
   }
-  */
 
   const { signature, timestamp } = generateSignature(body);
 

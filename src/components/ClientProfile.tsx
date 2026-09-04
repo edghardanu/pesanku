@@ -78,27 +78,27 @@ export default function ClientProfile({ user, sellerData }: { user: AuthUser, se
   const isSeller = user.role === 'penjual';
   const personalCopy = isSeller
     ? {
-        title: 'Data Penanggung Jawab',
-        nameLabel: 'Nama Penanggung Jawab',
-        phoneLabel: 'Kontak Penjual',
-        addressLabel: 'Alamat Penanggung Jawab',
-        namePlaceholder: 'Nama pemilik atau PIC toko',
-        phonePlaceholder: 'Nomor WhatsApp penjual',
-        addressPlaceholder: 'Alamat domisili penanggung jawab',
-        sectionClass: 'border-status-success/30 bg-status-success/[0.03]',
-        iconClass: 'text-status-success',
-      }
+      title: 'Data Penanggung Jawab',
+      nameLabel: 'Nama Penanggung Jawab',
+      phoneLabel: 'Kontak Penjual',
+      addressLabel: 'Alamat Penanggung Jawab',
+      namePlaceholder: 'Nama pemilik atau PIC toko',
+      phonePlaceholder: 'Nomor WhatsApp penjual',
+      addressPlaceholder: 'Alamat domisili penanggung jawab',
+      sectionClass: 'border-status-success/30 bg-status-success/[0.03]',
+      iconClass: 'text-status-success',
+    }
     : {
-        title: 'Data Pembeli',
-        nameLabel: 'Nama Penerima',
-        phoneLabel: 'WhatsApp Pembeli',
-        addressLabel: 'Alamat Pengiriman',
-        namePlaceholder: 'Nama penerima pesanan',
-        phonePlaceholder: 'Nomor WhatsApp aktif',
-        addressPlaceholder: 'Alamat lengkap untuk pengiriman',
-        sectionClass: 'border-brand-primary/30 bg-brand-primary/[0.03]',
-        iconClass: 'text-brand-primary',
-      };
+      title: 'Data Pembeli',
+      nameLabel: 'Nama Penerima',
+      phoneLabel: 'WhatsApp Pembeli',
+      addressLabel: 'Alamat Pengiriman',
+      namePlaceholder: 'Nama penerima pesanan',
+      phonePlaceholder: 'Nomor WhatsApp aktif',
+      addressPlaceholder: 'Alamat lengkap untuk pengiriman',
+      sectionClass: 'border-brand-primary/30 bg-brand-primary/[0.03]',
+      iconClass: 'text-brand-primary',
+    };
 
   const avatarUrl = formData.profileImageUrl || formData.logoUrl;
 
@@ -418,7 +418,13 @@ export default function ClientProfile({ user, sellerData }: { user: AuthUser, se
           </button>
         </div>
 
-        <p className="text-center text-[10px] text-text-secondary mt-4 mb-8">Pusat Bantuan & Kebijakan Privasi Pesanku 2026</p>
+        <div className="flex justify-center items-center gap-2 mt-4 mb-8 text-[10px] text-text-secondary flex-wrap">
+          <Link href="/faq" className="hover:text-brand-primary underline transition-colors">Pusat Bantuan (FAQ)</Link>
+          <span>&bull;</span>
+          <Link href="/terms" className="hover:text-brand-primary underline transition-colors">Syarat & Ketentuan (T&C)</Link>
+          <span>&bull;</span>
+          <Link href="/refund-policy" className="hover:text-brand-primary underline transition-colors">Kebijakan Pengembalian Dana</Link>
+        </div>
       </form>
     </div>
   );

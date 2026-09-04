@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Silakan login sebagai pembeli terlebih dahulu untuk menggunakan fitur chat." }, { status: 401 });
     }
 
-    const { productId, text, productOffer } = await request.json();
+    const { productId, text, productOffer, qty, totalPrice, notes, variant, variantPrice } = await request.json();
     if (!productId || !text) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
@@ -24,20 +24,32 @@ export async function POST(request: Request) {
       .where(and(eq(orders.productId, productId), eq(orders.buyerId, user.id)))
       .limit(1)
       .get();
-      
+
     if (!orderRecord) {
       const newOrderId = `chat_order_${crypto.randomBytes(8).toString('hex')}`;
       await db.insert(orders).values({
         id: newOrderId,
         productId,
         buyerId: user.id,
-        qty: 0,
-        totalPrice: 0,
+        qty: qty || 0,
+        totalPrice: totalPrice || 0,
         status: 'chat_only',
-        notes: 'Pre-sales chat thread'
+        notes: notes || 'Pre-sales chat thread',
+        selectedVariant: variant || null,
+        selectedVariantPrice: variantPrice || null
       });
-      
       orderRecord = { id: newOrderId } as any;
+    } else if (orderRecord.status === 'chat_only') {
+      // Update order details to match the latest penawaran if it's still chat_only
+      if (qty !== undefined) {
+        await db.update(orders).set({
+          qty: qty,
+          totalPrice: totalPrice,
+          notes: notes || orderRecord.notes,
+          selectedVariant: variant || orderRecord.selectedVariant,
+          selectedVariantPrice: variantPrice || orderRecord.selectedVariantPrice
+        }).where(eq(orders.id, orderRecord.id));
+      }
     }
 
     const orderId = orderRecord!.id;
@@ -47,7 +59,7 @@ export async function POST(request: Request) {
       const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(productOffer.price || 0);
       finalMessage += `\n\n[PRODUK_OFFER|${productOffer.id}|${productOffer.name}|${formattedPrice}|${productOffer.image}]`;
     }
-    
+
     await db.insert(chatMessages).values({
       id: `msg_${crypto.randomBytes(8).toString('hex')}`,
       orderId,

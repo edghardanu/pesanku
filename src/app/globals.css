@@ -261,4 +261,12 @@ body {
   0% { transform: translateY(0); }
   50% { transform: translateY(280px); }
   100% { transform: translateY(0); }
+}/* Custom Utilities */
+.hide-arrows::-webkit-inner-spin-button, 
+.hide-arrows::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+.hide-arrows {
+  -moz-appearance: textfield;
 }

@@ -23,6 +23,7 @@ export interface OrderItem {
   sellerId?: string;
   productId?: string;
   qty: number;
+  minOrderQty?: number | null;
   totalPrice: number;
   status: string | null;
   notes?: string | null;
@@ -45,6 +46,7 @@ export interface OrderItem {
   deliveryDate?: string | null;
   fulfillmentStatus?: 'scheduled' | 'preparing' | 'ready' | 'shipped' | 'delivered' | null;
   scheduleReason?: string | null;
+  trackingNumber?: string | null;
   scheduleUpdatedAt?: string | null;
   deliveryAddress?: string | null;
   storeName?: string | null;
@@ -190,7 +192,9 @@ export interface BuyerOrderViewItem {
   selectedVariant?: string | null;
   selectedVariantPrice?: number | null;
   createdAt: string | Date | null;
+  productId?: string;
   productName: string;
+  productPrice?: number;
   productImageUrl?: string | null;
   storeName?: string | null;
   sellerId?: string;
@@ -199,8 +203,12 @@ export interface BuyerOrderViewItem {
   processingTime?: string | null;
   paymentId?: string | null;
   paymentStatus?: string | null;
+  paymentMethod?: string | null;
+  paymentProofUrl?: string | null;
   deliveryProofUrl?: string | null;
   dispatchReceiptUrl?: string | null;
+  trackingNumber?: string | null;
+  deliveryDate?: string | Date | null;
   rating?: number | null;
   ratedAt?: string | Date | null;
   cancelReason?: string | null;
@@ -209,6 +217,7 @@ export interface BuyerOrderViewItem {
   returnDate?: string | Date | null;
   unreadCount?: number;
   lastMessageAt?: string | Date | null;
+  negotiationStatus?: 'approved' | 'rejected' | null;
 }
 
 export interface InvoiceOrder {

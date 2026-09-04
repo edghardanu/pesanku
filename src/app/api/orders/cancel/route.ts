@@ -47,12 +47,32 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Pesanan tidak ditemukan atau Anda tidak memiliki akses' }, { status: 404 });
     }
 
-    // Hapus data chat terkait jika ada
-    const { chatMessages } = await import('@/lib/schema');
-    await db.delete(chatMessages).where(eq(chatMessages.orderId, orderId));
+    // Jika pesanan belum dibayar, hapus sepenuhnya
+    if (['waiting_verification', 'chat_only'].includes(existingOrder.status || '')) {
+      // Hapus data chat terkait
+      const { chatMessages } = await import('@/lib/schema');
+      await db.delete(chatMessages).where(eq(chatMessages.orderId, orderId));
 
-    // Hapus data pembayaran terkait jika ada
-    await db.delete(payments).where(eq(payments.orderId, orderId));
+      // Hapus data pembayaran terkait
+      await db.delete(payments).where(eq(payments.orderId, orderId));
+
+      // Hapus data pesanan
+      await db.delete(orders).where(eq(orders.id, orderId));
+    } else {
+      // Jika pesanan sudah dibayar (verified, preorder_running, processing), terapkan status cancelled dan kenakan denda
+      const { settings } = await import('@/lib/schema');
+      const penaltySetting = await db.select().from(settings).where(eq(settings.key, 'penalty_percentage')).get();
+      const penaltyPercentage = penaltySetting ? parseInt(penaltySetting.value) : 0;
+
+      const penaltyAmount = Math.round((penaltyPercentage / 100) * existingOrder.totalPrice);
+
+      await db.update(orders).set({
+        status: 'cancelled',
+        cancelReason: `Dibatalkan oleh pembeli. Denda pinalti: Rp ${penaltyAmount.toLocaleString('id-ID')}`,
+        adminSplitAmount: penaltyAmount,
+        sellerSplitAmount: 0
+      }).where(eq(orders.id, orderId));
+    }
 
     // Decrement currentQty from product
     const { products } = await import('@/lib/schema');
@@ -63,10 +83,7 @@ export async function DELETE(req: Request) {
       await db.update(products).set({ currentQty: newQty, status: newStatus }).where(eq(products.id, product.id));
     }
 
-    // Hapus data pesanan
-    await db.delete(orders).where(eq(orders.id, orderId));
-
-    return NextResponse.json({ message: 'Data berhasil dihapus' }, { status: 200 });
+    return NextResponse.json({ message: 'Pesanan berhasil dibatalkan' }, { status: 200 });
   } catch (error) {
     console.error('Cancel order error:', error);
     return NextResponse.json({ error: 'Terjadi kesalahan saat membatalkan pesanan' }, { status: 500 });
