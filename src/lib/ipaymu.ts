@@ -14,42 +14,29 @@ import { eq } from 'drizzle-orm';// ============================================
 const IPAYMU_BASE_URL_PRODUCTION = 'https://my.ipaymu.com/api/v2';
 const IPAYMU_BASE_URL_SANDBOX = 'https://sandbox.ipaymu.com/api/v2';
 
-export interface IpaymuConfig {
-  baseUrl: string;
-  va: string;
-  apiKey: string;
-}
-
-async function getIpaymuConfig(): Promise<IpaymuConfig> {
-  let isSandbox = process.env.IPAYMU_ENV === 'sandbox';
+async function getBaseUrl(): Promise<string> {
+  let env = process.env.IPAYMU_ENV || 'production';
   try {
     const fromDb = await db.select().from(settings).where(eq(settings.key, 'ipaymu_sandbox')).get();
     if (fromDb && (fromDb.value === '1' || fromDb.value === 'true')) {
-      isSandbox = true;
+      env = 'sandbox';
     }
   } catch (e) {
     console.error('Error fetching ipaymu_sandbox from db:', e);
   }
+  return env === 'sandbox' ? IPAYMU_BASE_URL_SANDBOX : IPAYMU_BASE_URL_PRODUCTION;
+}
 
-  if (isSandbox) {
-    return {
-      baseUrl: IPAYMU_BASE_URL_SANDBOX,
-      va: process.env.IPAYMU_VA_SANDBOX || '0000005286128625',
-      apiKey: process.env.IPAYMU_API_KEY_SANDBOX || 'SANDBOX8C172926-A650-498F-81B3-BFA762967A6B'
-    };
-  }
-
+function getVa(): string {
   const va = process.env.IPAYMU_VA;
   if (!va) throw new Error('IPAYMU_VA environment variable is not set');
+  return va;
+}
 
-  const apiKey = process.env.IPAYMU_API_KEY;
-  if (!apiKey) throw new Error('IPAYMU_API_KEY environment variable is not set');
-
-  return {
-    baseUrl: IPAYMU_BASE_URL_PRODUCTION,
-    va,
-    apiKey
-  };
+function getApiKey(): string {
+  const key = process.env.IPAYMU_API_KEY;
+  if (!key) throw new Error('IPAYMU_API_KEY environment variable is not set');
+  return key;
 }
 
 /**
@@ -58,7 +45,9 @@ async function getIpaymuConfig(): Promise<IpaymuConfig> {
  * Signature format: HMAC-SHA256( "POST:" + va + ":" + bodyHash + ":" + apikey  , apikey )
  * where bodyHash = SHA-256(rawJsonBody).toLowerCase()
  */
-function generateSignature(body: Record<string, unknown>, va: string, apiKey: string): { signature: string; timestamp: string } {
+function generateSignature(body: Record<string, unknown>): { signature: string; timestamp: string } {
+  const va = getVa();
+  const apiKey = getApiKey();
 
   const rawBody = JSON.stringify(body);
   const bodyHash = crypto.createHash('sha256').update(rawBody).digest('hex').toLowerCase();
@@ -97,9 +86,10 @@ export interface IPaymuCreatePaymentParams {
  * Returns the redirect URL and session ID.
  */
 export async function createRedirectPayment(params: IPaymuCreatePaymentParams): Promise<IPaymuRedirectResponse> {
-  const { baseUrl, va, apiKey } = await getIpaymuConfig();
+  const baseUrl = await getBaseUrl();
   let siteBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   siteBaseUrl = siteBaseUrl.replace(/\/+$/, '');
+  const va = getVa();
 
   const body: Record<string, unknown> = {
     product: [params.productName],
@@ -128,7 +118,7 @@ export async function createRedirectPayment(params: IPaymuCreatePaymentParams): 
     body.routeValue = [params.sellerSplitAmount];     // Nominal fix yang masuk ke Penjual (Tahap awal / DP 50%)
   }
 
-  const { signature, timestamp } = generateSignature(body, va, apiKey);
+  const { signature, timestamp } = generateSignature(body);
 
   const response = await fetch(`${baseUrl}/payment`, {
     method: 'POST',
@@ -159,12 +149,13 @@ export async function createRedirectPayment(params: IPaymuCreatePaymentParams): 
  * Check the status of an existing transaction via iPaymu API.
  */
 export async function checkTransactionStatus(transactionId: string) {
-  const { baseUrl, va, apiKey } = await getIpaymuConfig();
+  const baseUrl = await getBaseUrl();
   const body: Record<string, unknown> = {
     transactionId: transactionId,
   };
 
-  const { signature, timestamp } = generateSignature(body, va, apiKey);
+  const { signature, timestamp } = generateSignature(body);
+  const va = getVa();
 
   const response = await fetch(`${baseUrl}/transaction`, {
     method: 'POST',
@@ -191,7 +182,8 @@ export async function executeDisbursement(params: {
   referenceId: string;
   notes?: string;
 }) {
-  const { baseUrl, va, apiKey } = await getIpaymuConfig();
+  const baseUrl = await getBaseUrl();
+  const va = getVa();
 
   // Asumsi: kita menggunakan API yang membutuhkan channel/bank dan destination
   // Jika formatnya hanya string panjang 'BCA - 1234567890', kita pakai regex untuk mengekstrak no rekening
@@ -209,7 +201,7 @@ export async function executeDisbursement(params: {
     description: params.notes || `Disbursement for Order ${params.referenceId}`,
   };
 
-  const { signature, timestamp } = generateSignature(body, va, apiKey);
+  const { signature, timestamp } = generateSignature(body);
 
   // Endpoint transfer aktual dari iPaymu biasanya POST /api/v2/transfer atau serupa.
   // Jika ini simulasi sementara, kita panggil dan tangani catch dengan graceful.
