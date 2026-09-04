@@ -249,7 +249,6 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-extrabold bg-emerald-600 text-white shrink-0">
                                                 ✓ Lunas
                                             </span>
-                                            <span className="text-[11px] font-bold text-emerald-800">Verifikasi Otomatis System</span>
                                         </div>
                                         <div className="text-[12px] text-gray-700 space-y-1 pt-1 border-t border-emerald-200/60">
                                             <div className="flex items-center justify-between gap-2 flex-wrap">
