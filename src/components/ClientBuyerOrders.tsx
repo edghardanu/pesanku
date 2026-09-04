@@ -168,13 +168,13 @@ export default function ClientBuyerOrders({
         }
       }
 
-      // Schedule next poll with exponential back-off capped at 60s
-      const delay = Math.min(15000 * Math.pow(2, Math.max(0, failCount - 1)), 60000);
+      // Schedule next poll with exponential back-off capped at 30s for fast real-time update
+      const delay = Math.min(3000 * Math.pow(2, Math.max(0, failCount - 1)), 30000);
       timeoutId = setTimeout(fetchRealtimeOrders, delay);
     };
 
-    // Start first poll after initial 15 s (server already sent initial data)
-    timeoutId = setTimeout(fetchRealtimeOrders, 15000);
+    // Start first poll after initial 3s
+    timeoutId = setTimeout(fetchRealtimeOrders, 3000);
 
     return () => {
       clearTimeout(timeoutId);

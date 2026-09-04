@@ -206,8 +206,10 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
                         <div>
                             <label className="text-[12px] font-bold text-gray-800 block mb-2">Pembayaran</label>
                             {(() => {
+                                const isOrderPaid = ['verified', 'processing', 'completed', 'preorder_running'].includes(order.status || '');
                                 const proofUrl = order.paymentProofUrl;
-                                if (order.status === 'chat_only' || !proofUrl) {
+
+                                if (order.status === 'chat_only' || (!isOrderPaid && !proofUrl)) {
                                     return (
                                         <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                                             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
@@ -215,57 +217,50 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
                                         </div>
                                     );
                                 }
-                                if (proofUrl.startsWith('ipaymu:')) {
+
+                                let sid = '';
+                                let viaCode = 'VA';
+                                if (proofUrl && proofUrl.startsWith('ipaymu:')) {
                                     const parts = proofUrl.split(':');
-                                    const sid = parts[1] || '';
-                                    const viaCode = (parts[2] || 'VA').toUpperCase();
-                                    const isPaid = (parts[3] || 'paid').toLowerCase() === 'paid' || ['verified', 'processing', 'completed'].includes(order.status || '');
-
-                                    const channelMap: Record<string, string> = {
-                                        'VA': 'Virtual Account (iPaymu)',
-                                        'BCA': 'BCA Virtual Account',
-                                        'MANDIRI': 'Mandiri Virtual Account',
-                                        'BNI': 'BNI Virtual Account',
-                                        'BRI': 'BRI Virtual Account',
-                                        'CIMB': 'CIMB Niaga VA',
-                                        'PERMATA': 'Permata Bank VA',
-                                        'QRIS': 'QRIS (iPaymu)',
-                                        'ALFAMART': 'Alfamart Retail',
-                                        'INDOMARET': 'Indomaret Retail',
-                                    };
-
-                                    const channelName = channelMap[viaCode] || `Virtual Account (${viaCode})`;
-
-                                    if (isPaid) {
-                                        return (
-                                            <div className="flex flex-col gap-1.5 bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 max-w-xs shadow-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-extrabold bg-emerald-600 text-white">
-                                                        ✓ Lunas
-                                                    </span>
-                                                    <span className="text-[11px] font-bold text-emerald-800">Verifikasi Otomatis System</span>
-                                                </div>
-                                                <div className="text-[12px] text-gray-700 space-y-1 pt-1 border-t border-emerald-200/60">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-gray-500 font-medium">Metode:</span>
-                                                        <span className="font-bold text-gray-900">{channelName}</span>
-                                                    </div>
-                                                    {sid && sid !== 'undefined' && (
-                                                        <div className="flex items-center justify-between gap-2">
-                                                            <span className="text-gray-500 font-medium">No. Ref:</span>
-                                                            <code className="text-[11px] bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-800 font-mono font-semibold">{sid}</code>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    }
+                                    sid = parts[1] || '';
+                                    viaCode = (parts[2] || 'VA').toUpperCase();
                                 }
 
+                                const channelMap: Record<string, string> = {
+                                    'VA': 'Virtual Account (iPaymu)',
+                                    'BCA': 'BCA Virtual Account',
+                                    'MANDIRI': 'Mandiri Virtual Account',
+                                    'BNI': 'BNI Virtual Account',
+                                    'BRI': 'BRI Virtual Account',
+                                    'CIMB': 'CIMB Niaga VA',
+                                    'PERMATA': 'Permata Bank VA',
+                                    'QRIS': 'QRIS (iPaymu)',
+                                    'ALFAMART': 'Alfamart Retail',
+                                    'INDOMARET': 'Indomaret Retail',
+                                };
+
+                                const channelName = channelMap[viaCode] || `Virtual Account (${viaCode})`;
+
                                 return (
-                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                        Lunas (Sistem iPaymu)
+                                    <div className="flex flex-col gap-1.5 bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 max-w-xs shadow-sm">
+                                        <div className="flex items-center gap-2">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-extrabold bg-emerald-600 text-white">
+                                                ✓ Lunas
+                                            </span>
+                                            <span className="text-[11px] font-bold text-emerald-800">Verifikasi Otomatis System</span>
+                                        </div>
+                                        <div className="text-[12px] text-gray-700 space-y-1 pt-1 border-t border-emerald-200/60">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-gray-500 font-medium">Metode:</span>
+                                                <span className="font-bold text-gray-900">{channelName}</span>
+                                            </div>
+                                            {sid && sid !== 'undefined' && (
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-gray-500 font-medium">No. Ref:</span>
+                                                    <code className="text-[11px] bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-800 font-mono font-semibold">{sid}</code>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 );
                             })()}
