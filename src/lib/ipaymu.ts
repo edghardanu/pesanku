@@ -89,6 +89,7 @@ export interface IPaymuCreatePaymentParams {
   qty?: number;
   sellerVa?: string;            // iPaymu VA Penjual (jika ada) untuk split payment
   sellerSplitAmount?: number;   // Nominal bagibhasil penjual
+  customBaseUrl?: string;       // Dynamic base URL derived from request headers
 }
 
 /**
@@ -98,7 +99,7 @@ export interface IPaymuCreatePaymentParams {
  */
 export async function createRedirectPayment(params: IPaymuCreatePaymentParams): Promise<IPaymuRedirectResponse> {
   const { baseUrl, va, apiKey } = await getIpaymuConfig();
-  let siteBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  let siteBaseUrl = params.customBaseUrl || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   siteBaseUrl = siteBaseUrl.replace(/\/+$/, '');
 
   const body: Record<string, unknown> = {
@@ -243,4 +244,58 @@ export async function executeDisbursement(params: {
     console.error("[iPaymu] Disbursement Error:", error);
     return { success: false, error: (error as Error).message, simulated: false };
   }
+}
+
+/**
+ * Fulfill an order when payment is confirmed via webhook callback or status polling.
+ */
+export async function fulfillOrderPayment(orderId: string, proofUrlStr?: string) {
+  const { orders, payments, products, sellerBalances } = await import('@/lib/schema');
+
+  const order = await db.select().from(orders).where(eq(orders.id, orderId)).get();
+  if (!order) return false;
+
+  const payment = await db.select().from(payments).where(eq(payments.orderId, orderId)).get();
+  if (payment) {
+    await db.update(payments).set({
+      verificationStatus: 'approved',
+      proofUrl: proofUrlStr || payment.proofUrl,
+    }).where(eq(payments.id, payment.id));
+  } else {
+    await db.insert(payments).values({
+      id: crypto.randomUUID(),
+      orderId: orderId,
+      proofUrl: proofUrlStr || 'ipaymu:approved',
+      verificationStatus: 'approved',
+    });
+  }
+
+  if (order.status === 'waiting_verification') {
+    await db.update(orders).set({
+      status: 'verified',
+    }).where(eq(orders.id, orderId));
+
+    try {
+      const productObj = await db.select({ sellerId: products.sellerId }).from(products).where(eq(products.id, order.productId)).get();
+      if (productObj) {
+        const escrowAmount = order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5);
+        const balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, productObj.sellerId)).get();
+        if (!balanceObj) {
+          await db.insert(sellerBalances).values({
+            id: crypto.randomUUID(),
+            sellerId: productObj.sellerId,
+            availableBalance: 0,
+            retainedBalance: escrowAmount,
+          });
+        } else {
+          await db.update(sellerBalances)
+            .set({ retainedBalance: (balanceObj.retainedBalance || 0) + escrowAmount })
+            .where(eq(sellerBalances.id, balanceObj.id));
+        }
+      }
+    } catch (balanceErr) {
+      console.error('[fulfillOrderPayment] Balance retention error:', balanceErr);
+    }
+  }
+  return true;
 }
