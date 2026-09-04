@@ -140,7 +140,8 @@ export async function GET() {
                 paidStatusStr === 'berhasil';
 
               if (isPaid) {
-                const proofStr = `ipaymu:${verifyData.Data.TransactionId || verifyData.Data.SessionId}:${verifyData.Data.PaymentChannel || 'va'}:paid`;
+                const channel = verifyData.Data.PaymentChannel || verifyData.Data.Channel || verifyData.Data.Via || verifyData.Data.PaymentMethod || 'va';
+                const proofStr = `ipaymu:${verifyData.Data.TransactionId || verifyData.Data.SessionId}:${channel}:paid`;
                 await fulfillOrderPayment(wo.orderId, proofStr);
                 wo.status = 'verified';
                 wo.paymentStatus = 'approved';

@@ -227,10 +227,12 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
                                 }
 
                                 const channelMap: Record<string, string> = {
-                                    'VA': 'Virtual Account (Transfer Bank)',
+                                    'VA': 'Virtual Account (BCA / Mandiri / BNI / BRI)',
+                                    'TRANSFER': 'Virtual Account (BCA / Mandiri / BNI / BRI)',
+                                    'BANKTRANSFER': 'Virtual Account (BCA / Mandiri / BNI / BRI)',
                                     'BCA': 'Virtual Account (Bank Central Asia)',
                                     'MANDIRI': 'Virtual Account (Bank Mandiri)',
-                                    'BNI': 'Virtual Account (Bank Nasional Indonesia)',
+                                    'BNI': 'Virtual Account (Bank Negara Indonesia)',
                                     'BRI': 'Virtual Account (Bank Rakyat Indonesia)',
                                     'CIMB': 'Virtual Account (Bank CIMB Niaga)',
                                     'PERMATA': 'Virtual Account (Bank Permata)',
