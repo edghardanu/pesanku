@@ -144,8 +144,8 @@ export default function ClientProductDetail({
   const deadline = product.deadlineDate ? new Date(product.deadlineDate) : null;
   const hasValidDeadline = Boolean(deadline && !Number.isNaN(deadline.getTime()));
   const isDeadlinePassed = Boolean(deadline && hasValidDeadline && deadline.getTime() < currentTime);
-  const isClosedStatus = ['closed', 'processing', 'completed'].includes(product.status || '');
-  const isPreorderClosed = isClosedStatus || isDeadlinePassed;
+  const isClosedStatus = false; // ['closed', 'processing', 'completed'].includes(product.status || '');
+  const isPreorderClosed = false; // isClosedStatus || isDeadlinePassed;
   const isOrderUnavailable = isPreorderClosed;
   const selectedVariantDetails = findProductVariant(product.variants, selectedVariant);
   const unitPrice = getProductUnitPrice(product.price, product.variants, selectedVariant);

@@ -58,11 +58,11 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: 'Salah satu produk tidak ditemukan' }, { status: 404 });
         }
 
-        const deadlinePassed = Boolean(product.deadlineDate && product.deadlineDate.getTime() < Date.now());
-        const preorderClosed = ['closed', 'processing', 'completed'].includes(product.status || '') || deadlinePassed;
-        if (preorderClosed) {
-          return NextResponse.json({ error: `Preorder ${product.name} telah ditutup` }, { status: 400 });
-        }
+        // const deadlinePassed = Boolean(product.deadlineDate && product.deadlineDate.getTime() < Date.now());
+        // const preorderClosed = ['closed', 'processing', 'completed'].includes(product.status || '') || deadlinePassed;
+        // if (preorderClosed) {
+        //   return NextResponse.json({ error: `Preorder ${product.name} telah ditutup` }, { status: 400 });
+        // }
 
         // Limit checks removed as per requirement
         const availableVariants = parseStoredProductVariants(product.variantsJson);

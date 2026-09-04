@@ -767,23 +767,23 @@ export default function ClientSellerDashboard({
             background: #94a3b8 !important;
           }
         </style>
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 text-left">
+        <div class="flex flex-col lg:flex-row gap-4 text-left h-[75vh] max-h-[650px] min-h-[400px]">
           <!-- Column 1: Chat -->
-          <div class="md:col-span-7 flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-3 bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-3">
+          <div class="flex-1 flex flex-col min-h-0 w-full lg:w-7/12">
+            <div class="flex items-center justify-between mb-3 bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-3 shrink-0">
               <div class="text-xs text-text-primary font-semibold truncate max-w-[65%]">Produk: ${productName}</div>
               <button data-product-id="${productId || ''}" class="view-product-calendar-btn text-[10px] font-bold text-brand-primary hover:text-brand-primary-hover bg-brand-primary/10 hover:bg-brand-primary/20 transition-all border border-brand-primary/35 px-2.5 py-1.5 rounded-lg cursor-pointer flex items-center gap-1 shrink-0 select-none">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 Lihat Jadwal Produk
               </button>
             </div>
-            <div class="flex flex-col h-[260px] md:h-[350px] bg-base border border-border rounded-xl p-4 overflow-y-auto mb-4" id="chat-box">
-              <div class="text-xs text-text-secondary text-center mb-4">Hari ini</div>
+            <div class="flex-1 flex flex-col bg-base border border-border rounded-xl p-4 overflow-y-auto mb-3" id="chat-box">
+              <div class="text-xs text-text-secondary text-center mb-4 shrink-0">Hari ini</div>
               <div id="chat-messages" class="flex flex-col gap-3">
                 ${renderMsgs()}
               </div>
             </div>
-            <div class="flex gap-2 relative mt-2 auto-rows-min">
+            <div class="flex gap-2 relative shrink-0">
               <div class="relative" id="attachment-container">
                 <button type="button" id="attachment-toggle" class="bg-base shadow-sm border border-border hover:bg-black/5 dark:hover:bg-white/5 w-11 h-11 rounded-xl cursor-pointer flex justify-center items-center shrink-0 text-text-secondary hover:text-brand-primary transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
@@ -805,10 +805,9 @@ export default function ClientSellerDashboard({
               </button>
             </div>
           </div>
-          
           <!-- Column 2: Products Showcase -->
-          <div class="md:col-span-5 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-4 flex flex-col h-[280px] md:h-[400px] transition-all duration-300 overflow-hidden" id="products-column">
-            <div class="flex flex-col h-full w-full">
+          <div class="border-t lg:border-t-0 lg:border-l border-border pt-4 lg:pt-0 lg:pl-4 flex flex-col min-h-0 w-full lg:w-5/12 transition-all duration-300" id="products-column">
+            <div class="flex flex-col h-full w-full min-h-0">
               <button id="toggle-products-btn" class="w-full text-xs font-bold text-text-primary mb-2 flex items-center justify-between shrink-0 uppercase tracking-wider bg-transparent hover:bg-black/5 p-2 -mx-2 rounded-lg transition-colors cursor-pointer outline-none select-none">
                 <div class="flex items-center gap-1.5">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-primary"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
@@ -816,7 +815,7 @@ export default function ClientSellerDashboard({
                 </div>
                 <svg id="toggle-products-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300 transform"><polyline points="18 15 12 9 6 15"></polyline></svg>
               </button>
-              <div class="flex-1 overflow-y-scroll pr-2 space-y-2 max-h-[220px] md:max-h-[330px] transition-all duration-300" id="store-products-list">
+              <div class="flex-1 overflow-y-auto pr-2 space-y-2 transition-all duration-300" id="store-products-list">
                 ${renderProductList()}
               </div>
             </div>
@@ -951,21 +950,25 @@ export default function ClientSellerDashboard({
           const toggleBtn = document.getElementById('toggle-products-btn');
           const toggleIcon = document.getElementById('toggle-products-icon');
           const productsColumn = document.getElementById('products-column');
+          const productsListEl = document.getElementById('store-products-list');
 
-          let isProductsOpen = true;
+          let isProductsOpen = window.innerWidth >= 1024;
+          if (!isProductsOpen && productsListEl && toggleIcon && productsColumn) {
+            productsListEl.style.display = 'none';
+            toggleIcon.style.transform = 'rotate(180deg)';
+            productsColumn.style.flex = '0 0 auto';
+          }
 
           toggleBtn?.addEventListener('click', () => {
             isProductsOpen = !isProductsOpen;
             if (isProductsOpen) {
-              productsList!.style.display = 'block';
-              toggleIcon!.style.transform = 'rotate(0deg)';
-              productsColumn!.classList.remove('h-auto', 'md:h-auto');
-              productsColumn!.classList.add('h-[280px]', 'md:h-[400px]');
+              if (productsListEl) productsListEl.style.display = 'block';
+              if (toggleIcon) toggleIcon.style.transform = 'rotate(0deg)';
+              if (productsColumn) productsColumn.style.flex = '';
             } else {
-              productsList!.style.display = 'none';
-              toggleIcon!.style.transform = 'rotate(180deg)';
-              productsColumn!.classList.remove('h-[280px]', 'md:h-[400px]');
-              productsColumn!.classList.add('h-auto', 'md:h-auto');
+              if (productsListEl) productsListEl.style.display = 'none';
+              if (toggleIcon) toggleIcon.style.transform = 'rotate(180deg)';
+              if (productsColumn) productsColumn.style.flex = '0 0 auto';
             }
           });
 
@@ -2666,17 +2669,24 @@ export default function ClientSellerDashboard({
           <span>Transaksi</span>
         </button>
 
-        <div className="flex-1 flex flex-col justify-end items-center relative pb-2 h-full">
+        <button
+          onClick={() => handleTabChange('pesanan_masuk')}
+          className="flex-1 flex flex-col justify-end items-center relative pb-2 h-full"
+        >
           <div className="absolute bottom-6 flex justify-center w-full">
-            <Link
-              href="/seller/product/new"
-              className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105"
+            <div
+              className={`w-14 h-14 rounded-full ${activeTab === 'pesanan_masuk' ? 'bg-brand-primary-hover shadow-[0_4px_20px_rgba(128,0,0,0.4)] scale-110' : 'bg-brand-primary shadow-lg hover:bg-brand-primary-hover hover:scale-105'} text-white flex items-center justify-center transition-all duration-300`}
             >
-              <Plus className="w-7 h-7 stroke-2" />
-            </Link>
+              <Bell className="w-7 h-7 stroke-[1.5]" />
+            </div>
+            {totalNotifs > 0 && activeTab !== 'pesanan_masuk' && (
+              <span className="absolute top-0 right-1/2 translate-x-5 -mt-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-status-error px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                {totalNotifs > 99 ? '99+' : totalNotifs}
+              </span>
+            )}
           </div>
-          <span className="text-text-secondary mt-1">Tambah</span>
-        </div>
+          <span className={`mt-1 transition-colors ${activeTab === 'pesanan_masuk' ? 'text-brand-primary font-bold' : 'text-text-secondary group-hover:text-brand-primary'}`}>Pesanan Masuk</span>
+        </button>
 
         <button
           type="button"
