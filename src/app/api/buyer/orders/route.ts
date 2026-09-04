@@ -158,13 +158,23 @@ export async function GET() {
     const uniqueOrders = new Map<string, typeof userOrders[0]>();
 
     for (const order of userOrders) {
-      if (!uniqueOrders.has(order.orderId)) {
+      const existing = uniqueOrders.get(order.orderId);
+      if (!existing) {
         uniqueOrders.set(order.orderId, {
           ...order,
           unreadCount: unreadCounts[order.orderId] || 0,
           lastMessageAt: lastMessageMap[order.orderId] ?? null,
           negotiationStatus: negotiationMap[order.orderId] ?? null,
         });
+      } else {
+        if (order.paymentStatus === 'approved' && existing.paymentStatus !== 'approved') {
+          uniqueOrders.set(order.orderId, {
+            ...order,
+            unreadCount: unreadCounts[order.orderId] || 0,
+            lastMessageAt: lastMessageMap[order.orderId] ?? null,
+            negotiationStatus: negotiationMap[order.orderId] ?? null,
+          });
+        }
       }
     }
 

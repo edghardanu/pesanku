@@ -1135,27 +1135,43 @@ export default function ClientBuyerOrders({
                   </div>
                   <div className="flex-1 overflow-y-auto">
                     {(() => {
-                      const waitingProductIds = new Set(
-                        filteredLocalOrders
-                          .filter(o => o.status === 'waiting_verification')
-                          .map(o => o.productId)
-                      );
-                      const activeSeen = new Set<string>();
+                      const getStatusPriority = (status: string | null) => {
+                        if (!status) return 0;
+                        if (status === 'completed') return 6;
+                        if (status === 'processing') return 5;
+                        if (status === 'verified') return 4;
+                        if (status === 'preorder_running') return 4;
+                        if (status === 'waiting_verification') return 3;
+                        if (status === 'chat_only') return 2;
+                        return 1;
+                      };
 
-                      return filteredLocalOrders.filter(order => {
-                        // Hide chat_only if there is already a waiting_verification for this product
-                        if (order.status === 'chat_only' && order.productId && waitingProductIds.has(order.productId)) {
-                          return false;
+                      const productOrderMap = new Map<string, typeof filteredLocalOrders[0]>();
+
+                      for (const order of filteredLocalOrders) {
+                        const key: string = order.productId || order.orderId || '';
+                        if (!key) continue;
+                        const existing = productOrderMap.get(key);
+
+                        if (!existing) {
+                          productOrderMap.set(key, order);
+                        } else {
+                          const existingPriority = getStatusPriority(existing.status);
+                          const currentPriority = getStatusPriority(order.status);
+
+                          if (currentPriority > existingPriority) {
+                            productOrderMap.set(key, order);
+                          } else if (currentPriority === existingPriority) {
+                            const existingTime = existing.createdAt ? new Date(existing.createdAt).getTime() : 0;
+                            const currentTime = order.createdAt ? new Date(order.createdAt).getTime() : 0;
+                            if (currentTime >= existingTime) {
+                              productOrderMap.set(key, order);
+                            }
+                          }
                         }
+                      }
 
-                        // Collapse duplicate waiting_verification or chat_only into 1 latest row
-                        if ((order.status === 'waiting_verification' || order.status === 'chat_only') && order.productId) {
-                          if (activeSeen.has(order.productId)) return false;
-                          activeSeen.add(order.productId);
-                        }
-
-                        return true;
-                      });
+                      return Array.from(productOrderMap.values());
                     })().map((order) => (
                       <div
                         key={order.orderId}
