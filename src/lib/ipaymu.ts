@@ -151,7 +151,7 @@ export async function createRedirectPayment(params: IPaymuCreatePaymentParams): 
   return {
     Status: data.Status,
     Url: data.Data?.Url || data.Data?.url || '',
-    SessionId: data.Data?.SessionId || data.Data?.sessionId || '',
+    SessionId: data.Data?.SessionID || data.Data?.SessionId || data.Data?.sessionId || '',
   };
 }
 
