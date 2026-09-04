@@ -287,34 +287,75 @@ export default function ClientBuyerOrders({
   };
 
   const handleCancelOrder = async (orderId: string, productName: string) => {
-    const result = await Swal.fire({
-      title: 'Batalkan Pesanan?',
-      text: `Apakah Anda yakin ingin membatalkan pesanan ${orderId} (${productName})?`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#94a3b8',
-      confirmButtonText: 'Ya, Batalkan',
-      cancelButtonText: 'Batal'
-    });
+    const targetOrder = localOrders.find(o => o.orderId === orderId);
+    const isPaid = targetOrder && ['verified', 'preorder_running', 'processing'].includes(targetOrder.status || '');
 
-    if (result.isConfirmed) {
-      // Optimistic update: ubah status jadi cancelled
-      setLocalOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, status: 'cancelled' } : o));
+    let cancelBankCode = "";
+    let cancelBankAccount = "";
 
-      Swal.fire({
-        title: 'Pesanan Dibatalkan',
-        text: 'Pesanan Anda telah berhasil dibatalkan.',
-        icon: 'success',
-        timer: 1800,
-        showConfirmButton: false
+    if (isPaid) {
+      const { value: formValues } = await Swal.fire({
+        title: 'Batalkan Pesanan & Refund',
+        html: `
+          <p class="text-[13px] text-gray-600 mb-4">Pesanan ${orderId} sudah dibayar. Pembatalan akan dikenakan denda sesuai kebijakan. Sisa dana akan dikembalikan ke rekening Anda.</p>
+          <div class="text-left space-y-3">
+            <div>
+              <label class="block text-[13px] font-semibold mb-1 text-gray-800">Nama Bank (Cth: BCA, BRI, MANDIRI)</label>
+              <input id="swal-bank-code" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" placeholder="Masukkan nama bank">
+            </div>
+            <div>
+              <label class="block text-[13px] font-semibold mb-1 text-gray-800">Nomor Rekening</label>
+              <input id="swal-bank-account" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" placeholder="Masukkan nomor rekening">
+            </div>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'Ya, Batalkan & Refund',
+        cancelButtonText: 'Batal',
+        preConfirm: () => {
+          const bankCode = (document.getElementById('swal-bank-code') as HTMLInputElement).value;
+          const bankAccount = (document.getElementById('swal-bank-account') as HTMLInputElement).value;
+          if (!bankCode || !bankAccount) {
+            Swal.showValidationMessage('Nama Bank dan Nomor Rekening wajib diisi!');
+          }
+          return { bankCode, bankAccount };
+        }
+      });
+
+      if (!formValues) return;
+      cancelBankCode = formValues.bankCode;
+      cancelBankAccount = formValues.bankAccount;
+    } else {
+      const result = await Swal.fire({
+        title: 'Batalkan Pesanan?',
+        text: `Apakah Anda yakin ingin membatalkan pesanan ${orderId} (${productName})?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'Ya, Batalkan',
+        cancelButtonText: 'Batal'
+      });
+      if (!result.isConfirmed) return;
+    }
+
+    // Optimistic update: ubah status jadi cancelled
+    setLocalOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, status: 'cancelled' } : o));
+      
+    Swal.fire({
+        title: isPaid ? 'Memproses Refund...' : 'Membatalkan...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
       });
 
       try {
         const res = await fetch('/api/orders/cancel', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId }),
+          body: JSON.stringify({ orderId, cancelBankCode, cancelBankAccount }),
         });
 
         const json = await res.json();
@@ -323,6 +364,14 @@ export default function ClientBuyerOrders({
           throw new Error(json.error || 'Gagal membatalkan pesanan');
         }
 
+        Swal.fire({
+          title: 'Berhasil',
+          text: isPaid ? 'Pesanan dibatalkan & eksekusi refund berhasil diproses.' : 'Pesanan Anda telah berhasil dibatalkan.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+
         router.refresh();
       } catch (error) {
         // Rollback optimistic update
@@ -330,7 +379,6 @@ export default function ClientBuyerOrders({
         const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
         Swal.fire('Gagal!', errMsg, 'error');
       }
-    }
   };
 
   const handleDeleteChatSection = async (orderId: string, storeName: string) => {

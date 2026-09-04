@@ -12,7 +12,7 @@ export async function DELETE(req: Request) {
     }
 
     const body = await req.json();
-    const { orderId, allChats } = body;
+    const { orderId, allChats, cancelBankCode, cancelBankAccount } = body;
 
     if (allChats) {
       const chatOnlyOrders = await db
@@ -60,18 +60,63 @@ export async function DELETE(req: Request) {
       await db.delete(orders).where(eq(orders.id, orderId));
     } else {
       // Jika pesanan sudah dibayar (verified, preorder_running, processing), terapkan status cancelled dan kenakan denda
-      const { settings } = await import('@/lib/schema');
+      const { settings, products, sellerBalances } = await import('@/lib/schema');
       const penaltySetting = await db.select().from(settings).where(eq(settings.key, 'penalty_percentage')).get();
       const penaltyPercentage = penaltySetting ? parseInt(penaltySetting.value) : 0;
 
       const penaltyAmount = Math.round((penaltyPercentage / 100) * existingOrder.totalPrice);
+      const refundAmount = existingOrder.totalPrice - penaltyAmount;
+
+      if (cancelBankCode && cancelBankAccount && refundAmount > 0) {
+        const { executeDisbursement } = await import('@/lib/ipaymu');
+        const buyerBank = `${cancelBankCode} ${cancelBankAccount}`.trim();
+        const disbursementRes = await executeDisbursement({
+          amount: refundAmount,
+          bankAccount: buyerBank,
+          referenceId: `CNL-${orderId}`,
+          notes: `Pesanku - Refund Pembatalan Order ${orderId}`
+        });
+
+        if (!disbursementRes.success) {
+          return NextResponse.json({ error: `Refund otomatis gagal: ${disbursementRes.error}` }, { status: 400 });
+        }
+      }
 
       await db.update(orders).set({
         status: 'cancelled',
         cancelReason: `Dibatalkan oleh pembeli. Denda pinalti: Rp ${penaltyAmount.toLocaleString('id-ID')}`,
-        adminSplitAmount: penaltyAmount,
-        sellerSplitAmount: 0
+        adminSplitAmount: 0,
+        sellerSplitAmount: penaltyAmount
       }).where(eq(orders.id, orderId));
+
+      // SESUAIKAN SALDO PENJUAL
+      // Retained balance dikurangi bagian admin sebelumnya
+      // Available balance disesuaikan agar hasil akhir balance yang diterima penjual murni = penaltyAmount 
+      const productObj = await db.select({ sellerId: products.sellerId }).from(products).where(eq(products.id, existingOrder.productId)).get();
+      if (productObj) {
+        const sellerId = productObj.sellerId;
+        const prevAdminSplit = existingOrder.adminSplitAmount ?? Math.floor((existingOrder.totalPrice || 0) * 0.5);
+        const prevSellerSplit = existingOrder.sellerSplitAmount ?? Math.floor((existingOrder.totalPrice || 0) * 0.5);
+        const availableAdjustment = penaltyAmount - prevSellerSplit;
+        
+        const balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, sellerId)).get();
+        if (balanceObj) {
+          await db.update(sellerBalances)
+            .set({ 
+              retainedBalance: Math.max(0, (balanceObj.retainedBalance || 0) - prevAdminSplit),
+              availableBalance: (balanceObj.availableBalance || 0) + availableAdjustment,
+             })
+            .where(eq(sellerBalances.id, balanceObj.id));
+        } else {
+          const crypto = await import('crypto');
+          await db.insert(sellerBalances).values({
+            id: crypto.randomUUID(),
+            sellerId: sellerId,
+            retainedBalance: 0,
+            availableBalance: availableAdjustment,
+          });
+        }
+      }
     }
 
     // Decrement currentQty from product
