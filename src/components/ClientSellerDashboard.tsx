@@ -1308,30 +1308,62 @@ export default function ClientSellerDashboard({
   );
 
   const collapsedSellerOrders = (() => {
-    const activeKeys = new Set(
-      sellerOrders
-        .filter(o => o.status !== 'chat_only' && o.status !== 'cancelled' && o.status !== 'failed' && o.status !== 'returned')
-        .map(o => `${o.productId}-${o.buyerId || o.buyerName}`)
-    );
-    const seenChatKey = new Set<string>();
-    const seenActiveKey = new Set<string>();
-
-    return sellerOrders.filter((order) => {
-      const key = `${order.productId}-${order.buyerId || order.buyerName}`;
-
-      if (order.status === 'chat_only') {
-        if (activeKeys.has(key)) return false;
-        if (seenChatKey.has(key)) return false;
-        seenChatKey.add(key);
+    const statusPriority = (s: string | null) => {
+      switch (s) {
+        case 'completed': return 6;
+        case 'processing': return 5;
+        case 'shipped': return 5;
+        case 'verified':
+        case 'preorder_running': return 4;
+        case 'waiting_verification': return 3;
+        case 'chat_only': return 2;
+        case 'cancelled':
+        case 'failed':
+        case 'returned': return 1;
+        default: return 0;
       }
+    };
 
-      if (order.status === 'waiting_verification') {
-        if (seenActiveKey.has(key)) return false;
-        seenActiveKey.add(key);
+    const grouped = new Map<string, OrderItem[]>();
+    for (const order of sellerOrders) {
+      const key = `${order.productId || ''}-${order.buyerId || order.buyerName || ''}`;
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
       }
+      grouped.get(key)!.push(order);
+    }
 
-      return true;
+    const result: OrderItem[] = [];
+    for (const ordersList of grouped.values()) {
+      if (ordersList.length === 1) {
+        result.push(ordersList[0]);
+      } else {
+        ordersList.sort((a, b) => {
+          const pA = statusPriority(a.status);
+          const pB = statusPriority(b.status);
+          if (pA !== pB) return pB - pA;
+
+          const aIsOrd = (a.id || '').startsWith('ORD-') ? 1 : 0;
+          const bIsOrd = (b.id || '').startsWith('ORD-') ? 1 : 0;
+          if (aIsOrd !== bIsOrd) return bIsOrd - aIsOrd;
+
+          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return timeB - timeA;
+        });
+
+        result.push(ordersList[0]);
+      }
+    }
+
+    // Sort by createdAt descending for display
+    result.sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
     });
+
+    return result;
   })();
 
   const filteredSellerOrders = collapsedSellerOrders.filter((order) => {
@@ -2115,19 +2147,19 @@ export default function ClientSellerDashboard({
                   <div className="card p-6 border-status-success border-2 shadow-sm rounded-xl">
                     <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Total Saldo Bersih</h3>
                     <p className="text-2xl sm:text-3xl font-bold text-status-success">
-                      Rp {sellerOrders.filter(o => o.status === 'completed').reduce((acc, curr) => acc + Math.max(0, (curr.totalPrice || 0) - feeAplikasi - feeJasa - feeAdmin), 0).toLocaleString('id-ID')}
+                      Rp {collapsedSellerOrders.filter(o => o.status === 'completed').reduce((acc, curr) => acc + Math.max(0, (curr.totalPrice || 0) - feeAplikasi - feeJasa - feeAdmin), 0).toLocaleString('id-ID')}
                     </p>
                   </div>
                   <div className="card p-6 border-border border rounded-xl bg-surface/30">
                     <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Ditahan Admin (Dalam Proses)</h3>
                     <p className="text-2xl sm:text-3xl font-bold text-brand-primary">
-                      Rp {sellerOrders.filter(o => ['verified', 'preorder_running', 'processing'].includes(o.status || '')).reduce((acc, curr) => acc + Math.max(0, (curr.adminSplitAmount ?? Math.floor((curr.totalPrice || 0) * 0.5)) - feeAdmin - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
+                      Rp {collapsedSellerOrders.filter(o => ['verified', 'preorder_running', 'processing'].includes(o.status || '')).reduce((acc, curr) => acc + Math.max(0, (curr.adminSplitAmount ?? Math.floor((curr.totalPrice || 0) * 0.5)) - feeAdmin - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
                     </p>
                   </div>
                   <div className="card p-6 border-border border rounded-xl">
                     <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Menunggu Pembayaran</h3>
                     <p className="text-2xl sm:text-3xl font-bold text-status-warning">
-                      Rp {sellerOrders.filter(o => o.status === 'waiting_verification').reduce((acc, curr) => acc + (curr.totalPrice || 0), 0).toLocaleString('id-ID')}
+                      Rp {collapsedSellerOrders.filter(o => o.status === 'waiting_verification').reduce((acc, curr) => acc + (curr.totalPrice || 0), 0).toLocaleString('id-ID')}
                     </p>
                   </div>
                 </div>
@@ -2138,7 +2170,7 @@ export default function ClientSellerDashboard({
                   </div>
 
                   <div className="overflow-x-auto w-full">
-                    {sellerOrders.length === 0 ? (
+                    {collapsedSellerOrders.length === 0 ? (
                       <div className="p-10 text-center text-text-secondary flex flex-col items-center">
                         <Info className="w-12 h-12 text-brand-secondary/50 mb-4" />
                         <p>Belum ada transaksi. Terus promosikan pre-order Anda!</p>
@@ -2160,7 +2192,7 @@ export default function ClientSellerDashboard({
                           </tr>
                         </thead>
                         <tbody className="text-body-base text-text-primary">
-                          {sellerOrders.map(order => (
+                          {collapsedSellerOrders.map(order => (
                             <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
                               <td className="p-3">
                                 <span className="font-mono text-xs text-text-primary whitespace-nowrap">{order.id}</span>
