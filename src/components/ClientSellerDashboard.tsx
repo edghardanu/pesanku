@@ -2211,7 +2211,7 @@ export default function ClientSellerDashboard({
                               </td>
                               <td className="p-4 text-right">
                                 <span className="text-sm font-semibold text-status-warning/90 whitespace-nowrap">
-                                  {order.status !== 'completed' && order.status !== 'waiting_verification' && order.status !== 'cancelled' ? `-Rp ${(order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5)).toLocaleString('id-ID')}` : '-'}
+                                  {order.status !== 'completed' && order.status !== 'waiting_verification' && order.status !== 'cancelled' ? `-Rp ${Math.max(0, (order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5)) - feeAdmin - feeAplikasi - feeJasa).toLocaleString('id-ID')}` : '-'}
                                 </span>
                               </td>
                               <td className="p-4 text-right">
