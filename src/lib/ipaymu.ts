@@ -102,8 +102,8 @@ export async function createRedirectPayment(params: IPaymuCreatePaymentParams): 
   siteBaseUrl = siteBaseUrl.replace(/\/+$/, '');
 
   const body: Record<string, unknown> = {
-    product: [params.productName],
-    qty: [params.qty || 1],
+    product: [params.qty && params.qty > 1 ? `${params.productName} (x${params.qty})` : params.productName],
+    qty: [1],
     price: [params.amount],
     description: [`Pembayaran Pesanku - ${params.orderId}`],
     returnUrl: `${siteBaseUrl}/payment/return?order_id=${params.orderId}`,

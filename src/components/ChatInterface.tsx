@@ -15,6 +15,7 @@ import StoreProductsGrid from "@/components/StoreProductsGrid";
 
 interface ChatThread {
   orderId: string;
+  orderIds?: string[];
   title: string;
   subtitle: string;
   avatarInitial: string;
@@ -135,16 +136,37 @@ export default function ChatInterface({
     }
 
     // Sort by last message / created date descending
-    return result.sort((a, b) => {
+    result.sort((a, b) => {
       const tA = new Date(a.lastMessageAt || 0).getTime();
       const tB = new Date(b.lastMessageAt || 0).getTime();
       return tB - tA;
     });
+
+    // Deduplicate threads: Hanya 1 chat room per lawan bicara (Toko/Penjual atau Pembeli)
+    const uniqueMap = new Map<string, ChatThread>();
+
+    for (const thread of result) {
+      const key = mode === "buyer"
+        ? (thread.sellerId ? `seller_${thread.sellerId}` : `title_${thread.title.toLowerCase()}`)
+        : `buyer_${thread.title.toLowerCase()}`;
+
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, { ...thread, orderIds: [thread.orderId] });
+      } else {
+        const existing = uniqueMap.get(key)!;
+        if (existing.orderIds && !existing.orderIds.includes(thread.orderId)) {
+          existing.orderIds.push(thread.orderId);
+        }
+        existing.unreadCount = Math.max(existing.unreadCount, thread.unreadCount);
+      }
+    }
+
+    return Array.from(uniqueMap.values());
   }, [buyerOrders, sellerThreads, mode, searchQuery]);
 
   // Fetch store products on buyer side when thread changes
   const activeThread = useMemo(() => {
-    return threads.find(t => t.orderId === selectedOrderId);
+    return threads.find(t => t.orderId === selectedOrderId || t.orderIds?.includes(selectedOrderId || ''));
   }, [selectedOrderId, threads]);
 
   useEffect(() => {
@@ -202,12 +224,16 @@ export default function ChatInterface({
   useEffect(() => {
     if (selectedOrderId) {
       if (mode === "buyer" && setBuyerOrders) {
-        setBuyerOrders(prev => prev.map(o => o.orderId === selectedOrderId ? { ...o, unreadCount: 0 } : o));
+        const targetThread = threads.find(t => t.orderId === selectedOrderId || t.orderIds?.includes(selectedOrderId));
+        const orderIdsToClear = targetThread?.orderIds || [selectedOrderId];
+        setBuyerOrders(prev => prev.map(o => (orderIdsToClear.includes(o.orderId) || (targetThread?.sellerId && o.sellerId === targetThread.sellerId)) ? { ...o, unreadCount: 0 } : o));
       } else if (mode === "seller" && setSellerThreads) {
-        setSellerThreads(prev => prev.map(t => t.orderId === selectedOrderId ? { ...t, unreadCount: 0 } : t));
+        const targetThread = threads.find(t => t.orderId === selectedOrderId || t.orderIds?.includes(selectedOrderId));
+        const orderIdsToClear = targetThread?.orderIds || [selectedOrderId];
+        setSellerThreads(prev => prev.map(t => (orderIdsToClear.includes(t.orderId) || (targetThread?.title && t.buyerName === targetThread.title)) ? { ...t, unreadCount: 0 } : t));
       }
     }
-  }, [selectedOrderId, mode, setBuyerOrders, setSellerThreads]);
+  }, [selectedOrderId, mode, setBuyerOrders, setSellerThreads, threads]);
 
   // 1. Loader Effect for Active Chat
   const loadChatSession = async (orderId: string, skipLoadingState = false) => {
