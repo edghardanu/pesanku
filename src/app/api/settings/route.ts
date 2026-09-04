@@ -8,23 +8,25 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const feeSettings = await db.select().from(settings).where(inArray(settings.key, ["fee_aplikasi", "fee_jasa", "fee_admin", "penalty_percentage"])).all();
+    const feeSettings = await db.select().from(settings).where(inArray(settings.key, ["fee_aplikasi", "fee_jasa", "fee_admin", "penalty_percentage", "ipaymu_sandbox"])).all();
 
     let feeApp = 0;
     let feeJasa = 0;
     let feeAdmin = 0;
     let penaltyPercentage = 0;
+    let ipaymuSandbox = 0;
 
     feeSettings.forEach(f => {
       if (f.key === 'fee_aplikasi') feeApp = parseInt(f.value);
       if (f.key === 'fee_jasa') feeJasa = parseInt(f.value);
       if (f.key === 'fee_admin') feeAdmin = parseInt(f.value);
       if (f.key === 'penalty_percentage') penaltyPercentage = parseInt(f.value);
+      if (f.key === 'ipaymu_sandbox') ipaymuSandbox = parseInt(f.value);
     });
 
-    return NextResponse.json({ fee_aplikasi: feeApp, fee_jasa: feeJasa, fee_admin: feeAdmin, penalty_percentage: penaltyPercentage });
+    return NextResponse.json({ fee_aplikasi: feeApp, fee_jasa: feeJasa, fee_admin: feeAdmin, penalty_percentage: penaltyPercentage, ipaymu_sandbox: ipaymuSandbox });
   } catch (error) {
-    return NextResponse.json({ fee_aplikasi: 0, fee_jasa: 0, fee_admin: 0, penalty_percentage: 0 });
+    return NextResponse.json({ fee_aplikasi: 0, fee_jasa: 0, fee_admin: 0, penalty_percentage: 0, ipaymu_sandbox: 0 });
   }
 }
 
@@ -43,6 +45,7 @@ export async function POST(request: Request) {
     if (body.fee_jasa !== undefined) updates.push({ key: "fee_jasa", value: body.fee_jasa.toString() });
     if (body.fee_admin !== undefined) updates.push({ key: "fee_admin", value: body.fee_admin.toString() });
     if (body.penalty_percentage !== undefined) updates.push({ key: "penalty_percentage", value: body.penalty_percentage.toString() });
+    if (body.ipaymu_sandbox !== undefined) updates.push({ key: "ipaymu_sandbox", value: body.ipaymu_sandbox.toString() });
 
     for (const update of updates) {
       await db.insert(settings).values(update)

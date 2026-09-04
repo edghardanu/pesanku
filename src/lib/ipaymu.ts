@@ -1,6 +1,7 @@
 import crypto from 'crypto';
-
-// ============================================================
+import { db } from '@/lib/db';
+import { settings } from '@/lib/schema';
+import { eq } from 'drizzle-orm';// ============================================================
 //  iPaymu Payment Gateway - Helper Library
 //  Supports both Sandbox and Production environments.
 //  Set the following environment variables:
@@ -13,8 +14,16 @@ import crypto from 'crypto';
 const IPAYMU_BASE_URL_PRODUCTION = 'https://my.ipaymu.com/api/v2';
 const IPAYMU_BASE_URL_SANDBOX = 'https://sandbox.ipaymu.com/api/v2';
 
-function getBaseUrl(): string {
-  const env = process.env.IPAYMU_ENV || 'production';
+async function getBaseUrl(): Promise<string> {
+  let env = process.env.IPAYMU_ENV || 'production';
+  try {
+    const fromDb = await db.select().from(settings).where(eq(settings.key, 'ipaymu_sandbox')).get();
+    if (fromDb && (fromDb.value === '1' || fromDb.value === 'true')) {
+      env = 'sandbox';
+    }
+  } catch (e) {
+    console.error('Error fetching ipaymu_sandbox from db:', e);
+  }
   return env === 'sandbox' ? IPAYMU_BASE_URL_SANDBOX : IPAYMU_BASE_URL_PRODUCTION;
 }
 
@@ -77,7 +86,7 @@ export interface IPaymuCreatePaymentParams {
  * Returns the redirect URL and session ID.
  */
 export async function createRedirectPayment(params: IPaymuCreatePaymentParams): Promise<IPaymuRedirectResponse> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = await getBaseUrl();
   let siteBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   siteBaseUrl = siteBaseUrl.replace(/\/+$/, '');
   const va = getVa();
@@ -140,7 +149,7 @@ export async function createRedirectPayment(params: IPaymuCreatePaymentParams): 
  * Check the status of an existing transaction via iPaymu API.
  */
 export async function checkTransactionStatus(transactionId: string) {
-  const baseUrl = getBaseUrl();
+  const baseUrl = await getBaseUrl();
   const body: Record<string, unknown> = {
     transactionId: transactionId,
   };
@@ -173,7 +182,7 @@ export async function executeDisbursement(params: {
   referenceId: string;
   notes?: string;
 }) {
-  const baseUrl = getBaseUrl();
+  const baseUrl = await getBaseUrl();
   const va = getVa();
 
   // Asumsi: kita menggunakan API yang membutuhkan channel/bank dan destination
