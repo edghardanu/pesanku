@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { orders, payments } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
-import { checkTransactionStatus } from '@/lib/ipaymu';
+import { checkTransactionStatus, fulfillOrderPayment } from '@/lib/ipaymu';
 import crypto from 'crypto';
 
 /**
@@ -58,9 +58,10 @@ export async function POST(req: Request) {
           const rawRealStatus = verifyData.Data.Status ?? verifyData.Data.status ?? verifyData.Data.StatusCode ?? verifyData.Data.statusCode;
           const realStatusNum = Number(rawRealStatus);
           const realStatusStr = String(rawRealStatus || '').toLowerCase();
+          const paidStatusStr = String(verifyData.Data.PaidStatus || verifyData.Data.paidStatus || '').toLowerCase();
 
-          const isClaimedSuccess = expectedStatus === 1 || status === 'berhasil' || status === 'paid' || statusCode === '1';
-          const isRealSuccess = realStatusNum === 1 || realStatusNum === 6 || realStatusStr === '1' || realStatusStr === '6' || realStatusStr === 'berhasil' || realStatusStr === 'paid' || realStatusStr === 'success';
+          const isClaimedSuccess = expectedStatus === 1 || expectedStatus === 6 || expectedStatus === 7 || status === 'berhasil' || status === 'paid' || status === 'escrow' || statusCode === '1' || statusCode === '6' || statusCode === '7';
+          const isRealSuccess = realStatusNum === 1 || realStatusNum === 6 || realStatusNum === 7 || realStatusStr === '1' || realStatusStr === '6' || realStatusStr === '7' || realStatusStr === 'berhasil' || realStatusStr === 'paid' || realStatusStr === 'success' || realStatusStr === 'escrow' || paidStatusStr === 'paid' || paidStatusStr === 'berhasil';
 
           if (isClaimedSuccess && !isRealSuccess) {
             console.error(`[WARNING] Webhook spoofing terdeteksi untuk order: ${referenceId}, real status: ${rawRealStatus}`);
@@ -83,48 +84,12 @@ export async function POST(req: Request) {
     // Cari payment record
     const payment = await db.select().from(payments).where(eq(payments.orderId, referenceId)).get();
 
-    if (status === 'berhasil' || statusCode === '1') {
+    const isSuccessCallback = status === 'berhasil' || status === 'paid' || status === 'escrow' || statusCode === '1' || statusCode === '6' || statusCode === '7';
+
+    if (isSuccessCallback) {
       // ✅ Pembayaran berhasil
-      if (payment) {
-        await db.update(payments).set({
-          verificationStatus: 'approved',
-          proofUrl: `ipaymu:${sid || trxId}:${via}:paid`,
-        }).where(eq(payments.id, payment.id));
-      }
-
-      // Update order status ke verified (pembayaran sudah terkonfirmasi otomatis)
-      if (order.status === 'waiting_verification') {
-        await db.update(orders).set({
-          status: 'verified',
-        }).where(eq(orders.id, referenceId));
-
-        // Tambahkan saldo tertahan untuk penjual
-        try {
-          const { products, sellerBalances } = await import('@/lib/schema');
-          const productObj = await db.select({ sellerId: products.sellerId }).from(products).where(eq(products.id, order.productId)).get();
-          if (productObj) {
-            // Yang ditahan (Escrow) adalah 50% sisanya (adminSplitAmount). 
-            // 50% awalnya (sellerSplitAmount) sudah otomatis masuk rekening penjual oleh iPaymu route!
-            const escrowAmount = order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5);
-            const balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, productObj.sellerId)).get();
-            if (!balanceObj) {
-              await db.insert(sellerBalances).values({
-                id: crypto.randomUUID(),
-                sellerId: productObj.sellerId,
-                availableBalance: 0, // Kita set 0 karena DP sudah masuk bank mereka
-                retainedBalance: escrowAmount,
-              });
-            } else {
-              await db.update(sellerBalances)
-                .set({ retainedBalance: (balanceObj.retainedBalance || 0) + escrowAmount })
-                .where(eq(sellerBalances.id, balanceObj.id));
-            }
-          }
-        } catch (balanceErr) {
-          console.error('[iPaymu Callback] Balance retention error:', balanceErr);
-        }
-      }
-
+      const proofStr = `ipaymu:${sid || trxId}:${via}:paid`;
+      await fulfillOrderPayment(referenceId, proofStr);
       console.error(`[iPaymu Callback] ✅ Payment SUCCESS for order ${referenceId}`);
 
     } else if (status === 'expired' || status === 'gagal') {

@@ -96,6 +96,11 @@ export async function POST(req: Request) {
 
     const finalAmount = order.totalPrice + platformFees;
 
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    const proto = req.headers.get('x-forwarded-proto') || (host?.includes('localhost') ? 'http' : 'https');
+    const origin = req.headers.get('origin');
+    const customBaseUrl = origin || (host ? `${proto}://${host}` : undefined);
+
     // Buat pembayaran Redirect melalui iPaymu
     const result = await createRedirectPayment({
       orderId: orderId,
@@ -107,6 +112,7 @@ export async function POST(req: Request) {
       qty: order.qty,
       sellerVa: sellerVa,
       sellerSplitAmount: sellerSplitAmount,
+      customBaseUrl: customBaseUrl,
     });
 
     // Simpan data pembayaran awal di database (pending)

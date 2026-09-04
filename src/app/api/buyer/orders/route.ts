@@ -112,6 +112,49 @@ export async function GET() {
       }
     }
 
+    // Auto-verify waiting_verification orders via iPaymu check
+    const waitingOrders = userOrders.filter(o => o.status === 'waiting_verification');
+    if (waitingOrders.length > 0) {
+      try {
+        const { checkTransactionStatus, fulfillOrderPayment } = await import('@/lib/ipaymu');
+        for (const wo of waitingOrders) {
+          try {
+            const verifyData = await checkTransactionStatus(wo.orderId);
+            if (verifyData.Status === 200 && verifyData.Data) {
+              const rawStatus = verifyData.Data.Status ?? verifyData.Data.status;
+              const statusNum = Number(rawStatus);
+              const statusStr = String(rawStatus || '').toLowerCase();
+              const paidStatusStr = String(verifyData.Data.PaidStatus || verifyData.Data.paidStatus || '').toLowerCase();
+
+              const isPaid =
+                statusNum === 1 ||
+                statusNum === 6 ||
+                statusNum === 7 ||
+                statusStr === '1' ||
+                statusStr === '6' ||
+                statusStr === '7' ||
+                statusStr === 'berhasil' ||
+                statusStr === 'paid' ||
+                statusStr === 'escrow' ||
+                paidStatusStr === 'paid' ||
+                paidStatusStr === 'berhasil';
+
+              if (isPaid) {
+                const proofStr = `ipaymu:${verifyData.Data.TransactionId || verifyData.Data.SessionId}:${verifyData.Data.PaymentChannel || 'va'}:paid`;
+                await fulfillOrderPayment(wo.orderId, proofStr);
+                wo.status = 'verified';
+                wo.paymentStatus = 'approved';
+              }
+            }
+          } catch (chkErr) {
+            // ignore individual order check error
+          }
+        }
+      } catch (importErr) {
+        // ignore
+      }
+    }
+
     const uniqueOrders = new Map<string, typeof userOrders[0]>();
 
     for (const order of userOrders) {

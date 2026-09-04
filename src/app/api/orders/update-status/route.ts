@@ -237,6 +237,7 @@ export async function PUT(req: Request) {
       if (dispatchReceiptUrl.startsWith('data:image')) {
         // 1. Lakukan OCR via Tesseract.js sebelum di-upload
         try {
+          // @ts-ignore
           const { createWorker } = await import('tesseract.js');
           const worker = await createWorker('ind');
           const ret = await worker.recognize(dispatchReceiptUrl);
@@ -245,7 +246,7 @@ export async function PUT(req: Request) {
           const text = ret.data.text;
           const matches = text.match(/\b([A-Z0-9-]{9,25})\b/g);
           if (matches) {
-            const withNumbers = matches.find(m => /\d/.test(m));
+            const withNumbers = matches.find((m: string) => /\d/.test(m));
             updateFields.trackingNumber = withNumbers || matches[0];
           }
         } catch (err) {
