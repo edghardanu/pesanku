@@ -2147,7 +2147,10 @@ export default function ClientSellerDashboard({
                   <div className="card p-6 border-status-success border-2 shadow-sm rounded-xl">
                     <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Total Saldo Bersih</h3>
                     <p className="text-2xl sm:text-3xl font-bold text-status-success">
-                      Rp {collapsedSellerOrders.filter(o => o.status === 'completed').reduce((acc, curr) => acc + Math.max(0, (curr.totalPrice || 0) - feeAplikasi - feeJasa - feeAdmin), 0).toLocaleString('id-ID')}
+                      Rp {collapsedSellerOrders.filter(o => o.status !== 'waiting_verification' && o.status !== 'cancelled' && o.status !== 'failed' && o.status !== 'chat_only').reduce((acc, curr) => {
+                        const heldByAdmin = curr.status === 'completed' ? 0 : (curr.adminSplitAmount ?? Math.floor((curr.totalPrice || 0) * 0.5));
+                        return acc + Math.max(0, (curr.totalPrice || 0) - heldByAdmin - feeAdmin - feeAplikasi - feeJasa);
+                      }, 0).toLocaleString('id-ID')}
                     </p>
                   </div>
                   <div className="card p-6 border-border border rounded-xl bg-surface/30">
