@@ -55,6 +55,7 @@ export interface OrderItem {
   returnProofUrl?: string | null;
   returnDate?: string | Date | null;
   isRead?: boolean | null;
+  lastMessageAt?: string | Date | null;
 }
 
 export interface UmkmItem {

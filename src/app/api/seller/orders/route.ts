@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders, products, users, payments } from '@/lib/schema';
+import { orders, products, users, payments, chatMessages } from '@/lib/schema';
 import { getUserFromSession } from '@/lib/auth';
 import { and, eq, desc, ne, sql } from 'drizzle-orm';
 
@@ -52,35 +52,20 @@ export async function GET() {
     const waitingOrders = sellerOrders.filter(o => o.status === 'waiting_verification');
     if (waitingOrders.length > 0) {
       try {
-        const { checkTransactionStatus, fulfillOrderPayment } = await import('@/lib/ipaymu');
+        const {
+          checkTransactionStatus,
+          fulfillOrderPayment,
+          getIpaymuPaidProof,
+          getIpaymuTransactionLookupId,
+          isIpaymuTransactionPaid,
+        } = await import('@/lib/ipaymu');
         for (const wo of waitingOrders) {
           try {
-            const verifyData = await checkTransactionStatus(wo.id);
-            if (verifyData.Status === 200 && verifyData.Data) {
-              const rawStatus = verifyData.Data.Status ?? verifyData.Data.status;
-              const statusNum = Number(rawStatus);
-              const statusStr = String(rawStatus || '').toLowerCase();
-              const paidStatusStr = String(verifyData.Data.PaidStatus || verifyData.Data.paidStatus || '').toLowerCase();
-
-              const isPaid =
-                statusNum === 1 ||
-                statusNum === 6 ||
-                statusNum === 7 ||
-                statusStr === '1' ||
-                statusStr === '6' ||
-                statusStr === '7' ||
-                statusStr === 'berhasil' ||
-                statusStr === 'paid' ||
-                statusStr === 'escrow' ||
-                paidStatusStr === 'paid' ||
-                paidStatusStr === 'berhasil';
-
-              if (isPaid) {
-                const channel = verifyData.Data.PaymentChannel || verifyData.Data.Channel || verifyData.Data.Via || verifyData.Data.PaymentMethod || 'va';
-                const proofStr = `ipaymu:${verifyData.Data.TransactionId || verifyData.Data.SessionId}:${channel}:paid`;
-                await fulfillOrderPayment(wo.id, proofStr);
-                wo.status = 'verified';
-              }
+            const lookupId = getIpaymuTransactionLookupId(wo.proofUrl, wo.id);
+            const verifyData = await checkTransactionStatus(lookupId);
+            if (isIpaymuTransactionPaid(verifyData)) {
+              await fulfillOrderPayment(wo.id, getIpaymuPaidProof(verifyData, lookupId));
+              wo.status = 'verified';
             }
           } catch (chkErr) {
             // ignore individual order check error
@@ -91,10 +76,26 @@ export async function GET() {
       }
     }
 
-    const uniqueOrdersMap = new Map<string, typeof sellerOrders[0]>();
+    const lastMessages = await db
+      .select({
+        orderId: chatMessages.orderId,
+        lastAt: sql<number>`max(${chatMessages.createdAt})`.as('lastAt'),
+      })
+      .from(chatMessages)
+      .groupBy(chatMessages.orderId);
+
+    const lastMessageMap: Record<string, Date | null> = lastMessages.reduce((acc, row) => {
+      acc[row.orderId] = row.lastAt ? new Date((row.lastAt as number) * 1000) : null;
+      return acc;
+    }, {} as Record<string, Date | null>);
+
+    const uniqueOrdersMap = new Map<string, any>();
     for (const order of sellerOrders) {
       if (!uniqueOrdersMap.has(order.id)) {
-        uniqueOrdersMap.set(order.id, order);
+        uniqueOrdersMap.set(order.id, {
+          ...order,
+          lastMessageAt: lastMessageMap[order.id] ?? null
+        });
       }
     }
 

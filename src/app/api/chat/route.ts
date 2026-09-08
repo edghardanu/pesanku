@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { chatMessages, orders, products, users } from "@/lib/schema";
-import { and, asc, eq, ne, inArray, not } from "drizzle-orm";
+import { and, asc, eq, ne, inArray, not, isNull } from "drizzle-orm";
 import { getUserFromSession } from "@/lib/auth";
 import crypto from "crypto";
 
@@ -13,6 +13,7 @@ async function getChatOrder(orderId: string) {
       productName: products.name,
       sellerId: products.sellerId,
       status: orders.status,
+      createdAt: orders.createdAt,
     })
     .from(orders)
     .innerJoin(products, eq(orders.productId, products.id))
@@ -39,17 +40,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Get all orders between this buyer and this seller to unify the chat
-    const allBuyerOrders = await db
-      .select({ id: orders.id })
-      .from(orders)
-      .innerJoin(products, eq(orders.productId, products.id))
-      .where(and(
-        eq(orders.buyerId, orderData.buyerId),
-        eq(products.sellerId, orderData.sellerId)
-      ));
-
-    const orderIds = allBuyerOrders.map(o => o.id);
+    // Strict isolation: chat belongs exclusively to this single order
+    const orderIds = [orderId];
 
     // Membuka chat hanya menandai pesan dari lawan bicara sebagai telah dibaca.
     if (user && orderIds.length > 0) {
@@ -102,8 +94,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Strict isolation: chat belongs exclusively to this single order
+    const orderIds = [orderId];
+
     const msgId = `msg_${crypto.randomBytes(8).toString('hex')}`;
 
+    // Insert for all order components inside the grouped checkout so they share it physically
+    // or just insert onto the current order branch (other chat fetches will read from it globally via the same union logic)
     await db.insert(chatMessages).values({
       id: msgId,
       orderId,

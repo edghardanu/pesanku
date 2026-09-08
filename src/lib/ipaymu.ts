@@ -14,6 +14,56 @@ import { eq } from 'drizzle-orm';// ============================================
 const IPAYMU_BASE_URL_PRODUCTION = 'https://my.ipaymu.com/api/v2';
 const IPAYMU_BASE_URL_SANDBOX = 'https://sandbox.ipaymu.com/api/v2';
 
+// ── Cloudflare Worker Proxy ────────────────────────────────────────────────
+// Jika IPAYMU_PROXY_URL di-set, semua request ke iPaymu akan diteruskan melalui
+// Cloudflare Worker proxy untuk menghindari masalah IP whitelist di Vercel free.
+// Contoh: IPAYMU_PROXY_URL=https://ipaymu-proxy.username.workers.dev
+// IPAYMU_PROXY_SECRET harus sama dengan PROXY_SECRET di worker script.
+function getProxyConfig(): { proxyUrl: string | null; proxySecret: string | null } {
+  return {
+    proxyUrl: process.env.IPAYMU_PROXY_URL || null,
+    proxySecret: process.env.IPAYMU_PROXY_SECRET || null,
+  };
+}
+
+/**
+ * Wrapper fetch yang otomatis routing ke Cloudflare Worker proxy jika dikonfigurasi.
+ * Jika tidak, langsung panggil iPaymu.
+ */
+async function ipaymuFetch(
+  endpoint: string,           // e.g. "/payment"
+  body: Record<string, unknown>,
+  headers: Record<string, string>,
+  isSandbox?: boolean
+): Promise<Response> {
+  const { proxyUrl, proxySecret } = getProxyConfig();
+
+  if (proxyUrl && proxySecret) {
+    // ── Via Cloudflare Worker proxy ──────────────────────────────────────
+    const targetUrl = `${proxyUrl}${endpoint}`;
+    const proxyHeaders: Record<string, string> = {
+      ...headers,
+      'x-proxy-secret': proxySecret,
+    };
+    if (isSandbox) {
+      proxyHeaders['x-ipaymu-env'] = 'sandbox';
+    }
+    return fetch(targetUrl, {
+      method: 'POST',
+      headers: proxyHeaders,
+      body: JSON.stringify(body),
+    });
+  }
+
+  // ── Direct call ke iPaymu (tanpa proxy) ─────────────────────────────────
+  const baseUrl = isSandbox ? IPAYMU_BASE_URL_SANDBOX : IPAYMU_BASE_URL_PRODUCTION;
+  return fetch(`${baseUrl}${endpoint}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  });
+}
+
 export interface IpaymuConfig {
   baseUrl: string;
   va: string;
@@ -99,6 +149,7 @@ export interface IPaymuCreatePaymentParams {
  */
 export async function createRedirectPayment(params: IPaymuCreatePaymentParams): Promise<IPaymuRedirectResponse> {
   const { baseUrl, va, apiKey } = await getIpaymuConfig();
+  const isSandbox = baseUrl === IPAYMU_BASE_URL_SANDBOX;
   let siteBaseUrl = params.customBaseUrl || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   siteBaseUrl = siteBaseUrl.replace(/\/+$/, '');
 
@@ -118,30 +169,24 @@ export async function createRedirectPayment(params: IPaymuCreatePaymentParams): 
     expiredType: 'hours'
   };
 
-  // AKTIFKAN split logic agar 50% cair otomatis ke penjual di awal.
-  // 50% sisa akan tertahan (Escrow) di Admin dan cair ketika pesanan Selesai.
   if (params.sellerVa && params.sellerSplitAmount && params.sellerSplitAmount > 0) {
     if (params.sellerSplitAmount > params.amount) {
       throw new Error("Bagian penjual tidak boleh lebih besar dari total pembayaran");
     }
-    body.account = va;                                // VA Utama (Admin)
-    body.route = [params.sellerVa];                   // List VA Sub-Account (Penjual)
-    body.routeValue = [params.sellerSplitAmount];     // Nominal fix yang masuk ke Penjual (Tahap awal / DP 50%)
+    body.account = va;
+    body.route = [params.sellerVa];
+    body.routeValue = [params.sellerSplitAmount];
   }
 
   const { signature, timestamp } = generateSignature(body, va, apiKey);
+  const headers = {
+    'Content-Type': 'application/json',
+    'va': va,
+    'signature': signature,
+    'timestamp': timestamp,
+  };
 
-  const response = await fetch(`${baseUrl}/payment`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'va': va,
-      'signature': signature,
-      'timestamp': timestamp,
-    },
-    body: JSON.stringify(body),
-  });
-
+  const response = await ipaymuFetch('/payment', body, headers, isSandbox);
   const data = await response.json();
 
   if (!response.ok || data.Status !== 200) {
@@ -161,24 +206,122 @@ export async function createRedirectPayment(params: IPaymuCreatePaymentParams): 
  */
 export async function checkTransactionStatus(transactionId: string) {
   const { baseUrl, va, apiKey } = await getIpaymuConfig();
+  const isSandbox = baseUrl === IPAYMU_BASE_URL_SANDBOX;
   const body: Record<string, unknown> = {
     transactionId: transactionId,
   };
 
   const { signature, timestamp } = generateSignature(body, va, apiKey);
+  const headers = {
+    'Content-Type': 'application/json',
+    'va': va,
+    'signature': signature,
+    'timestamp': timestamp,
+  };
 
-  const response = await fetch(`${baseUrl}/transaction`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'va': va,
-      'signature': signature,
-      'timestamp': timestamp,
-    },
-    body: JSON.stringify(body),
-  });
-
+  const response = await ipaymuFetch('/transaction', body, headers, isSandbox);
   return await response.json();
+}
+
+type IpaymuTransactionRecord = Record<string, unknown>;
+
+/**
+ * Respons Check Transaction iPaymu pernah dikembalikan sebagai objek maupun
+ * array. Normalisasi di satu tempat agar semua endpoint membaca transaksi yang
+ * sama dan tidak melewatkan pembayaran yang sudah selesai.
+ */
+export function getIpaymuTransactionRecord(response: unknown): IpaymuTransactionRecord | null {
+  if (!response || typeof response !== 'object') return null;
+
+  const envelope = response as IpaymuTransactionRecord;
+  const rawData = envelope.Data ?? envelope.data;
+  if (Array.isArray(rawData)) {
+    const firstItem = rawData[0];
+    return firstItem && typeof firstItem === 'object'
+      ? firstItem as IpaymuTransactionRecord
+      : null;
+  }
+
+  if (!rawData || typeof rawData !== 'object') return null;
+  const data = rawData as IpaymuTransactionRecord;
+  const nestedTransaction = data.Transaction ?? data.transaction;
+  if (Array.isArray(nestedTransaction)) {
+    const firstItem = nestedTransaction[0];
+    return firstItem && typeof firstItem === 'object'
+      ? firstItem as IpaymuTransactionRecord
+      : null;
+  }
+
+  return data;
+}
+
+export function isIpaymuTransactionPaid(response: unknown): boolean {
+  if (!response || typeof response !== 'object') return false;
+  const envelope = response as IpaymuTransactionRecord;
+  if (Number(envelope.Status ?? envelope.status) !== 200) return false;
+
+  const transaction = getIpaymuTransactionRecord(response);
+  if (!transaction) return false;
+
+  const numericStatuses = [
+    transaction.Status,
+    transaction.status,
+    transaction.StatusCode,
+    transaction.statusCode,
+    transaction.TransactionStatusCode,
+    transaction.transactionStatusCode,
+    transaction.transaction_status_code,
+  ].map(value => Number(value));
+
+  if (numericStatuses.some(value => value === 1 || value === 6 || value === 7)) {
+    return true;
+  }
+
+  const successfulStatuses = new Set([
+    'paid',
+    'berhasil',
+    'success',
+    'sukses',
+    'selesai',
+    'completed',
+    'escrow',
+  ]);
+  const textualStatuses = [
+    transaction.Status,
+    transaction.status,
+    transaction.StatusDesc,
+    transaction.statusDesc,
+    transaction.status_desc,
+    transaction.PaidStatus,
+    transaction.paidStatus,
+  ].map(value => String(value ?? '').trim().toLowerCase());
+
+  return textualStatuses.some(value => successfulStatuses.has(value));
+}
+
+export function getIpaymuTransactionLookupId(proofUrl: string | null | undefined, fallbackId: string): string {
+  if (!proofUrl?.startsWith('ipaymu:')) return fallbackId;
+  return proofUrl.split(':')[1] || fallbackId;
+}
+
+export function getIpaymuPaidProof(response: unknown, fallbackId: string): string {
+  const transaction = getIpaymuTransactionRecord(response);
+  const transactionId = transaction?.TransactionId
+    ?? transaction?.transactionId
+    ?? transaction?.SessionId
+    ?? transaction?.sessionId
+    ?? fallbackId;
+  const channel = transaction?.PaymentChannel
+    ?? transaction?.paymentChannel
+    ?? transaction?.Channel
+    ?? transaction?.channel
+    ?? transaction?.Via
+    ?? transaction?.via
+    ?? transaction?.PaymentMethod
+    ?? transaction?.paymentMethod
+    ?? 'va';
+
+  return `ipaymu:${String(transactionId)}:${String(channel)}:paid`;
 }
 
 /**
@@ -260,6 +403,7 @@ export async function fulfillOrderPayment(orderId: string, proofUrlStr?: string)
     await db.update(payments).set({
       verificationStatus: 'approved',
       proofUrl: proofUrlStr || payment.proofUrl,
+      verifiedAt: new Date(),
     }).where(eq(payments.id, payment.id));
   } else {
     await db.insert(payments).values({
@@ -267,6 +411,7 @@ export async function fulfillOrderPayment(orderId: string, proofUrlStr?: string)
       orderId: orderId,
       proofUrl: proofUrlStr || 'ipaymu:approved',
       verificationStatus: 'approved',
+      verifiedAt: new Date(),
     });
   }
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { ShoppingBag, Store, User, Eye, EyeOff, ArrowLeft, Home, ShoppingCart, FileText } from "lucide-react";
+import { ShoppingBag, Store, User, Eye, EyeOff, ArrowLeft, Home, ShoppingCart, FileText, X, CheckCircle, ShieldCheck, ExternalLink, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { useDarkMode } from '@/hooks';
 import { formatCountdown } from '@/lib/format';
@@ -14,6 +14,8 @@ export default function RegisterPage() {
   const router = useRouter();
   const [role, setRole] = useState<'buyer' | 'seller'>('buyer');
   const [publicStats, setPublicStats] = useState({ totalUmkm: "...", avgRating: "..." });
+  const [agreedTerms, setAgreedTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   useEffect(() => {
     fetch('/api/public-stats').then(r => r.json()).then(data => {
@@ -60,6 +62,19 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (!agreedTerms) {
+      const msg = "Anda wajib mencentang dan menyetujui Syarat & Ketentuan sebelum mendaftar.";
+      setError(msg);
+      Swal.fire({
+        icon: "warning",
+        title: "Persetujuan Diperlukan",
+        text: "Mohon baca dan centang persetujuan Syarat & Ketentuan yang berlaku.",
+        confirmButtonColor: "#800000",
+      });
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -487,8 +502,40 @@ export default function RegisterPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 mb-1 text-[11px] text-text-secondary text-center">
-                      Dengan mendaftar, Anda menyetujui <Link href="/terms" target="_blank" className="text-brand-primary hover:underline font-semibold">Syarat & Ketentuan</Link> Pesanku.
+                    {/* Checkbox Syarat & Ketentuan (Wajib Dicentang) */}
+                    <div className="mt-4 mb-2 p-3.5 bg-surface border border-border rounded-xl transition-all hover:border-brand-primary/40">
+                      <label htmlFor="agree-terms-checkbox" className="flex items-start gap-3 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          id="agree-terms-checkbox"
+                          checked={agreedTerms}
+                          onChange={(e) => {
+                            setAgreedTerms(e.target.checked);
+                            if (error) setError("");
+                          }}
+                          required
+                          className="mt-0.5 w-4 h-4 text-brand-primary border-gray-300 rounded focus:ring-brand-primary cursor-pointer accent-brand-primary flex-shrink-0"
+                        />
+                        <span className="text-xs text-text-secondary leading-relaxed">
+                          Saya telah membaca, memahami, dan menyetujui{" "}
+                          <button
+                            type="button"
+                            onClick={() => setShowTermsModal(true)}
+                            className="text-brand-primary font-semibold hover:underline inline-flex items-center gap-0.5"
+                          >
+                            Syarat & Ketentuan
+                            <ExternalLink className="w-3 h-3 inline" />
+                          </button>{" "}
+                          {role === 'seller' ? (
+                            <span className="text-text-primary font-semibold">
+                              (termasuk alur & mekanisme penyaluran dana Penjual)
+                            </span>
+                          ) : (
+                            ""
+                          )}{" "}
+                          yang berlaku di Pesanku. <span className="text-status-error font-bold">*</span>
+                        </span>
+                      </label>
                     </div>
 
                     <button disabled={loading} type="submit" className="btn-primary w-full mt-2 py-3 text-lg disabled:opacity-50">
@@ -592,6 +639,114 @@ export default function RegisterPage() {
           <span>Masuk</span>
         </Link>
       </nav>
+
+      {/* Modal Syarat & Ketentuan */}
+      {showTermsModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-surface border border-border rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            
+            {/* Header Modal */}
+            <div className="p-5 border-b border-border flex items-center justify-between bg-surface">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-text-primary leading-tight">Syarat & Ketentuan Layanan</h3>
+                  <p className="text-xs text-text-secondary">Pesanku Marketplace Pre-Order</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="p-2 rounded-lg text-text-secondary hover:bg-border/30 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body Modal (Scrollable) */}
+            <div className="p-6 overflow-y-auto space-y-5 text-sm text-text-secondary leading-relaxed">
+              
+              {role === 'seller' && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2">
+                  <h4 className="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                    <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    Alur Dana & Mekanisme Penyaluran Pembayaran Penjual
+                  </h4>
+                  <p className="text-xs text-amber-900/90 dark:text-amber-200/90 leading-relaxed">
+                    Setiap transaksi menggunakan sistem rekening penampungan (Escrow). Dana diterima via sistem pembayaran otomatis, ditahan sementara selama proses produksi/pengiriman, dan disalurkan ke rekening bank Penjual (maksimal 1x24 jam kerja) setelah pesanan berstatus <strong>Selesai</strong>.
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <h5 className="font-semibold text-text-primary mb-1">1. Ketentuan Akun Pengguna</h5>
+                  <p className="text-xs">
+                    Pengguna wajib memberikan data valid (Nama, WhatsApp, Email, dan informasi rekening bank pencairan). Pengguna bertanggung jawab penuh atas kerahasiaan kata sandi akun.
+                  </p>
+                </div>
+
+                <div>
+                  <h5 className="font-semibold text-text-primary mb-1">2. Ketentuan Pemesanan (Pre-Order) & Pembayaran</h5>
+                  <p className="text-xs">
+                    Pembayaran sah diverifikasi tersistem oleh layanan pembayaran resmi mitra Pesanku. Pembeli wajib memenuhi kuota minimum (jika ada) dan harga yang disepakati bersifat mengikat.
+                  </p>
+                </div>
+
+                <div>
+                  <h5 className="font-semibold text-text-primary mb-1">3. Alur Dana & Penyaluran Hasil Penjualan Penjual</h5>
+                  <ul className="list-disc pl-4 text-xs space-y-1">
+                    <li><strong>Penampungan (Escrow):</strong> Dana dari Pembeli ditampung sementara di rekening penampungan sistem Pesanku demi keamanan.</li>
+                    <li><strong>Verifikasi:</strong> Dana ditahan sementara selama barang diproduksi dan dikirimkan oleh Penjual.</li>
+                    <li><strong>Penyaluran (Pencairan):</strong> Setelah pesanan dikonfirmasi selesai, dana diteruskan ke rekening bank Penjual maksimal 1x24 jam kerja.</li>
+                    <li><strong>Data Rekening:</strong> Penjual bertanggung jawab memastikan data nomor dan nama rekening bank valid.</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h5 className="font-semibold text-text-primary mb-1">4. Pembatalan & Refund</h5>
+                  <p className="text-xs">
+                    Jika pesanan dibatalkan oleh Penjual karena kuota tidak terpenuhi atau hal khusus, dana Pembeli akan dikembalikan penuh (100%).
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 text-xs">
+                Untuk rincian selengkapnya, Anda dapat melihat di{" "}
+                <Link href="/terms" target="_blank" className="text-brand-primary font-semibold hover:underline inline-flex items-center gap-1">
+                  Halaman Syarat & Ketentuan Lengkap <ExternalLink className="w-3 h-3" />
+                </Link>.
+              </div>
+            </div>
+
+            {/* Footer Modal */}
+            <div className="p-4 border-t border-border bg-surface flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="px-4 py-2 text-sm text-text-secondary hover:bg-border/30 rounded-xl transition-colors"
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAgreedTerms(true);
+                  setShowTermsModal(false);
+                  if (error) setError("");
+                }}
+                className="px-5 py-2 text-sm bg-brand-primary hover:bg-brand-primary-hover text-white font-semibold rounded-xl transition-colors shadow-md flex items-center gap-1.5"
+              >
+                <CheckCircle className="w-4 h-4" />
+                Saya Mengerti & Setujui
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -124,9 +124,15 @@ export function useSellerDashboard({
           const data = await ordersRes.json();
           if (data.orders) {
             setSellerOrders(prev => {
-              const hasChange = data.orders.some((newOrder: { id: string; status: string | null }) => {
+              const hasChange = data.orders.some((newOrder: { id: string; status: string | null; lastMessageAt?: string | Date | null }) => {
                 const existing = prev.find(o => o.id === newOrder.id);
-                return !existing || existing.status !== newOrder.status;
+                if (!existing) return true;
+                if (existing.status !== newOrder.status) return true;
+                // Also update if lastMessageAt changed (new chat message)
+                const existingTime = existing.lastMessageAt ? new Date(existing.lastMessageAt as string).getTime() : 0;
+                const newTime = newOrder.lastMessageAt ? new Date(newOrder.lastMessageAt as string).getTime() : 0;
+                if (existingTime !== newTime) return true;
+                return false;
               });
               return hasChange ? data.orders : prev;
             });
@@ -252,13 +258,18 @@ export function useSellerDashboard({
   const totalNotifs = notifications.newOrders.length + notifications.unreadChats.length;
 
   // ── Filtered orders (search) ───────────────────────────
-  const filteredSellerOrders = searchQueryPesanan.trim()
+  const filteredSellerOrders = (searchQueryPesanan.trim()
     ? sellerOrders.filter(o =>
         o.id.toLowerCase().includes(searchQueryPesanan.toLowerCase()) ||
         (o.buyerName || '').toLowerCase().includes(searchQueryPesanan.toLowerCase()) ||
         (o.productName || '').toLowerCase().includes(searchQueryPesanan.toLowerCase()),
       )
-    : sellerOrders;
+    : sellerOrders
+  ).slice().sort((a, b) => {
+    const tA = a.lastMessageAt ? new Date(a.lastMessageAt as string).getTime() : (a.createdAt ? new Date(a.createdAt as string).getTime() : 0);
+    const tB = b.lastMessageAt ? new Date(b.lastMessageAt as string).getTime() : (b.createdAt ? new Date(b.createdAt as string).getTime() : 0);
+    return tB - tA;
+  });
 
   return {
     // Dark mode

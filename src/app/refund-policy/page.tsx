@@ -43,7 +43,7 @@ export default function RefundPolicyPage() {
             </p>
             <ol className="list-decimal pl-6 mb-4 space-y-2">
               <li>Sistem akan secara otomatis membatalkan pesanan Anda.</li>
-              <li>Dana akan diproses oleh layanan Payment Gateway terkait yang digunakan.</li>
+              <li>Dana akan diproses oleh layanan sistem pembayaran terkait yang digunakan.</li>
               <li>Estimasi proses Refund biasanya memakan waktu antara <strong>3 hingga 14 hari kerja</strong>, bergantung pada metode pembayaran awal yang Anda gunakan (Kartu Kredit/Debet, e-Wallet, atau Bank Transfer).</li>
             </ol>
 

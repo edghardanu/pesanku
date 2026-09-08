@@ -55,6 +55,7 @@ export default async function BuyerOrdersPage({
         processingTime: products.processingTime,
         paymentId: payments.id,
         paymentStatus: payments.verificationStatus,
+        paymentProofUrl: payments.proofUrl,
         deliveryProofUrl: orders.deliveryProofUrl,
         dispatchReceiptUrl: orders.dispatchReceiptUrl,
         cancelReason: orders.cancelReason,

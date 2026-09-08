@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
-import { formatChatTimeWIB } from "@/lib/promotionFormatting";
+import { formatChatTimeWIB, formatShortDateTimeWIB } from "@/lib/promotionFormatting";
 import { AuthUser, BuyerOrderViewItem, ChatMessage, ProductItem } from "@/types";
 import StoreProductsGrid from "@/components/StoreProductsGrid";
 
@@ -25,6 +25,7 @@ interface ChatThread {
   productId?: string;
   sellerId?: string;
   status?: string | null;
+  chatCreatedAt?: string | Date | null;
 }
 
 interface ChatInterfaceProps {
@@ -105,23 +106,26 @@ export default function ChatInterface({
       result = buyerOrders.map(o => ({
         orderId: o.orderId,
         title: o.storeName || 'Toko UMKM',
-        subtitle: o.productName,
+        subtitle: `${o.productName}${o.createdAt ? ` • ${formatShortDateTimeWIB(o.createdAt)}` : ''}`,
         avatarInitial: o.storeName ? o.storeName.charAt(0).toUpperCase() : 'RT',
         unreadCount: o.unreadCount || 0,
         lastMessageAt: o.lastMessageAt || o.createdAt,
         productId: o.productId,
         sellerId: o.sellerId,
-        status: o.status
+        status: o.status,
+        chatCreatedAt: o.createdAt
       }));
     } else {
       result = sellerThreads.map(t => ({
         orderId: t.orderId,
         title: t.buyerName || 'Pembeli',
-        subtitle: t.productName,
+        subtitle: `${t.productName}${t.createdAt ? ` • ${formatShortDateTimeWIB(t.createdAt)}` : ''}`,
         avatarInitial: (t.buyerName || 'P').charAt(0).toUpperCase(),
         unreadCount: t.unreadCount || 0,
         lastMessageAt: t.latestMessageAt || t.createdAt,
         lastMessage: t.latestMessage,
+        status: t.status,
+        chatCreatedAt: t.createdAt
       }));
     }
 
@@ -142,13 +146,13 @@ export default function ChatInterface({
       return tB - tA;
     });
 
-    // Deduplicate threads: Hanya 1 chat room per lawan bicara (Toko/Penjual atau Pembeli)
     const uniqueMap = new Map<string, ChatThread>();
 
     for (const thread of result) {
-      const key = mode === "buyer"
-        ? (thread.sellerId ? `seller_${thread.sellerId}` : `title_${thread.title.toLowerCase()}`)
-        : `buyer_${thread.title.toLowerCase()}`;
+      const timeStr = thread.chatCreatedAt ? new Date(thread.chatCreatedAt).toISOString() : '';
+      const statusStr = thread.status || '';
+      
+      const key = `thread_${thread.orderId}`;
 
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, { ...thread, orderIds: [thread.orderId] });

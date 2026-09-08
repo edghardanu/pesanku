@@ -89,20 +89,27 @@ export default function ClientBuyerOrders({
     reader.readAsDataURL(file);
   };
 
-  const filteredLocalOrders = localOrders.filter(o => {
-    if (cancelledExpiredOrderIds.includes(o.orderId)) return false;
-    if (activeTab === 'tracking' && o.status === 'cancelled') return false;
+  const filteredLocalOrders = localOrders
+    .filter(o => {
+      if (cancelledExpiredOrderIds.includes(o.orderId)) return false;
+      if (activeTab === 'tracking' && o.status === 'cancelled') return false;
 
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const matchStore = o.storeName?.toLowerCase().includes(q) || false;
-      const matchProduct = o.productName?.toLowerCase().includes(q) || false;
-      const matchId = o.orderId.toLowerCase().includes(q) || false;
-      if (!matchStore && !matchProduct && !matchId) return false;
-    }
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matchStore = o.storeName?.toLowerCase().includes(q) || false;
+        const matchProduct = o.productName?.toLowerCase().includes(q) || false;
+        const matchId = o.orderId.toLowerCase().includes(q) || false;
+        if (!matchStore && !matchProduct && !matchId) return false;
+      }
 
-    return true;
-  });
+      return true;
+    })
+    .sort((a, b) => {
+      // Urutkan by lastMessageAt (waktu chat terbaru), fallback ke createdAt
+      const tA = a.lastMessageAt ? new Date(a.lastMessageAt as string).getTime() : (a.createdAt ? new Date(a.createdAt as string).getTime() : 0);
+      const tB = b.lastMessageAt ? new Date(b.lastMessageAt as string).getTime() : (b.createdAt ? new Date(b.createdAt as string).getTime() : 0);
+      return tB - tA;
+    });
 
   // Untuk tab chats, pisahkan chat_only dan order biasa yg ada pesan baru dari seller
   const chatOnlyOrders = filteredLocalOrders.filter(o => o.status === 'chat_only');
@@ -1182,45 +1189,8 @@ export default function ClientBuyerOrders({
                     </div>
                   </div>
                   <div className="flex-1 overflow-y-auto">
-                    {(() => {
-                      const getStatusPriority = (status: string | null) => {
-                        if (!status) return 0;
-                        if (status === 'completed') return 6;
-                        if (status === 'processing') return 5;
-                        if (status === 'verified') return 4;
-                        if (status === 'preorder_running') return 4;
-                        if (status === 'waiting_verification') return 3;
-                        if (status === 'chat_only') return 2;
-                        return 1;
-                      };
+                    {filteredLocalOrders.map((order) => (
 
-                      const productOrderMap = new Map<string, typeof filteredLocalOrders[0]>();
-
-                      for (const order of filteredLocalOrders) {
-                        const key: string = order.productId || order.orderId || '';
-                        if (!key) continue;
-                        const existing = productOrderMap.get(key);
-
-                        if (!existing) {
-                          productOrderMap.set(key, order);
-                        } else {
-                          const existingPriority = getStatusPriority(existing.status);
-                          const currentPriority = getStatusPriority(order.status);
-
-                          if (currentPriority > existingPriority) {
-                            productOrderMap.set(key, order);
-                          } else if (currentPriority === existingPriority) {
-                            const existingTime = existing.createdAt ? new Date(existing.createdAt).getTime() : 0;
-                            const currentTime = order.createdAt ? new Date(order.createdAt).getTime() : 0;
-                            if (currentTime >= existingTime) {
-                              productOrderMap.set(key, order);
-                            }
-                          }
-                        }
-                      }
-
-                      return Array.from(productOrderMap.values());
-                    })().map((order) => (
                       <div
                         key={order.orderId}
                         onClick={() => setSelectedOrderId(order.orderId)}
@@ -1238,29 +1208,57 @@ export default function ClientBuyerOrders({
                           <div className="text-[12px] font-medium text-gray-700 truncate mb-1 pr-2">{order.productName}</div>
 
                           {/* Status Badge */}
-                          <div className="flex items-center justify-between mt-2">
-                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${(order.status === 'cancelled' || order.status === 'failed') ? 'bg-red-100 text-red-700'
-                              : order.status === 'completed' ? 'bg-green-100 text-green-700'
-                                : order.status === 'waiting_verification' ? 'bg-yellow-100 text-yellow-800'
-                                  : order.status === 'chat_only' && order.negotiationStatus === 'approved' ? 'bg-emerald-100 text-emerald-700'
-                                    : order.status === 'chat_only' && order.negotiationStatus === 'rejected' ? 'bg-red-100 text-red-700'
-                                      : order.status === 'chat_only' ? 'bg-sky-100 text-sky-700'
-                                        : 'bg-indigo-100 text-indigo-700'
-                              }`}>
-                              {order.status === 'cancelled' ? 'Batal'
-                                : order.status === 'failed' ? 'Batal'
-                                  : order.status === 'completed' ? 'Selesai'
-                                    : order.status === 'waiting_verification' ? 'Menunggu Pembayaran'
-                                      : order.status === 'verified' ? 'Diproses'
-                                        : order.status === 'preorder_running' ? 'Diproses'
-                                          : order.status === 'processing' ? 'Dikirim'
-                                            : order.status === 'chat_only' && order.negotiationStatus === 'approved' ? 'Disetujui'
-                                              : order.status === 'chat_only' && order.negotiationStatus === 'rejected' ? 'Ditolak'
-                                                : order.status === 'chat_only' ? 'Penawaran'
-                                                  : 'Diproses'}
-                            </span>
-                            {(order.unreadCount || 0) > 0 ? <span className="w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">{(order.unreadCount || 0)}</span> : null}
-                          </div>
+                          {(() => {
+                            // Referensi iPaymu sudah ada sejak pembayaran masih pending.
+                            // Status "Lunas" hanya boleh mengikuti hasil verifikasi pembayaran.
+                            const isPaid = order.paymentStatus === 'approved'
+                              || ['verified', 'processing', 'completed', 'preorder_running'].includes(order.status || '');
+
+                            let badgeClass = '';
+                            let badgeLabel = '';
+
+                            if (order.status === 'cancelled' || order.status === 'failed') {
+                              badgeClass = 'bg-red-100 text-red-700';
+                              badgeLabel = 'Batal';
+                            } else if (order.status === 'completed') {
+                              badgeClass = 'bg-green-100 text-green-700';
+                              badgeLabel = 'Selesai';
+                            } else if (order.status === 'verified' || (order.status === 'waiting_verification' && isPaid)) {
+                              // "verified" adalah tahap tepat setelah pembayaran disetujui sistem.
+                              badgeClass = 'bg-emerald-100 text-emerald-700';
+                              badgeLabel = '✓ Lunas';
+                            } else if (order.status === 'waiting_verification') {
+                              badgeClass = 'bg-yellow-100 text-yellow-800';
+                              badgeLabel = 'Menunggu Pembayaran';
+                            } else if (order.status === 'preorder_running') {
+                              badgeClass = 'bg-indigo-100 text-indigo-700';
+                              badgeLabel = 'Diproses';
+                            } else if (order.status === 'processing') {
+                              badgeClass = 'bg-indigo-100 text-indigo-700';
+                              badgeLabel = 'Dikirim';
+                            } else if (order.status === 'chat_only' && order.negotiationStatus === 'approved') {
+                              badgeClass = 'bg-emerald-100 text-emerald-700';
+                              badgeLabel = 'Disetujui';
+                            } else if (order.status === 'chat_only' && order.negotiationStatus === 'rejected') {
+                              badgeClass = 'bg-red-100 text-red-700';
+                              badgeLabel = 'Ditolak';
+                            } else if (order.status === 'chat_only') {
+                              badgeClass = 'bg-sky-100 text-sky-700';
+                              badgeLabel = 'Penawaran';
+                            } else {
+                              badgeClass = 'bg-indigo-100 text-indigo-700';
+                              badgeLabel = 'Diproses';
+                            }
+
+                            return (
+                              <div className="flex items-center justify-between mt-2">
+                                <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${badgeClass}`}>
+                                  {badgeLabel}
+                                </span>
+                                {(order.unreadCount || 0) > 0 ? <span className="w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">{(order.unreadCount || 0)}</span> : null}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     ))}

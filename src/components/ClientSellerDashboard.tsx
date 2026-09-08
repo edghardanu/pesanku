@@ -1308,63 +1308,14 @@ export default function ClientSellerDashboard({
   );
 
   const collapsedSellerOrders = (() => {
-    const statusPriority = (s: string | null) => {
-      switch (s) {
-        case 'completed': return 6;
-        case 'processing': return 5;
-        case 'shipped': return 5;
-        case 'verified':
-        case 'preorder_running': return 4;
-        case 'waiting_verification': return 3;
-        case 'chat_only': return 2;
-        case 'cancelled':
-        case 'failed':
-        case 'returned': return 1;
-        default: return 0;
-      }
-    };
-
-    const grouped = new Map<string, OrderItem[]>();
-    for (const order of sellerOrders) {
-      const key = `${order.productId || ''}-${order.buyerId || order.buyerName || ''}`;
-      if (!grouped.has(key)) {
-        grouped.set(key, []);
-      }
-      grouped.get(key)!.push(order);
-    }
-
-    const result: OrderItem[] = [];
-    for (const ordersList of grouped.values()) {
-      if (ordersList.length === 1) {
-        result.push(ordersList[0]);
-      } else {
-        ordersList.sort((a, b) => {
-          const pA = statusPriority(a.status);
-          const pB = statusPriority(b.status);
-          if (pA !== pB) return pB - pA;
-
-          const aIsOrd = (a.id || '').startsWith('ORD-') ? 1 : 0;
-          const bIsOrd = (b.id || '').startsWith('ORD-') ? 1 : 0;
-          if (aIsOrd !== bIsOrd) return bIsOrd - aIsOrd;
-
-          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return timeB - timeA;
-        });
-
-        result.push(ordersList[0]);
-      }
-    }
-
-    // Sort by createdAt descending for display
-    result.sort((a, b) => {
-      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    // Tampilkan semua pesanan sebagai entri terpisah, diurutkan berdasarkan waktu terbaru (chat terbaru jika ada)
+    return [...sellerOrders].sort((a, b) => {
+      const timeA = (a as any).lastMessageAt ? new Date((a as any).lastMessageAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const timeB = (b as any).lastMessageAt ? new Date((b as any).lastMessageAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
       return timeB - timeA;
     });
-
-    return result;
   })();
+
 
   const filteredSellerOrders = collapsedSellerOrders.filter((order) => {
     if (!searchQueryPesanan) return true;
@@ -1946,7 +1897,7 @@ export default function ClientSellerDashboard({
                                             </div>
                                             <div>
                                               <label class="text-caption text-text-secondary mb-1 block">Minimal Order</label>
-                                              <input id="swal-edit-minorder" type="hidden" value="1">
+                                              <input id="swal-edit-minorder" type="number" min="1" step="1" class="input-field w-full text-text-primary bg-base border border-border rounded-md px-3 py-2 focus:border-brand-primary focus:outline-none" value="${product.minOrderQty ?? 1}" placeholder="Contoh: 1">
                                             </div>
                                             <div>
                                               <label class="text-caption text-text-secondary mb-1 block">Waktu Proses Pemesanan</label>

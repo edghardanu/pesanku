@@ -28,6 +28,8 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
     const isVerified = order.status === 'verified';
     const isWaitingPayment = order.status === 'waiting_verification';
     const isChatOnly = order.status === 'chat_only';
+    const isPaymentApproved = order.paymentStatus === 'approved'
+        || ['verified', 'preorder_running', 'processing', 'completed'].includes(order.status || '');
     const isDirectCheckout = typeof order.orderId === 'string' && order.orderId.startsWith('ORD-');
 
     const [inputText, setInputText] = useState("");
@@ -117,10 +119,10 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
                             <div className={`px-4 py-1.5 border-r border-gray-200 ${isChatOnly ? 'bg-brand-primary text-white' : (isWaitingPayment || isVerified || isPreorderRunning || isProcessing || isCompleted) ? 'bg-white text-brand-primary' : 'text-gray-400'}`}>
                                 Penawaran
                             </div>
-                            <div className={`px-4 py-1.5 border-r border-gray-200 ${isWaitingPayment ? 'bg-brand-primary text-white' : (isVerified || isPreorderRunning || isProcessing || isCompleted) ? 'bg-white text-brand-primary' : 'text-gray-400'}`}>
-                                Menunggu Pembayaran
+                            <div className={`px-4 py-1.5 border-r border-gray-200 ${(isWaitingPayment || isVerified) ? 'bg-brand-primary text-white' : (isPreorderRunning || isProcessing || isCompleted) ? 'bg-white text-brand-primary' : 'text-gray-400'}`}>
+                                {isPaymentApproved ? 'Lunas' : 'Menunggu Pembayaran'}
                             </div>
-                            <div className={`px-4 py-1.5 border-r border-gray-200 ${(isVerified || isPreorderRunning) ? 'bg-brand-primary text-white' : (isProcessing || isCompleted) ? 'bg-white text-brand-primary' : 'text-gray-400'}`}>
+                            <div className={`px-4 py-1.5 border-r border-gray-200 ${isPreorderRunning ? 'bg-brand-primary text-white' : (isProcessing || isCompleted) ? 'bg-white text-brand-primary' : 'text-gray-400'}`}>
                                 Diproses
                             </div>
                             <div className={`px-4 py-1.5 border-r border-gray-200 ${isProcessing ? 'bg-indigo-500 text-white' : isCompleted ? 'bg-white text-indigo-500' : 'text-gray-400'}`}>
@@ -206,10 +208,9 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
                         <div>
                             <label className="text-[12px] font-bold text-gray-800 block mb-2">Pembayaran</label>
                             {(() => {
-                                const isOrderPaid = ['verified', 'processing', 'completed', 'preorder_running'].includes(order.status || '');
                                 const proofUrl = order.paymentProofUrl;
 
-                                if (order.status === 'chat_only' || (!isOrderPaid && !proofUrl)) {
+                                if (order.status === 'chat_only' || !isPaymentApproved) {
                                     return (
                                         <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                                             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>

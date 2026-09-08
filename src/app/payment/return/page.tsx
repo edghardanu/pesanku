@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, XCircle, Loader2, ArrowLeft, ShoppingBag } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, ArrowLeft, ShoppingBag, Clock3 } from "lucide-react";
 
 function PaymentReturnContent() {
   const searchParams = useSearchParams();
@@ -46,9 +46,8 @@ function PaymentReturnContent() {
 
       attempts++;
       if (attempts >= maxAttempts) {
-        // If callback hasn't arrived after 60s, show success tentatively 
-        // (callback may still arrive later)
-        setPaymentStatus("success");
+        // Jangan menyatakan berhasil sebelum status pembayaran disetujui sistem.
+        setPaymentStatus("pending");
         setChecking(false);
         return;
       }
@@ -102,6 +101,22 @@ function PaymentReturnContent() {
                 <ArrowLeft className="w-4 h-4" /> Kembali ke Beranda
               </Link>
             </div>
+          </>
+        ) : paymentStatus === "pending" ? (
+          <>
+            <div className="w-20 h-20 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-6">
+              <Clock3 className="w-10 h-10 text-amber-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-text-primary mb-2">Pembayaran Belum Terkonfirmasi</h2>
+            <p className="text-text-secondary text-sm mb-8">
+              Status pembayaran pesanan <span className="font-semibold text-text-primary">{orderId}</span> masih diproses. Status akan berubah menjadi Lunas setelah dikonfirmasi sistem pembayaran.
+            </p>
+            <Link
+              href="/buyer/orders"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-brand-primary text-white font-semibold rounded-xl hover:bg-brand-primary-hover transition-colors"
+            >
+              <ShoppingBag className="w-4 h-4" /> Lihat Status Pesanan
+            </Link>
           </>
         ) : paymentStatus === "cancelled" ? (
           <>

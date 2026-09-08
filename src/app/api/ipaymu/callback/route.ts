@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { orders, payments } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
-import { checkTransactionStatus, fulfillOrderPayment } from '@/lib/ipaymu';
-import crypto from 'crypto';
+import {
+  checkTransactionStatus,
+  fulfillOrderPayment,
+  getIpaymuTransactionRecord,
+  isIpaymuTransactionPaid,
+} from '@/lib/ipaymu';
 
 /**
  * iPaymu Callback / Notify URL
@@ -53,15 +57,18 @@ export async function POST(req: Request) {
         const verifyData = await checkTransactionStatus(trxId.toString());
 
         // Memastikan request sukses (Status=200) dari API pengecekan
-        if (verifyData.Status === 200 && verifyData.Data) {
+        const verifiedTransaction = getIpaymuTransactionRecord(verifyData);
+        if (Number(verifyData.Status ?? verifyData.status) === 200 && verifiedTransaction) {
           const expectedStatus = parseInt(statusCode, 10);
-          const rawRealStatus = verifyData.Data.Status ?? verifyData.Data.status ?? verifyData.Data.StatusCode ?? verifyData.Data.statusCode;
-          const realStatusNum = Number(rawRealStatus);
-          const realStatusStr = String(rawRealStatus || '').toLowerCase();
-          const paidStatusStr = String(verifyData.Data.PaidStatus || verifyData.Data.paidStatus || '').toLowerCase();
+          const rawRealStatus = verifiedTransaction.Status
+            ?? verifiedTransaction.status
+            ?? verifiedTransaction.StatusCode
+            ?? verifiedTransaction.statusCode
+            ?? verifiedTransaction.TransactionStatusCode
+            ?? verifiedTransaction.transactionStatusCode;
 
           const isClaimedSuccess = expectedStatus === 1 || expectedStatus === 6 || expectedStatus === 7 || status === 'berhasil' || status === 'paid' || status === 'escrow' || statusCode === '1' || statusCode === '6' || statusCode === '7';
-          const isRealSuccess = realStatusNum === 1 || realStatusNum === 6 || realStatusNum === 7 || realStatusStr === '1' || realStatusStr === '6' || realStatusStr === '7' || realStatusStr === 'berhasil' || realStatusStr === 'paid' || realStatusStr === 'success' || realStatusStr === 'escrow' || paidStatusStr === 'paid' || paidStatusStr === 'berhasil';
+          const isRealSuccess = isIpaymuTransactionPaid(verifyData);
 
           if (isClaimedSuccess && !isRealSuccess) {
             console.error(`[WARNING] Webhook spoofing terdeteksi untuk order: ${referenceId}, real status: ${rawRealStatus}`);
