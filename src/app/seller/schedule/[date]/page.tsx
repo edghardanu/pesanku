@@ -29,7 +29,7 @@ const formatLongDate = (dateKey: string) => {
   });
 };
 
-export default async function ScheduleDetailPage({ params }: { params: Promise<{ date: string }> | { date: string } }) {
+export default async function ScheduleDetailPage({ params }: { params: Promise<{ date: string }> }) {
   const user = await getUserFromSession();
   if (!user || user.role !== 'penjual') {
     redirect('/login');

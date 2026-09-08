@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 import { ProductItem } from "@/types";
 
-export default async function CategoryPage({ params }: { params: { slug: string } }) {
+export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug).replace(/-/g, ' '); // E.g., 'Makanan Berat'
   
