@@ -160,14 +160,18 @@ export async function createRedirectPayment(params: IPaymuCreatePaymentParams): 
     description: [`Pembayaran Pesanku - ${params.orderId}`],
     returnUrl: `${siteBaseUrl}/payment/return?order_id=${params.orderId}`,
     notifyUrl: `${siteBaseUrl}/api/ipaymu/callback`,
-    cancelUrl: `${siteBaseUrl}/payment/return?order_id=${params.orderId}&status=cancel`,
+    cancelUrl: `${siteBaseUrl}/buyer/orders`,
     referenceId: params.orderId,
     buyerName: params.buyerName,
     buyerEmail: params.buyerEmail,
     buyerPhone: params.buyerPhone || '08000000000',
-    expired: 24,
+    expired: process.env.IPAYMU_EXPIRED_HOURS ? parseInt(process.env.IPAYMU_EXPIRED_HOURS, 10) : 24,
     expiredType: 'hours'
   };
+
+  if (process.env.IPAYMU_TIMEOUT) {
+    body.timeout = parseInt(process.env.IPAYMU_TIMEOUT, 10);
+  }
 
   if (params.sellerVa && params.sellerSplitAmount && params.sellerSplitAmount > 0) {
     if (params.sellerSplitAmount > params.amount) {

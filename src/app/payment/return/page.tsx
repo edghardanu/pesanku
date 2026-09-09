@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, XCircle, Loader2, ArrowLeft, ShoppingBag, Clock3 } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, ArrowLeft, Clock3, Receipt, ShoppingBag } from "lucide-react";
 
 function PaymentReturnContent() {
   const searchParams = useSearchParams();
@@ -81,24 +81,25 @@ function PaymentReturnContent() {
               <CheckCircle2 className="w-10 h-10 text-emerald-500" />
             </div>
             <h2 className="text-2xl font-bold text-text-primary mb-2">Pembayaran Berhasil!</h2>
+            <div className="w-full bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-2 text-text-secondary justify-center">
+                <Receipt className="w-4 h-4" />
+                <span className="text-xs uppercase tracking-wider font-semibold">Nomor Referensi (Invoice)</span>
+              </div>
+              <p className="text-lg font-mono font-bold text-text-primary break-all">{orderId}</p>
+            </div>
             <p className="text-text-secondary text-sm mb-2">
-              Pembayaran Anda untuk pesanan <span className="font-semibold text-text-primary">{orderId}</span> telah berhasil diproses.
+              Pembayaran Anda telah berhasil diproses.
             </p>
             <p className="text-text-secondary text-xs mb-8">
               Pesanan Anda akan segera diverifikasi oleh penjual.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <div className="flex w-full">
               <Link
                 href="/buyer/orders"
-                className="flex-1 flex items-center justify-center gap-2 py-3 bg-brand-primary text-white font-semibold rounded-xl hover:bg-brand-primary-hover transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-brand-primary text-white font-semibold rounded-xl hover:bg-brand-primary-hover transition-colors"
               >
-                <ShoppingBag className="w-4 h-4" /> Lihat Pesanan Saya
-              </Link>
-              <Link
-                href="/"
-                className="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-100 dark:bg-gray-800 text-text-primary font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" /> Kembali ke Beranda
+                <ShoppingBag className="w-4 h-4" /> Kembali ke Pesanan
               </Link>
             </div>
           </>
@@ -108,15 +109,24 @@ function PaymentReturnContent() {
               <Clock3 className="w-10 h-10 text-amber-500" />
             </div>
             <h2 className="text-2xl font-bold text-text-primary mb-2">Pembayaran Belum Terkonfirmasi</h2>
+            <div className="w-full bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-2 text-text-secondary justify-center">
+                <Receipt className="w-4 h-4" />
+                <span className="text-xs uppercase tracking-wider font-semibold">Nomor Referensi (Invoice)</span>
+              </div>
+              <p className="text-lg font-mono font-bold text-text-primary break-all">{orderId}</p>
+            </div>
             <p className="text-text-secondary text-sm mb-8">
-              Status pembayaran pesanan <span className="font-semibold text-text-primary">{orderId}</span> masih diproses. Status akan berubah menjadi Lunas setelah dikonfirmasi sistem pembayaran.
+              Status pembayaran pesanan Anda masih diproses. Status akan berubah menjadi Lunas setelah dikonfirmasi sistem pembayaran.
             </p>
-            <Link
-              href="/buyer/orders"
-              className="w-full flex items-center justify-center gap-2 py-3 bg-brand-primary text-white font-semibold rounded-xl hover:bg-brand-primary-hover transition-colors"
-            >
-              <ShoppingBag className="w-4 h-4" /> Lihat Status Pesanan
-            </Link>
+            <div className="flex w-full">
+              <Link
+                href="/buyer/orders"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-brand-primary text-white font-semibold rounded-xl hover:bg-brand-primary-hover transition-colors"
+              >
+                <ShoppingBag className="w-4 h-4" /> Kembali ke Pesanan
+              </Link>
+            </div>
           </>
         ) : paymentStatus === "cancelled" ? (
           <>
@@ -124,13 +134,20 @@ function PaymentReturnContent() {
               <XCircle className="w-10 h-10 text-amber-500" />
             </div>
             <h2 className="text-2xl font-bold text-text-primary mb-2">Pembayaran Dibatalkan</h2>
+            <div className="w-full bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-2 text-text-secondary justify-center">
+                <Receipt className="w-4 h-4" />
+                <span className="text-xs uppercase tracking-wider font-semibold">Nomor Referensi (Invoice)</span>
+              </div>
+              <p className="text-lg font-mono font-bold text-text-primary break-all">{orderId}</p>
+            </div>
             <p className="text-text-secondary text-sm mb-8">
-              Anda membatalkan proses pembayaran. Pesanan <span className="font-semibold text-text-primary">{orderId}</span> masih tersedia dan Anda dapat mencoba bayar kembali.
+              Anda membatalkan proses pembayaran. Pesanan Anda masih tersedia dan Anda dapat mencoba bayar kembali dengan kembali ke aplikasi.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <div className="flex w-full">
               <Link
                 href="/buyer/orders"
-                className="flex-1 flex items-center justify-center gap-2 py-3 bg-brand-primary text-white font-semibold rounded-xl hover:bg-brand-primary-hover transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-brand-primary text-white font-semibold rounded-xl hover:bg-brand-primary-hover transition-colors"
               >
                 <ShoppingBag className="w-4 h-4" /> Kembali ke Pesanan
               </Link>
@@ -142,13 +159,20 @@ function PaymentReturnContent() {
               <XCircle className="w-10 h-10 text-red-500" />
             </div>
             <h2 className="text-2xl font-bold text-text-primary mb-2">Pembayaran Gagal</h2>
+            <div className="w-full bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-2 text-text-secondary justify-center">
+                <Receipt className="w-4 h-4" />
+                <span className="text-xs uppercase tracking-wider font-semibold">Nomor Referensi (Invoice)</span>
+              </div>
+              <p className="text-lg font-mono font-bold text-text-primary break-all">{orderId}</p>
+            </div>
             <p className="text-text-secondary text-sm mb-8">
               Terjadi masalah pada pembayaran Anda. Silakan coba lagi atau hubungi kami jika masalah berlanjut.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <div className="flex w-full">
               <Link
                 href="/buyer/orders"
-                className="flex-1 flex items-center justify-center gap-2 py-3 bg-brand-primary text-white font-semibold rounded-xl hover:bg-brand-primary-hover transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-brand-primary text-white font-semibold rounded-xl hover:bg-brand-primary-hover transition-colors"
               >
                 <ShoppingBag className="w-4 h-4" /> Kembali ke Pesanan
               </Link>
