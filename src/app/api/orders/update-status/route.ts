@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders, products, sellerBalances, settings } from '@/lib/schema';
+import { orders, products, sellerBalances, sellerProfiles, settings, payouts } from '@/lib/schema';
 import { getUserFromSession } from '@/lib/auth';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import cloudinary from '@/lib/cloudinary';
 import crypto from 'crypto';
+import { executeFlipDisbursement } from '@/lib/flip';
 
 export async function PUT(req: Request) {
   try {
@@ -171,31 +172,47 @@ export async function PUT(req: Request) {
     let payoutAmount = 0;
 
     if (status === 'completed' && orderObj.status !== 'completed') {
-      // Ambil settings untuk biaya (fee_aplikasi, fee_jasa, fee_admin)
-      // Penjual akan dipotong biaya tambahan ini pada saat pencairan akhir (Escrow)
-      const { settings, sellerProfiles } = await import('@/lib/schema');
-      const { sql } = await import('drizzle-orm');
       const settingsData = await db.select().from(settings).where(
-        sql`${settings.key} IN ('fee_aplikasi', 'fee_jasa', 'fee_admin')`
+        sql`${settings.key} IN ('fee_aplikasi', 'fee_jasa', 'fee_admin', 'checkout_fees_config')`
       ).all();
 
       let platformFees = 0;
+      let hasCustomFees = false;
+      
       settingsData.forEach(s => {
-        if (s.key === 'fee_aplikasi' || s.key === 'fee_jasa' || s.key === 'fee_admin') {
-          platformFees += parseInt(s.value || '0', 10) || 0;
+        if (s.key === 'checkout_fees_config') {
+          try {
+            const feesList = JSON.parse(s.value);
+            if (Array.isArray(feesList)) {
+              feesList.forEach(fee => {
+                platformFees += (parseInt(fee.value, 10) || 0);
+              });
+              hasCustomFees = true;
+            }
+          } catch(e) {}
         }
       });
 
-      // Pencairan kedua (Escrow release): Admin mencairkan 50% saldo yang ditahan
-      // karena 50% (sellerSplitAmount) sudah dicairkan otomatis via route di awal.
-      // DILAKUKAN POTONGAN: seller dibebankan biaya platform.
-      const escrowAdminPart = orderObj.adminSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
-      payoutAmount = Math.max(0, escrowAdminPart - platformFees);
+      if (!hasCustomFees) {
+        settingsData.forEach(s => {
+          if (s.key === 'fee_aplikasi' || s.key === 'fee_jasa' || s.key === 'fee_admin') {
+            platformFees += parseInt(s.value || '0', 10) || 0;
+          }
+        });
+      }
+
+      // Pencairan akhir (Escrow release): Admin mencairkan modal yg ditahan (harga produk)
+      // DIKURANGI biaya dari pengaturan admin (biaya lainnya yg dikenakan juga ke penjual)
+      payoutAmount = Math.max(0, (orderObj.totalPrice || 0) - platformFees);
+      
       const sellerProfile = await db.select().from(sellerProfiles).where(eq(sellerProfiles.userId, sellerId)).get();
       const rawBankAccount = sellerProfile?.bankAccount || 'Unknown Bank';
 
-      const { executeDisbursement } = await import('@/lib/ipaymu');
-      const disbursementRes = await executeDisbursement({
+      // ==============================================================================
+      // FLIP FOR BUSINESS DISBURSEMENT INTEGRATION (Pay-Out)
+      // Idempotency-key di Flip API (di lib/flip.ts) mencegah transfer ganda
+      // ==============================================================================
+      const disbursementRes = await executeFlipDisbursement({
         amount: payoutAmount,
         bankAccount: rawBankAccount,
         referenceId: orderId,
@@ -203,7 +220,7 @@ export async function PUT(req: Request) {
       });
 
       if (!disbursementRes.success) {
-        return NextResponse.json({ error: `Pencairan otomatis gagal: ${disbursementRes.error}` }, { status: 400 });
+        return NextResponse.json({ error: `Pencairan Flip otomatis gagal: ${disbursementRes.error}` }, { status: 400 });
       }
       diprosesDisbursement = true;
     } else if (status === 'returned' && orderObj.status !== 'returned') {
@@ -211,8 +228,8 @@ export async function PUT(req: Request) {
       payoutAmount = orderObj.totalPrice || 0;
       const buyerBank = `${orderObj.returnBankCode || ''} ${orderObj.returnBankAccount || ''}`.trim();
 
-      const { executeDisbursement } = await import('@/lib/ipaymu');
-      const disbursementRes = await executeDisbursement({
+      // Gunakan Flip Business API
+      const disbursementRes = await executeFlipDisbursement({
         amount: payoutAmount,
         bankAccount: buyerBank,
         referenceId: `REF-${orderId}`,
@@ -315,19 +332,18 @@ export async function PUT(req: Request) {
       .set(updateFields)
       .where(eq(orders.id, orderId));
 
-    // ── LOGIKA PEMBAGIAN SALDO 50% / 50% ───────────────────────────────────
+    // ── LOGIKA PEMBAGIAN SALDO (100% DITAHAN) ───────────────────────────────
     if (status === 'verified' && orderObj.status !== 'verified' && orderObj.status !== 'processing' && orderObj.status !== 'completed' && orderObj.status !== 'return_pending') {
-      // Pembayaran dikonfirmasi → saldo ditahan (Hanya adminSplitAmount yang ditahan)
-      const escrowAmount = orderObj.adminSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
+      // Pembayaran dikonfirmasi → escrow ditahan 100% dari harga produk
+      const escrowAmount = orderObj.totalPrice || 0;
       await addRetainedBalance(sellerId, escrowAmount);
     } else if (status === 'completed' && orderObj.status !== 'completed') {
       if (diprosesDisbursement) {
-        // Hapus retainedBalance yang sebelumnya tertahan (Escrow)
-        const escrowAmount = orderObj.adminSplitAmount ?? Math.floor(payoutAmount * 0.5);
+        // Hapus retainedBalance yang sebelumnya tertahan (Escrow) 100%
+        const escrowAmount = orderObj.totalPrice || 0;
         await deductRetainedBalance(sellerId, escrowAmount);
 
-        // 3. Catat di tabel payouts (sebagai tanda transfer fisik ke rekening telah diproses)
-        const { payouts } = await import('@/lib/schema');
+        // Catat di tabel payouts (sebagai tanda transfer fisik ke rekening telah diproses)
         await db.insert(payouts).values({
           id: crypto.randomUUID(),
           sellerId: sellerId,
@@ -338,8 +354,8 @@ export async function PUT(req: Request) {
         });
       }
     } else if (status === 'returned' && orderObj.status !== 'returned') {
-      // Potong 50% dari retainedBalance karena pesanan dikembalikan
-      const sellerShare = orderObj.sellerSplitAmount ?? Math.floor((orderObj.totalPrice || 0) * 0.5);
+      // Potong 100% dari retainedBalance karena pesanan dikembalikan full
+      const sellerShare = orderObj.totalPrice || 0;
       await deductRetainedBalance(sellerId, sellerShare);
     }
 

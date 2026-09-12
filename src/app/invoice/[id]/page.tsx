@@ -57,16 +57,30 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
   }
 
   const feeSettings = await db.select().from(settings).all();
-  let feeAplikasi = 0;
-  let feeJasa = 0;
-  let feeAdmin = 0;
-  feeSettings.forEach(f => {
-    if (f.key === "fee_aplikasi") feeAplikasi = parseInt(f.value);
-    if (f.key === "fee_jasa") feeJasa = parseInt(f.value);
-    if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
+  let checkoutFees: any[] = [];
+  let hasCustomFees = false;
+  feeSettings.forEach((f) => {
+    if (f.key === 'checkout_fees_config') {
+      try {
+          checkoutFees = JSON.parse(f.value);
+          hasCustomFees = true;
+      } catch(e) {}
+    }
   });
+
+  if (!hasCustomFees) {
+      let feeApp = 0, feeJasa = 0, feeAdmin = 0;
+      feeSettings.forEach((f) => {
+          if (f.key === "fee_aplikasi") feeApp = parseInt(f.value);
+          if (f.key === "fee_jasa") feeJasa = parseInt(f.value);
+          if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
+      });
+      if (feeApp || feeApp === 0) checkoutFees.push({ id: 'aplikasi', name: 'Biaya Aplikasi', value: feeApp, description: 'Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari hasil saldo bersih penjual.' });
+      if (feeJasa || feeJasa === 0) checkoutFees.push({ id: 'jasa', name: 'Biaya Jasa', value: feeJasa, description: 'Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari saldo bersih penjual.' });
+      if (feeAdmin || feeAdmin === 0) checkoutFees.push({ id: 'admin', name: 'Biaya Admin', value: feeAdmin, description: 'Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari hasil saldo bersih penjual.' });
+  }
 
   const viewerRole = user.role === 'admin' ? 'admin' : (user.id === orderData.sellerId ? 'seller' : 'buyer');
 
-  return <ClientInvoice order={orderData} feeAplikasi={feeAplikasi} feeJasa={feeJasa} feeAdmin={feeAdmin} viewerRole={viewerRole} />;
+  return <ClientInvoice order={orderData} checkoutFees={checkoutFees} viewerRole={viewerRole} />;
 }

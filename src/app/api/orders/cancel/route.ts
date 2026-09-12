@@ -68,9 +68,9 @@ export async function DELETE(req: Request) {
       const refundAmount = existingOrder.totalPrice - penaltyAmount;
 
       if (cancelBankCode && cancelBankAccount && refundAmount > 0) {
-        const { executeDisbursement } = await import('@/lib/ipaymu');
+        const { executeFlipDisbursement } = await import('@/lib/flip');
         const buyerBank = `${cancelBankCode} ${cancelBankAccount}`.trim();
-        const disbursementRes = await executeDisbursement({
+        const disbursementRes = await executeFlipDisbursement({
           amount: refundAmount,
           bankAccount: buyerBank,
           referenceId: `CNL-${orderId}`,

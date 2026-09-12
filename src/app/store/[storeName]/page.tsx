@@ -148,12 +148,11 @@ export default async function StoreProfilePage({
   }
 
   const allSettings = await db.select().from(settings).all();
-  let feeAplikasi = 0, feeJasa = 0, feeAdmin = 0;
-  allSettings.forEach((f) => {
-    if (f.key === "fee_aplikasi") feeAplikasi = parseInt(f.value);
-    if (f.key === "fee_jasa") feeJasa = parseInt(f.value);
-    if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
-  });
+  let checkoutFees: any[] = [];
+  const checkoutFeesConfig = allSettings.find(s => s.key === 'checkout_fees_config')?.value;
+  if (checkoutFeesConfig) {
+    try { checkoutFees = JSON.parse(checkoutFeesConfig); } catch(e){}
+  }
 
-  return <ClientStoreProfile seller={seller} products={catalog} showCatalog={showCatalog} user={user} feeAplikasi={feeAplikasi} feeJasa={feeJasa} feeAdmin={feeAdmin} />;
+  return <ClientStoreProfile seller={seller} products={catalog} showCatalog={showCatalog} user={user} checkoutFees={checkoutFees} />;
 }

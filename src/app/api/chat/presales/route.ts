@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Silakan login sebagai pembeli terlebih dahulu untuk menggunakan fitur chat." }, { status: 401 });
     }
 
-    const { productId, text, productOffer, qty, totalPrice, notes, variant, variantPrice } = await request.json();
+    const { productId, text, productOffer, qty, totalPrice, notes, variant, variantPrice, deliveryAddress } = await request.json();
     if (!productId) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
@@ -36,7 +36,8 @@ export async function POST(request: Request) {
         status: 'chat_only',
         notes: notes || 'Pre-sales chat thread',
         selectedVariant: variant || null,
-        selectedVariantPrice: variantPrice || null
+        selectedVariantPrice: variantPrice || null,
+        deliveryAddress: deliveryAddress || null
       });
       orderRecord = { id: newOrderId } as any;
     } else if (orderRecord.status === 'chat_only') {
@@ -47,7 +48,8 @@ export async function POST(request: Request) {
           totalPrice: totalPrice,
           notes: notes || orderRecord.notes,
           selectedVariant: variant || orderRecord.selectedVariant,
-          selectedVariantPrice: variantPrice || orderRecord.selectedVariantPrice
+          selectedVariantPrice: variantPrice || orderRecord.selectedVariantPrice,
+          deliveryAddress: deliveryAddress !== undefined ? deliveryAddress : orderRecord.deliveryAddress
         }).where(eq(orders.id, orderRecord.id));
       }
     }

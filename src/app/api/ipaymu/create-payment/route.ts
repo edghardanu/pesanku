@@ -66,33 +66,50 @@ export async function POST(req: Request) {
     const { products, sellerProfiles } = await import('@/lib/schema');
     const product = await db.select().from(products).where(eq(products.id, order.productId)).get();
 
-    // Ambil detail Penjual untuk VA iPaymu (jika ada)
+    // Ambil detail Penjual untuk VA iPaymu (jika ada) - SEKARANG DINONAKTIFKAN!
+    // Sesuai permintaan baru: 100% dana pembeli ditahan oleh Admin (IPaymu Pay-in murni).
+    // Jadi split routing via iPaymu VA dimatikan.
     let sellerVa = undefined;
     let sellerSplitAmount = undefined;
+    
+    // (Opsional) Tetap update log logic
     if (product) {
-      const sellerProfile = await db.select().from(sellerProfiles).where(eq(sellerProfiles.userId, product.sellerId)).get();
-      if (sellerProfile && sellerProfile.ipaymuVa) {
-        sellerVa = sellerProfile.ipaymuVa;
-        // Gunakan split yang tersimpan di order (jika null, default ke 50%)
-        sellerSplitAmount = order.sellerSplitAmount ?? Math.floor(order.totalPrice * 0.5);
-      }
+      // Kita tidak mengirimkan iPaymu VA lagi ke fungsi createRedirectPayment
     }
 
     // Ambil data lengkap user (termasuk no HP) dari database
     const userRecord = await db.select().from(users).where(eq(users.id, user.id)).get();
 
-    // Ambil settings untuk biaya (fee_aplikasi, fee_jasa, fee_admin)
+    // Ambil settings untuk biaya (checkout_fees_config)
     const { settings } = await import('@/lib/schema');
     const settingsData = await db.select().from(settings).where(
-      sql`${settings.key} IN ('fee_aplikasi', 'fee_jasa', 'fee_admin')`
+      sql`${settings.key} IN ('fee_aplikasi', 'fee_jasa', 'fee_admin', 'checkout_fees_config')`
     ).all();
 
     let platformFees = 0;
+    let hasCustomFees = false;
+    
     settingsData.forEach(s => {
-      if (s.key === 'fee_aplikasi' || s.key === 'fee_jasa' || s.key === 'fee_admin') {
-        platformFees += parseInt(s.value || '0', 10) || 0;
+      if (s.key === 'checkout_fees_config') {
+        try {
+          const feesList = JSON.parse(s.value);
+          if (Array.isArray(feesList)) {
+            feesList.forEach(fee => {
+              platformFees += (parseInt(fee.value, 10) || 0);
+            });
+            hasCustomFees = true;
+          }
+        } catch(e) {}
       }
     });
+
+    if (!hasCustomFees) {
+      settingsData.forEach(s => {
+        if (s.key === 'fee_aplikasi' || s.key === 'fee_jasa' || s.key === 'fee_admin') {
+          platformFees += parseInt(s.value || '0', 10) || 0;
+        }
+      });
+    }
 
     const finalAmount = order.totalPrice + platformFees;
 

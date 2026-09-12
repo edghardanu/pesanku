@@ -1,7 +1,7 @@
 "use client";
 import ClientOrderDetail from './ClientOrderDetail';
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star, Trash2, Truck, ScanLine, Search, RotateCcw, Upload, DollarSign } from "lucide-react";
 import Swal from "sweetalert2";
@@ -19,17 +19,13 @@ export default function ClientBuyerOrders({
   orders,
   user,
   checkoutCount = 0,
-  feeAplikasi = 0,
-  feeJasa = 0,
-  feeAdmin = 0,
+  checkoutFees = [],
   penaltyPercentage = 0,
 }: {
   orders: BuyerOrderViewItem[];
   user?: AuthUser | null;
   checkoutCount?: number;
-  feeAplikasi?: number;
-  feeJasa?: number;
-  feeAdmin?: number;
+  checkoutFees?: any[];
   penaltyPercentage?: number;
 }) {
   const router = useRouter();
@@ -112,6 +108,27 @@ export default function ClientBuyerOrders({
     });
 
   // Untuk tab chats, pisahkan chat_only dan order biasa yg ada pesan baru dari seller
+    const groupedOrders = useMemo(() => {
+    const groups: Record<string, BuyerOrderViewItem[]> = {};
+    filteredLocalOrders.forEach(o => {
+      let key = o.orderId; // default fallback
+      if (o.status !== 'cancelled' && o.status !== 'failed' && o.status !== 'completed') {
+          // Group all active/ongoing orders from the same seller into one unified view
+          key = 'active_' + o.sellerId;
+      } else if (o.paymentId) {
+          key = 'paid_' + o.paymentId;
+      }
+      
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(o);
+    });
+    return Object.values(groups).sort((a, b) => {
+      const tA = a[0].lastMessageAt ? new Date(a[0].lastMessageAt as string).getTime() : (a[0].createdAt ? new Date(a[0].createdAt as string).getTime() : 0);
+      const tB = b[0].lastMessageAt ? new Date(b[0].lastMessageAt as string).getTime() : (b[0].createdAt ? new Date(b[0].createdAt as string).getTime() : 0);
+      return tB - tA;
+    });
+  }, [filteredLocalOrders]);
+
   const chatOnlyOrders = filteredLocalOrders.filter(o => o.status === 'chat_only');
   const regularOrdersWithChat = filteredLocalOrders.filter(o => o.status !== 'chat_only');
 
@@ -714,7 +731,7 @@ export default function ClientBuyerOrders({
       autoPayProcessed.current = true;
       const targetOrder = localOrders.find(o => o.orderId === autoPayId);
       if (targetOrder && targetOrder.status === 'waiting_verification') {
-        const total = targetOrder.totalPrice + (feeAplikasi || 0) + (feeJasa || 0) + (feeAdmin || 0);
+        const totalFees = checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0); const total = targetOrder.totalPrice + totalFees;
         handlePayment(targetOrder.orderId, total, targetOrder.createdAt);
 
         // Remove the autoPay param from url so it doesn't refire on reload
@@ -723,7 +740,7 @@ export default function ClientBuyerOrders({
         window.history.replaceState({}, '', newUrl.toString());
       }
     }
-  }, [searchParams, localOrders, feeAplikasi, feeJasa, feeAdmin]);
+  }, [searchParams, localOrders, checkoutFees]);
 
 
   // chatsCount: semua unread dari semua order (karena tab chat menghubungkan ke semua percakapan)
@@ -1279,20 +1296,19 @@ export default function ClientBuyerOrders({
                         </button>
                       </div>
 
-                      {filteredLocalOrders.filter(o => o.orderId === selectedOrderId).map((order) => (
+                      {groupedOrders.filter(g => g.some(o => o.orderId === selectedOrderId)).map((group) => (
                         <ClientOrderDetail
-                          key={order.orderId}
-                          order={order}
+                          key={group[0].orderId}
+                          orders={group}
                           user={user || null}
                           onNavigateTab={(tab: 'orders' | 'tracking' | 'chats') => { if (tab === 'orders' || tab === 'tracking') setActiveTab(tab); }}
                           onCancelOrder={() => {
-                            handleCancelOrder(order.orderId, order.productName);
+                            handleCancelOrder(group[0].orderId, group[0].productName);
                           }}
-                          feeAplikasi={feeAplikasi}
-                          feeJasa={feeJasa}
-                          feeAdmin={feeAdmin}
+                          checkoutFees={checkoutFees}
+                          
+                          
                           penaltyPercentage={penaltyPercentage}
-
                         />
                       ))}
                     </div>
@@ -1391,3 +1407,6 @@ export default function ClientBuyerOrders({
     </div >
   );
 }
+
+
+

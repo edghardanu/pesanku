@@ -9,18 +9,18 @@ import Swal from "sweetalert2";
 
 
 interface ClientOrderDetailProps {
-    order: BuyerOrderViewItem;
+    orders: BuyerOrderViewItem[];
     user?: AuthUser | null;
     onBack?: () => void;
     onNavigateTab: (tab: 'orders' | 'tracking') => void;
     onCancelOrder: () => void;
-    feeAplikasi: number;
-    feeJasa: number;
-    feeAdmin: number;
+    checkoutFees?: any[];
     penaltyPercentage?: number;
 }
 
-export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, onCancelOrder, feeAplikasi, feeJasa, feeAdmin, penaltyPercentage = 0 }: ClientOrderDetailProps) {
+export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab, onCancelOrder, checkoutFees = [], penaltyPercentage = 0 }: ClientOrderDetailProps) {
+    if (!orders || orders.length === 0) return null;
+    const order = orders[0];
     const isCompleted = order.status === 'completed';
     const isCancelled = order.status === 'cancelled';
     const isProcessing = order.status === 'processing';
@@ -35,10 +35,13 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
     const [inputText, setInputText] = useState("");
     const [activeDetailTab, setActiveDetailTab] = useState<'rincian' | 'info'>('rincian');
 
-    const effectiveQty = Math.max(order.qty, order.minQty || 1);
-    const orderUnitPrice = order.qty > 0 ? order.totalPrice / order.qty : 0;
-    const effectiveTotalPrice = orderUnitPrice * effectiveQty;
-    const displayedTotalPrice = effectiveTotalPrice + feeAplikasi + feeJasa + feeAdmin;
+    const effectiveTotalPrice = orders.reduce((sum, o) => {
+        const eq = Math.max(o.qty, o.minQty || 1);
+        const up = o.qty > 0 ? o.totalPrice / o.qty : 0;
+        return sum + (up * eq);
+    }, 0);
+    const totalFees = checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0);
+    const displayedTotalPrice = effectiveTotalPrice + totalFees;
 
     return (
         <div className="flex flex-col min-h-screen bg-[#F0F4F8] max-w-[100vw] overflow-x-hidden">
@@ -111,7 +114,7 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
                 <div className="px-5 py-3 flex flex-col md:flex-row md:justify-between items-start md:items-center gap-3 bg-white shadow-[0_4px_10px_-10px_rgba(0,0,0,0.1)] min-w-0 max-w-full">
                     <div className="flex-1 min-w-0 mr-4">
                         <h1 className="text-xl md:text-2xl font-black text-gray-800 tracking-tight truncate">
-                            {order.orderId}
+                            {order.orderId} {orders.length > 1 ? `(+${orders.length - 1} lainnya)` : ''}
                         </h1>
                     </div>
                     <div className="flex items-center w-full md:w-auto overflow-x-auto pb-2 md:pb-0 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -304,28 +307,35 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
                                         <th className="px-4 py-2.5 text-right">Subtotal</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr className="border-b border-gray-100 hover:bg-gray-50 align-top">
-                                        <td className="px-4 py-3 font-semibold text-brand-primary">{order.productName}</td>
-                                        <td className="px-4 py-3 text-gray-600 italic max-w-[200px] break-words">
-                                            {order.notes || "Tidak ada catatan."}
-                                        </td>
-                                        <td className="px-4 py-3 font-medium text-gray-700">
-                                            {order.selectedVariant ? (
-                                                <div className="flex flex-col">
-                                                    <span>{order.selectedVariant}</span>
-                                                    {order.selectedVariantPrice ? (
-                                                        <span className="text-[11px] text-gray-500 font-semibold">+ Rp {order.selectedVariantPrice.toLocaleString('id-ID')}</span>
-                                                    ) : null}
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-600 italic font-normal">Tidak ada tambahan varian.</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3 text-right font-medium">{effectiveQty} porsi</td>
-                                        <td className="px-4 py-3 text-right">Rp {orderUnitPrice.toLocaleString('id-ID')}</td>
-                                        <td className="px-4 py-3 text-right font-bold text-gray-800">Rp {effectiveTotalPrice.toLocaleString('id-ID')}</td>
-                                    </tr>
+                                                                <tbody>
+                                    {orders.map((o) => {
+                                        const effectiveQty = Math.max(o.qty, o.minQty || 1);
+                                        const orderUnitPrice = o.qty > 0 ? o.totalPrice / o.qty : 0;
+                                        const lineTotal = orderUnitPrice * effectiveQty;
+                                        return (
+                                            <tr key={o.orderId} className="border-b border-gray-100 hover:bg-gray-50 align-top">
+                                                <td className="px-4 py-3 font-semibold text-brand-primary">{o.productName}</td>
+                                                <td className="px-4 py-3 text-gray-600 italic max-w-[200px] break-words">
+                                                    {o.notes || "Tidak ada catatan."}
+                                                </td>
+                                                <td className="px-4 py-3 font-medium text-gray-700">
+                                                    {o.selectedVariant ? (
+                                                        <div className="flex flex-col">
+                                                            <span>{o.selectedVariant}</span>
+                                                            {o.selectedVariantPrice ? (
+                                                                <span className="text-[11px] text-gray-500 font-semibold">+ Rp {o.selectedVariantPrice.toLocaleString('id-ID')}</span>
+                                                            ) : null}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-600 italic font-normal">Tidak ada tambahan varian.</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-medium">{effectiveQty} porsi</td>
+                                                <td className="px-4 py-3 text-right">Rp {orderUnitPrice.toLocaleString('id-ID')}</td>
+                                                <td className="px-4 py-3 text-right font-bold text-gray-800">Rp {lineTotal.toLocaleString('id-ID')}</td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                             <div className="flex justify-end p-6 bg-gray-50">
@@ -335,18 +345,7 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
                                         <span className="font-semibold text-gray-800">Rp {effectiveTotalPrice.toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex flex-col gap-1 pb-1.5 text-[11px] text-gray-500 pl-4 border-l-2 border-brand-primary/20 ml-2 mb-2">
-                                        <div className="flex justify-between">
-                                            <span>Biaya Aplikasi:</span>
-                                            <span>Rp {feeAplikasi.toLocaleString('id-ID')}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>Biaya Jasa:</span>
-                                            <span>Rp {feeJasa.toLocaleString('id-ID')}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>Biaya Admin:</span>
-                                            <span>Rp {feeAdmin.toLocaleString('id-ID')}</span>
-                                        </div>
+                                        {checkoutFees.map((fee, idx) => ( <div key={idx} className="flex justify-between"><span>{fee.name}:</span><span>Rp {(parseInt(fee.value) || 0).toLocaleString('id-ID')}</span></div>))}
                                     </div>
                                     <div className="flex justify-between py-3 border-t border-gray-300 mt-2 text-xl">
                                         <span className="font-black text-gray-800">Total Keseluruhan:</span>
@@ -385,10 +384,12 @@ export default function ClientOrderDetail({ order, user, onBack, onNavigateTab, 
                         user={user || null}
                         initialOrderId={order.orderId}
                         isEmbedded={true}
-                        buyerOrders={[order]}
+                        buyerOrders={orders}
                     />
                 </div>
             </div>
         </div>
     );
 }
+
+

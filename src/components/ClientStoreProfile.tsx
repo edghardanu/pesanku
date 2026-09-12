@@ -68,17 +68,13 @@ export default function ClientStoreProfile({
   products,
   showCatalog,
   user,
-  feeAplikasi = 0,
-  feeJasa = 0,
-  feeAdmin = 0,
+  checkoutFees = [],
 }: {
   seller: StoreView;
   products: ProductItem[];
   showCatalog: boolean;
   user: AuthUser | null;
-  feeAplikasi?: number;
-  feeJasa?: number;
-  feeAdmin?: number;
+  checkoutFees?: any[];
 }) {
   const router = useRouter();
   const { items: cartItems, addItem: addCartItem, updateQty, removeItem: removeCartItem } = useCart();

@@ -48,20 +48,26 @@ export default function CartSidebar() {
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [fees, setFees] = useState({ feeAplikasi: 0, feeJasa: 0, feeAdmin: 0 });
+    const [checkoutFees, setCheckoutFees] = useState<any[]>([]);
+    const [deliveryAddress, setDeliveryAddress] = useState<string>('');
 
     React.useEffect(() => {
         if (isOpen) {
             fetch('/api/settings')
                 .then(res => res.json())
                 .then(data => {
-                    setFees({
-                        feeAplikasi: data.fee_aplikasi || 0,
-                        feeJasa: data.fee_jasa || 0,
-                        feeAdmin: data.fee_admin || 0
-                    });
+                    setCheckoutFees(data.checkout_fees || []);
                 })
                 .catch(err => console.error("Failed to load fees:", err));
+
+            fetch('/api/buyer/profile')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.address) {
+                        setDeliveryAddress(data.address);
+                    }
+                })
+                .catch(err => console.error("Failed to load buyer profile/address:", err));
 
             // Sync cart items with the latest database details
             if (items.length > 0) {
@@ -159,7 +165,8 @@ export default function CartSidebar() {
                         totalPrice: item.price * qty,
                         notes: notes,
                         variant: item.selectedVariant || null,
-                        variantPrice: 0
+                        variantPrice: 0,
+                        deliveryAddress: deliveryAddress || null
                     })
                 });
 
@@ -388,30 +395,38 @@ export default function CartSidebar() {
                             <div className="bg-white border-t border-gray-100 px-6 py-6 pb-8 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
 
                                 <div className="space-y-2.5 mb-6">
-                                    <div className="flex justify-between items-center text-sm font-medium text-gray-500">
-                                        <span>Subtotal ({totalItems} produk)</span>
-                                        <span>Rp {totalPrice.toLocaleString('id-ID')}</span>
+                                    {/* Delivery Address Box */}
+                                    <div className="border-t border-dashed border-gray-200 mt-4 pt-4 mb-4">
+                                        <div className="text-sm font-semibold text-gray-800 mb-2">Alamat Pengiriman (Opsional)</div>
+                                        <textarea
+                                            value={deliveryAddress}
+                                            onChange={(e) => setDeliveryAddress(e.target.value)}
+                                            placeholder="Tuliskan alamat lengkap pengiriman untuk penawaran pesanan ini..."
+                                            className="w-full text-xs p-3 border border-gray-200 rounded-xl outline-none focus:border-brand-primary placeholder:opacity-75 resize-none bg-gray-50/50 min-h-[90px]"
+                                        ></textarea>
+                                        <div className="text-[10px] text-gray-400 mt-1 italic">
+                                            *Alamat terisi otomatis jika Anda sudah mengaturnya di Profil.
+                                        </div>
                                     </div>
 
-                                    {/* Breakdown of fees */}
-                                    <div className="flex justify-between items-center text-xs font-medium text-gray-400">
-                                        <span>Biaya Aplikasi</span>
-                                        <span>Rp {fees.feeAplikasi.toLocaleString('id-ID')}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-xs font-medium text-gray-400">
-                                        <span>Biaya Jasa</span>
-                                        <span>Rp {fees.feeJasa.toLocaleString('id-ID')}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-xs font-medium text-gray-400">
-                                        <span>Biaya Admin</span>
-                                        <span>Rp {fees.feeAdmin.toLocaleString('id-ID')}</span>
+                                    <div className="border-t border-dashed border-gray-200 pt-4">
+                                        <div className="flex justify-between items-center text-sm mb-1 text-gray-500">
+                                            <span>Subtotal ({totalItems} produk)</span>
+                                            <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalPrice)}</span>
+                                        </div>
+                                        {checkoutFees.map(fee => (
+                                            <div key={fee.id} className="flex justify-between items-center text-xs mb-1 text-gray-400">
+                                              <span>{fee.name}</span>
+                                              <span>{fee.value < 0 ? '-' : ''}{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Math.abs(fee.value))}</span>
+                                            </div>
+                                        ))}
                                     </div>
 
                                     <div className="w-full border-b border-dashed border-gray-200 mt-3 pt-2"></div>
 
                                     <div className="flex justify-between items-center pt-2">
                                         <span className="text-base font-bold text-gray-900">Total Pembayaran</span>
-                                        <span className="text-xl font-bold text-brand-primary">Rp {(totalPrice + fees.feeAplikasi + fees.feeJasa + fees.feeAdmin).toLocaleString('id-ID')}</span>
+                                        <span className="text-xl font-bold text-brand-primary">Rp {(totalPrice + checkoutFees.reduce((sum, f) => sum + (f.value || 0), 0)).toLocaleString('id-ID')}</span>
                                     </div>
                                 </div>
 

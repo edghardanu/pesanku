@@ -63,16 +63,32 @@ export default async function SellerDashboard() {
   const completedCount = myProducts.filter(p => p.status === 'completed').length;
 
   const feeSettings = await db.select().from(settings).all();
-  let feeAdmin = 0;
-  let feeAplikasi = 0;
-  let feeJasa = 0;
   let penaltyPercentage = 10;
-  feeSettings.forEach(f => {
-    if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
-    if (f.key === "fee_aplikasi") feeAplikasi = parseInt(f.value);
-    if (f.key === "fee_jasa") feeJasa = parseInt(f.value);
+  let checkoutFees: any[] = [];
+  let hasCustomFees = false;
+
+  feeSettings.forEach((f) => {
     if (f.key === "penalty_percentage") penaltyPercentage = parseInt(f.value);
+    if (f.key === 'checkout_fees_config') {
+      try {
+          checkoutFees = JSON.parse(f.value);
+          hasCustomFees = true;
+      } catch(e) {}
+    }
   });
+
+  if (!hasCustomFees) {
+      let feeApp = 0, feeJasa = 0, feeAdmin = 0;
+      feeSettings.forEach((f) => {
+          if (f.key === "fee_aplikasi") feeApp = parseInt(f.value);
+          if (f.key === "fee_jasa") feeJasa = parseInt(f.value);
+          if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
+      });
+      checkoutFees = [];
+      if (feeApp || feeApp === 0) checkoutFees.push({ id: 'aplikasi', name: 'Biaya Aplikasi', value: feeApp, description: 'Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari hasil saldo bersih penjual.' });
+      if (feeJasa || feeJasa === 0) checkoutFees.push({ id: 'jasa', name: 'Biaya Jasa', value: feeJasa, description: 'Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari saldo bersih penjual.' });
+      if (feeAdmin || feeAdmin === 0) checkoutFees.push({ id: 'admin', name: 'Biaya Admin', value: feeAdmin, description: 'Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari hasil saldo bersih penjual.' });
+  }
 
   const schedulePrefix = `preorder_schedule:${user.id}:`;
   const scheduleByOrder = new Map<string, Pick<OrderItem, 'deliveryDate' | 'fulfillmentStatus' | 'scheduleReason' | 'scheduleUpdatedAt'>>();
@@ -149,9 +165,7 @@ export default async function SellerDashboard() {
       completedCount={completedCount}
       userName={user.name}
       sellerOrders={sellerOrders}
-      feeAdmin={feeAdmin}
-      feeAplikasi={feeAplikasi}
-      feeJasa={feeJasa}
+      checkoutFees={checkoutFees}
       promotionOffers={sellerPromotionOffers}
       promotionRequests={sellerPromotionRequests}
       userEmail={user.email}

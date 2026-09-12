@@ -15,13 +15,11 @@ interface SellerOrderDetailProps {
     onUpdateStatus: (newStatus: string) => void;
     onUploadDispatch: (orderId: string, currentStatus: string) => void;
     onUploadDelivery: (orderId: string) => void;
-    feeAplikasi: number;
-    feeJasa: number;
-    feeAdmin: number;
+    checkoutFees?: any[];
     penaltyPercentage?: number;
 }
 
-export default function SellerOrderDetail({ order, user, onBack, onUpdateStatus, onUploadDispatch, onUploadDelivery, feeAplikasi, feeJasa, feeAdmin, penaltyPercentage = 0 }: SellerOrderDetailProps) {
+export default function SellerOrderDetail({ order, user, onBack, onUpdateStatus, onUploadDispatch, onUploadDelivery, checkoutFees = [], penaltyPercentage = 0 }: SellerOrderDetailProps) {
     const isCompleted = order.status === 'completed';
     const isCancelled = order.status === 'cancelled';
     const isProcessing = order.status === 'processing';
@@ -36,7 +34,8 @@ export default function SellerOrderDetail({ order, user, onBack, onUpdateStatus,
     const effectiveQty = Math.max(order.qty, order.minOrderQty || 1);
     const orderUnitPrice = order.qty > 0 ? order.totalPrice / order.qty : 0;
     const effectiveTotalPrice = orderUnitPrice * effectiveQty;
-    const displayedTotalPrice = effectiveTotalPrice + feeAplikasi + feeJasa + feeAdmin;
+    const totalFees = checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0);
+    const displayedTotalPrice = effectiveTotalPrice + totalFees;
 
     return (
         <div className="flex flex-col min-h-full bg-[#F0F4F8] w-full max-w-[100vw] md:max-w-none overflow-x-hidden">
@@ -252,18 +251,7 @@ export default function SellerOrderDetail({ order, user, onBack, onUpdateStatus,
                                         <span className="font-semibold text-gray-800">Rp {effectiveTotalPrice.toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex flex-col gap-1 pb-1.5 text-[11px] text-gray-500 pl-4 border-l-2 border-brand-primary/20 ml-2 mb-2">
-                                        <div className="flex justify-between">
-                                            <span>Biaya Aplikasi:</span>
-                                            <span>Rp {feeAplikasi.toLocaleString('id-ID')}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>Biaya Jasa:</span>
-                                            <span>Rp {feeJasa.toLocaleString('id-ID')}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>Biaya Admin:</span>
-                                            <span>Rp {feeAdmin.toLocaleString('id-ID')}</span>
-                                        </div>
+                                        {checkoutFees.map((fee, idx) => ( <div key={idx} className="flex justify-between"><span>{fee.name}:</span><span>Rp {(parseInt(fee.value) || 0).toLocaleString('id-ID')}</span></div>))}
                                     </div>
                                     <div className="flex justify-between py-3 border-t border-gray-300 mt-2 text-xl">
                                         <span className="font-black text-gray-800">Total Keseluruhan:</span>

@@ -123,14 +123,32 @@ export default async function BuyerOrdersPage({
   }
 
   const allSettings = await db.select().from(settings).all();
-  let feeAplikasi = 0, feeJasa = 0, feeAdmin = 0;
   let penaltyPercentage = 0;
+  let checkoutFees: any[] = [];
+  let hasCustomFees = false;
+
   allSettings.forEach((f) => {
-    if (f.key === "fee_aplikasi") feeAplikasi = parseInt(f.value);
-    if (f.key === "fee_jasa") feeJasa = parseInt(f.value);
-    if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
     if (f.key === "penalty_percentage") penaltyPercentage = parseInt(f.value);
+    if (f.key === 'checkout_fees_config') {
+      try {
+          checkoutFees = JSON.parse(f.value);
+          hasCustomFees = true;
+      } catch(e) {}
+    }
   });
 
-  return <ClientBuyerOrders orders={userOrders} user={fullUser} checkoutCount={checkoutCount} feeAplikasi={feeAplikasi} feeJasa={feeJasa} feeAdmin={feeAdmin} penaltyPercentage={penaltyPercentage} />;
+  if (!hasCustomFees) {
+      let feeApp = 0, feeJasa = 0, feeAdmin = 0;
+      allSettings.forEach((f) => {
+          if (f.key === "fee_aplikasi") feeApp = parseInt(f.value);
+          if (f.key === "fee_jasa") feeJasa = parseInt(f.value);
+          if (f.key === "fee_admin") feeAdmin = parseInt(f.value);
+      });
+      checkoutFees = [];
+      if (feeApp || feeApp === 0) checkoutFees.push({ id: 'aplikasi', name: 'Biaya Aplikasi', value: feeApp, description: 'Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari hasil saldo bersih penjual.' });
+      if (feeJasa || feeJasa === 0) checkoutFees.push({ id: 'jasa', name: 'Biaya Jasa', value: feeJasa, description: 'Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari saldo bersih penjual.' });
+      if (feeAdmin || feeAdmin === 0) checkoutFees.push({ id: 'admin', name: 'Biaya Admin', value: feeAdmin, description: 'Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari hasil saldo bersih penjual.' });
+  }
+
+  return <ClientBuyerOrders orders={userOrders} user={fullUser} checkoutCount={checkoutCount} checkoutFees={checkoutFees} penaltyPercentage={penaltyPercentage} />;
 }

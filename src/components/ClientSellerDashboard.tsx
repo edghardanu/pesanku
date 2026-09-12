@@ -50,9 +50,7 @@ type ClientSellerDashboardProps = {
   completedCount: number;
   userName: string;
   sellerOrders?: OrderItem[];
-  feeAdmin?: number;
-  feeAplikasi?: number;
-  feeJasa?: number;
+  checkoutFees?: any[];
   promotionOffers?: PromotionOfferItem[];
   promotionRequests?: PromotionRequestItem[];
   penaltyPercentage?: number;
@@ -67,7 +65,7 @@ export default function ClientSellerDashboard({
   userName,
   userEmail = '',
   sellerOrders: initialSellerOrders = [],
-  feeAdmin = 0, feeAplikasi = 0, feeJasa = 0,
+  checkoutFees = [],
   promotionOffers = [],
   promotionRequests = [],
   penaltyPercentage = 0,
@@ -1741,9 +1739,7 @@ export default function ClientSellerDashboard({
                             }}
                             onUploadDispatch={async (id, currentStatus) => handleUploadDispatchReceipt(id, currentStatus)}
                             onUploadDelivery={async (id) => handleUploadDeliveryProof(id)}
-                            feeAdmin={feeAdmin}
-                            feeAplikasi={feeAplikasi}
-                            feeJasa={feeJasa}
+                            checkoutFees={checkoutFees}
                             penaltyPercentage={penaltyPercentage}
                           />
                         ))}
@@ -2100,14 +2096,14 @@ export default function ClientSellerDashboard({
                     <p className="text-2xl sm:text-3xl font-bold text-status-success">
                       Rp {collapsedSellerOrders.filter(o => o.status !== 'waiting_verification' && o.status !== 'cancelled' && o.status !== 'failed' && o.status !== 'chat_only').reduce((acc, curr) => {
                         const heldByAdmin = curr.status === 'completed' ? 0 : (curr.adminSplitAmount ?? Math.floor((curr.totalPrice || 0) * 0.5));
-                        return acc + Math.max(0, (curr.totalPrice || 0) - heldByAdmin - feeAdmin - feeAplikasi - feeJasa);
+                        return acc + Math.max(0, (curr.totalPrice || 0) - heldByAdmin - (checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0)));
                       }, 0).toLocaleString('id-ID')}
                     </p>
                   </div>
                   <div className="card p-6 border-border border rounded-xl bg-surface/30">
                     <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Ditahan Admin (Dalam Proses)</h3>
                     <p className="text-2xl sm:text-3xl font-bold text-brand-primary">
-                      Rp {collapsedSellerOrders.filter(o => ['verified', 'preorder_running', 'processing'].includes(o.status || '')).reduce((acc, curr) => acc + Math.max(0, (curr.adminSplitAmount ?? Math.floor((curr.totalPrice || 0) * 0.5)) - feeAdmin - feeAplikasi - feeJasa), 0).toLocaleString('id-ID')}
+                      Rp {collapsedSellerOrders.filter(o => ['verified', 'preorder_running', 'processing'].includes(o.status || '')).reduce((acc, curr) => acc + Math.max(0, (curr.adminSplitAmount ?? Math.floor((curr.totalPrice || 0) * 0.5)) - (checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0))), 0).toLocaleString('id-ID')}
                     </p>
                   </div>
                   <div className="card p-6 border-border border rounded-xl">
@@ -2138,9 +2134,9 @@ export default function ClientSellerDashboard({
                             <th className="p-3 font-medium">Nama Pesanan</th>
                             <th className="p-3 font-medium text-center">Qty</th>
                             <th className="p-3 font-medium text-right text-status-warning">Ditahan</th>
-                            <th className="p-3 font-medium text-right text-status-error">Biaya Admin</th>
-                            <th className="p-3 font-medium text-right text-status-error">Biaya Aplikasi</th>
-                            <th className="p-3 font-medium text-right text-status-error">Biaya Jasa</th>
+                            {checkoutFees.map((fee, idx) => (
+                              <th key={`fee-h-${idx}`} className="p-3 font-medium text-right text-status-error">{fee.name}</th>
+                            ))}
                             <th className="p-3 font-medium text-right">Total Transaksi</th>
                             <th className="p-3 font-medium text-right">Net Masuk Saldo</th>
                           </tr>
@@ -2165,30 +2161,25 @@ export default function ClientSellerDashboard({
                               </td>
                               <td className="p-4 text-right">
                                 <span className="text-sm font-semibold text-status-warning/90 whitespace-nowrap">
-                                  {order.status !== 'completed' && order.status !== 'waiting_verification' && order.status !== 'cancelled' ? `-Rp ${Math.max(0, (order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5)) - feeAdmin - feeAplikasi - feeJasa).toLocaleString('id-ID')}` : '-'}
+                                  {order.status !== 'completed' && order.status !== 'waiting_verification' && order.status !== 'cancelled' ? `-Rp ${Math.max(0, (order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5)) - (checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0))).toLocaleString('id-ID')}` : '-'}
                                 </span>
                               </td>
-                              <td className="p-4 text-right">
-                                <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
-                                  {feeAdmin > 0 ? `-Rp ${feeAdmin.toLocaleString('id-ID')}` : '-'}
-                                </span>
-                              </td>
-                              <td className="p-4 text-right">
-                                <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
-                                  {feeAplikasi > 0 ? `-Rp ${feeAplikasi.toLocaleString('id-ID')}` : '-'}
-                                </span>
-                              </td>
-                              <td className="p-4 text-right">
-                                <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
-                                  {feeJasa > 0 ? `-Rp ${feeJasa.toLocaleString('id-ID')}` : '-'}
-                                </span>
-                              </td>
+                              {checkoutFees.map((fee, idx) => {
+                                const v = parseInt(fee.value) || 0;
+                                return (
+                                  <td key={`fee-d-${idx}`} className="p-4 text-right">
+                                    <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
+                                      {v > 0 ? `-Rp ${v.toLocaleString('id-ID')}` : '-'}
+                                    </span>
+                                  </td>
+                                );
+                              })}
                               <td className="p-4 text-right">
                                 <span className="font-bold text-text-primary">Rp {order.totalPrice.toLocaleString('id-ID')}</span>
                               </td>
                               <td className="p-4 text-right">
                                 <div className="flex flex-col items-end">
-                                  <span className="font-bold text-status-success">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' || order.status === 'waiting_verification' || order.status === 'cancelled' ? 0 : (order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5))) - feeAdmin - feeAplikasi - feeJasa).toLocaleString('id-ID')}</span>
+                                  <span className="font-bold text-status-success">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' || order.status === 'waiting_verification' || order.status === 'cancelled' ? 0 : (order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5))) - (checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0))).toLocaleString('id-ID')}</span>
                                 </div>
                               </td>
                             </tr>

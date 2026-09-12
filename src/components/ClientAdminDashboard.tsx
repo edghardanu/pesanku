@@ -60,20 +60,18 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   const [searchQueryPesanan, setSearchQueryPesanan] = useState('');
 
   const { isDarkMode, toggleDarkMode } = useDarkMode();
-  const [feeAplikasi, setFeeAplikasi] = useState<number>(0);
-  const [feeJasa, setFeeJasa] = useState<number>(0);
-  const [feeAdmin, setFeeAdmin] = useState<number>(0);
+  const [checkoutFees, setCheckoutFees] = useState<any[]>([]);
   const [penaltyPercentage, setPenaltyPercentage] = useState<number>(0);
   const [ipaymuSandbox, setIpaymuSandbox] = useState<number>(0);
+  const [flipSandbox, setFlipSandbox] = useState<number>(0);
   const [feeLoading, setFeeLoading] = useState(false);
 
   useEffect(() => {
     fetch('/api/settings').then(r => r.json()).then(d => {
-      setFeeAplikasi(d.fee_aplikasi || 0);
-      setFeeJasa(d.fee_jasa || 0);
-      setFeeAdmin(d.fee_admin || 0);
+      setCheckoutFees(d.checkout_fees || []);
       setPenaltyPercentage(d.penalty_percentage || 0);
       setIpaymuSandbox(d.ipaymu_sandbox || 0);
+      setFlipSandbox(d.flip_sandbox || 0);
     }).catch((_e) => { });
   }, []);
 
@@ -802,7 +800,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                             <td className="p-4 text-xs">
                               {(() => {
                                 const isCompleted = order.status === 'completed';
-                                const fees = feeAplikasi + feeJasa + feeAdmin;
+                                const fees = checkoutFees.reduce((sum, f) => sum + (f.value || 0), 0);
                                 const moneyFromBuyer = (order.totalPrice || 0) + fees;
                                 const sellerNet = Math.max(0, (order.totalPrice || 0) - fees);
                                 const adminNet = Math.max(0, moneyFromBuyer - sellerNet);
@@ -838,7 +836,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                 onClick={() => {
                                   // Updated default split logic
                                   const isCompleted = order.status === 'completed';
-                                  const fees = feeAplikasi + feeJasa + feeAdmin;
+                                  const fees = checkoutFees.reduce((sum, f) => sum + (f.value || 0), 0);
                                   const moneyFromBuyer = (order.totalPrice || 0) + fees;
                                   const sellerNet = Math.max(0, (order.totalPrice || 0) - fees);
                                   const adminNet = Math.max(0, moneyFromBuyer - sellerNet);
@@ -1297,36 +1295,119 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
 
             {activeTab === 'settings' && (
               <div className="grid gap-6">
-                <div className="card md:p-6 border border-border">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-h3">Biaya Aplikasi</h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari hasil saldo bersih penjual.</p>
-                    </div>
-                    <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Aplikasi', input: 'number', inputValue: feeAplikasi }); if (v) { setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_aplikasi: parseInt(v) }) }); setFeeAplikasi(parseInt(v)); setFeeLoading(false); Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); } }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                <div className="flex justify-between items-center bg-surface p-4 rounded-xl border border-border">
+                  <div>
+                    <h2 className="text-h3">Potongan & Biaya Tambahan</h2>
+                    <p className="text-sm text-text-secondary">Atur daftar biaya yang akan dibebankan/dipotong pada checkout.</p>
                   </div>
-                  <p className="text-4xl font-black text-brand-primary">Rp {feeAplikasi.toLocaleString('id-ID')}</p>
+                  <button 
+                    onClick={async () => { 
+                      const { value: formValues } = await Swal.fire({
+                        title: 'Tambah Biaya Baru',
+                        html: `
+                          <input id="swal-fee-name" class="swal2-input" placeholder="Nama Biaya (Cth: Biaya Aplikasi)">
+                          <input id="swal-fee-desc" class="swal2-input" placeholder="Deskripsi Singkat">
+                          <input id="swal-fee-val" type="number" class="swal2-input" placeholder="Nominal (Angka)">
+                        `,
+                        focusConfirm: false,
+                        showCancelButton: true,
+                        preConfirm: () => {
+                          return {
+                            name: (document.getElementById('swal-fee-name') as HTMLInputElement).value,
+                            desc: (document.getElementById('swal-fee-desc') as HTMLInputElement).value,
+                            val: parseInt((document.getElementById('swal-fee-val') as HTMLInputElement).value) || 0
+                          }
+                        }
+                      });
+                      if (formValues && formValues.name) {
+                        const newFee = { id: Date.now().toString(), name: formValues.name, description: formValues.desc, value: formValues.val };
+                        const newFees = [...checkoutFees, newFee];
+                        setCheckoutFees(newFees);
+                        await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ checkout_fees: newFees }) });
+                        Swal.fire({ toast: true, position: 'top-end', title: 'Berhasil ditambahkan', icon: 'success', timer: 2000, showConfirmButton: false });
+                      }
+                    }} 
+                    className="btn-primary py-2 px-4 shadow-sm shrink-0 flex items-center gap-2"
+                  >
+                    + Tambah Biaya
+                  </button>
                 </div>
-                <div className="card md:p-6 border border-border">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-h3">Biaya Jasa</h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari saldo bersih penjual.</p>
+
+                {checkoutFees.map((fee, i) => (
+                  <div key={fee.id} className="card md:p-6 border border-border relative group overflow-hidden">
+                    <div className="absolute top-4 right-4 flex gap-2">
+                       <button 
+                         onClick={async () => {
+                           const { value: formValues } = await Swal.fire({
+                             title: 'Edit Biaya',
+                             html: `
+                               <input id="swal-fee-name" class="swal2-input" placeholder="Nama Biaya" value="${fee.name}">
+                               <input id="swal-fee-desc" class="swal2-input" placeholder="Deskripsi Singkat" value="${fee.description || ''}">
+                             `,
+                             showCancelButton: true,
+                             preConfirm: () => {
+                               return {
+                                 name: (document.getElementById('swal-fee-name') as HTMLInputElement).value,
+                                 desc: (document.getElementById('swal-fee-desc') as HTMLInputElement).value
+                               }
+                             }
+                           });
+                           if (formValues && formValues.name) {
+                             const newFees = [...checkoutFees];
+                             newFees[i] = { ...newFees[i], name: formValues.name, description: formValues.desc };
+                             setCheckoutFees(newFees);
+                             await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ checkout_fees: newFees }) });
+                           }
+                         }}
+                         className="btn-outline border-transparent hover:bg-brand-primary/10 text-brand-primary py-1.5 px-3 text-xs"
+                       >
+                         Edit Judul
+                       </button>
+                       <button 
+                         onClick={async () => { 
+                           const { value: v } = await Swal.fire({ title: 'Ubah Nominal', input: 'number', inputValue: fee.value, showCancelButton: true }); 
+                           if (v !== undefined) { 
+                             const newFees = [...checkoutFees];
+                             newFees[i].value = parseInt(v) || 0;
+                             setCheckoutFees(newFees);
+                             await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ checkout_fees: newFees }) });
+                             Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); 
+                           } 
+                         }} 
+                         className="btn-outline py-1.5 px-3 text-xs shadow-sm"
+                       >
+                         Ubah Harga
+                       </button>
+                       <button 
+                         onClick={async () => {
+                           const res = await Swal.fire({ title: 'Hapus Biaya?', text: 'Biaya ini akan dihapus permanen.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
+                           if (res.isConfirmed) {
+                             const newFees = checkoutFees.filter((_, idx) => idx !== i);
+                             setCheckoutFees(newFees);
+                             await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ checkout_fees: newFees }) });
+                             Swal.fire({ toast: true, position: 'top-end', title: 'Terhapus', icon: 'success', timer: 2000, showConfirmButton: false });
+                           }
+                         }}
+                         className="btn-outline border-status-error text-status-error hover:bg-status-error/10 py-1.5 px-3 text-xs shadow-sm"
+                       >
+                         Hapus
+                       </button>
                     </div>
-                    <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Jasa', input: 'number', inputValue: feeJasa }); if (v) { setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_jasa: parseInt(v) }) }); setFeeJasa(parseInt(v)); setFeeLoading(false); Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); } }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
-                  </div>
-                  <p className="text-4xl font-black text-brand-primary">Rp {feeJasa.toLocaleString('id-ID')}</p>
-                </div>
-                <div className="card md:p-6 border border-border">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-h3">Biaya Admin</h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari hasil saldo bersih penjual.</p>
+
+                    <div className="mb-6 w-2/3">
+                      <h2 className="text-h3 flex items-center gap-2">
+                        {fee.name} 
+                      </h2>
+                      <p className="text-sm text-text-secondary pr-4 mt-1">{fee.description || 'Biaya tambahan diproses saat checkout.'}</p>
                     </div>
-                    <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Admin', input: 'number', inputValue: feeAdmin }); if (v) { setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ fee_admin: parseInt(v) }) }); setFeeAdmin(parseInt(v)); setFeeLoading(false); Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); } }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                    
+                    <p className={`text-4xl font-black ${fee.value < 0 ? 'text-status-error' : 'text-brand-primary'}`}>
+                      {fee.value < 0 ? '-' : ''}Rp {Math.abs(fee.value).toLocaleString('id-ID')}
+                    </p>
                   </div>
-                  <p className="text-4xl font-black text-status-error">-Rp {feeAdmin.toLocaleString('id-ID')}</p>
-                </div>
+                ))}
+
+                <hr className="my-2 border-border" />
                 <div className="card md:p-6 border border-border">
                   <div className="flex justify-between items-center mb-6">
                     <div>
@@ -1346,6 +1427,45 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                     <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Sandbox Mode (1/0)', input: 'number', inputValue: ipaymuSandbox }); if (v !== undefined && v !== null) { setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ ipaymu_sandbox: parseInt(v) }) }); setIpaymuSandbox(parseInt(v)); setFeeLoading(false); Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); } }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
                   </div>
                   <p className="text-4xl font-black text-brand-primary">{ipaymuSandbox === 1 ? 'Aktif (1)' : 'Nonaktif (0)'}</p>
+                </div>
+
+                <div className="card md:p-6 border border-border">
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h2 className="text-h3">Flip Business Mode Sandbox</h2>
+                      <p className="text-sm text-text-secondary pr-4 mt-1">Gunakan mode Sandbox (1) atau Production (0) untuk Flip Business (Pay-out penjual). Saat Production, pastikan <code className="text-xs bg-surface px-1 rounded">FLIP_SECRET_KEY</code> sudah diisi di .env.</p>
+                    </div>
+                    <button onClick={async () => {
+                      const { value: v } = await Swal.fire({
+                        title: 'Flip Sandbox Mode',
+                        html: `
+                          <p style="margin-bottom:12px;font-size:14px;color:#666">Pilih mode Flip Business untuk Pay-out</p>
+                          <div style="display:flex;gap:12px;justify-content:center">
+                            <button id="flip-sandbox-1" style="padding:10px 24px;border-radius:8px;border:2px solid ${flipSandbox === 1 ? '#c0392b' : '#ddd'};background:${flipSandbox === 1 ? '#c0392b' : '#fff'};color:${flipSandbox === 1 ? '#fff' : '#333'};font-weight:bold;cursor:pointer">Sandbox (1)</button>
+                            <button id="flip-sandbox-0" style="padding:10px 24px;border-radius:8px;border:2px solid ${flipSandbox === 0 ? '#c0392b' : '#ddd'};background:${flipSandbox === 0 ? '#c0392b' : '#fff'};color:${flipSandbox === 0 ? '#fff' : '#333'};font-weight:bold;cursor:pointer">Production (0)</button>
+                          </div>
+                        `,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                          document.getElementById('flip-sandbox-1')?.addEventListener('click', () => Swal.close());
+                          document.getElementById('flip-sandbox-0')?.addEventListener('click', () => Swal.close());
+                        }
+                      });
+                      // Simple toggle jika user klik luar
+                      const { value: val } = await Swal.fire({ title: 'Flip Mode (1=Sandbox, 0=Production)', input: 'number', inputValue: flipSandbox, showCancelButton: true });
+                      if (val !== undefined && val !== null) {
+                        const newVal = parseInt(val);
+                        await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ flip_sandbox: newVal }) });
+                        setFlipSandbox(newVal);
+                        Swal.fire({ toast: true, position: 'top-end', title: `Flip ${newVal === 1 ? 'Sandbox' : 'Production'} aktif`, icon: 'success', timer: 2000, showConfirmButton: false });
+                      }
+                    }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`inline-flex items-center gap-2 text-4xl font-black ${flipSandbox === 1 ? 'text-status-warning' : 'text-status-success'}`}>
+                      {flipSandbox === 1 ? '🏖️ Sandbox (1)' : '🚀 Production (0)'}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
