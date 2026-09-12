@@ -2,11 +2,45 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useCart } from '@/lib/cart';
+import { useCart, CartItem } from '@/lib/cart';
 import { ShoppingBag, X, Minus, Plus, Edit2, ArrowRight, Save, Store, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Swal from 'sweetalert2';
 import { useRouter } from 'next/navigation';
+
+function QuantityInput({ item, updateQty }: { item: CartItem, updateQty: (id: string, variant: string | undefined, qty: number) => void }) {
+    const minQty = item.minQty || 1;
+    const [localValue, setLocalValue] = React.useState<string>(Math.max(item.qty, minQty).toString());
+
+    React.useEffect(() => {
+        setLocalValue(Math.max(item.qty, minQty).toString());
+    }, [item.qty, minQty]);
+
+    return (
+        <input
+            type="number"
+            inputMode="numeric"
+            min={minQty}
+            value={localValue}
+            onChange={(e) => {
+                setLocalValue(e.target.value);
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val) && val >= minQty) {
+                    updateQty(item.productId, item.selectedVariant, val);
+                }
+            }}
+            onBlur={() => {
+                let val = parseInt(localValue, 10);
+                if (isNaN(val) || val < minQty) {
+                    val = minQty;
+                    setLocalValue(val.toString());
+                }
+                updateQty(item.productId, item.selectedVariant, val);
+            }}
+            className="w-10 text-center text-sm font-bold text-gray-900 bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        />
+    );
+}
 
 export default function CartSidebar() {
     const { items, totalItems, totalPrice, updateQty, removeItem, clear, setItems } = useCart();
@@ -92,23 +126,35 @@ export default function CartSidebar() {
         try {
             setIsCheckingOut(true);
             let firstOrderId: string | null = null;
+            
+            // Build aggregated items information
+            const aggregated = items.map(it => {
+                const q = Math.max(it.qty, it.minQty || 1);
+                return { name: it.name, qty: q, price: it.price };
+            });
+            const aggregatedTotal = aggregated.reduce((sum, item) => sum + (item.qty * item.price), 0);
+            
+            let itemsJsonConfig = "";
+            try {
+                itemsJsonConfig = typeof window !== 'undefined' ? window.btoa(encodeURIComponent(JSON.stringify(aggregated))) : "";
+            } catch(e) {}
+            
+            const offerText = `Halo kak! Berikut adalah surat rincian penawaran pesanan yang ingin saya ajukan. Mohon sekiranya dapat dicek dan dipertimbangkan:\n\n[SURAT_PENAWARAN_MULTI|${itemsJsonConfig}|${aggregatedTotal}|${offerDate}]`;
 
             // Kirim setiap item keranjang sebagai penawaran ke penjual via presales chat
-            for (const item of items) {
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
                 const noteKey = `${item.productId}-${item.selectedVariant || ''}`;
                 const notes = notesDraft[noteKey] !== undefined ? notesDraft[noteKey] : (item.notes || '');
                 const qty = Math.max(item.qty, item.minQty || 1);
-                const totalHarga = (item.price * qty).toLocaleString('id-ID'); // Numeric value * qty formatted
-
-                const offerText = `Halo kak! Berikut adalah surat rincian penawaran pesanan yang ingin saya ajukan. Mohon sekiranya dapat dicek dan dipertimbangkan:\n\n[SURAT_PENAWARAN|${qty}|${item.price}|${offerDate}]`;
 
                 const res = await fetch('/api/chat/presales', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         productId: item.productId,
-                        text: offerText,
-                        productOffer: null, // Tidak usah pakai PRODUK_OFFER fallback ganda, karena SURAT_PENAWARAN sudah keren!
+                        text: i === 0 ? offerText : "", // Only send text on the first item to avoid spamming the unified chat
+                        productOffer: null, 
                         qty: qty,
                         totalPrice: item.price * qty,
                         notes: notes,
@@ -302,9 +348,7 @@ export default function CartSidebar() {
                                                                 >
                                                                     <Minus className="w-3.5 h-3.5" />
                                                                 </button>
-                                                                <span className="w-8 text-center text-sm font-bold text-gray-900">
-                                                                    {Math.max(item.qty, item.minQty || 1)}
-                                                                </span>
+                                                                <QuantityInput item={item} updateQty={updateQty} />
                                                                 <button
                                                                     onClick={() => updateQty(item.productId, item.selectedVariant, item.qty + 1)}
                                                                     className="w-8 h-8 flex flex-col items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-white rounded-full transition-all active:scale-95"

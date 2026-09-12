@@ -106,7 +106,7 @@ export default function ChatInterface({
       result = buyerOrders.map(o => ({
         orderId: o.orderId,
         title: o.storeName || 'Toko UMKM',
-        subtitle: `${o.productName}${o.createdAt ? ` • ${formatShortDateTimeWIB(o.createdAt)}` : ''}`,
+        subtitle: o.productName,
         avatarInitial: o.storeName ? o.storeName.charAt(0).toUpperCase() : 'RT',
         unreadCount: o.unreadCount || 0,
         lastMessageAt: o.lastMessageAt || o.createdAt,
@@ -119,7 +119,7 @@ export default function ChatInterface({
       result = sellerThreads.map(t => ({
         orderId: t.orderId,
         title: t.buyerName || 'Pembeli',
-        subtitle: `${t.productName}${t.createdAt ? ` • ${formatShortDateTimeWIB(t.createdAt)}` : ''}`,
+        subtitle: t.productName,
         avatarInitial: (t.buyerName || 'P').charAt(0).toUpperCase(),
         unreadCount: t.unreadCount || 0,
         lastMessageAt: t.latestMessageAt || t.createdAt,
@@ -230,11 +230,29 @@ export default function ChatInterface({
       if (mode === "buyer" && setBuyerOrders) {
         const targetThread = threads.find(t => t.orderId === selectedOrderId || t.orderIds?.includes(selectedOrderId));
         const orderIdsToClear = targetThread?.orderIds || [selectedOrderId];
-        setBuyerOrders(prev => prev.map(o => (orderIdsToClear.includes(o.orderId) || (targetThread?.sellerId && o.sellerId === targetThread.sellerId)) ? { ...o, unreadCount: 0 } : o));
+        setBuyerOrders(prev => {
+          let hasChanges = false;
+          const next = prev.map(o => {
+            if (orderIdsToClear.includes(o.orderId) || (targetThread?.sellerId && o.sellerId === targetThread.sellerId)) {
+              if (o.unreadCount !== 0) { hasChanges = true; return { ...o, unreadCount: 0 }; }
+            }
+            return o;
+          });
+          return hasChanges ? next : prev;
+        });
       } else if (mode === "seller" && setSellerThreads) {
         const targetThread = threads.find(t => t.orderId === selectedOrderId || t.orderIds?.includes(selectedOrderId));
         const orderIdsToClear = targetThread?.orderIds || [selectedOrderId];
-        setSellerThreads(prev => prev.map(t => (orderIdsToClear.includes(t.orderId) || (targetThread?.title && t.buyerName === targetThread.title)) ? { ...t, unreadCount: 0 } : t));
+        setSellerThreads(prev => {
+          let hasChanges = false;
+          const next = prev.map(t => {
+            if (orderIdsToClear.includes(t.orderId) || (targetThread?.title && t.buyerName === targetThread.title)) {
+              if (t.unreadCount !== 0) { hasChanges = true; return { ...t, unreadCount: 0 }; }
+            }
+            return t;
+          });
+          return hasChanges ? next : prev;
+        });
       }
     }
   }, [selectedOrderId, mode, setBuyerOrders, setSellerThreads, threads]);
@@ -243,7 +261,16 @@ export default function ChatInterface({
   const loadChatSession = async (orderId: string, skipLoadingState = false) => {
     if (!skipLoadingState) setIsLoadingMessages(true);
     try {
-      const res = await fetch(`/api/chat?orderId=${orderId}&t=${Date.now()}`, { cache: 'no-store' });
+      
+      const targetThread = threads.find(t => t.orderId === orderId);
+      let queryOrderIds = targetThread?.orderIds?.join(',') || orderId;
+      
+      // If we are embedded and handed a group of orders, inherently query all of them!
+      if (isEmbedded && mode === "buyer" && buyerOrders.length > 0) {
+           queryOrderIds = buyerOrders.map(o => o.orderId).join(',');
+      }
+      
+      const res = await fetch(`/api/chat?orderIds=${queryOrderIds}&t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setMessages(data.messages || []);
@@ -691,7 +718,155 @@ export default function ChatInterface({
       );
     }
 
-    // 2. Surat Penawaran format: [SURAT_PENAWARAN|qty|price|date|basePrice|productName|productImageUrl]
+    // 2. Surat Penawaran MULTI format: [SURAT_PENAWARAN_MULTI|jsonBase64|totalPrice|date]
+    const suratMultiMatch = trimmed.match(/\[SURAT_PENAWARAN_MULTI\|(.*?)\|(.*?)\|(.*?)\]/);
+    if (suratMultiMatch) {
+      const remainder = trimmed.replace(suratMultiMatch[0], "").trim();
+      const sJsonBase64 = suratMultiMatch[1];
+      let sTotalPrice = isNaN(Number(suratMultiMatch[2])) ? suratMultiMatch[2] : Number(suratMultiMatch[2]).toLocaleString('id-ID');
+      const sDate = suratMultiMatch[3];
+      
+      let items: { name: string, qty: number, price: number }[] = [];
+      try {
+        items = JSON.parse(decodeURIComponent(window.atob(sJsonBase64)));
+      } catch(e) {}
+
+      return (
+        <div className="flex flex-col gap-2 w-full max-w-sm">
+          <p className="whitespace-pre-line text-sm break-words leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: renderRichText(remainder || "Halo kak! Berikut adalah surat rincian penawaran pesanan multi-produk yang ingin saya ajukan:") }} />
+
+          <div className={`flex flex-col gap-0 overflow-hidden rounded-xl w-full shadow-sm text-left border ${isSender ? "bg-white border-brand-primary/20" : "bg-white border-border"}`}>
+            <div className="bg-brand-primary text-white p-3 flex items-center justify-center gap-2">
+              <FileText className="w-5 h-5 shrink-0" />
+              <h4 className="font-bold text-sm tracking-wide uppercase">Surat Penawaran</h4>
+            </div>
+            <div className="p-3 bg-white flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5 bg-gray-50 border border-gray-100 rounded-lg p-2 max-h-48 overflow-y-auto">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5 border-b border-gray-200 pb-1">Daftar Produk</div>
+                {items.length > 0 ? items.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-start pt-1 border-b border-dashed border-gray-200 last:border-0 pb-1 last:pb-0">
+                    <span className="text-[11px] font-bold text-brand-primary leading-tight pr-2">{item.name}</span>
+                    <div className="flex flex-col items-end shrink-0">
+                      <span className="text-[10px] font-black text-gray-800">{item.qty} Porsi</span>
+                      <span className="text-[10px] font-semibold text-gray-500">Rp {(item.qty * item.price).toLocaleString('id-ID')}</span>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-[11px] text-gray-500 italic">Data produk tidak tersedia</div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1 mt-1">
+                <div className="flex justify-between items-center bg-brand-primary/5 p-2 rounded-lg border border-brand-primary/20">
+                  <span className="text-xs font-bold text-brand-primary truncate mr-1">Total Harga Keseluruhan</span>
+                  <span className="text-xs font-black text-brand-primary whitespace-nowrap">Rp {sTotalPrice}</span>
+                </div>
+              </div>
+              <div className="flex flex-col bg-[#fff8eb] p-2 rounded-lg border border-orange-100 mt-1">
+                <span className="text-[10px] font-bold text-orange-600 flex items-center gap-1 mb-1">
+                  <Calendar className="w-3 h-3" /> Tanggal Pesanan
+                </span>
+                <span className="text-xs font-black text-gray-800">{sDate}</span>
+              </div>
+
+              {isSender && !isResponded && (
+                <div className="w-full bg-white text-gray-500 text-[10px] font-bold py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 cursor-not-allowed border border-gray-200 mt-1 shadow-sm opacity-95">
+                  <Clock className="w-3 h-3 shrink-0" />
+                  Sedang ditanyakan kepada {mode === "buyer" ? "penjual" : "pembeli"}
+                </div>
+              )}
+
+              {!isSender && (
+                <div className="flex flex-col w-full gap-2 mt-2 pt-2 border-t border-gray-100">
+                  {isResponded ? (
+                    <div className="text-[11px] text-center font-bold text-gray-500 bg-gray-100 py-2 rounded-lg border border-gray-200 uppercase tracking-wider">
+                      Sudah Direspon
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => {
+                            const noteEl = document.getElementById(`offer-note-${msgId}`) as HTMLInputElement;
+                            const note = noteEl?.value.trim() || '';
+                            const pronoun = mode === "buyer" ? "saya" : "kami";
+                            const noteStr = note ? `\\n\\nCatatan dari ${pronoun}:\\n*"${note}"*` : '';
+                            const msg = mode === "buyer"
+                              ? `Mohon maaf kak, untuk penawaran pesanan dengan total **Rp ${sTotalPrice}** pada tanggal **${sDate}** belum dapat saya setujui.`
+                              : `Mohon maaf kak, untuk penawaran pesanan dengan total **Rp ${sTotalPrice}** pada tanggal **${sDate}** belum dapat kami setujui.`;
+
+                            handleSendMessage(msg + noteStr);
+                          }}
+                          className="bg-white border border-status-error text-status-error hover:bg-red-50 text-[11px] font-bold py-2 rounded-lg transition-colors cursor-pointer"
+                        >
+                          Tolak
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const noteEl = document.getElementById(`offer-note-${msgId}`) as HTMLInputElement;
+                            const note = noteEl?.value.trim() || '';
+                            const pronoun = mode === "buyer" ? "saya" : "kami";
+                            const noteStr = note ? `\\n\\nCatatan dari ${pronoun}:\\n*"${note}"*` : '';
+                            const msg = mode === "buyer"
+                              ? `Halo kak! Penawaran pesanan paket produk dengan total **Rp ${sTotalPrice}** pada tanggal **${sDate}** saya **SETUJUI**. Saya akan segera melanjutkan proses sesuai instruksi kakak.`
+                              : `Halo kak! Penawaran pesanan paket produk dengan total **Rp ${sTotalPrice}** pada tanggal **${sDate}** kami **SETUJUI** (Bisa Diproses). Silakan kakak bisa lanjut melakukan pembayaran ya!`;
+
+                            await handleSendMessage(msg + noteStr);
+
+                            // The unified dashboard will sync the status to all orders in this bundle if they update it here.
+                            if (mode === "seller") {
+                              try {
+                                const [d1, d2, d3] = sDate.includes('/') ? sDate.split('/') : sDate.split('-');
+                                const isoDate = (d1 && d1.length === 2 && d3 && d3.length === 4) ? `${d3}-${d2}-${d1}` : sDate;
+
+                                // Extract the orderIds spanning this chat if they are loaded
+                                let orderIdsToSync = [selectedOrderId];
+                                const activeThread = threads.find(t => t.orderId === selectedOrderId);
+                                if (activeThread?.orderIds?.length) {
+                                  orderIdsToSync = activeThread.orderIds;
+                                }
+
+                                for(const syncId of orderIdsToSync) {
+                                  if(!syncId) continue;
+                                  await fetch('/api/orders/update-status', {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ orderId: syncId, status: 'waiting_verification', requestedDeliveryDate: isoDate })
+                                  });
+                                }
+                                if (typeof window !== 'undefined') {
+                                  window.dispatchEvent(new CustomEvent('seller-order-status-updated', {
+                                    detail: { orderId: selectedOrderId, status: 'waiting_verification', requestedDeliveryDate: isoDate }
+                                  }));
+                                }
+                              } catch (e) {
+                                console.error(e);
+                              }
+                            }
+                          }}
+                          className="bg-status-success text-white hover:bg-emerald-600 text-[11px] font-bold py-2 rounded-lg transition-colors cursor-pointer"
+                        >
+                          Setuju
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        id={`offer-note-${msgId}`}
+                        placeholder="Catatan tambahan (opsional)"
+                        className="w-full text-[10px] p-2 border border-gray-300 rounded outline-none focus:border-brand-primary resize-none mt-1"
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 3. Surat Penawaran format (SINGLE): [SURAT_PENAWARAN|qty|price|date|basePrice|productName|productImageUrl]
     const suratMatch = trimmed.match(/\[SURAT_PENAWARAN\|(.*?)\|(.*?)\|(.*?)(?:\|(.*?))?(?:\|(.*?))?(?:\|(.*?))?\]/);
     if (suratMatch) {
       const remainder = trimmed.replace(suratMatch[0], "").trim();
@@ -702,7 +877,7 @@ export default function ChatInterface({
       const sDate = suratMatch[3];
       const sBasePriceNum = parseInt(suratMatch[4] || suratMatch[2] || "0");
       const sTotalBasePrice = isNaN(sBasePriceNum) ? suratMatch[4] || suratMatch[2] : (sQtyNum * sBasePriceNum).toLocaleString('id-ID');
-      const sProductName = suratMatch[5] || activeThread?.subtitle || "Produk Pembeli";
+      const sProductName = suratMatch[5] || activeThread?.subtitle?.split(' • ')[0] || "Produk Pembeli";
       const sProductUrl = suratMatch[6] || undefined; // may be empty string or undefined
 
       return (

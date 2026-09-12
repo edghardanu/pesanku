@@ -28,20 +28,25 @@ function canAccessChat(userId: string, order: { buyerId: string; sellerId: strin
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const orderId = searchParams.get("orderId");
-    if (!orderId) return NextResponse.json({ error: "orderId required" }, { status: 400 });
+    const orderIdParam = searchParams.get("orderId");
+    const orderIdsParam = searchParams.get("orderIds");
+    
+    let orderIds: string[] = [];
+    if (orderIdsParam) orderIds = orderIdsParam.split(',').map(s => s.trim()).filter(Boolean);
+    else if (orderIdParam) orderIds = [orderIdParam];
+    
+    if (orderIds.length === 0) return NextResponse.json({ error: "orderId required" }, { status: 400 });
 
     const user = await getUserFromSession();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const orderData = await getChatOrder(orderId);
-    if (!orderData) return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    if (!canAccessChat(user.id, orderData)) {
+    const firstOrderData = await getChatOrder(orderIds[0]);
+    if (!firstOrderData) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    if (!canAccessChat(user.id, firstOrderData)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Strict isolation: chat belongs exclusively to this single order
-    const orderIds = [orderId];
+    // Now we have logic to query messages cross all requested orderIds in a Unified Chat context
 
     // Membuka chat hanya menandai pesan dari lawan bicara sebagai telah dibaca.
     if (user && orderIds.length > 0) {
@@ -73,7 +78,7 @@ export async function GET(request: Request) {
       .where(inArray(chatMessages.orderId, orderIds))
       .orderBy(asc(chatMessages.createdAt));
 
-    return NextResponse.json({ messages, status: orderData.status, productId: orderData.productId });
+    return NextResponse.json({ messages, status: firstOrderData.status, productId: firstOrderData.productId });
   } catch (error) {
     console.error("Failed to load chat:", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

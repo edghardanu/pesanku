@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     }
 
     const { productId, text, productOffer, qty, totalPrice, notes, variant, variantPrice } = await request.json();
-    if (!productId || !text) {
+    if (!productId) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
@@ -60,13 +60,15 @@ export async function POST(request: Request) {
       finalMessage += `\n\n[PRODUK_OFFER|${productOffer.id}|${productOffer.name}|${formattedPrice}|${productOffer.image}]`;
     }
 
-    await db.insert(chatMessages).values({
-      id: `msg_${crypto.randomBytes(8).toString('hex')}`,
-      orderId,
-      senderId: user.id,
-      text: finalMessage,
-      isRead: false
-    });
+    if (finalMessage) {
+        await db.insert(chatMessages).values({
+          id: `msg_${crypto.randomBytes(8).toString('hex')}`,
+          orderId,
+          senderId: user.id,
+          text: finalMessage,
+          isRead: false
+        });
+    }
 
     return NextResponse.json({ success: true, orderId });
   } catch (error) {
