@@ -61,10 +61,49 @@ export async function DELETE(req: Request) {
     } else {
       // Jika pesanan sudah dibayar (verified, preorder_running, processing), terapkan status cancelled dan kenakan denda
       const { settings, products, sellerBalances } = await import('@/lib/schema');
-      const penaltySetting = await db.select().from(settings).where(eq(settings.key, 'penalty_percentage')).get();
-      const penaltyPercentage = penaltySetting ? parseInt(penaltySetting.value) : 0;
+      const productObj = await db.select({ sellerId: products.sellerId }).from(products).where(eq(products.id, existingOrder.productId)).get();
+      const sellerId = productObj?.sellerId || '';
 
-      const penaltyAmount = Math.round((penaltyPercentage / 100) * existingOrder.totalPrice);
+      const schedulePrefix = `preorder_schedule:${sellerId}:${orderId}`;
+      const scheduleSetting = await db.select().from(settings).where(eq(settings.key, schedulePrefix)).get();
+      
+      const penaltyDaysSetting = await db.select().from(settings).where(eq(settings.key, 'penalty_days')).get();
+      const penaltyDays = penaltyDaysSetting ? parseInt(penaltyDaysSetting.value) || 1 : 1;
+
+      let isHMinusOneOrCloser = false;
+      if (scheduleSetting) {
+         try {
+           const parsed = JSON.parse(scheduleSetting.value);
+           if (parsed.deliveryDate) {
+              const deliveryTime = new Date(parsed.deliveryDate).getTime();
+              const now = Date.now();
+              const msInDays = penaltyDays * 24 * 60 * 60 * 1000;
+              // If delivery is within configured penalty days (or in the past)
+              if ((deliveryTime - now) <= msInDays) {
+                 isHMinusOneOrCloser = true;
+              }
+           }
+         } catch(e) {}
+      }
+
+      let penaltyPercentageAdmin = 0;
+      let penaltyPercentageSeller = 0;
+      let penaltyAdminAmount = 0;
+      let penaltySellerAmount = 0;
+
+      if (isHMinusOneOrCloser) {
+        const penaltyAdminSetting = await db.select().from(settings).where(eq(settings.key, 'penalty_percentage_admin')).get();
+        penaltyPercentageAdmin = penaltyAdminSetting ? parseInt(penaltyAdminSetting.value) : 0;
+
+        const penaltySellerSetting = await db.select().from(settings).where(eq(settings.key, 'penalty_percentage_seller')).get();
+        const legacyPenaltySetting = await db.select().from(settings).where(eq(settings.key, 'penalty_percentage')).get();
+        penaltyPercentageSeller = penaltySellerSetting ? parseInt(penaltySellerSetting.value) : (legacyPenaltySetting ? parseInt(legacyPenaltySetting.value) : 0);
+
+        penaltyAdminAmount = Math.round((penaltyPercentageAdmin / 100) * existingOrder.totalPrice);
+        penaltySellerAmount = Math.round((penaltyPercentageSeller / 100) * existingOrder.totalPrice);
+      }
+
+      const penaltyAmount = penaltyAdminAmount + penaltySellerAmount;
       const refundAmount = existingOrder.totalPrice - penaltyAmount;
 
       if (cancelBankCode && cancelBankAccount && refundAmount > 0) {
@@ -84,20 +123,21 @@ export async function DELETE(req: Request) {
 
       await db.update(orders).set({
         status: 'cancelled',
-        cancelReason: `Dibatalkan oleh pembeli. Denda pinalti: Rp ${penaltyAmount.toLocaleString('id-ID')}`,
-        adminSplitAmount: 0,
-        sellerSplitAmount: penaltyAmount
+        cancelReason: penaltyAmount > 0 
+          ? `Dibatalkan oleh pembeli. Denda pinalti (H-${penaltyDays}): Rp ${penaltyAmount.toLocaleString('id-ID')} (Admin: Rp ${penaltyAdminAmount.toLocaleString('id-ID')}, Penjual: Rp ${penaltySellerAmount.toLocaleString('id-ID')})`
+          : `Dibatalkan oleh pembeli tanpa denda pinalti (diluar periode H-${penaltyDays}).`,
+        adminSplitAmount: penaltyAdminAmount,
+        sellerSplitAmount: penaltySellerAmount
       }).where(eq(orders.id, orderId));
 
       // SESUAIKAN SALDO PENJUAL
       // Retained balance dikurangi bagian admin sebelumnya
       // Available balance disesuaikan agar hasil akhir balance yang diterima penjual murni = penaltyAmount 
-      const productObj = await db.select({ sellerId: products.sellerId }).from(products).where(eq(products.id, existingOrder.productId)).get();
       if (productObj) {
-        const sellerId = productObj.sellerId;
+        // We reuse sellerId from early declaration
         const prevAdminSplit = existingOrder.adminSplitAmount ?? Math.floor((existingOrder.totalPrice || 0) * 0.5);
         const prevSellerSplit = existingOrder.sellerSplitAmount ?? Math.floor((existingOrder.totalPrice || 0) * 0.5);
-        const availableAdjustment = penaltyAmount - prevSellerSplit;
+        const availableAdjustment = penaltySellerAmount - prevSellerSplit;
         
         const balanceObj = await db.select().from(sellerBalances).where(eq(sellerBalances.sellerId, sellerId)).get();
         if (balanceObj) {

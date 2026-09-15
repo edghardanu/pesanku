@@ -80,21 +80,26 @@ export async function GET() {
       .select({
         orderId: chatMessages.orderId,
         lastAt: sql<number>`max(${chatMessages.createdAt})`.as('lastAt'),
+        hasSellerReply: sql<number>`MAX(CASE WHEN ${chatMessages.senderId} = ${user.id} THEN 1 ELSE 0 END)`.as('hasSellerReply'),
       })
       .from(chatMessages)
       .groupBy(chatMessages.orderId);
 
-    const lastMessageMap: Record<string, Date | null> = lastMessages.reduce((acc, row) => {
-      acc[row.orderId] = row.lastAt ? new Date((row.lastAt as number) * 1000) : null;
+    const chatInfoMap: Record<string, { lastAt: Date | null, isResponded: boolean }> = lastMessages.reduce((acc, row) => {
+      acc[row.orderId] = {
+        lastAt: row.lastAt ? new Date((row.lastAt as number) * 1000) : null,
+        isResponded: row.hasSellerReply === 1
+      };
       return acc;
-    }, {} as Record<string, Date | null>);
+    }, {} as Record<string, { lastAt: Date | null, isResponded: boolean }>);
 
     const uniqueOrdersMap = new Map<string, any>();
     for (const order of sellerOrders) {
       if (!uniqueOrdersMap.has(order.id)) {
         uniqueOrdersMap.set(order.id, {
           ...order,
-          lastMessageAt: lastMessageMap[order.id] ?? null
+          lastMessageAt: chatInfoMap[order.id]?.lastAt ?? null,
+          isResponded: chatInfoMap[order.id]?.isResponded ?? false
         });
       }
     }

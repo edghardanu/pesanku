@@ -63,12 +63,25 @@ export default async function SellerDashboard() {
   const completedCount = myProducts.filter(p => p.status === 'completed').length;
 
   const feeSettings = await db.select().from(settings).all();
-  let penaltyPercentage = 10;
+  let penaltyPercentage = 0;
+  let penaltyDays = 1;
+  let penaltySellerToAdmin = 0;
+  let penaltySellerToBuyer = 0;
   let checkoutFees: any[] = [];
   let hasCustomFees = false;
+  
+  let adminPen = 0;
+  let sellerPen = 0;
+  let legacyPen = 0;
+  let hasNewPenalties = false;
 
   feeSettings.forEach((f) => {
-    if (f.key === "penalty_percentage") penaltyPercentage = parseInt(f.value);
+    if (f.key === "penalty_percentage_admin") { adminPen = parseInt(f.value); hasNewPenalties = true; }
+    if (f.key === "penalty_percentage_seller") { sellerPen = parseInt(f.value); hasNewPenalties = true; }
+    if (f.key === "penalty_percentage") legacyPen = parseInt(f.value);
+    if (f.key === "penalty_days") penaltyDays = parseInt(f.value);
+    if (f.key === "penalty_seller_to_admin") penaltySellerToAdmin = parseInt(f.value);
+    if (f.key === "penalty_seller_to_buyer") penaltySellerToBuyer = parseInt(f.value);
     if (f.key === 'checkout_fees_config') {
       try {
           checkoutFees = JSON.parse(f.value);
@@ -76,6 +89,8 @@ export default async function SellerDashboard() {
       } catch(e) {}
     }
   });
+
+  penaltyPercentage = hasNewPenalties ? (adminPen + sellerPen) : legacyPen;
 
   if (!hasCustomFees) {
       let feeApp = 0, feeJasa = 0, feeAdmin = 0;
@@ -170,6 +185,9 @@ export default async function SellerDashboard() {
       promotionRequests={sellerPromotionRequests}
       userEmail={user.email}
       penaltyPercentage={penaltyPercentage}
+      penaltyDays={penaltyDays}
+      penaltySellerToAdmin={penaltySellerToAdmin}
+      penaltySellerToBuyer={penaltySellerToBuyer}
     />
   );
 }

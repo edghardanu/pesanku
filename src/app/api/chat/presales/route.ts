@@ -12,18 +12,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Silakan login sebagai pembeli terlebih dahulu untuk menggunakan fitur chat." }, { status: 401 });
     }
 
-    const { productId, text, productOffer, qty, totalPrice, notes, variant, variantPrice, deliveryAddress } = await request.json();
+    const { productId, text, productOffer, qty, totalPrice, notes, variant, variantPrice, deliveryAddress, forceNewOrder } = await request.json();
     if (!productId) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
     // Cek apakah sudah ada order chat_only atau order sungguhan untuk productId dan buyerId ini.
     // Jika belum ada order_id, kita buat mock order "chat_only"
-    let orderRecord = await db.select()
-      .from(orders)
-      .where(and(eq(orders.productId, productId), eq(orders.buyerId, user.id)))
-      .limit(1)
-      .get();
+    let orderRecord;
+    
+    if (!forceNewOrder) {
+      orderRecord = await db.select()
+        .from(orders)
+        .where(and(eq(orders.productId, productId), eq(orders.buyerId, user.id), eq(orders.status, 'chat_only')))
+        .limit(1)
+        .get();
+    }
 
     if (!orderRecord) {
       const newOrderId = `chat_order_${crypto.randomBytes(8).toString('hex')}`;

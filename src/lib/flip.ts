@@ -52,6 +52,77 @@ async function getFlipConfig(): Promise<FlipConfig> {
   };
 }
 
+export interface FlipCreateBillParams {
+  title: string;
+  amount: number;
+  type?: 'SINGLE' | 'MULTIPLE';
+  expired_date?: string;
+  redirect_url?: string;
+  is_address_required?: number;
+  is_phone_number_required?: number;
+  step?: number;
+  sender_name?: string;
+  sender_email?: string;
+  sender_phone_number?: string;
+  sender_address?: string;
+  sender_bank?: string;
+  sender_bank_type?: string;
+}
+
+export async function createFlipBill(params: FlipCreateBillParams) {
+  try {
+    const { baseUrl, secretKey } = await getFlipConfig();
+    const payload = new URLSearchParams();
+    
+    payload.append('title', params.title);
+    payload.append('amount', params.amount.toString());
+    if (params.type) payload.append('type', params.type);
+    if (params.expired_date) payload.append('expired_date', params.expired_date);
+    if (params.redirect_url) payload.append('redirect_url', params.redirect_url);
+    if (params.is_address_required !== undefined) payload.append('is_address_required', params.is_address_required.toString());
+    if (params.is_phone_number_required !== undefined) payload.append('is_phone_number_required', params.is_phone_number_required.toString());
+    if (params.step !== undefined) payload.append('step', params.step.toString());
+    if (params.sender_name) payload.append('sender_name', params.sender_name);
+    if (params.sender_email) payload.append('sender_email', params.sender_email);
+    if (params.sender_phone_number) payload.append('sender_phone_number', params.sender_phone_number);
+    if (params.sender_address) payload.append('sender_address', params.sender_address);
+    if (params.sender_bank) payload.append('sender_bank', params.sender_bank);
+    if (params.sender_bank_type) payload.append('sender_bank_type', params.sender_bank_type);
+
+    const authHeader = 'Basic ' + Buffer.from(secretKey + ':').toString('base64');
+    
+    // Accept payment endpoint uses /pwf/bill on API v2 mostly
+    const billEndpoint = baseUrl.replace('/v3', '/v2') + '/pwf/bill';
+
+    const response = await fetch(billEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': authHeader
+      },
+      body: payload.toString()
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      const errorMsg = data.message || data.error || JSON.stringify(data);
+      throw new Error(`Flip error: ${errorMsg}`);
+    }
+
+    return {
+      success: true,
+      data,
+      paymentUrl: data.link_url,
+      billId: data.link_id,
+    };
+  } catch (error) {
+    console.error("[Flip] Create Bill Error:", error);
+    throw error;
+  }
+}
+
+
 
 /**
  * Parses freeform bank strings like "BCA - 123456789 a/n Budi" 

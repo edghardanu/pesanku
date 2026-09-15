@@ -118,6 +118,7 @@ export default function ChatInterface({
     } else {
       result = sellerThreads.map(t => ({
         orderId: t.orderId,
+        orderIds: t.orderIds,
         title: t.buyerName || 'Pembeli',
         subtitle: t.productName,
         avatarInitial: (t.buyerName || 'P').charAt(0).toUpperCase(),
@@ -266,8 +267,12 @@ export default function ChatInterface({
       let queryOrderIds = targetThread?.orderIds?.join(',') || orderId;
       
       // If we are embedded and handed a group of orders, inherently query all of them!
-      if (isEmbedded && mode === "buyer" && buyerOrders.length > 0) {
-           queryOrderIds = buyerOrders.map(o => o.orderId).join(',');
+      if (isEmbedded) {
+           if (mode === "buyer" && buyerOrders.length > 0) {
+               queryOrderIds = buyerOrders.map(o => o.orderId).join(',');
+           } else if (mode === "seller" && sellerOrders && sellerOrders.length > 0) {
+               queryOrderIds = sellerOrders.map(o => o.id || o.orderId).join(',');
+           }
       }
       
       const res = await fetch(`/api/chat?orderIds=${queryOrderIds}&t=${Date.now()}`, { cache: 'no-store' });
@@ -1184,7 +1189,7 @@ export default function ChatInterface({
                   if (!checkoutRes.ok) throw new Error(checkoutData.error || 'Gagal memproses pesanan.');
 
                   const activeOrderId = checkoutData.orderId || selectedOrderId;
-                  const payRes = await fetch('/api/ipaymu/create-payment', {
+                  const payRes = await fetch('/api/flip/create-payment', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ orderId: activeOrderId }),

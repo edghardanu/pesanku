@@ -159,14 +159,15 @@ export default function CartSidebar() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         productId: item.productId,
-                        text: i === 0 ? offerText : "", // Only send text on the first item to avoid spamming the unified chat
+                        text: offerText, // Send text on all items so their chat threads are updated and sort to the top of the history list
                         productOffer: null, 
                         qty: qty,
                         totalPrice: item.price * qty,
                         notes: notes,
                         variant: item.selectedVariant || null,
                         variantPrice: 0,
-                        deliveryAddress: deliveryAddress || null
+                        deliveryAddress: deliveryAddress || null,
+                        forceNewOrder: true // Ensure Cart Checout creates fresh threads, not mixing old dates
                     })
                 });
 

@@ -126,9 +126,18 @@ export default async function BuyerOrdersPage({
   let penaltyPercentage = 0;
   let checkoutFees: any[] = [];
   let hasCustomFees = false;
+  
+  let adminPen = 0;
+  let sellerPen = 0;
+  let legacyPen = 0;
+  let hasNewPenalties = false;
+  let penaltyDays = 1;
 
   allSettings.forEach((f) => {
-    if (f.key === "penalty_percentage") penaltyPercentage = parseInt(f.value);
+    if (f.key === "penalty_percentage_admin") { adminPen = parseInt(f.value); hasNewPenalties = true; }
+    if (f.key === "penalty_percentage_seller") { sellerPen = parseInt(f.value); hasNewPenalties = true; }
+    if (f.key === "penalty_percentage") legacyPen = parseInt(f.value);
+    if (f.key === "penalty_days") penaltyDays = parseInt(f.value);
     if (f.key === 'checkout_fees_config') {
       try {
           checkoutFees = JSON.parse(f.value);
@@ -136,6 +145,8 @@ export default async function BuyerOrdersPage({
       } catch(e) {}
     }
   });
+
+  penaltyPercentage = hasNewPenalties ? (adminPen + sellerPen) : legacyPen;
 
   if (!hasCustomFees) {
       let feeApp = 0, feeJasa = 0, feeAdmin = 0;
@@ -150,5 +161,5 @@ export default async function BuyerOrdersPage({
       if (feeAdmin || feeAdmin === 0) checkoutFees.push({ id: 'admin', name: 'Biaya Admin', value: feeAdmin, description: 'Dibebankan kepada pembeli pada saat checkout dan ikut dipotong dari hasil saldo bersih penjual.' });
   }
 
-  return <ClientBuyerOrders orders={userOrders} user={fullUser} checkoutCount={checkoutCount} checkoutFees={checkoutFees} penaltyPercentage={penaltyPercentage} />;
+  return <ClientBuyerOrders orders={userOrders} user={fullUser} checkoutCount={checkoutCount} checkoutFees={checkoutFees} penaltyPercentage={penaltyPercentage} penaltyDays={penaltyDays} />;
 }

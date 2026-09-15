@@ -61,7 +61,11 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
 
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const [checkoutFees, setCheckoutFees] = useState<any[]>([]);
-  const [penaltyPercentage, setPenaltyPercentage] = useState<number>(0);
+  const [penaltyPercentageAdmin, setPenaltyPercentageAdmin] = useState<number>(0);
+  const [penaltyPercentageSeller, setPenaltyPercentageSeller] = useState<number>(0);
+  const [penaltySellerToAdmin, setPenaltySellerToAdmin] = useState<number>(0);
+  const [penaltySellerToBuyer, setPenaltySellerToBuyer] = useState<number>(0);
+  const [penaltyDays, setPenaltyDays] = useState<number>(1);
   const [ipaymuSandbox, setIpaymuSandbox] = useState<number>(0);
   const [flipSandbox, setFlipSandbox] = useState<number>(0);
   const [feeLoading, setFeeLoading] = useState(false);
@@ -69,7 +73,11 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   useEffect(() => {
     fetch('/api/settings').then(r => r.json()).then(d => {
       setCheckoutFees(d.checkout_fees || []);
-      setPenaltyPercentage(d.penalty_percentage || 0);
+      setPenaltyPercentageAdmin(d.penalty_percentage_admin || 0);
+      setPenaltyPercentageSeller(d.penalty_percentage_seller || 0);
+      setPenaltySellerToAdmin(d.penalty_seller_to_admin || 0);
+      setPenaltySellerToBuyer(d.penalty_seller_to_buyer || 0);
+      setPenaltyDays(d.penalty_days || 1);
       setIpaymuSandbox(d.ipaymu_sandbox || 0);
       setFlipSandbox(d.flip_sandbox || 0);
     }).catch((_e) => { });
@@ -1412,12 +1420,177 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                   <div className="flex justify-between items-center mb-6">
                     <div>
                       <h2 className="text-h3">Denda Pinalti Pembatalan (%)</h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">Dikenakan kepada pembeli (potongan persen dari total pembayaran) jika membatalkan pesanan secara sepihak.</p>
+                      <p className="text-sm text-text-secondary pr-4 mt-1">Dikenakan kepada pembeli (potongan persen dari total pembayaran) jika membatalkan pesanan secara sepihak pada masa H-{penaltyDays} sebelum deadline pengiriman.</p>
                     </div>
-                    <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Ubah Pinalti (%)', input: 'number', inputValue: penaltyPercentage }); if (v) { setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ penalty_percentage: parseInt(v) }) }); setPenaltyPercentage(parseInt(v)); setFeeLoading(false); Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); } }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                    <button onClick={async () => {
+                      const { value: formValues } = await Swal.fire({
+                        title: 'Ubah Pinalti (%)',
+                        html: `
+                          <div class="flex flex-col gap-4 text-left">
+                            <div>
+                              <label class="text-caption text-text-secondary mb-1 block">Pinalti Pembatalan Admin (%)</label>
+                              <input id="swal-admin-penalty" type="number" step="1" class="input-field w-full" placeholder="Cth: 10" value="${penaltyPercentageAdmin}">
+                            </div>
+                            <div>
+                              <label class="text-caption text-text-secondary mb-1 block">Pinalti Pembatalan Penjual (%)</label>
+                              <input id="swal-seller-penalty" type="number" step="1" class="input-field w-full" placeholder="Cth: 10" value="${penaltyPercentageSeller}">
+                            </div>
+                          </div>
+                        `,
+                        focusConfirm: false,
+                        showCancelButton: true,
+                        preConfirm: () => {
+                          const adminStr = (document.getElementById('swal-admin-penalty') as HTMLInputElement).value;
+                          const sellerStr = (document.getElementById('swal-seller-penalty') as HTMLInputElement).value;
+                          if (adminStr === '' || sellerStr === '') {
+                            Swal.showValidationMessage('Semua kolom persentase wajib diisi');
+                            return false;
+                          }
+                          return { admin: parseInt(adminStr), seller: parseInt(sellerStr) };
+                        }
+                      });
+                      if (formValues) {
+                        setFeeLoading(true);
+                        await fetch('/api/settings', { 
+                          method: 'POST', 
+                          body: JSON.stringify({ 
+                            penalty_percentage_admin: formValues.admin,
+                            penalty_percentage_seller: formValues.seller,
+                            penalty_percentage: formValues.admin + formValues.seller
+                          }) 
+                        });
+                        setPenaltyPercentageAdmin(formValues.admin);
+                        setPenaltyPercentageSeller(formValues.seller);
+                        setFeeLoading(false);
+                        Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false });
+                      }
+                    }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
                   </div>
-                  <p className="text-4xl font-black text-status-warning">{penaltyPercentage}%</p>
+                  <div className="flex items-center gap-6">
+                    <div>
+                      <p className="text-4xl font-black text-status-warning">{penaltyPercentageAdmin}%</p>
+                      <span className="text-xs font-bold text-text-secondary">Admin</span>
+                    </div>
+                    <span className="text-3xl font-black text-border">+</span>
+                    <div>
+                      <p className="text-4xl font-black text-brand-primary">{penaltyPercentageSeller}%</p>
+                      <span className="text-xs font-bold text-text-secondary">Penjual</span>
+                    </div>
+                    <span className="text-3xl font-black text-border">=</span>
+                    <div>
+                      <p className="text-4xl font-black text-text-primary">{penaltyPercentageAdmin + penaltyPercentageSeller}%</p>
+                      <span className="text-xs font-bold text-text-secondary">Total Denda</span>
+                    </div>
+                  </div>
                 </div>
+
+                <div className="card md:p-6 border border-border">
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h2 className="text-h3">Denda Pinalti Penjual (%)</h2>
+                      <p className="text-sm text-text-secondary pr-4 mt-1">Dikenakan kepada penjual jika membatalkan pesanan sepihak pada masa H-{penaltyDays} (akan dikurangi dari hasil penjualan saat pencairan).</p>
+                    </div>
+                    <button onClick={async () => {
+                      const { value: formValues } = await Swal.fire({
+                        title: 'Ubah Pinalti Penjual (%)',
+                        html: `
+                          <div class="flex flex-col gap-4 text-left">
+                            <div>
+                              <label class="text-caption text-text-secondary mb-1 block">Pinalti ke Admin (%)</label>
+                              <input id="swal-seller-to-admin" type="number" step="1" class="input-field w-full" placeholder="Cth: 10" value="${penaltySellerToAdmin}">
+                            </div>
+                            <div>
+                              <label class="text-caption text-text-secondary mb-1 block">Kompensasi ke Pembeli (%)</label>
+                              <input id="swal-seller-to-buyer" type="number" step="1" class="input-field w-full" placeholder="Cth: 10" value="${penaltySellerToBuyer}">
+                            </div>
+                          </div>
+                        `,
+                        focusConfirm: false,
+                        showCancelButton: true,
+                        preConfirm: () => {
+                          const adminStr = (document.getElementById('swal-seller-to-admin') as HTMLInputElement).value;
+                          const buyerStr = (document.getElementById('swal-seller-to-buyer') as HTMLInputElement).value;
+                          if (adminStr === '' || buyerStr === '') {
+                            Swal.showValidationMessage('Semua kolom persentase wajib diisi');
+                            return false;
+                          }
+                          return { admin: parseInt(adminStr), buyer: parseInt(buyerStr) };
+                        }
+                      });
+                      if (formValues) {
+                        setFeeLoading(true);
+                        await fetch('/api/settings', { 
+                          method: 'POST', 
+                          body: JSON.stringify({ 
+                            penalty_seller_to_admin: formValues.admin,
+                            penalty_seller_to_buyer: formValues.buyer
+                          }) 
+                        });
+                        setPenaltySellerToAdmin(formValues.admin);
+                        setPenaltySellerToBuyer(formValues.buyer);
+                        setFeeLoading(false);
+                        Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false });
+                      }
+                    }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div>
+                      <p className="text-4xl font-black text-status-warning">{penaltySellerToAdmin}%</p>
+                      <span className="text-xs font-bold text-text-secondary">Ke Admin</span>
+                    </div>
+                    <span className="text-3xl font-black text-border">+</span>
+                    <div>
+                      <p className="text-4xl font-black text-brand-primary">{penaltySellerToBuyer}%</p>
+                      <span className="text-xs font-bold text-text-secondary">Kompensasi Pembeli</span>
+                    </div>
+                    <span className="text-3xl font-black text-border">=</span>
+                    <div>
+                      <p className="text-4xl font-black text-text-primary">{penaltySellerToAdmin + penaltySellerToBuyer}%</p>
+                      <span className="text-xs font-bold text-text-secondary">Total Denda Penjual</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="card md:p-6 border border-border">
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h2 className="text-h3">Batas Waktu Pembatalan (H-Hari)</h2>
+                      <p className="text-sm text-text-secondary pr-4 mt-1">Atur berapa hari (sebelum tanggal pengiriman/acara) pembatalan akan dikenakan denda pinalti.</p>
+                    </div>
+                    <button onClick={async () => {
+                      const { value: daysStr } = await Swal.fire({
+                        title: 'Atur Batas Hari (H-)',
+                        input: 'number',
+                        inputValue: penaltyDays,
+                        inputLabel: 'Contoh: 1 (Berarti H-1)',
+                        showCancelButton: true,
+                        inputValidator: (val) => {
+                          if (!val) return 'Nilai tidak boleh kosong';
+                          return null;
+                        }
+                      });
+                      if (daysStr) {
+                        setFeeLoading(true);
+                        await fetch('/api/settings', {
+                          method: 'POST',
+                          body: JSON.stringify({
+                            penalty_days: parseInt(daysStr)
+                          })
+                        });
+                        setPenaltyDays(parseInt(daysStr));
+                        setFeeLoading(false);
+                        Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false });
+                      }
+                    }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div>
+                      <p className="text-4xl font-black text-brand-primary">H-{penaltyDays}</p>
+                      <span className="text-xs font-bold text-text-secondary">Sebelum Pengiriman</span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="card md:p-6 border border-border">
                   <div className="flex justify-between items-center mb-6">
                     <div>

@@ -17,9 +17,13 @@ interface SellerOrderDetailProps {
     onUploadDelivery: (orderId: string) => void;
     checkoutFees?: any[];
     penaltyPercentage?: number;
+    penaltyDays?: number;
+    penaltySellerToAdmin?: number;
+    penaltySellerToBuyer?: number;
+    allBuyerOrders?: OrderItem[];
 }
 
-export default function SellerOrderDetail({ order, user, onBack, onUpdateStatus, onUploadDispatch, onUploadDelivery, checkoutFees = [], penaltyPercentage = 0 }: SellerOrderDetailProps) {
+export default function SellerOrderDetail({ order, allBuyerOrders, user, onBack, onUpdateStatus, onUploadDispatch, onUploadDelivery, checkoutFees = [], penaltyPercentage = 0, penaltyDays = 1, penaltySellerToAdmin = 0, penaltySellerToBuyer = 0 }: SellerOrderDetailProps) {
     const isCompleted = order.status === 'completed';
     const isCancelled = order.status === 'cancelled';
     const isProcessing = order.status === 'processing';
@@ -31,9 +35,35 @@ export default function SellerOrderDetail({ order, user, onBack, onUpdateStatus,
     const [inputText, setInputText] = useState("");
     const [activeDetailTab, setActiveDetailTab] = useState<'rincian' | 'info'>('rincian');
 
-    const effectiveQty = Math.max(order.qty, order.minOrderQty || 1);
-    const orderUnitPrice = order.qty > 0 ? order.totalPrice / order.qty : 0;
-    const effectiveTotalPrice = orderUnitPrice * effectiveQty;
+    const groupKey = (() => {
+      let key = order.id;
+      if (order.status !== 'cancelled' && order.status !== 'failed' && order.status !== 'completed' && !(order as any).paymentId) {
+          const timeString = order.createdAt ? new Date(order.createdAt as string).toISOString().substring(0, 16) : '0';
+          key = 'active_' + (order.buyerId || 'none') + '_' + timeString;
+      } else if ((order as any).paymentId) {
+          key = 'paid_' + (order as any).paymentId;
+      }
+      return key;
+    })();
+
+    const relatedOrders = allBuyerOrders?.filter((o: any) => {
+      if (o.buyerId !== order.buyerId) return false;
+      let oKey = o.id;
+      if (o.status !== 'cancelled' && o.status !== 'failed' && o.status !== 'completed' && !o.paymentId) {
+          const timeString = o.createdAt ? new Date(o.createdAt as string).toISOString().substring(0, 16) : '0';
+          oKey = 'active_' + (o.buyerId || 'none') + '_' + timeString;
+      } else if (o.paymentId) {
+          oKey = 'paid_' + o.paymentId;
+      }
+      return oKey === groupKey;
+    }) || [order];
+
+    const effectiveTotalPrice = relatedOrders.reduce((sum: number, o: any) => {
+        const eq = Math.max(o.qty, o.minOrderQty || 1);
+        const up = o.qty > 0 ? o.totalPrice / o.qty : 0;
+        return sum + (up * eq);
+    }, 0);
+
     const totalFees = checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0);
     const displayedTotalPrice = effectiveTotalPrice + totalFees;
 
@@ -66,7 +96,7 @@ export default function SellerOrderDetail({ order, user, onBack, onUpdateStatus,
                 <div className="px-5 py-3 flex flex-col md:flex-row md:justify-between items-start md:items-center gap-3 bg-white shadow-[0_4px_10px_-10px_rgba(0,0,0,0.1)] min-w-0 max-w-full">
                     <div className="flex-1 min-w-0 mr-4">
                         <h1 className="text-xl md:text-2xl font-black text-gray-800 tracking-tight truncate">
-                            {order.id}
+                            {order.id} {relatedOrders.length > 1 ? `(+${relatedOrders.length - 1} lainnya)` : ''}
                         </h1>
                     </div>
                     <div className="flex items-center w-full md:w-auto overflow-x-auto pb-2 md:pb-0 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -221,27 +251,34 @@ export default function SellerOrderDetail({ order, user, onBack, onUpdateStatus,
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr className="border-b border-gray-100 hover:bg-gray-50 align-top">
-                                        <td className="px-4 py-3 font-semibold text-brand-primary">{order.productName}</td>
-                                        <td className="px-4 py-3 text-gray-600 italic max-w-[200px] break-words">
-                                            {order.notes || "Tidak ada catatan."}
-                                        </td>
-                                        <td className="px-4 py-3 font-medium text-gray-700">
-                                            {order.selectedVariant ? (
-                                                <div className="flex flex-col">
-                                                    <span>{order.selectedVariant}</span>
-                                                    {order.selectedVariantPrice ? (
-                                                        <span className="text-[11px] text-gray-500 font-semibold">+ Rp {order.selectedVariantPrice.toLocaleString('id-ID')}</span>
-                                                    ) : null}
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-600 italic font-normal">Tidak ada tambahan varian.</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3 text-right font-medium">{effectiveQty} porsi</td>
-                                        <td className="px-4 py-3 text-right">Rp {orderUnitPrice.toLocaleString('id-ID')}</td>
-                                        <td className="px-4 py-3 text-right font-bold text-gray-800">Rp {effectiveTotalPrice.toLocaleString('id-ID')}</td>
-                                    </tr>
+                                    {relatedOrders.map((o: any) => {
+                                        const eq = Math.max(o.qty, o.minOrderQty || 1);
+                                        const up = o.qty > 0 ? o.totalPrice / o.qty : 0;
+                                        const total = up * eq;
+                                        return (
+                                            <tr key={o.id} className="border-b border-gray-100 hover:bg-gray-50 align-top">
+                                                <td className="px-4 py-3 font-semibold text-brand-primary">{o.productName}</td>
+                                                <td className="px-4 py-3 text-gray-600 italic max-w-[200px] break-words">
+                                                    {o.notes || "Tidak ada catatan."}
+                                                </td>
+                                                <td className="px-4 py-3 font-medium text-gray-700">
+                                                    {o.selectedVariant ? (
+                                                        <div className="flex flex-col">
+                                                            <span>{o.selectedVariant}</span>
+                                                            {o.selectedVariantPrice ? (
+                                                                <span className="text-[11px] text-gray-500 font-semibold">+ Rp {o.selectedVariantPrice.toLocaleString('id-ID')}</span>
+                                                            ) : null}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-600 italic font-normal">Tidak ada tambahan varian.</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-medium">{eq} porsi</td>
+                                                <td className="px-4 py-3 text-right">Rp {up.toLocaleString('id-ID')}</td>
+                                                <td className="px-4 py-3 text-right font-bold text-gray-800">Rp {total.toLocaleString('id-ID')}</td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                             <div className="flex justify-end p-6 bg-gray-50">
@@ -271,9 +308,13 @@ export default function SellerOrderDetail({ order, user, onBack, onUpdateStatus,
                                 <div className="bg-orange-50 border border-orange-200 p-4 rounded-md">
                                     <h4 className="font-bold text-orange-800 mb-2">Kebijakan Denda Pembatalan</h4>
                                     <ul className="list-disc pl-5 space-y-2 text-orange-900/80">
-                                        <li>Apabila pembeli membatalkan pesanan setelah pesanan diproses atau dikonfirmasi oleh penjual, sistem dapat membebankan denda pembatalan.</li>
-                                        <li><strong>Nominal Denda:</strong> Ditetapkan sebesar <strong>{penaltyPercentage}%</strong> dari Subtotal Produk (setara dengan <strong>Rp {((penaltyPercentage / 100) * effectiveTotalPrice).toLocaleString('id-ID')}</strong>) jika bahan telah dibeli penjual, atau persentase lain yang disepakati/ditetapkan sistem.</li>
+                                        <li>Apabila pembeli membatalkan pesanan pada periode H-{penaltyDays} sebelum deadline pengiriman pemesanan, maka sistem otomatis membebankan denda pembatalan.</li>
+                                        <li><strong>Nominal Denda (Pembeli Batal):</strong> Ditetapkan sebesar <strong>{penaltyPercentage}%</strong> dari Subtotal Produk (setara dengan <strong>Rp {((penaltyPercentage / 100) * effectiveTotalPrice).toLocaleString('id-ID')}</strong>) jika pembatalan dilakukan pada H-{penaltyDays} sebelum deadline.</li>
                                         <li>Dana pengembalian setelah dikurangi denda akan diproses ke rekening pembeli yang didaftarkan.</li>
+                                        <hr className="my-2 border-orange-200" />
+                                        <li>Apabila <strong>penjual</strong> melakukan pembatalan pesanan sepihak pada periode H-{penaltyDays} sebelum deadline, maka penjual akan dikenakan pinalti.</li>
+                                        <li>Jika penjual masih dalam <strong>status proses yang melebihi batas waktu (tanggal/hari) yang sudah ditentukan dan disetujui</strong>, meskipun pembeli sudah melakukan pembayaran lunas, maka penjual otomatis dianggap melakukan wanprestasi/pembatalan terlambat dan dikenakan pinalti yang sama.</li>
+                                        <li><strong>Potongan Saldo Penjual:</strong> Total <strong>{penaltySellerToAdmin + penaltySellerToBuyer}%</strong> (<strong>{penaltySellerToAdmin}%</strong> kepada Admin dan <strong>{penaltySellerToBuyer}%</strong> kompensasi ke Pembeli).</li>
                                     </ul>
                                 </div>
                             </div>
@@ -287,14 +328,14 @@ export default function SellerOrderDetail({ order, user, onBack, onUpdateStatus,
                         user={user || null}
                         initialOrderId={order.id}
                         isEmbedded={true}
-                        sellerThreads={[{
-                            orderId: order.id,
-                            buyerName: order.buyerName,
-                            productName: order.productName,
-                            unreadCount: 0,
-                            createdAt: order.createdAt
-                        }]}
-                        sellerOrders={[order]}
+                        sellerThreads={relatedOrders.map((o: any) => ({
+                            orderId: o.id,
+                            buyerName: o.buyerName,
+                            productName: o.productName,
+                            unreadCount: o.unreadCount || 0,
+                            createdAt: o.createdAt
+                        }))}
+                        sellerOrders={relatedOrders}
                     />
                 </div>
             </div>

@@ -8,15 +8,25 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const feeSettings = await db.select().from(settings).where(inArray(settings.key, ["fee_aplikasi", "fee_jasa", "fee_admin", "penalty_percentage", "ipaymu_sandbox", "checkout_fees_config", "flip_sandbox"])).all();
+    const feeSettings = await db.select().from(settings).where(inArray(settings.key, ["fee_aplikasi", "fee_jasa", "fee_admin", "penalty_percentage", "penalty_percentage_admin", "penalty_percentage_seller", "penalty_seller_to_admin", "penalty_seller_to_buyer", "penalty_days", "ipaymu_sandbox", "checkout_fees_config", "flip_sandbox"])).all();
 
     let penaltyPercentage = 0;
+    let penaltyPercentageAdmin = 0;
+    let penaltyPercentageSeller = 0;
+    let penaltySellerToAdmin = 0;
+    let penaltySellerToBuyer = 0;
+    let penaltyDays = 1;
     let ipaymuSandbox = 0;
     let checkoutFees: any[] = [];
     let hasCustomFees = false;
 
     feeSettings.forEach(f => {
       if (f.key === 'penalty_percentage') penaltyPercentage = parseInt(f.value);
+      if (f.key === 'penalty_percentage_admin') penaltyPercentageAdmin = parseInt(f.value);
+      if (f.key === 'penalty_percentage_seller') penaltyPercentageSeller = parseInt(f.value);
+      if (f.key === 'penalty_seller_to_admin') penaltySellerToAdmin = parseInt(f.value);
+      if (f.key === 'penalty_seller_to_buyer') penaltySellerToBuyer = parseInt(f.value);
+      if (f.key === 'penalty_days') penaltyDays = parseInt(f.value);
       if (f.key === 'ipaymu_sandbox') ipaymuSandbox = parseInt(f.value);
       if (f.key === 'flip_sandbox') { /* handled separately below */ }
       if (f.key === 'checkout_fees_config') {
@@ -52,6 +62,11 @@ export async function GET() {
     return NextResponse.json({ 
         checkout_fees: checkoutFees, 
         penalty_percentage: penaltyPercentage, 
+        penalty_percentage_admin: penaltyPercentageAdmin,
+        penalty_percentage_seller: penaltyPercentageSeller || penaltyPercentage,
+        penalty_seller_to_admin: penaltySellerToAdmin,
+        penalty_seller_to_buyer: penaltySellerToBuyer,
+        penalty_days: penaltyDays,
         ipaymu_sandbox: ipaymuSandbox,
         flip_sandbox: flipSandbox
     });
@@ -73,6 +88,11 @@ export async function POST(request: Request) {
     const updates = [];
     if (body.checkout_fees !== undefined) updates.push({ key: "checkout_fees_config", value: JSON.stringify(body.checkout_fees) });
     if (body.penalty_percentage !== undefined) updates.push({ key: "penalty_percentage", value: body.penalty_percentage.toString() });
+    if (body.penalty_percentage_admin !== undefined) updates.push({ key: "penalty_percentage_admin", value: body.penalty_percentage_admin.toString() });
+    if (body.penalty_percentage_seller !== undefined) updates.push({ key: "penalty_percentage_seller", value: body.penalty_percentage_seller.toString() });
+    if (body.penalty_seller_to_admin !== undefined) updates.push({ key: "penalty_seller_to_admin", value: body.penalty_seller_to_admin.toString() });
+    if (body.penalty_seller_to_buyer !== undefined) updates.push({ key: "penalty_seller_to_buyer", value: body.penalty_seller_to_buyer.toString() });
+    if (body.penalty_days !== undefined) updates.push({ key: "penalty_days", value: body.penalty_days.toString() });
     if (body.ipaymu_sandbox !== undefined) updates.push({ key: "ipaymu_sandbox", value: body.ipaymu_sandbox.toString() });
     if (body.flip_sandbox !== undefined) updates.push({ key: "flip_sandbox", value: body.flip_sandbox.toString() });
 

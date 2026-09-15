@@ -21,12 +21,14 @@ export default function ClientBuyerOrders({
   checkoutCount = 0,
   checkoutFees = [],
   penaltyPercentage = 0,
+  penaltyDays = 1,
 }: {
   orders: BuyerOrderViewItem[];
   user?: AuthUser | null;
   checkoutCount?: number;
   checkoutFees?: any[];
   penaltyPercentage?: number;
+  penaltyDays?: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -112,9 +114,10 @@ export default function ClientBuyerOrders({
     const groups: Record<string, BuyerOrderViewItem[]> = {};
     filteredLocalOrders.forEach(o => {
       let key = o.orderId; // default fallback
-      if (o.status !== 'cancelled' && o.status !== 'failed' && o.status !== 'completed') {
-          // Group all active/ongoing orders from the same seller into one unified view
-          key = 'active_' + o.sellerId;
+      if (o.status !== 'cancelled' && o.status !== 'failed' && o.status !== 'completed' && !o.paymentId) {
+          // Group active orders from the same seller IF they were created at the exact same minute (multi-product checkout from cart)
+          const timeString = o.createdAt ? new Date(o.createdAt as string).toISOString().substring(0, 16) : '0';
+          key = 'active_' + o.sellerId + '_' + timeString;
       } else if (o.paymentId) {
           key = 'paid_' + o.paymentId;
       }
@@ -671,7 +674,7 @@ export default function ClientBuyerOrders({
     });
 
     try {
-      const res = await fetch('/api/ipaymu/create-payment', {
+      const res = await fetch('/api/flip/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId }),
@@ -691,7 +694,7 @@ export default function ClientBuyerOrders({
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
 
-      if (errMsg.toLowerCase().includes('ipaymu') || errMsg.toLowerCase().includes('invalid ip')) {
+      if (errMsg.toLowerCase().includes('ipaymu') || errMsg.toLowerCase().includes('invalid ip') || errMsg.toLowerCase().includes('flip')) {
         const userMsg = 'Mohon maaf, sistem layanan pembayaran sedang mengalami kendala. Silakan coba beberapa saat lagi atau hubungi tim bantuan.';
         const isDev = process.env.NODE_ENV === 'development';
 
@@ -1206,14 +1209,18 @@ export default function ClientBuyerOrders({
                     </div>
                   </div>
                   <div className="flex-1 overflow-y-auto">
-                    {filteredLocalOrders.map((order) => (
-
+                    {groupedOrders.map((group) => {
+                      const order = group[0];
+                      const isSelected = group.some(o => o.orderId === selectedOrderId);
+                      const totalUnread = group.reduce((sum, o) => sum + (o.unreadCount || 0), 0);
+                      
+                      return (
                       <div
                         key={order.orderId}
                         onClick={() => setSelectedOrderId(order.orderId)}
-                        className={`p-4 justify-between items-start border-b border-border hover:bg-gray-50/80 cursor-pointer transition-colors relative flex gap-3 ${selectedOrderId === order.orderId ? 'bg-brand-primary/5' : ''}`}
+                        className={`p-4 justify-between items-start border-b border-border hover:bg-gray-50/80 cursor-pointer transition-colors relative flex gap-3 ${isSelected ? 'bg-brand-primary/5' : ''}`}
                       >
-                        {selectedOrderId === order.orderId && <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary rounded-r-full"></div>}
+                        {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary rounded-r-full"></div>}
                         <div className="w-10 h-10 rounded-full flex items-center justify-center bg-brand-primary/10 text-brand-primary font-bold text-sm border border-brand-primary/20 shrink-0 select-none shadow-sm">
                           {(order.storeName || 'P').charAt(0).toUpperCase()}
                         </div>
@@ -1222,7 +1229,9 @@ export default function ClientBuyerOrders({
                             <span className="font-bold text-[13px] text-gray-900 truncate pr-2">{order.storeName || 'Toko UMKM'}</span>
                             <span className="text-[10px] text-gray-500 whitespace-nowrap">{formatOrderDate(order.createdAt).split(',')[0]}</span>
                           </div>
-                          <div className="text-[12px] font-medium text-gray-700 truncate mb-1 pr-2">{order.productName}</div>
+                          <div className="text-[12px] font-medium text-gray-700 truncate mb-1 pr-2">
+                            {order.productName} {group.length > 1 ? `(+${group.length - 1} lainnya)` : ''}
+                          </div>
 
                           {/* Status Badge */}
                           {(() => {
@@ -1269,16 +1278,24 @@ export default function ClientBuyerOrders({
 
                             return (
                               <div className="flex items-center justify-between mt-2">
-                                <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${badgeClass}`}>
-                                  {badgeLabel}
-                                </span>
-                                {(order.unreadCount || 0) > 0 ? <span className="w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">{(order.unreadCount || 0)}</span> : null}
+                                <div className="flex items-center gap-1">
+                                  <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${badgeClass}`}>
+                                    {badgeLabel}
+                                  </span>
+                                  {order.negotiationStatus === 'approved' && badgeLabel !== 'Disetujui' && (
+                                    <span className="inline-flex px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-bold">
+                                      Telah Disetujui
+                                    </span>
+                                  )}
+                                </div>
+                                {(totalUnread) > 0 ? <span className="w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">{(totalUnread)}</span> : null}
                               </div>
                             );
                           })()}
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                 </div>
 
@@ -1306,9 +1323,8 @@ export default function ClientBuyerOrders({
                             handleCancelOrder(group[0].orderId, group[0].productName);
                           }}
                           checkoutFees={checkoutFees}
-                          
-                          
                           penaltyPercentage={penaltyPercentage}
+                          penaltyDays={penaltyDays}
                         />
                       ))}
                     </div>

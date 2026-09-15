@@ -16,9 +16,10 @@ interface ClientOrderDetailProps {
     onCancelOrder: () => void;
     checkoutFees?: any[];
     penaltyPercentage?: number;
+    penaltyDays?: number;
 }
 
-export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab, onCancelOrder, checkoutFees = [], penaltyPercentage = 0 }: ClientOrderDetailProps) {
+export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab, onCancelOrder, checkoutFees = [], penaltyPercentage = 0, penaltyDays = 1 }: ClientOrderDetailProps) {
     if (!orders || orders.length === 0) return null;
     const order = orders[0];
     const isCompleted = order.status === 'completed';
@@ -339,9 +340,17 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
                                 </tbody>
                             </table>
                             <div className="flex justify-end p-6 bg-gray-50">
-                                <div className="w-full max-w-[300px]">
-                                    <div className="flex justify-between py-1.5 text-sm">
-                                        <span className="text-gray-600 font-bold">Subtotal Produk:</span>
+                                <div className="w-full max-w-[350px]">
+                                    <div className="flex items-center justify-between py-1.5 text-sm gap-2">
+                                        <div className="flex items-center gap-2">
+                                            {orders.some((o) => o.negotiationStatus === 'approved') && (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded border-2 border-dashed border-emerald-500 bg-emerald-50 text-emerald-700 text-[10px] font-extrabold uppercase tracking-wider transform -rotate-2 select-none shadow-sm" style={{ fontVariant: 'small-caps' }}>
+                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                                    Telah Disetujui
+                                                </span>
+                                            )}
+                                            <span className="text-gray-600 font-bold">Subtotal Produk:</span>
+                                        </div>
                                         <span className="font-semibold text-gray-800">Rp {effectiveTotalPrice.toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex flex-col gap-1 pb-1.5 text-[11px] text-gray-500 pl-4 border-l-2 border-brand-primary/20 ml-2 mb-2">
@@ -367,8 +376,8 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
                                 <div className="bg-orange-50 border border-orange-200 p-4 rounded-md">
                                     <h4 className="font-bold text-orange-800 mb-2">Kebijakan Denda Pembatalan</h4>
                                     <ul className="list-disc pl-5 space-y-2 text-orange-900/80">
-                                        <li>Apabila pembeli membatalkan pesanan setelah pesanan diproses atau dikonfirmasi oleh penjual, sistem dapat membebankan denda pembatalan.</li>
-                                        <li><strong>Nominal Denda:</strong> Ditetapkan sebesar <strong>{penaltyPercentage}%</strong> dari Subtotal Produk (setara dengan <strong>Rp {((penaltyPercentage / 100) * effectiveTotalPrice).toLocaleString('id-ID')}</strong>) jika bahan telah dibeli penjual, atau persentase lain yang disepakati/ditetapkan sistem.</li>
+                                        <li>Apabila pembeli membatalkan pesanan pada periode H-{penaltyDays} sebelum deadline pengiriman pemesanan, maka sistem otomatis membebankan denda pembatalan.</li>
+                                        <li><strong>Nominal Denda:</strong> Ditetapkan sebesar <strong>{penaltyPercentage}%</strong> dari Subtotal Produk (setara dengan <strong>Rp {((penaltyPercentage / 100) * effectiveTotalPrice).toLocaleString('id-ID')}</strong>) jika pembatalan dilakukan pada H-{penaltyDays} sebelum deadline.</li>
                                         <li>Dana pengembalian setelah dikurangi denda akan diproses ke rekening pembeli yang didaftarkan.</li>
                                     </ul>
                                 </div>

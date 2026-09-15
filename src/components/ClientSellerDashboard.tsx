@@ -54,6 +54,9 @@ type ClientSellerDashboardProps = {
   promotionOffers?: PromotionOfferItem[];
   promotionRequests?: PromotionRequestItem[];
   penaltyPercentage?: number;
+  penaltyDays?: number;
+  penaltySellerToAdmin?: number;
+  penaltySellerToBuyer?: number;
 };
 
 export default function ClientSellerDashboard({
@@ -69,6 +72,9 @@ export default function ClientSellerDashboard({
   promotionOffers = [],
   promotionRequests = [],
   penaltyPercentage = 0,
+  penaltyDays = 1,
+  penaltySellerToAdmin = 0,
+  penaltySellerToBuyer = 0,
 }: ClientSellerDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'pesanan_masuk' | 'produk' | 'promosi' | 'keuangan' | 'pengaturan' | 'pesanan_dikembalikan'>('produk');
@@ -1619,8 +1625,8 @@ export default function ClientSellerDashboard({
                 </div>
 
                 <div className="flex w-full min-w-0 h-[calc(100vh-170px)] bg-surface border border-border sm:rounded-xl shadow-sm overflow-hidden relative">
-                  {/* SIDEBAR: Order List */}
-                  <div className={`w-full md:w-[220px] lg:w-[220px] xl:w-[240px] 2xl:w-[280px] shrink-0 border-r border-border flex flex-col h-full bg-surface-secondary/50 ${selectedOrderId ? 'hidden' : 'flex'}`}>
+                  {/* SIDEBAR: Order List - always visible on desktop, hidden on mobile when order selected */}
+                  <div className={`w-full md:w-[240px] lg:w-[260px] xl:w-[280px] 2xl:w-[320px] shrink-0 border-r border-border flex flex-col h-full bg-surface-secondary/50 ${selectedOrderId ? 'hidden md:flex' : 'flex'}`}>
                     <div className="p-4 border-b border-border bg-surface flex flex-col gap-3 sticky top-0 z-10 shrink-0">
                       <h2 className="font-bold text-lg text-text-primary flex items-center gap-2">
                         <MessageCircle className="w-5 h-5 text-brand-primary" />
@@ -1642,56 +1648,90 @@ export default function ClientSellerDashboard({
                         <div className="p-10 text-center text-text-secondary">
                           Belum ada pesanan masuk.
                         </div>
-                      ) : (
-                        filteredSellerOrders.map((order) => (
+                      ) : (() => {
+                        const groups: Record<string, any[]> = {};
+                        filteredSellerOrders.forEach(o => {
+                          let key = o.id;
+                          if (o.status !== 'cancelled' && o.status !== 'failed' && o.status !== 'completed' && !(o as any).paymentId) {
+                              const timeString = o.createdAt ? new Date(o.createdAt as string).toISOString().substring(0, 16) : '0';
+                              key = 'active_' + (o.buyerId || 'none') + '_' + timeString;
+                          } else if ((o as any).paymentId) {
+                              key = 'paid_' + (o as any).paymentId;
+                          }
+                          if (!groups[key]) groups[key] = [];
+                          groups[key].push(o);
+                        });
+                        const groupedArrays = Object.values(groups);
+
+                        return groupedArrays.map((group) => {
+                          const order = group[0];
+                          const isSelected = group.some(o => o.id === selectedOrderId);
+                          const isResponded = group.some(o => o.isResponded === true);
+                          const totalUnread = group.reduce((sum, o) => sum + ((o.isRead === false) ? 1 : 0), 0);
+                          
+                          return (
                           <div
                             key={order.id}
                             onClick={() => handleSelectOrder(order.id)}
-                            className={`p-4 justify-between items-start border-b border-border hover:bg-surface-secondary cursor-pointer transition-colors relative flex gap-3 ${selectedOrderId === order.id ? 'bg-brand-primary/5' : ''}`}
+                            className={`p-4 justify-between items-start border-b border-border hover:bg-surface-secondary cursor-pointer transition-colors relative flex gap-3 ${isSelected ? 'bg-brand-primary/5' : ''}`}
                           >
-                            {selectedOrderId === order.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary rounded-r-full"></div>}
+                            {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary rounded-r-full"></div>}
                             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-brand-primary/10 text-brand-primary font-bold text-sm border border-brand-primary/20 shrink-0 select-none shadow-sm">
                               {(order.buyerName || 'B').charAt(0).toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex justify-between items-start mb-0.5">
                                 <span className="font-bold text-[13px] text-text-primary truncate pr-2">{order.buyerName || 'Pembeli'}</span>
-                                <span className="text-[10px] text-text-secondary whitespace-nowrap">{formatShortDateTimeWIB(order.createdAt || Date.now()).split(' ')[0]}</span>
+                                <span className="text-[10px] text-text-secondary whitespace-nowrap">{formatShortDateTimeWIB(order.createdAt || Date.now()).split(',')[0]}</span>
                               </div>
-                              <div className="text-[12px] font-medium text-text-primary truncate mb-1 pr-2">{order.productName}</div>
+                              <div className="text-[12px] font-medium text-text-primary truncate mb-1 pr-2">
+                                {order.productName} {group.length > 1 ? `(+${group.length - 1} lainnya)` : ''}
+                              </div>
 
                               <div className="flex items-center justify-between mt-2">
-                                <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${(order.status === 'cancelled' || order.status === 'failed') ? 'bg-red-100 text-red-700'
-                                  : order.status === 'completed' ? 'bg-green-100 text-green-700'
-                                    : order.status === 'waiting_verification' ? 'bg-yellow-100 text-yellow-800'
-                                      : order.status === 'chat_only' ? 'bg-sky-100 text-sky-700'
-                                        : 'bg-indigo-100 text-indigo-700'
-                                  }`}>
-                                  {order.status === 'cancelled' ? 'Batal'
-                                    : order.status === 'failed' ? 'Batal'
-                                      : order.status === 'completed' ? 'Selesai'
-                                        : order.status === 'waiting_verification' ? 'Menunggu Bayar'
-                                          : order.status === 'verified' ? 'Pesanan Masuk'
-                                            : order.status === 'preorder_running' ? 'Dijadwalkan'
-                                              : order.status === 'processing' ? 'Proses'
-                                                : order.status === 'chat_only' ? 'Penawaran'
-                                                  : 'Proses'}
-                                </span>
-                                {(order.isRead === false) ? <span className="w-2 h-2 bg-red-500 rounded-full"></span> : null}
+                                <div className="flex items-center gap-1">
+                                  <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${(order.status === 'cancelled' || order.status === 'failed') ? 'bg-red-100 text-red-700'
+                                    : order.status === 'completed' ? 'bg-green-100 text-green-700'
+                                      : order.status === 'waiting_verification' ? 'bg-yellow-100 text-yellow-800'
+                                        : order.status === 'chat_only' ? 'bg-sky-100 text-sky-700'
+                                          : 'bg-indigo-100 text-indigo-700'
+                                    }`}>
+                                    {order.status === 'cancelled' ? 'Batal'
+                                      : order.status === 'failed' ? 'Batal'
+                                        : order.status === 'completed' ? 'Selesai'
+                                          : order.status === 'waiting_verification' ? 'Menunggu Bayar'
+                                            : order.status === 'verified' ? 'Pesanan Masuk'
+                                              : order.status === 'preorder_running' ? 'Diproses'
+                                                : order.status === 'processing' ? 'Dikirim'
+                                                  : order.status === 'chat_only' ? 'Penawaran'
+                                                    : 'Diproses'}
+                                  </span>
+                                  {isResponded && (
+                                    <span className="inline-flex px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-bold">
+                                      Sudah Direspon
+                                    </span>
+                                  )}
+                                </div>
+                                {totalUnread > 0 ? (
+                                  <span className="w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
+                                    {totalUnread}
+                                  </span>
+                                ) : null}
                               </div>
                             </div>
                           </div>
-                        ))
-                      )}
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
 
-                  {/* MAIN CONTENT: Order Detail + Chat */}
-                  <div className={`flex-1 h-full bg-base overflow-y-auto ${!selectedOrderId ? 'hidden' : 'block'} w-full min-w-0 relative`}>
+                  {/* MAIN CONTENT: Order Detail + Chat - always visible on desktop */}
+                  <div className={`flex-1 h-full bg-base overflow-y-auto w-full min-w-0 relative ${!selectedOrderId ? 'hidden md:flex md:items-center md:justify-center' : 'block'}`}>
                     {selectedOrderId ? (
                       <div className="w-full h-full min-w-0">
-                        {/* Desktop & Mobile Back Button */}
-                        <div className="sticky top-0 z-50 bg-surface border-b border-border p-3 shadow-sm shrink-0">
+                        {/* Mobile Back Button only */}
+                        <div className="md:hidden sticky top-0 z-50 bg-surface border-b border-border p-3 shadow-sm shrink-0">
                           <button
                             onClick={() => setSelectedOrderId(null)}
                             className="flex items-center gap-1.5 text-text-primary font-bold text-sm bg-surface-secondary px-3 py-1.5 rounded-md hover:bg-border/50 transition-colors"
@@ -1703,6 +1743,7 @@ export default function ClientSellerDashboard({
                           <SellerOrderDetail
                             key={order.id}
                             order={order}
+                            allBuyerOrders={sellerOrders.filter(o => o.buyerId === order.buyerId)}
                             onBack={() => setSelectedOrderId(null)}
                             user={{
                               id: profile?.userId || '',
@@ -1741,15 +1782,18 @@ export default function ClientSellerDashboard({
                             onUploadDelivery={async (id) => handleUploadDeliveryProof(id)}
                             checkoutFees={checkoutFees}
                             penaltyPercentage={penaltyPercentage}
+                            penaltyDays={penaltyDays}
+                            penaltySellerToAdmin={penaltySellerToAdmin}
+                            penaltySellerToBuyer={penaltySellerToBuyer}
                           />
                         ))}
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-text-secondary p-6">
+                      <div className="hidden md:flex flex-col items-center justify-center h-full text-text-secondary p-6">
                         <ShoppingBag className="w-16 h-16 mb-4 text-border opacity-50" />
                         <p className="font-bold text-lg text-text-primary">Pilih Pesanan</p>
                         <p className="text-center text-sm max-w-[250px] mt-2">
-                          Silakan pilih salah satu pesanan dari daftar di samping untuk melihat detail dan chat dengan pembeli.
+                          Klik salah satu pesanan di sebelah kiri untuk melihat rincian dan chat dengan pembeli.
                         </p>
                       </div>
                     )}
