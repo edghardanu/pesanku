@@ -110,18 +110,18 @@ export default function ClientBuyerOrders({
     });
 
   // Untuk tab chats, pisahkan chat_only dan order biasa yg ada pesan baru dari seller
-    const groupedOrders = useMemo(() => {
+  const groupedOrders = useMemo(() => {
     const groups: Record<string, BuyerOrderViewItem[]> = {};
     filteredLocalOrders.forEach(o => {
       let key = o.orderId; // default fallback
       if (o.status !== 'cancelled' && o.status !== 'failed' && o.status !== 'completed' && !o.paymentId) {
-          // Group active orders from the same seller IF they were created at the exact same minute (multi-product checkout from cart)
-          const timeString = o.createdAt ? new Date(o.createdAt as string).toISOString().substring(0, 16) : '0';
-          key = 'active_' + o.sellerId + '_' + timeString;
+        // Group active orders from the same seller IF they were created at the exact same minute (multi-product checkout from cart)
+        const timeString = o.createdAt ? new Date(o.createdAt as string).toISOString().substring(0, 16) : '0';
+        key = 'active_' + o.sellerId + '_' + timeString;
       } else if (o.paymentId) {
-          key = 'paid_' + o.paymentId;
+        key = 'paid_' + o.paymentId;
       }
-      
+
       if (!groups[key]) groups[key] = [];
       groups[key].push(o);
     });
@@ -371,41 +371,41 @@ export default function ClientBuyerOrders({
 
     // Optimistic update: ubah status jadi cancelled
     setLocalOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, status: 'cancelled' } : o));
-      
+
     Swal.fire({
-        title: isPaid ? 'Memproses Refund...' : 'Membatalkan...',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
+      title: isPaid ? 'Memproses Refund...' : 'Membatalkan...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    try {
+      const res = await fetch('/api/orders/cancel', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, cancelBankCode, cancelBankAccount }),
       });
 
-      try {
-        const res = await fetch('/api/orders/cancel', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId, cancelBankCode, cancelBankAccount }),
-        });
+      const json = await res.json();
 
-        const json = await res.json();
-
-        if (!res.ok) {
-          throw new Error(json.error || 'Gagal membatalkan pesanan');
-        }
-
-        Swal.fire({
-          title: 'Berhasil',
-          text: isPaid ? 'Pesanan dibatalkan & eksekusi refund berhasil diproses.' : 'Pesanan Anda telah berhasil dibatalkan.',
-          icon: 'success',
-          timer: 2000,
-          showConfirmButton: false
-        });
-
-        router.refresh();
-      } catch (error) {
-        // Rollback optimistic update
-        setLocalOrders(orders);
-        const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
-        Swal.fire('Gagal!', errMsg, 'error');
+      if (!res.ok) {
+        throw new Error(json.error || 'Gagal membatalkan pesanan');
       }
+
+      Swal.fire({
+        title: 'Berhasil',
+        text: isPaid ? 'Pesanan dibatalkan & eksekusi refund berhasil diproses.' : 'Pesanan Anda telah berhasil dibatalkan.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+
+      router.refresh();
+    } catch (error) {
+      // Rollback optimistic update
+      setLocalOrders(orders);
+      const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
+      Swal.fire('Gagal!', errMsg, 'error');
+    }
   };
 
   const handleDeleteChatSection = async (orderId: string, storeName: string) => {
@@ -694,7 +694,7 @@ export default function ClientBuyerOrders({
     } catch (error) {
       Swal.fire({
         icon: 'error',
-        title: 'Gagal Memproses Pembayaran',
+        title: 'Pembayaran Gagal',
         text: 'Mohon maaf, sistem layanan pembayaran sedang mengalami kendala. Silakan coba beberapa saat lagi atau hubungi tim bantuan.',
         confirmButtonColor: '#800000',
       });
@@ -1187,88 +1187,88 @@ export default function ClientBuyerOrders({
                       const order = group[0];
                       const isSelected = group.some(o => o.orderId === selectedOrderId);
                       const totalUnread = group.reduce((sum, o) => sum + (o.unreadCount || 0), 0);
-                      
+
                       return (
-                      <div
-                        key={order.orderId}
-                        onClick={() => setSelectedOrderId(order.orderId)}
-                        className={`p-4 justify-between items-start border-b border-border hover:bg-gray-50/80 cursor-pointer transition-colors relative flex gap-3 ${isSelected ? 'bg-brand-primary/5' : ''}`}
-                      >
-                        {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary rounded-r-full"></div>}
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-brand-primary/10 text-brand-primary font-bold text-sm border border-brand-primary/20 shrink-0 select-none shadow-sm">
-                          {(order.storeName || 'P').charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start mb-0.5">
-                            <span className="font-bold text-[13px] text-gray-900 truncate pr-2">{order.storeName || 'Toko UMKM'}</span>
-                            <span className="text-[10px] text-gray-500 whitespace-nowrap">{formatOrderDate(order.createdAt).split(',')[0]}</span>
+                        <div
+                          key={order.orderId}
+                          onClick={() => setSelectedOrderId(order.orderId)}
+                          className={`p-4 justify-between items-start border-b border-border hover:bg-gray-50/80 cursor-pointer transition-colors relative flex gap-3 ${isSelected ? 'bg-brand-primary/5' : ''}`}
+                        >
+                          {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary rounded-r-full"></div>}
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-brand-primary/10 text-brand-primary font-bold text-sm border border-brand-primary/20 shrink-0 select-none shadow-sm">
+                            {(order.storeName || 'P').charAt(0).toUpperCase()}
                           </div>
-                          <div className="text-[12px] font-medium text-gray-700 truncate mb-1 pr-2">
-                            {order.productName} {group.length > 1 ? `(+${group.length - 1} lainnya)` : ''}
-                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start mb-0.5">
+                              <span className="font-bold text-[13px] text-gray-900 truncate pr-2">{order.storeName || 'Toko UMKM'}</span>
+                              <span className="text-[10px] text-gray-500 whitespace-nowrap">{formatOrderDate(order.createdAt).split(',')[0]}</span>
+                            </div>
+                            <div className="text-[12px] font-medium text-gray-700 truncate mb-1 pr-2">
+                              {order.productName} {group.length > 1 ? `(+${group.length - 1} lainnya)` : ''}
+                            </div>
 
-                          {/* Status Badge */}
-                          {(() => {
-                            // Referensi iPaymu sudah ada sejak pembayaran masih pending.
-                            // Status "Lunas" hanya boleh mengikuti hasil verifikasi pembayaran.
-                            const isPaid = order.paymentStatus === 'approved'
-                              || ['verified', 'processing', 'completed', 'preorder_running'].includes(order.status || '');
+                            {/* Status Badge */}
+                            {(() => {
+                              // Referensi iPaymu sudah ada sejak pembayaran masih pending.
+                              // Status "Lunas" hanya boleh mengikuti hasil verifikasi pembayaran.
+                              const isPaid = order.paymentStatus === 'approved'
+                                || ['verified', 'processing', 'completed', 'preorder_running'].includes(order.status || '');
 
-                            let badgeClass = '';
-                            let badgeLabel = '';
+                              let badgeClass = '';
+                              let badgeLabel = '';
 
-                            if (order.status === 'cancelled' || order.status === 'failed') {
-                              badgeClass = 'bg-red-100 text-red-700';
-                              badgeLabel = 'Batal';
-                            } else if (order.status === 'completed') {
-                              badgeClass = 'bg-green-100 text-green-700';
-                              badgeLabel = 'Selesai';
-                            } else if (order.status === 'verified' || (order.status === 'waiting_verification' && isPaid)) {
-                              // "verified" adalah tahap tepat setelah pembayaran disetujui sistem.
-                              badgeClass = 'bg-emerald-100 text-emerald-700';
-                              badgeLabel = '✓ Lunas';
-                            } else if (order.status === 'waiting_verification') {
-                              badgeClass = 'bg-yellow-100 text-yellow-800';
-                              badgeLabel = group.length > 1 ? 'waiting_payments' : 'waiting_payment';
-                            } else if (order.status === 'preorder_running') {
-                              badgeClass = 'bg-indigo-100 text-indigo-700';
-                              badgeLabel = 'Diproses';
-                            } else if (order.status === 'processing') {
-                              badgeClass = 'bg-indigo-100 text-indigo-700';
-                              badgeLabel = 'Dikirim';
-                            } else if (order.status === 'chat_only' && order.negotiationStatus === 'approved') {
-                              badgeClass = 'bg-emerald-100 text-emerald-700';
-                              badgeLabel = 'Disetujui';
-                            } else if (order.status === 'chat_only' && order.negotiationStatus === 'rejected') {
-                              badgeClass = 'bg-red-100 text-red-700';
-                              badgeLabel = 'Ditolak';
-                            } else if (order.status === 'chat_only') {
-                              badgeClass = 'bg-sky-100 text-sky-700';
-                              badgeLabel = 'Penawaran';
-                            } else {
-                              badgeClass = 'bg-indigo-100 text-indigo-700';
-                              badgeLabel = 'Diproses';
-                            }
+                              if (order.status === 'cancelled' || order.status === 'failed') {
+                                badgeClass = 'bg-red-100 text-red-700';
+                                badgeLabel = 'Batal';
+                              } else if (order.status === 'completed') {
+                                badgeClass = 'bg-green-100 text-green-700';
+                                badgeLabel = 'Selesai';
+                              } else if (order.status === 'verified' || (order.status === 'waiting_verification' && isPaid)) {
+                                // "verified" adalah tahap tepat setelah pembayaran disetujui sistem.
+                                badgeClass = 'bg-emerald-100 text-emerald-700';
+                                badgeLabel = '✓ Lunas';
+                              } else if (order.status === 'waiting_verification') {
+                                badgeClass = 'bg-yellow-100 text-yellow-800';
+                                badgeLabel = group.length > 1 ? 'waiting_payments' : 'waiting_payment';
+                              } else if (order.status === 'preorder_running') {
+                                badgeClass = 'bg-indigo-100 text-indigo-700';
+                                badgeLabel = 'Diproses';
+                              } else if (order.status === 'processing') {
+                                badgeClass = 'bg-indigo-100 text-indigo-700';
+                                badgeLabel = 'Dikirim';
+                              } else if (order.status === 'chat_only' && order.negotiationStatus === 'approved') {
+                                badgeClass = 'bg-emerald-100 text-emerald-700';
+                                badgeLabel = 'Disetujui';
+                              } else if (order.status === 'chat_only' && order.negotiationStatus === 'rejected') {
+                                badgeClass = 'bg-red-100 text-red-700';
+                                badgeLabel = 'Ditolak';
+                              } else if (order.status === 'chat_only') {
+                                badgeClass = 'bg-sky-100 text-sky-700';
+                                badgeLabel = 'Penawaran';
+                              } else {
+                                badgeClass = 'bg-indigo-100 text-indigo-700';
+                                badgeLabel = 'Diproses';
+                              }
 
-                            return (
-                              <div className="flex items-center justify-between mt-2">
-                                <div className="flex items-center gap-1">
-                                  <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${badgeClass}`}>
-                                    {badgeLabel}
-                                  </span>
-                                  {order.negotiationStatus === 'approved' && badgeLabel !== 'Disetujui' && (
-                                    <span className="inline-flex px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-bold">
-                                      Telah Disetujui
+                              return (
+                                <div className="flex items-center justify-between mt-2">
+                                  <div className="flex items-center gap-1">
+                                    <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${badgeClass}`}>
+                                      {badgeLabel}
                                     </span>
-                                  )}
+                                    {order.negotiationStatus === 'approved' && badgeLabel !== 'Disetujui' && (
+                                      <span className="inline-flex px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-bold">
+                                        Telah Disetujui
+                                      </span>
+                                    )}
+                                  </div>
+                                  {(totalUnread) > 0 ? <span className="w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">{(totalUnread)}</span> : null}
                                 </div>
-                                {(totalUnread) > 0 ? <span className="w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">{(totalUnread)}</span> : null}
-                              </div>
-                            );
-                          })()}
+                              );
+                            })()}
+                          </div>
                         </div>
-                      </div>
-                    );
+                      );
                     })}
                   </div>
                 </div>

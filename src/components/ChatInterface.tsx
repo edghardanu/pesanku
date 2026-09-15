@@ -50,11 +50,11 @@ interface ChatInterfaceProps {
   onSelectProductFilter?: (productId: string) => void;
 }
 
-const PaymentCountdown = ({ 
-  expiresAt, 
-  onExpire 
-}: { 
-  expiresAt: Date; 
+const PaymentCountdown = ({
+  expiresAt,
+  onExpire
+}: {
+  expiresAt: Date;
   onExpire: () => void;
 }) => {
   const [timeLeft, setTimeLeft] = useState('');
@@ -203,7 +203,7 @@ export default function ChatInterface({
     for (const thread of result) {
       const timeStr = thread.chatCreatedAt ? new Date(thread.chatCreatedAt).toISOString() : '';
       const statusStr = thread.status || '';
-      
+
       const key = `thread_${thread.orderId}`;
 
       if (!uniqueMap.has(key)) {
@@ -313,19 +313,19 @@ export default function ChatInterface({
   const loadChatSession = async (orderId: string, skipLoadingState = false) => {
     if (!skipLoadingState) setIsLoadingMessages(true);
     try {
-      
+
       const targetThread = threads.find(t => t.orderId === orderId);
       let queryOrderIds = targetThread?.orderIds?.join(',') || orderId;
-      
+
       // If we are embedded and handed a group of orders, inherently query all of them!
       if (isEmbedded) {
-           if (mode === "buyer" && buyerOrders.length > 0) {
-               queryOrderIds = buyerOrders.map(o => o.orderId).join(',');
-           } else if (mode === "seller" && sellerOrders && sellerOrders.length > 0) {
-               queryOrderIds = sellerOrders.map(o => o.id || o.orderId).join(',');
-           }
+        if (mode === "buyer" && buyerOrders.length > 0) {
+          queryOrderIds = buyerOrders.map(o => o.orderId).join(',');
+        } else if (mode === "seller" && sellerOrders && sellerOrders.length > 0) {
+          queryOrderIds = sellerOrders.map(o => o.id || o.orderId).join(',');
+        }
       }
-      
+
       const res = await fetch(`/api/chat?orderIds=${queryOrderIds}&t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
@@ -781,11 +781,11 @@ export default function ChatInterface({
       const sJsonBase64 = suratMultiMatch[1];
       let sTotalPrice = isNaN(Number(suratMultiMatch[2])) ? suratMultiMatch[2] : Number(suratMultiMatch[2]).toLocaleString('id-ID');
       const sDate = suratMultiMatch[3];
-      
+
       let items: { name: string, qty: number, price: number }[] = [];
       try {
         items = JSON.parse(decodeURIComponent(window.atob(sJsonBase64)));
-      } catch(e) {}
+      } catch (e) { }
 
       return (
         <div className="flex flex-col gap-2 w-full max-w-sm">
@@ -883,8 +883,8 @@ export default function ChatInterface({
                                   orderIdsToSync = activeThread.orderIds;
                                 }
 
-                                for(const syncId of orderIdsToSync) {
-                                  if(!syncId) continue;
+                                for (const syncId of orderIdsToSync) {
+                                  if (!syncId) continue;
                                   await fetch('/api/orders/update-status', {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
@@ -1180,8 +1180,8 @@ export default function ChatInterface({
     const isPaidOrder = (() => {
       if (['verified', 'processing', 'completed', 'preorder_running'].includes(activeSessionStatus || '')) return true;
       if (buyerOrders && buyerOrders.length > 0) {
-        const currentOrder = buyerOrders.find(o => 
-          o.orderId === selectedOrderId || 
+        const currentOrder = buyerOrders.find(o =>
+          o.orderId === selectedOrderId ||
           (activeThread?.orderIds && activeThread.orderIds.includes(o.orderId)) ||
           (activeThread?.productId && o.productId === activeThread.productId)
         );
@@ -1258,8 +1258,8 @@ export default function ChatInterface({
                   } catch (err: any) {
                     Swal.fire({
                       icon: 'error',
-                      title: 'Gagal Memproses',
-                      text: 'Gagal memproses pembayaran. Silakan coba beberapa saat lagi atau hubungi admin.'
+                      title: 'Pembayaran Gagal',
+                      text: 'Silakan coba beberapa saat lagi atau hubungi tim bantuan.'
                     });
                   }
                 }}
@@ -1268,18 +1268,18 @@ export default function ChatInterface({
                 <Check className="w-3.5 h-3.5" /> Bayar Sekarang
               </button>
               {msgCreatedAt && (
-                <PaymentCountdown 
-                  expiresAt={new Date(msgCreatedAt.getTime() + 24 * 60 * 60 * 1000)} 
+                <PaymentCountdown
+                  expiresAt={new Date(msgCreatedAt.getTime() + 24 * 60 * 60 * 1000)}
                   onExpire={async () => {
                     if (mode === "buyer") {
                       try {
                         const res = await fetch('/api/orders/update-status', {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ 
-                            orderId: selectedOrderId, 
-                            status: 'cancelled', 
-                            cancelReason: 'Waktu pembayaran telah habis' 
+                          body: JSON.stringify({
+                            orderId: selectedOrderId,
+                            status: 'cancelled',
+                            cancelReason: 'Waktu pembayaran telah habis'
                           })
                         });
                         if (res.ok) {
@@ -1289,7 +1289,7 @@ export default function ChatInterface({
                         console.error('Failed to expire order', e);
                       }
                     }
-                  }} 
+                  }}
                 />
               )}
             </>
