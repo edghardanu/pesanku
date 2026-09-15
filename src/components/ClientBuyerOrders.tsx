@@ -692,38 +692,12 @@ export default function ClientBuyerOrders({
         throw new Error('URL pembayaran tidak tersedia');
       }
     } catch (error) {
-      const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan.';
-
-      if (errMsg.toLowerCase().includes('ipaymu') || errMsg.toLowerCase().includes('invalid ip') || errMsg.toLowerCase().includes('flip')) {
-        const userMsg = 'Mohon maaf, sistem layanan pembayaran sedang mengalami kendala. Silakan coba beberapa saat lagi atau hubungi tim bantuan.';
-        const isDev = process.env.NODE_ENV === 'development';
-
-        const diagnosticHtml = isDev ? `
-              <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg text-left border border-dashed border-red-300 dark:border-red-800/50 mt-4">
-                <span class="text-[11px] text-red-800 dark:text-red-400 font-bold uppercase tracking-wide">Diagnostic Code (DEV ONLY)</span>
-                <p class="text-[13px] text-red-700 dark:text-red-300 mt-1.5 mb-0 font-mono break-all font-medium">${errMsg}</p>
-              </div>
-        ` : '';
-
-        Swal.fire({
-          icon: 'error',
-          title: 'Gagal Memproses Pembayaran',
-          html: `
-            <div class="text-center">
-              <p class="mb-0 text-text-secondary text-[15px]">${userMsg}</p>
-              ${diagnosticHtml}
-            </div>
-          `,
-          confirmButtonColor: '#800000',
-        });
-      } else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Gagal Memproses Pembayaran',
-          text: errMsg,
-          confirmButtonColor: '#800000',
-        });
-      }
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Memproses Pembayaran',
+        text: 'Mohon maaf, sistem layanan pembayaran sedang mengalami kendala. Silakan coba beberapa saat lagi atau hubungi tim bantuan.',
+        confirmButtonColor: '#800000',
+      });
     }
   };
 

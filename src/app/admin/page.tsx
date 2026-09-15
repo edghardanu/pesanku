@@ -101,6 +101,18 @@ export default async function AdminDashboard() {
     .leftJoin(sellerProfiles, eq(productPromotions.sellerId, sellerProfiles.userId))
     .orderBy(desc(productPromotions.requestedAt));
 
+  const usersList = await db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    role: users.role,
+    phone: users.phone,
+    address: users.address,
+    createdAt: users.createdAt,
+  })
+  .from(users)
+  .orderBy(desc(users.createdAt));
+
   return (
     <ClientAdminDashboard 
       stats={stats}
@@ -109,6 +121,7 @@ export default async function AdminDashboard() {
       ordersList={ordersList as any}
       promotionOffers={adminPromotionOffers}
       promotionRequests={promotionRequests}
+      usersList={usersList}
     />
   );
 }

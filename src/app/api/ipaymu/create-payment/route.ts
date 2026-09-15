@@ -149,8 +149,8 @@ export async function POST(req: Request) {
     }, { status: 200 });
 
   } catch (error) {
+    // Log detail error HANYA di server, JANGAN kirim ke klien karena bisa mengekspos informasi sensitif
     console.error('iPaymu create-payment error:', error);
-    const errMsg = error instanceof Error ? error.message : 'Terjadi kesalahan pada server';
-    return NextResponse.json({ error: errMsg }, { status: 500 });
+    return NextResponse.json({ error: 'Gagal membuat link pembayaran. Silakan coba beberapa saat lagi atau hubungi admin.' }, { status: 500 });
   }
 }

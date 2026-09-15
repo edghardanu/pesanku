@@ -24,11 +24,17 @@ async function sendOtpEmail(recipientEmail: string, otpCode: string): Promise<vo
     throw new Error('Konfigurasi SMTP belum diatur. Pastikan SMTP_USER dan SMTP_PASS ada di .env.local');
   }
 
+  const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
+  const isSecure = smtpPort === 465; // port 465 = SSL penuh, port 587 = STARTTLS
+
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587', 10),
-    secure: (process.env.SMTP_PORT || '587') === '465',
+    host: process.env.SMTP_HOST || 'smtp.hostinger.com',
+    port: smtpPort,
+    secure: isSecure,
     auth: { user: smtpUser, pass: smtpPass },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 
   const appName = 'Pesanku';
@@ -79,15 +85,17 @@ Tim ${appName}`;
 </html>`;
 
   await transporter.sendMail({
-    from: `"${appName}" <${smtpUser}>`,
+    from: `"${appName} Nusantara" <${smtpUser}>`,
     replyTo: smtpUser,
     to: recipientEmail,
-    subject: `Kode Verifikasi ${appName} - ${otpCode}`,
+    subject: `Kode Verifikasi Akun ${appName}`,
     text: plainTextContent,
     html: htmlTemplate,
     headers: {
-      'X-Priority': '1',
-      'X-Mailer': 'Pesanku App',
+      // CATATAN: X-Priority dihapus — header ini justru memicu spam filter Gmail
+      'X-Mailer': `${appName} Mailer`,
+      'Precedence': 'transactional',
+      'List-Unsubscribe': `<mailto:${smtpUser}?subject=unsubscribe>`,
     },
   });
 }

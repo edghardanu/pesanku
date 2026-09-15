@@ -62,6 +62,74 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
+
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const phone = formData.get("phone") as string;
+    const password = formData.get("password") as string;
+    const storeName = formData.get("storeName") as string;
+    const address = formData.get("address") as string;
+    const bankAccount = formData.get("bankAccount") as string;
+
+    if (!logoUrl) {
+      setError(role === 'seller' ? "Foto/Logo UMKM wajib diunggah." : "Foto Profil Pengguna wajib diunggah.");
+      return;
+    }
+    if (!name || !name.trim()) {
+      setError("Nama lengkap wajib diisi.");
+      return;
+    }
+    if (role === 'seller' && (!storeName || !storeName.trim())) {
+      setError("Nama Toko / UMKM wajib diisi.");
+      return;
+    }
+    if (role === 'seller' && (!bankAccount || !bankAccount.trim())) {
+      setError("Informasi rekening pencairan dana wajib diisi.");
+      return;
+    }
+    if (!address || !address.trim()) {
+      setError(role === 'seller' ? "Alamat lengkap toko wajib diisi." : "Alamat lengkap pengiriman wajib diisi.");
+      return;
+    }
+    if (!email || !email.trim()) {
+      setError("Email wajib diisi.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Format email tidak valid.");
+      return;
+    }
+    if (!phone || !phone.trim()) {
+      setError("Nomor handphone wajib diisi.");
+      return;
+    }
+
+    if (!password) {
+      setError("Password wajib diisi.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password harus minimal 8 karakter.");
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      setError("Password harus mengandung setidaknya satu huruf besar.");
+      return;
+    }
+    if (!/[a-z]/.test(password)) {
+      setError("Password harus mengandung setidaknya satu huruf kecil.");
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      setError("Password harus mengandung setidaknya satu angka.");
+      return;
+    }
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      setError("Password harus mengandung setidaknya satu karakter spesial (contoh: @, #, $, dll).");
+      return;
+    }
 
     if (!agreedTerms) {
       const msg = "Anda wajib mencentang dan menyetujui Syarat & Ketentuan sebelum mendaftar.";
@@ -76,9 +144,8 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
-    setError("");
 
-    const formData = new FormData(e.currentTarget);
+    // Continue building data object...
     const data = {
       name: formData.get("name"),
       email: formData.get("email"),
@@ -484,7 +551,7 @@ export default function RegisterPage() {
                         <input
                           type={showPassword ? "text" : "password"}
                           name="password"
-                          placeholder="Minimal 8 karakter"
+                          placeholder="Min 8 kar, kombinasi huruf besar/kecil, angka, simbol"
                           className="input-field pr-10"
                           required
                         />

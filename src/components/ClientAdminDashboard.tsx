@@ -30,7 +30,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { UmkmItem, OrderItem, TicketItem, VerificationItem, PromotionOfferItem, PromotionRequestItem } from "@/types";
+import { UmkmItem, OrderItem, TicketItem, VerificationItem, PromotionOfferItem, PromotionRequestItem, UserItem } from "@/types";
 import AdminPromotionManager from "@/components/AdminPromotionManager";
 import { useDarkMode } from "@/hooks";
 
@@ -46,18 +46,21 @@ type ClientAdminDashboardProps = {
   ordersList?: OrderItem[];
   promotionOffers?: PromotionOfferItem[];
   promotionRequests?: PromotionRequestItem[];
+  usersList?: UserItem[];
 };
 
-export default function ClientAdminDashboard({ stats, userName, umkmList, ordersList = [], promotionOffers = [], promotionRequests = [] }: ClientAdminDashboardProps) {
+export default function ClientAdminDashboard({ stats, userName, umkmList, ordersList = [], promotionOffers = [], promotionRequests = [], usersList = [] }: ClientAdminDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'pesanan' | 'verifikasi' | 'umkm' | 'promosi' | 'settings' | 'tickets'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'pesanan' | 'verifikasi' | 'umkm' | 'promosi' | 'settings' | 'tickets' | 'pengguna'>('overview');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [localUmkmList, setLocalUmkmList] = useState(umkmList);
   const [localPromotionRequests, setLocalPromotionRequests] = useState(promotionRequests);
+  const [localUsersList, setLocalUsersList] = useState(usersList);
   const [searchQueryUmkm, setSearchQueryUmkm] = useState('');
   const [searchQueryPesanan, setSearchQueryPesanan] = useState('');
+  const [searchQueryUsers, setSearchQueryUsers] = useState('');
 
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const [checkoutFees, setCheckoutFees] = useState<any[]>([]);
@@ -320,7 +323,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
     }
   };
 
-  const handleTabChange = (tab: 'overview' | 'pesanan' | 'verifikasi' | 'umkm' | 'promosi' | 'settings' | 'tickets') => {
+  const handleTabChange = (tab: 'overview' | 'pesanan' | 'verifikasi' | 'umkm' | 'promosi' | 'settings' | 'tickets' | 'pengguna') => {
     if (tab === activeTab) return;
     setActiveTab(tab);
     setIsMobileSidebarOpen(false);
@@ -349,14 +352,49 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
     }
   };
 
-  const filteredPesanan = liveOrders.filter((order) => {
-    if (!searchQueryPesanan) return true;
-    const q = searchQueryPesanan.toLowerCase();
-    return (
-      order.storeName?.toLowerCase().includes(q) ||
-      order.productName?.toLowerCase().includes(q) ||
-      order.buyerName?.toLowerCase().includes(q)
-    );
+  const groupedPesanan = Object.values(
+    liveOrders.filter((order) => {
+      if (!searchQueryPesanan) return true;
+      const q = searchQueryPesanan.toLowerCase();
+      return (
+        order.storeName?.toLowerCase().includes(q) ||
+        order.productName?.toLowerCase().includes(q) ||
+        order.buyerName?.toLowerCase().includes(q)
+      );
+    }).reduce((acc, order) => {
+      const timeString = order.createdAt ? new Date(order.createdAt).toISOString().substring(0, 16) : '0';
+      const key = `${order.buyerId}-${order.storeName}-${timeString}`;
+      if (!acc[key]) {
+        acc[key] = {
+          ...order,
+          products: [{ name: order.productName, qty: order.qty }],
+          totalPrice: order.totalPrice || 0,
+          adminSplitAmount: order.adminSplitAmount, 
+          sellerSplitAmount: order.sellerSplitAmount,
+          orderIds: [order.id]
+        };
+      } else {
+        const existingProduct = acc[key].products.find((p: any) => p.name === order.productName);
+        if (existingProduct) {
+          existingProduct.qty += (order.qty || 0);
+        } else {
+          acc[key].products.push({ name: order.productName, qty: order.qty });
+        }
+        acc[key].totalPrice += (order.totalPrice || 0);
+        if (order.adminSplitAmount !== null && order.adminSplitAmount !== undefined) {
+           acc[key].adminSplitAmount = (acc[key].adminSplitAmount || 0) + order.adminSplitAmount;
+        }
+        if (order.sellerSplitAmount !== null && order.sellerSplitAmount !== undefined) {
+           acc[key].sellerSplitAmount = (acc[key].sellerSplitAmount || 0) + order.sellerSplitAmount;
+        }
+        acc[key].orderIds.push(order.id);
+      }
+      return acc;
+    }, {} as Record<string, any>)
+  ).sort((a: any, b: any) => {
+    if (!a.createdAt) return 1;
+    if (!b.createdAt) return -1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   return (
@@ -405,6 +443,17 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           >
             <Store className="w-5 h-5" />
             <span>Daftar UMKM</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('pengguna')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left hover-btn ${activeTab === 'pengguna'
+              ? 'bg-brand-primary/10 text-brand-primary font-semibold'
+              : 'text-text-secondary hover:bg-border/40 dark:hover:bg-slate-800/80 hover:text-text-primary'
+              }`}
+          >
+            <Users className="w-5 h-5" />
+            <span>Daftar Pengguna</span>
           </button>
 
           <button
@@ -760,6 +809,141 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
               </div>
             )}
 
+            {activeTab === 'pengguna' && (
+              <div className="card p-0 border border-border overflow-hidden">
+                <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
+                  <h2 className="text-h3 w-full sm:w-auto">Daftar Pengguna</h2>
+                  <div className="flex gap-3 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-64">
+                      <input
+                        type="text"
+                        placeholder="Cari nama atau email..."
+                        value={searchQueryUsers}
+                        onChange={(e) => setSearchQueryUsers(e.target.value)}
+                        className="input-field pl-10 pr-4 py-2 text-sm w-full"
+                      />
+                      <Search className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
+                    </div>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-surface text-caption text-text-secondary border-b border-border">
+                        <th className="p-4 font-medium">Nama</th>
+                        <th className="p-4 font-medium">Email</th>
+                        <th className="p-4 font-medium">Role</th>
+                        <th className="p-4 font-medium">No HP</th>
+                        <th className="p-4 font-medium">Tanggal Datar</th>
+                        <th className="p-4 font-medium">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-body-small text-text-primary">
+                      {localUsersList.filter(u => (u.name || '').toLowerCase().includes(searchQueryUsers.toLowerCase()) || (u.email || '').toLowerCase().includes(searchQueryUsers.toLowerCase())).length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-text-secondary">
+                            Belum ada pengguna.
+                          </td>
+                        </tr>
+                      ) : (
+                        localUsersList
+                          .filter(u => (u.name || '').toLowerCase().includes(searchQueryUsers.toLowerCase()) || (u.email || '').toLowerCase().includes(searchQueryUsers.toLowerCase()))
+                          .map((user) => (
+                            <tr key={user.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                              <td className="p-4 font-semibold text-text-primary">
+                                {user.name}
+                              </td>
+                              <td className="p-4">
+                                {user.email}
+                              </td>
+                              <td className="p-4 text-text-secondary">
+                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                  user.role === 'admin' ? 'bg-brand-primary/10 text-brand-primary' : 
+                                  user.role === 'penjual' ? 'bg-status-success/10 text-status-success' : 
+                                  'bg-surface-secondary text-text-secondary'
+                                }`}>
+                                  {user.role}
+                                </span>
+                              </td>
+                              <td className="p-4 text-text-secondary">{user.phone || "-"}</td>
+                              <td className="p-4 text-text-secondary">
+                                {user.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID') : '-'}
+                              </td>
+                              <td className="p-4">
+                                <div className="flex gap-2 items-center">
+                                  <button
+                                    onClick={() => {
+                                      Swal.fire({
+                                        title: 'Detail Pengguna',
+                                        html: `
+                                          <div class="text-left flex flex-col gap-3">
+                                            <div><strong>Nama:</strong> ${user.name}</div>
+                                            <div><strong>Email:</strong> ${user.email}</div>
+                                            <div><strong>Role:</strong> ${user.role}</div>
+                                            <div><strong>No HP:</strong> ${user.phone || '-'}</div>
+                                            <div><strong>Alamat:</strong> ${user.address || '-'}</div>
+                                            <div><strong>Tanggal Daftar:</strong> ${user.createdAt ? new Date(user.createdAt).toLocaleString('id-ID') : '-'}</div>
+                                          </div>
+                                        `,
+                                        confirmButtonText: 'Tutup',
+                                        confirmButtonColor: '#ff5c35'
+                                      });
+                                    }}
+                                    className="btn-outline py-1.5 px-3 text-sm border-border hover:bg-surface-secondary"
+                                  >
+                                    Detail
+                                  </button>
+
+                                  {user.role !== 'admin' && (
+                                    <button
+                                      onClick={() => {
+                                        Swal.fire({
+                                          title: 'Hapus Pengguna?',
+                                          text: `Anda yakin ingin menghapus akun ${user.name}? Tindakan ini tidak bisa dibatalkan dan mungkin menghapus data terkait lainnya.`,
+                                          icon: 'warning',
+                                          showCancelButton: true,
+                                          confirmButtonColor: '#ef4444',
+                                          cancelButtonColor: '#94a3b8',
+                                          confirmButtonText: 'Ya, Hapus!',
+                                          cancelButtonText: 'Batal'
+                                        }).then(async (result) => {
+                                          if (result.isConfirmed) {
+                                            try {
+                                              const res = await fetch(`/api/admin/users?id=${user.id}`, { method: 'DELETE' });
+                                              if (!res.ok) throw new Error('Gagal menghapus pengguna');
+
+                                              setLocalUsersList(localUsersList.filter(u => u.id !== user.id));
+                                              router.refresh();
+                                              Swal.fire({
+                                                toast: true,
+                                                position: 'top-end',
+                                                icon: 'success',
+                                                title: 'Pengguna berhasil dihapus',
+                                                showConfirmButton: false,
+                                                timer: 3000
+                                              });
+                                            } catch (error) {
+                                              Swal.fire('Error', 'Terjadi kesalahan saat menghapus', 'error');
+                                            }
+                                          }
+                                        });
+                                      }}
+                                      className="btn-outline py-1.5 px-3 text-sm text-status-error border-status-error hover:bg-status-error/10"
+                                    >
+                                      Hapus
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'pesanan' && (
               <div className="card p-0 border border-border overflow-hidden">
                 <div className="p-6 border-b border-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface/50">
@@ -789,15 +973,19 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                       </tr>
                     </thead>
                     <tbody className="text-body-small text-text-primary">
-                      {filteredPesanan.length === 0 ? (
+                      {groupedPesanan.length === 0 ? (
                         <tr><td colSpan={7} className="p-8 text-center text-text-secondary">Tidak ada pesanan.</td></tr>
                       ) : (
-                        filteredPesanan.map((order) => (
-                          <tr key={order.id} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
+                        groupedPesanan.map((order: any) => (
+                          <tr key={order.orderIds.join(',')} className="border-b border-border hover:bg-surface/80 dark:hover:bg-slate-800/80 transition-colors">
                             <td className="p-4 font-semibold">{order.storeName || '-'}</td>
                             <td className="p-4">
-                              <span className="block font-medium">{order.productName || '-'}</span>
-                              <span className="text-xs text-text-secondary block mt-1">{order.qty}x Pcs</span>
+                              {order.products.map((p: any, i: number) => (
+                                <div key={i} className={i > 0 ? "mt-3 border-t border-border pt-1" : ""}>
+                                  <span className="block font-medium">{p.name || '-'}</span>
+                                  <span className="text-xs text-text-secondary block mt-1">{p.qty}x Pcs</span>
+                                </div>
+                              ))}
                             </td>
                             <td className="p-4 text-xs whitespace-nowrap">
                               {order.createdAt ? formatOrderDateTimeWIB(order.createdAt) : '-'}
@@ -982,19 +1170,28 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                           method: 'PUT',
                                           headers: { 'Content-Type': 'application/json' },
                                           body: JSON.stringify({
-                                            orderId: order.id,
+                                            orderIds: order.orderIds,
                                             adminSplitAmount: res.value.adminSplit,
                                             sellerSplitAmount: res.value.sellerSplit
                                           })
                                         });
                                         if (!response.ok) throw new Error('Gagal update');
 
-                                        // Update in memory
-                                        setLiveOrders(prev => prev.map(o => o.id === order.id ? {
-                                          ...o,
-                                          adminSplitAmount: res.value.adminSplit,
-                                          sellerSplitAmount: res.value.sellerSplit
-                                        } : o));
+                                        // Update in memory using proportionate logic
+                                        setLiveOrders(prev => {
+                                          const transactionTotal = order.totalPrice;
+                                          return prev.map(o => {
+                                            if (order.orderIds.includes(o.id)) {
+                                               const ratio = transactionTotal > 0 ? ((o.totalPrice || 0) / transactionTotal) : (1 / order.orderIds.length);
+                                               return {
+                                                 ...o,
+                                                 adminSplitAmount: Math.round(res.value.adminSplit * ratio),
+                                                 sellerSplitAmount: Math.round(res.value.sellerSplit * ratio)
+                                               };
+                                            }
+                                            return o;
+                                          });
+                                        });
 
                                         Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Tersimpan', showConfirmButton: false, timer: 3000 });
                                       } catch (err) {

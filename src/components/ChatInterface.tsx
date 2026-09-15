@@ -1259,7 +1259,7 @@ export default function ChatInterface({
                     Swal.fire({
                       icon: 'error',
                       title: 'Gagal Memproses',
-                      text: err.message || 'Terjadi kesalahan saat memproses pembayaran.'
+                      text: 'Gagal memproses pembayaran. Silakan coba beberapa saat lagi atau hubungi admin.'
                     });
                   }
                 }}

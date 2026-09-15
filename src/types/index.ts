@@ -145,6 +145,16 @@ export interface AuthUser {
   profileImageUrl?: string | null;
 }
 
+export interface UserItem {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  phone?: string | null;
+  address?: string | null;
+  createdAt?: string | Date | null;
+}
+
 export interface ProductVariant {
   name: string;
   price?: number | null;
