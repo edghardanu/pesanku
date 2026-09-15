@@ -3,25 +3,65 @@
 import React, { useRef } from "react";
 import { formatOrderDateTimeWIB } from "@/lib/promotionFormatting";
 
+interface OrderItem {
+  id: string;
+  qty: number;
+  totalPrice: number;
+  status: string | null;
+  notes: string | null;
+  selectedVariant: string | null;
+  selectedVariantPrice: number | null;
+  createdAt: Date | null;
+  buyerId: string;
+  sellerId: string;
+  productName: string;
+  productPrice: number;
+  minOrderQty?: number | null;
+  buyerName: string;
+  buyerEmail: string | null;
+  buyerPhone: string | null;
+  buyerAddress: string | null;
+  sellerName: string | null;
+  sellerAddress: string | null;
+  paymentProofUrl: string | null;
+  paymentStatus: string | null;
+}
+
 interface ClientInvoiceProps {
-  order: any;
+  order: OrderItem;
+  allOrders?: OrderItem[];
   checkoutFees: any[];
   viewerRole: string;
 }
 
-export default function ClientInvoice({ order, checkoutFees, viewerRole }: ClientInvoiceProps) {
+export default function ClientInvoice({ order, allOrders, checkoutFees, viewerRole }: ClientInvoiceProps) {
   const printRef = useRef<HTMLDivElement>(null);
   
   const handlePrint = () => {
     window.print();
   };
 
-  const effectiveQty = Math.max(order.qty, order.minOrderQty || 1);
-  const orderUnitPrice = order.qty > 0 ? (order.totalPrice / order.qty) : 0;
-  
-  const effectiveTotalPrice = order.totalPrice;
+  // Gunakan allOrders jika tersedia, fallback ke order tunggal
+  const orderItems: OrderItem[] = allOrders && allOrders.length > 0 ? allOrders : [order];
+  const totalOrdersInGroup = orderItems.length;
+
+  // Total harga semua produk dalam grup (Dihitung manual via effectiveQty seperti di dashboard)
+  const effectiveTotalPrice = orderItems.reduce((sum, o) => {
+    const effectiveQty = Math.max(o.qty, o.minOrderQty || 1);
+    const orderUnitPrice = o.qty > 0 ? o.totalPrice / o.qty : 0;
+    const lineTotal = orderUnitPrice * effectiveQty;
+    return sum + lineTotal;
+  }, 0);
   const totalFees = checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0);
-  const total = effectiveTotalPrice + totalFees;
+  const total = viewerRole === 'seller' ? effectiveTotalPrice - totalFees : effectiveTotalPrice + totalFees;
+
+  // Label status dinamis: waiting_payment (1 order) atau waiting_payments (lebih dari 1 order dalam grup)
+  const getStatusLabel = (status: string | null): string => {
+    if (status === 'waiting_verification') {
+      return totalOrdersInGroup > 1 ? 'waiting_payments' : 'waiting_payment';
+    }
+    return status || '-';
+  };
 
   return (
     <div className="min-h-screen bg-[#F0F4F8] flex flex-col items-center py-10 w-full" style={{ fontFamily: "Arial, sans-serif" }}>
@@ -43,7 +83,7 @@ export default function ClientInvoice({ order, checkoutFees, viewerRole }: Clien
                     order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
                     (order.paymentStatus === 'verified' || order.status === 'verified') ? 'bg-blue-100 text-blue-700 border border-blue-200' :
                     'bg-gray-100 text-gray-700 border border-gray-200'}`}>
-                    Status: {order.status}
+                    Status: {getStatusLabel(order.status)}
                  </span>
               </div>
             </div>
@@ -66,6 +106,7 @@ export default function ClientInvoice({ order, checkoutFees, viewerRole }: Clien
             </div>
           </div>
 
+          {/* Tabel Produk — semua item dalam grup */}
           <table className="w-full text-left border-collapse mb-8 border border-gray-200">
             <thead>
               <tr className="bg-[#f8f9fa] text-gray-700 text-xs uppercase tracking-wider">
@@ -76,24 +117,32 @@ export default function ClientInvoice({ order, checkoutFees, viewerRole }: Clien
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-gray-200">
-                <td className="p-3">
-                  <p className="font-bold text-gray-800">{order.productName}</p>
-                  {order.selectedVariant ? (
-                     <p className="text-xs text-gray-500 mt-1 font-medium">Varian: {order.selectedVariant}</p>
-                  ) : null}
-                  {order.notes ? (
-                     <p className="text-xs text-gray-500 mt-1 italic font-medium">Catatan: {order.notes}</p>
-                  ) : null}
-                </td>
-                <td className="p-3 text-center text-gray-700 font-semibold">{order.qty}</td>
-                <td className="p-3 text-right text-gray-700 font-medium">
-                  Rp {(order.totalPrice / order.qty).toLocaleString('id-ID')}
-                </td>
-                <td className="p-3 text-right font-bold text-gray-800">
-                  Rp {order.totalPrice.toLocaleString('id-ID')}
-                </td>
-              </tr>
+              {orderItems.map((item, idx) => {
+                const effectiveQty = Math.max(item.qty, item.minOrderQty || 1);
+                const unitPrice = item.qty > 0 ? (item.totalPrice / item.qty) : 0;
+                const lineTotal = unitPrice * effectiveQty;
+                
+                return (
+                  <tr key={item.id || idx} className="border-b border-gray-200">
+                    <td className="p-3">
+                      <p className="font-bold text-gray-800">{item.productName}</p>
+                      {item.selectedVariant ? (
+                         <p className="text-xs text-gray-500 mt-1 font-medium">Varian: {item.selectedVariant}</p>
+                      ) : null}
+                      {item.notes ? (
+                         <p className="text-xs text-gray-500 mt-1 italic font-medium">Catatan: {item.notes}</p>
+                      ) : null}
+                    </td>
+                    <td className="p-3 text-center text-gray-700 font-semibold">{effectiveQty}</td>
+                    <td className="p-3 text-right text-gray-700 font-medium">
+                      Rp {unitPrice.toLocaleString('id-ID')}
+                    </td>
+                    <td className="p-3 text-right font-bold text-gray-800">
+                      Rp {lineTotal.toLocaleString('id-ID')}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
@@ -106,12 +155,16 @@ export default function ClientInvoice({ order, checkoutFees, viewerRole }: Clien
               {checkoutFees.map((fee, idx) => (
                 <div key={idx} className="flex justify-between items-center mb-2">
                   <span className="text-gray-500 text-[13px] font-medium">{fee.name}</span>
-                  <span className="text-gray-700 text-[13px] font-semibold">Rp {(parseInt(fee.value) || 0).toLocaleString('id-ID')}</span>
+                  <span className={`text-[13px] font-semibold ${viewerRole === 'seller' ? 'text-red-600' : 'text-gray-700'}`}>
+                    {viewerRole === 'seller' ? '- Rp ' : 'Rp '}{(parseInt(fee.value) || 0).toLocaleString('id-ID')}
+                  </span>
                 </div>
               ))}
               <div className="border-t border-gray-300 my-3"></div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-800 font-black text-lg uppercase tracking-wide">Total Keseluruhan</span>
+                <span className="text-gray-800 font-black text-lg uppercase tracking-wide">
+                  {viewerRole === 'seller' ? 'Total Pendapatan' : 'Total Keseluruhan'}
+                </span>
                 <span className="text-[#1e40af] font-black text-xl">Rp {total.toLocaleString('id-ID')}</span>
               </div>
             </div>
