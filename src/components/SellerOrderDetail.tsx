@@ -65,7 +65,7 @@ export default function SellerOrderDetail({ order, allBuyerOrders, user, onBack,
     }, 0);
 
     const totalFees = checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0);
-    const displayedTotalPrice = effectiveTotalPrice + totalFees;
+    const displayedTotalPrice = effectiveTotalPrice - totalFees;
 
     return (
         <div className="flex flex-col min-h-full bg-[#F0F4F8] w-full max-w-[100vw] md:max-w-none overflow-x-hidden">
@@ -82,7 +82,7 @@ export default function SellerOrderDetail({ order, allBuyerOrders, user, onBack,
                             <ArrowLeft className="w-5 h-5" />
                         </button>
                         <div className="flex flex-wrap gap-2">
-                            <button onClick={() => window.open(`/invoice/${order.id}?role=seller`, '_blank')} className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-sm text-sm font-semibold hover:bg-gray-50 shadow-sm transition-colors flex items-center gap-2">
+                            <button onClick={() => window.open(`/invoice/${order.id}?role=seller&ids=${relatedOrders.map((o: any) => o.id).join(',')}`, '_blank')} className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-sm text-sm font-semibold hover:bg-gray-50 shadow-sm transition-colors flex items-center gap-2">
                                 <FileText className="w-4 h-4" /> CETAK INVOICE
                             </button>
                             {/* Batal order button removed per user request */}
@@ -283,15 +283,23 @@ export default function SellerOrderDetail({ order, allBuyerOrders, user, onBack,
                             </table>
                             <div className="flex justify-end p-6 bg-gray-50">
                                 <div className="w-full max-w-[300px]">
-                                    <div className="flex justify-between py-1.5 text-sm">
-                                        <span className="text-gray-600 font-bold">Subtotal Produk:</span>
+                                    <div className="flex items-center justify-between py-1.5 text-sm gap-2">
+                                        <div className="flex items-center gap-2">
+                                            {relatedOrders.some((o: any) => o.isResponded === true) && (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded border-2 border-dashed border-emerald-500 bg-emerald-50 text-emerald-700 text-[10px] font-extrabold uppercase tracking-wider transform -rotate-2 select-none shadow-sm" style={{ fontVariant: 'small-caps' }}>
+                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                                    Sudah Direspon
+                                                </span>
+                                            )}
+                                            <span className="text-gray-600 font-bold">Subtotal Produk:</span>
+                                        </div>
                                         <span className="font-semibold text-gray-800">Rp {effectiveTotalPrice.toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex flex-col gap-1 pb-1.5 text-[11px] text-gray-500 pl-4 border-l-2 border-brand-primary/20 ml-2 mb-2">
-                                        {checkoutFees.map((fee, idx) => ( <div key={idx} className="flex justify-between"><span>{fee.name}:</span><span>Rp {(parseInt(fee.value) || 0).toLocaleString('id-ID')}</span></div>))}
+                                        {checkoutFees.map((fee, idx) => ( <div key={idx} className="flex justify-between"><span>{fee.name}:</span><span className="text-red-500 font-medium">- Rp {(parseInt(fee.value) || 0).toLocaleString('id-ID')}</span></div>))}
                                     </div>
                                     <div className="flex justify-between py-3 border-t border-gray-300 mt-2 text-xl">
-                                        <span className="font-black text-gray-800">Total Keseluruhan:</span>
+                                        <span className="font-black text-gray-800">Total Pendapatan:</span>
                                         <span className="font-black text-brand-primary">Rp {displayedTotalPrice.toLocaleString('id-ID')}</span>
                                     </div>
                                 </div>

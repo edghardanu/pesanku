@@ -97,7 +97,7 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
                                     <PackageCheck className="w-4 h-4" /> SELESAI PESANAN
                                 </button>
                             )}
-                            <button onClick={() => window.open(`/invoice/${order.orderId}?role=buyer`, '_blank')} className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-sm text-sm font-semibold hover:bg-gray-50 shadow-sm transition-colors">
+                            <button onClick={() => window.open(`/invoice/${order.orderId}?role=buyer&ids=${orders.map(o => o.orderId).join(',')}`, '_blank')} className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-sm text-sm font-semibold hover:bg-gray-50 shadow-sm transition-colors">
                                 CETAK INVOICE
                             </button>
                             {!isCompleted && !isProcessing && (

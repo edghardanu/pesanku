@@ -50,6 +50,57 @@ interface ChatInterfaceProps {
   onSelectProductFilter?: (productId: string) => void;
 }
 
+const PaymentCountdown = ({ 
+  expiresAt, 
+  onExpire 
+}: { 
+  expiresAt: Date; 
+  onExpire: () => void;
+}) => {
+  const [timeLeft, setTimeLeft] = useState('');
+  const [expired, setExpired] = useState(false);
+
+  useEffect(() => {
+    const now = new Date().getTime();
+    const distance = expiresAt.getTime() - now;
+    if (distance <= 0) {
+      setExpired(true);
+      onExpire();
+      return;
+    }
+
+    const timer = setInterval(() => {
+      const now2 = new Date().getTime();
+      const dist = expiresAt.getTime() - now2;
+
+      if (dist <= 0) {
+        clearInterval(timer);
+        setExpired(true);
+        onExpire();
+      } else {
+        const hours = Math.floor((dist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((dist % (1000 * 60)) / 1000);
+        setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [expiresAt, onExpire]);
+
+  if (expired) {
+    return <div className="text-[10px] text-white/90 bg-status-error/90 font-bold text-center mt-1 py-1.5 rounded w-full shadow-inner">Waktu Pembayaran Habis</div>;
+  }
+
+  return (
+    <div className="text-[11px] text-white font-semibold flex items-center justify-center gap-1 mt-1 bg-amber-500 py-1.5 px-2 rounded w-full shadow-sm border border-amber-600/50">
+      <Clock className="w-3.5 h-3.5 text-white animate-pulse" />
+      Sisa Waktu: <span className="text-white font-black">{timeLeft}</span>
+    </div>
+  );
+};
+
+
 export default function ChatInterface({
   mode,
   user,
@@ -606,7 +657,7 @@ export default function ChatInterface({
   };
 
   // Helper parser for messages
-  const parseMessageContent = (text: string, isSender: boolean, msgId?: string, isResponded?: boolean, isApproved?: boolean) => {
+  const parseMessageContent = (text: string, isSender: boolean, msgId?: string, msgCreatedAt?: Date, isResponded?: boolean, isApproved?: boolean) => {
     const trimmed = text.trim();
 
     // 1. Product Offer format: [PRODUK_OFFER|pId|pName|pPrice|pImage|minQty]
@@ -1153,68 +1204,95 @@ export default function ChatInterface({
               <CheckCircle2 className="w-3.5 h-3.5 text-white" /> Sudah Dibayar
             </div>
           ) : (
-            <button
-              onClick={async () => {
-                // Parse out qty and date
-                const qtyMatch = text.match(/untuk \*\*(.*?)\*\*/);
-                const dateMatch = text.match(/pada tanggal \*\*(.*?)\*\*/);
+            <>
+              <button
+                onClick={async () => {
+                  // Parse out qty and date
+                  const qtyMatch = text.match(/untuk \*\*(.*?)\*\*/);
+                  const dateMatch = text.match(/pada tanggal \*\*(.*?)\*\*/);
 
-                const sQtyNum = qtyMatch ? parseInt(qtyMatch[1]) : 1;
-                const rawDate = dateMatch ? dateMatch[1] : '';
-                const dateParts = rawDate.split('/');
-                let formattedDate = rawDate;
-                if (dateParts.length === 3) {
-                  formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
-                }
-
-                try {
-                  Swal.fire({
-                    title: 'Menyiapkan Pembayaran...',
-                    allowOutsideClick: false,
-                    didOpen: () => Swal.showLoading()
-                  });
-
-                  const checkoutRes = await fetch('/api/checkout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      productId: activeSessionProductId || activeThread?.productId || '',
-                      qty: sQtyNum,
-                      deliveryDate: formattedDate,
-                      chatOrderId: selectedOrderId
-                    })
-                  });
-
-                  const checkoutData = await checkoutRes.json();
-                  if (!checkoutRes.ok) throw new Error(checkoutData.error || 'Gagal memproses pesanan.');
-
-                  const activeOrderId = checkoutData.orderId || selectedOrderId;
-                  const payRes = await fetch('/api/flip/create-payment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderId: activeOrderId }),
-                  });
-
-                  const payData = await payRes.json();
-                  if (!payRes.ok) throw new Error(payData.error || 'Gagal membuat URL pembayaran.');
-
-                  if (payData.paymentUrl) {
-                    window.location.href = payData.paymentUrl;
-                  } else {
-                    throw new Error('URL pembayaran tidak tersedia.');
+                  const sQtyNum = qtyMatch ? parseInt(qtyMatch[1]) : 1;
+                  const rawDate = dateMatch ? dateMatch[1] : '';
+                  const dateParts = rawDate.split('/');
+                  let formattedDate = rawDate;
+                  if (dateParts.length === 3) {
+                    formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
                   }
-                } catch (err: any) {
-                  Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal Memproses',
-                    text: err.message || 'Terjadi kesalahan saat memproses pembayaran.'
-                  });
-                }
-              }}
-              className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white text-[11px] font-bold py-2.5 px-3 rounded-lg flex items-center justify-center gap-1.5 active:scale-95 border-none cursor-pointer mt-1 mb-1 shadow-sm"
-            >
-              <Check className="w-3.5 h-3.5" /> Bayar Sekarang
-            </button>
+
+                  try {
+                    Swal.fire({
+                      title: 'Menyiapkan Pembayaran...',
+                      allowOutsideClick: false,
+                      didOpen: () => Swal.showLoading()
+                    });
+
+                    const checkoutRes = await fetch('/api/checkout', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        productId: activeSessionProductId || activeThread?.productId || '',
+                        qty: sQtyNum,
+                        deliveryDate: formattedDate,
+                        chatOrderId: selectedOrderId
+                      })
+                    });
+
+                    const checkoutData = await checkoutRes.json();
+                    if (!checkoutRes.ok) throw new Error(checkoutData.error || 'Gagal memproses pesanan.');
+
+                    const activeOrderId = checkoutData.orderId || selectedOrderId;
+                    const payRes = await fetch('/api/flip/create-payment', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ orderId: activeOrderId }),
+                    });
+
+                    const payData = await payRes.json();
+                    if (!payRes.ok) throw new Error(payData.error || 'Gagal membuat URL pembayaran.');
+
+                    if (payData.paymentUrl) {
+                      window.location.href = payData.paymentUrl;
+                    } else {
+                      throw new Error('URL pembayaran tidak tersedia.');
+                    }
+                  } catch (err: any) {
+                    Swal.fire({
+                      icon: 'error',
+                      title: 'Gagal Memproses',
+                      text: err.message || 'Terjadi kesalahan saat memproses pembayaran.'
+                    });
+                  }
+                }}
+                className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white text-[11px] font-bold py-2.5 px-3 rounded-lg flex items-center justify-center gap-1.5 active:scale-95 border-none cursor-pointer mt-1 mb-1 shadow-sm"
+              >
+                <Check className="w-3.5 h-3.5" /> Bayar Sekarang
+              </button>
+              {msgCreatedAt && (
+                <PaymentCountdown 
+                  expiresAt={new Date(msgCreatedAt.getTime() + 24 * 60 * 60 * 1000)} 
+                  onExpire={async () => {
+                    if (mode === "buyer") {
+                      try {
+                        const res = await fetch('/api/orders/update-status', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ 
+                            orderId: selectedOrderId, 
+                            status: 'cancelled', 
+                            cancelReason: 'Waktu pembayaran telah habis' 
+                          })
+                        });
+                        if (res.ok) {
+                          window.location.href = '/';
+                        }
+                      } catch (e) {
+                        console.error('Failed to expire order', e);
+                      }
+                    }
+                  }} 
+                />
+              )}
+            </>
           )
         )}
       </div>
@@ -1498,7 +1576,7 @@ export default function ChatInterface({
                                   );
                                   const isResponded = !!respondMsg;
                                   const isApproved = isResponded && respondMsg.text.includes('SETUJUI');
-                                  return parseMessageContent(m.text, isSender, m.id, isResponded, isApproved);
+                                  return parseMessageContent(m.text, isSender, m.id, m.createdAt ? new Date(m.createdAt) : undefined, isResponded, isApproved);
                                 })()}
 
                                 {/* Timeline + tick markers */}

@@ -460,7 +460,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
               }`}
           >
             <Store className="w-5 h-5" />
-            <span>Pengaturan Tarif & Jasa</span>
+            <span>Pengaturan</span>
           </button>
         </nav>
 

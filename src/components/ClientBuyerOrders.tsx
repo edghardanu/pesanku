@@ -1255,7 +1255,7 @@ export default function ClientBuyerOrders({
                               badgeLabel = '✓ Lunas';
                             } else if (order.status === 'waiting_verification') {
                               badgeClass = 'bg-yellow-100 text-yellow-800';
-                              badgeLabel = 'Menunggu Pembayaran';
+                              badgeLabel = group.length > 1 ? 'waiting_payments' : 'waiting_payment';
                             } else if (order.status === 'preorder_running') {
                               badgeClass = 'bg-indigo-100 text-indigo-700';
                               badgeLabel = 'Diproses';
