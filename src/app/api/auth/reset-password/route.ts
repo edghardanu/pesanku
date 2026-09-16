@@ -86,6 +86,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Kata sandi baru minimal 8 karakter' }, { status: 400 });
     }
 
+    const strongRegex = new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])");
+    if (!strongRegex.test(newPassword)) {
+      return NextResponse.json({ message: 'Kata sandi harus mengandung kombinasi huruf besar, huruf kecil, angka, dan lambang/simbol khusus' }, { status: 400 });
+    }
+
     const tokenSecret = process.env.JWT_SECRET || 'fallback-secret-for-dev-pesanku-app';
     const secretKey = new TextEncoder().encode(tokenSecret);
 

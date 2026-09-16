@@ -44,6 +44,17 @@ function ResetPasswordForm() {
       return;
     }
 
+    const strongRegex = new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])");
+    if (!strongRegex.test(newPassword)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Kata Sandi Lemah',
+        text: 'Kata sandi harus mengandung setidaknya 1 huruf besar, 1 huruf kecil, 1 angka, dan 1 simbol (karakter spesial).',
+        confirmButtonColor: '#ff5c35',
+      });
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       Swal.fire({
         icon: 'warning',
@@ -112,7 +123,7 @@ function ResetPasswordForm() {
             type={showPassword ? "text" : "password"}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Minimal 8 karakter"
+            placeholder="Min. 8 karakter, ada huruf & angka & simbol"
             className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all text-sm shadow-inner"
             required
           />

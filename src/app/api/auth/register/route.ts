@@ -106,6 +106,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Semua field wajib diisi' }, { status: 400 });
     }
 
+    if (password.length < 8) {
+      return NextResponse.json({ message: 'Password harus minimal 8 karakter.' }, { status: 400 });
+    }
+
+    const strongRegex = new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])");
+    if (!strongRegex.test(password)) {
+      return NextResponse.json({ message: 'Password harus mengandung kombinasi huruf besar, huruf kecil, angka, dan karakter spesial (simbol).' }, { status: 400 });
+    }
+
     if (role === 'seller' && (!storeName || !address || !bankAccount)) {
       return NextResponse.json({ message: 'Nama toko, alamat, dan info rekening wajib diisi untuk penjual' }, { status: 400 });
     }
