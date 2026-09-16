@@ -111,7 +111,7 @@ export default function CartSidebar() {
                 </div>
             `,
             showCancelButton: true,
-            confirmButtonText: '📨 Kirim Penawaran',
+            confirmButtonText: 'Kirim Penawaran',
             cancelButtonText: 'Batal',
             confirmButtonColor: '#800000',
             cancelButtonColor: '#94a3b8',
@@ -132,19 +132,19 @@ export default function CartSidebar() {
         try {
             setIsCheckingOut(true);
             let firstOrderId: string | null = null;
-            
+
             // Build aggregated items information
             const aggregated = items.map(it => {
                 const q = Math.max(it.qty, it.minQty || 1);
                 return { name: it.name, qty: q, price: it.price };
             });
             const aggregatedTotal = aggregated.reduce((sum, item) => sum + (item.qty * item.price), 0);
-            
+
             let itemsJsonConfig = "";
             try {
                 itemsJsonConfig = typeof window !== 'undefined' ? window.btoa(encodeURIComponent(JSON.stringify(aggregated))) : "";
-            } catch(e) {}
-            
+            } catch (e) { }
+
             const offerText = `Halo kak! Berikut adalah surat rincian penawaran pesanan yang ingin saya ajukan. Mohon sekiranya dapat dicek dan dipertimbangkan:\n\n[SURAT_PENAWARAN_MULTI|${itemsJsonConfig}|${aggregatedTotal}|${offerDate}]`;
 
             // Kirim setiap item keranjang sebagai penawaran ke penjual via presales chat
@@ -160,7 +160,7 @@ export default function CartSidebar() {
                     body: JSON.stringify({
                         productId: item.productId,
                         text: offerText, // Send text on all items so their chat threads are updated and sort to the top of the history list
-                        productOffer: null, 
+                        productOffer: null,
                         qty: qty,
                         totalPrice: item.price * qty,
                         notes: notes,
@@ -183,7 +183,7 @@ export default function CartSidebar() {
 
             await Swal.fire({
                 icon: 'success',
-                title: 'Penawaran Terkirim! 🎉',
+                title: 'Penawaran Terkirim!',
                 html: `<p class="text-sm text-gray-600">Penawaran Anda telah dikirim ke penjual. Silakan pantau konfirmasi dari penjual di halaman <strong>Pesanan Saya</strong>.</p>`,
                 confirmButtonColor: '#800000',
                 confirmButtonText: 'Lihat Chat Pesanan',

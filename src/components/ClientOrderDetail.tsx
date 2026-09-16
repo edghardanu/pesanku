@@ -141,7 +141,7 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
             </div>
 
             {/* Main Content Area */}
-            <div className="flex flex-col xl:flex-row flex-1 overflow-hidden xl:overflow-visible p-3 sm:p-4 md:p-6 gap-4 md:gap-6 w-full max-w-[1600px] mx-auto items-start">
+            <div className="flex flex-col lg:flex-row flex-1 overflow-hidden lg:overflow-visible p-3 sm:p-4 md:p-6 gap-4 md:gap-6 w-full max-w-[1600px] mx-auto items-start">
                 {/* Left Side: Order Form */}
                 <div className="flex-1 min-w-0 w-full bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col">
                     {/* Form Header Info Grid */}
@@ -387,7 +387,7 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
                 </div>
 
                 {/* Right Side: Chatter */}
-                <div className="w-full xl:w-[360px] 2xl:w-[420px] bg-white border border-gray-300 rounded shadow-sm flex flex-col shrink-0 mt-4 xl:mt-0 xl:h-[calc(100vh-180px)] static xl:sticky xl:top-4 overflow-hidden">
+                <div className="w-full lg:w-[320px] xl:w-[360px] 2xl:w-[420px] bg-white border border-gray-300 rounded shadow-sm flex flex-col shrink-0 mt-4 lg:mt-0 lg:h-[calc(100vh-180px)] static lg:sticky lg:top-4 overflow-hidden">
                     <ChatInterface
                         mode="buyer"
                         user={user || null}
