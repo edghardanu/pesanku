@@ -82,7 +82,13 @@ export async function POST(req: Request) {
     resetRateLimit(ip);
 
     // 5. Cek status aktif (Authorization check)
-    if (user.status !== 'active') {
+    if (user.status === 'pending') {
+      return NextResponse.json({ 
+        message: 'Akun Anda belum diverifikasi. Silakan masukkan kode OTP.',
+        requiresOtp: true,
+        email: user.email
+      }, { status: 403 });
+    } else if (user.status !== 'active') {
       return NextResponse.json({ message: 'Akun Anda belum aktif atau diblokir' }, { status: 403 });
     }
 

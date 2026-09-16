@@ -152,8 +152,10 @@ export async function POST(request: Request) {
       isUsed: false,
     });
 
-    // Kirim OTP via email
-    await sendOtpEmail(sanitizedEmail, generatedOtpCode);
+    // Kirim OTP via email (non-blocking / Fire and Forget)
+    sendOtpEmail(sanitizedEmail, generatedOtpCode).catch((error) => {
+      console.error('[OTP/SEND] Background email delivery failed:', error);
+    });
 
     return NextResponse.json({
       success: true,

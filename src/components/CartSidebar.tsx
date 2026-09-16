@@ -390,14 +390,8 @@ export default function CartSidebar() {
                                         )
                                     })
                                 )}
-                            </div>
-
-                            {/* Footer Summary (POS Style) */}
-                            <div className="bg-white border-t border-gray-100 px-6 py-6 pb-8 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
-
-                                <div className="space-y-2.5 mb-6">
-                                    {/* Delivery Address Box */}
-                                    <div className="border-t border-dashed border-gray-200 mt-4 pt-4 mb-4">
+                                {items.length > 0 && (
+                                    <div className="bg-white p-4 rounded-[20px] border border-gray-100 shadow-sm mt-2">
                                         <div className="text-sm font-semibold text-gray-800 mb-2">Alamat Pengiriman (Opsional)</div>
                                         <textarea
                                             value={deliveryAddress}
@@ -409,21 +403,25 @@ export default function CartSidebar() {
                                             *Alamat terisi otomatis jika Anda sudah mengaturnya di Profil.
                                         </div>
                                     </div>
+                                )}
+                            </div>
 
-                                    <div className="border-t border-dashed border-gray-200 pt-4">
-                                        <div className="flex justify-between items-center text-sm mb-1 text-gray-500">
-                                            <span>Subtotal ({totalItems} produk)</span>
-                                            <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalPrice)}</span>
-                                        </div>
-                                        {checkoutFees.map(fee => (
-                                            <div key={fee.id} className="flex justify-between items-center text-xs mb-1 text-gray-400">
-                                              <span>{fee.name}</span>
-                                              <span>{fee.value < 0 ? '-' : ''}{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Math.abs(fee.value))}</span>
-                                            </div>
-                                        ))}
+                            {/* Footer Summary (POS Style) */}
+                            <div className="bg-white border-t border-gray-100 px-4 py-4 pb-6 sm:px-6 sm:py-6 sm:pb-8 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+
+                                <div className="space-y-2.5 mb-4 sm:mb-6">
+                                    <div className="flex justify-between items-center text-sm mb-1 text-gray-500">
+                                        <span>Subtotal ({totalItems} produk)</span>
+                                        <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalPrice)}</span>
                                     </div>
+                                    {checkoutFees.map(fee => (
+                                        <div key={fee.id} className="flex justify-between items-center text-xs mb-1 text-gray-400">
+                                            <span>{fee.name}</span>
+                                            <span>{fee.value < 0 ? '-' : ''}{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Math.abs(fee.value))}</span>
+                                        </div>
+                                    ))}
 
-                                    <div className="w-full border-b border-dashed border-gray-200 mt-3 pt-2"></div>
+                                    <div className="w-full border-b border-dashed border-gray-200 mt-2 pt-2"></div>
 
                                     <div className="flex justify-between items-center pt-2">
                                         <span className="text-base font-bold text-gray-900">Total Pembayaran</span>

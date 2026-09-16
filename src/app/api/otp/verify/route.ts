@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { otpCodes } from '@/lib/schema';
+import { otpCodes, users } from '@/lib/schema';
 import { eq, and, desc } from 'drizzle-orm';
+import { SignJWT } from 'jose';
+import { cookies } from 'next/headers';
 
 // ============================================================
 // POST: Verifikasi OTP dari database
@@ -97,9 +99,50 @@ export async function POST(request: Request) {
       .set({ isUsed: true })
       .where(eq(otpCodes.id, latestOtpRecord.id));
 
+    // Update status user menjadi 'active'
+    await db
+      .update(users)
+      .set({ status: 'active' })
+      .where(eq(users.email, sanitizedEmail));
+
+    // Ambil data user untuk buat session login otomatis
+    const user = await db.select().from(users).where(eq(users.email, sanitizedEmail)).get();
+    
+    if (user) {
+      const secret = new TextEncoder().encode(
+        process.env.JWT_SECRET || 'fallback-secret-for-development'
+      );
+      
+      const alg = 'HS256';
+      const jwt = await new SignJWT({ 
+        id: user.id, 
+        role: user.role, 
+        email: user.email, 
+        name: user.name 
+      })
+        .setProtectedHeader({ alg })
+        .setIssuedAt()
+        .setExpirationTime('7d') 
+        .sign(secret);
+
+      const cookieStore = await cookies();
+      cookieStore.set('auth_token', jwt, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Verifikasi OTP berhasil! Email Anda telah dikonfirmasi.',
+      message: 'Verifikasi OTP berhasil! Anda akan dialihkan secara otomatis.',
+      user: user ? {
+        id: user.id,
+        name: user.name,
+        role: user.role
+      } : undefined
     });
   } catch (error: unknown) {
     console.error('[OTP/VERIFY] Error:', error);

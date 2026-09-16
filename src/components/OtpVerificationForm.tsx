@@ -1,14 +1,20 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import { formatCountdown } from "@/lib/format";
 
 type OtpStep = "email" | "otp";
 
 export default function OtpVerificationForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialEmail = searchParams.get("email") || "";
+  const autoSend = searchParams.get("autoSend") === "true";
+
   const [currentStep, setCurrentStep] = useState<OtpStep>("email");
-  const [emailInput, setEmailInput] = useState("");
+  const [emailInput, setEmailInput] = useState(initialEmail);
   const [otpDigits, setOtpDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -24,11 +30,19 @@ export default function OtpVerificationForm() {
     return () => clearInterval(timer);
   }, [countdown]);
 
+  useEffect(() => {
+    if (initialEmail && autoSend && currentStep === "email") {
+      handleSendOtp(initialEmail);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialEmail, autoSend]);
+
   // ========================================
   // STEP 1: Kirim OTP ke email
   // ========================================
-  const handleSendOtp = async () => {
-    const trimmedEmail = emailInput.trim().toLowerCase();
+  const handleSendOtp = async (overrideEmail?: string) => {
+    const targetEmail = overrideEmail || emailInput;
+    const trimmedEmail = targetEmail.trim().toLowerCase();
 
     if (!trimmedEmail) {
       Swal.fire({ icon: "warning", title: "Email Kosong", text: "Silakan masukkan alamat email Anda.", confirmButtonColor: "#800000" });
@@ -106,15 +120,25 @@ export default function OtpVerificationForm() {
       if (verifyResult.success) {
         Swal.fire({
           icon: "success",
-          title: "Verifikasi Berhasil! ✅",
+          title: "Verifikasi Berhasil!",
           text: verifyResult.message,
           confirmButtonColor: "#800000",
+          timer: 2000,
+          showConfirmButton: false,
+        }).then(() => {
+          if (verifyResult.user?.role === "penjual") {
+            router.push("/seller");
+          } else if (verifyResult.user?.role === "admin") {
+            router.push("/admin");
+          } else {
+            router.push("/");
+          }
+          router.refresh();
         });
-        // Reset form
-        setCurrentStep("email");
-        setEmailInput("");
-        setOtpDigits(["", "", "", "", "", ""]);
-        setCountdown(0);
+
+        // Sengaja tidak mereset form atau mengubah loading menjadi false
+        // agar tombol tertahan dalam status "Memverifikasi..." saat rute mulai berpindah
+        return;
       } else {
         Swal.fire({ icon: "error", title: "Verifikasi Gagal", text: verifyResult.message, confirmButtonColor: "#800000" });
       }
@@ -172,7 +196,7 @@ export default function OtpVerificationForm() {
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-        
+
         {/* Header */}
         <div className="bg-brand-primary px-6 py-5 text-center">
           <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
@@ -206,7 +230,7 @@ export default function OtpVerificationForm() {
                 />
               </div>
               <button
-                onClick={handleSendOtp}
+                onClick={() => handleSendOtp()}
                 disabled={isLoading}
                 className="w-full py-3 bg-brand-primary text-white font-semibold rounded-xl hover:bg-brand-primary-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm shadow-lg shadow-brand-primary/20"
               >
@@ -296,7 +320,7 @@ export default function OtpVerificationForm() {
                   ← Ganti Email
                 </button>
                 <button
-                  onClick={handleSendOtp}
+                  onClick={() => handleSendOtp()}
                   disabled={isLoading || countdown > 0}
                   className="text-brand-primary hover:text-brand-primary-hover font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >

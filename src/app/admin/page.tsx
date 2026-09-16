@@ -106,6 +106,7 @@ export default async function AdminDashboard() {
     name: users.name,
     email: users.email,
     role: users.role,
+    status: users.status,
     phone: users.phone,
     address: users.address,
     createdAt: users.createdAt,

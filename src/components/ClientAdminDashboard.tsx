@@ -834,7 +834,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                         <th className="p-4 font-medium">Email</th>
                         <th className="p-4 font-medium">Role</th>
                         <th className="p-4 font-medium">No HP</th>
-                        <th className="p-4 font-medium">Tanggal Datar</th>
+                        <th className="p-4 font-medium">Status</th>
+                        <th className="p-4 font-medium">Tanggal Daftar</th>
                         <th className="p-4 font-medium">Aksi</th>
                       </tr>
                     </thead>
@@ -866,6 +867,15 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                 </span>
                               </td>
                               <td className="p-4 text-text-secondary">{user.phone || "-"}</td>
+                              <td className="p-4">
+                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                  user.status === 'active' ? 'bg-status-success/10 text-status-success' : 
+                                  user.status === 'pending' ? 'bg-status-warning/10 text-status-warning' : 
+                                  'bg-status-error/10 text-status-error'
+                                }`}>
+                                  {user.status === 'active' ? 'Berhasil' : user.status === 'pending' ? 'Pending' : 'Tidak Aktif'}
+                                </span>
+                              </td>
                               <td className="p-4 text-text-secondary">
                                 {user.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID') : '-'}
                               </td>
@@ -880,6 +890,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                             <div><strong>Nama:</strong> ${user.name}</div>
                                             <div><strong>Email:</strong> ${user.email}</div>
                                             <div><strong>Role:</strong> ${user.role}</div>
+                                            <div><strong>Status:</strong> ${user.status === 'active' ? 'Berhasil' : user.status === 'pending' ? 'Pending' : 'Tidak Aktif'}</div>
                                             <div><strong>No HP:</strong> ${user.phone || '-'}</div>
                                             <div><strong>Alamat:</strong> ${user.address || '-'}</div>
                                             <div><strong>Tanggal Daftar:</strong> ${user.createdAt ? new Date(user.createdAt).toLocaleString('id-ID') : '-'}</div>
@@ -910,7 +921,11 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                           if (result.isConfirmed) {
                                             try {
                                               const res = await fetch(`/api/admin/users?id=${user.id}`, { method: 'DELETE' });
-                                              if (!res.ok) throw new Error('Gagal menghapus pengguna');
+                                              
+                                              if (!res.ok) {
+                                                const errData = await res.json().catch(() => ({}));
+                                                throw new Error(errData.error || 'Gagal menghapus pengguna');
+                                              }
 
                                               setLocalUsersList(localUsersList.filter(u => u.id !== user.id));
                                               router.refresh();
@@ -922,8 +937,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                                 showConfirmButton: false,
                                                 timer: 3000
                                               });
-                                            } catch (error) {
-                                              Swal.fire('Error', 'Terjadi kesalahan saat menghapus', 'error');
+                                            } catch (error: any) {
+                                              Swal.fire('Error', error.message || 'Terjadi kesalahan saat menghapus', 'error');
                                             }
                                           }
                                         });

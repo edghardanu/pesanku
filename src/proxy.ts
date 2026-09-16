@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
 const publicPaths = [
+  '/',
   '/login', 
-  '/register', 
+  '/register',
+  '/verify',
   '/api/auth/login', 
   '/api/auth/register', 
   '/api/auth/logout', 
+  '/api/otp/verify',
   '/api/otp/verify-register', 
   '/api/otp/send', 
   '/api/public-stats'
@@ -37,7 +40,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isPublicPath = publicPaths.some(p => pathname === p || pathname.startsWith(p));
+  const isPublicPath = publicPaths.some(p => {
+    if (p === '/') {
+      return pathname === '/';
+    }
+    // Untuk path lainnya, cek exact match atau sub-path (contoh: /api/otp/...)
+    return pathname === p || pathname.startsWith(`${p}/`);
+  });
 
   // 1. Validasi Token (Jika Ada Token)
   let payloadData: SessionPayload | null = null;

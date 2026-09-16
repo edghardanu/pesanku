@@ -172,13 +172,11 @@ export async function POST(req: Request) {
       isUsed: false,
     });
 
-    // Kirim OTP via email (non-blocking, jika SMTP belum diset tidak akan error)
-    try {
-      await sendRegistrationOtpEmail(email, name, generatedOtpCode);
-    } catch (emailError) {
-      console.error('[REGISTER] Gagal mengirim email OTP:', emailError);
-      // Registrasi tetap berhasil meskipun email gagal kirim
-    }
+    // Kirim OTP via email (100% non-blocking / Fire and Forget)
+    // Tanpa 'await', API akan langsung mengembalikan respon Sukses ke User.
+    sendRegistrationOtpEmail(email, name, generatedOtpCode).catch((emailError) => {
+      console.error('[REGISTER] Gagal mengirim email OTP secara background:', emailError);
+    });
 
     return NextResponse.json({
       message: 'Registrasi berhasil! Kode verifikasi telah dikirim ke email Anda.',

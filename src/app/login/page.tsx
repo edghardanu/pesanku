@@ -31,12 +31,14 @@ export default function LoginPage() {
     setError("");
 
     const formData = new FormData(e.currentTarget);
+
     
     const data = {
       email: formData.get("email"),
       password: formData.get("password"),
     };
 
+    let isSuccess = false;
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -49,8 +51,15 @@ export default function LoginPage() {
       const json = await res.json();
 
       if (!res.ok) {
+        if (json.requiresOtp) {
+          router.push(`/verify?email=${encodeURIComponent(json.email)}&autoSend=true`);
+          return;
+        }
         throw new Error(json.message || "Terjadi kesalahan");
       }
+
+      // Tandai sukses agar loading tidak di-set false (menunggu perpindahan halaman selesai)
+      isSuccess = true;
 
       // Redirect berdasarkan role
       if (json.user?.role === "penjual") {
@@ -65,7 +74,9 @@ export default function LoginPage() {
       const errMsg = err instanceof Error ? err.message : "Terjadi kesalahan";
       setError(errMsg);
     } finally {
-      setLoading(false);
+      if (!isSuccess) {
+        setLoading(false);
+      }
     }
   };
 

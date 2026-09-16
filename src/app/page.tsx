@@ -19,41 +19,40 @@ export default async function Home() {
   }> = [];
 
   try {
-    // Fetch real products from database with seller details
-    const rawProducts = await retryDatabaseRead(async () => db
-      .select({
-        id: products.id,
-        name: products.name,
-        price: products.price,
-        description: products.description,
-        imageUrl: products.imageUrl,
-        sellerId: products.sellerId,
-        minQty: products.preorderMinQty,
-        currentQty: products.currentQty,
-        minOrderQty: products.minOrderQty,
-        maxOrderQty: products.maxOrderQty,
-        processingTime: products.processingTime,
-        batchCategory: products.batchCategory,
-        deadlineDate: products.deadlineDate,
-        status: products.status,
-        createdAt: products.createdAt,
-        sellerName: sellerProfiles.storeName,
-        storeName: sellerProfiles.storeName,
-        sellerAddress: sellerProfiles.address,
-        storeAddress: sellerProfiles.address,
-        sellerAvatar: sellerProfiles.logoUrl,
-        sellerLogoUrl: sellerProfiles.logoUrl,
-        sellerApprovalStatus: sellerProfiles.approvalStatus,
-        sellerPhone: users.phone,
-      })
-      .from(products)
-      .innerJoin(sellerProfiles, eq(products.sellerId, sellerProfiles.userId))
-      .innerJoin(users, eq(products.sellerId, users.id))
-      .orderBy(desc(products.createdAt)));
-
-    const ratingsByProduct = new Map<string, { averageRating: number; ratingCount: number }>();
-    try {
-      const productRatings = await retryDatabaseRead(async () => db
+    // Fetch data concurrently via Promise.all (Parallel Fetching) to prevent waterfall blocking
+    const [rawProducts, productRatings, activePromotions] = await Promise.all([
+      retryDatabaseRead(async () => db
+        .select({
+          id: products.id,
+          name: products.name,
+          price: products.price,
+          description: products.description,
+          imageUrl: products.imageUrl,
+          sellerId: products.sellerId,
+          minQty: products.preorderMinQty,
+          currentQty: products.currentQty,
+          minOrderQty: products.minOrderQty,
+          maxOrderQty: products.maxOrderQty,
+          processingTime: products.processingTime,
+          batchCategory: products.batchCategory,
+          deadlineDate: products.deadlineDate,
+          status: products.status,
+          createdAt: products.createdAt,
+          sellerName: sellerProfiles.storeName,
+          storeName: sellerProfiles.storeName,
+          sellerAddress: sellerProfiles.address,
+          storeAddress: sellerProfiles.address,
+          sellerAvatar: sellerProfiles.logoUrl,
+          sellerLogoUrl: sellerProfiles.logoUrl,
+          sellerApprovalStatus: sellerProfiles.approvalStatus,
+          sellerPhone: users.phone,
+        })
+        .from(products)
+        .innerJoin(sellerProfiles, eq(products.sellerId, sellerProfiles.userId))
+        .innerJoin(users, eq(products.sellerId, users.id))
+        .orderBy(desc(products.createdAt))
+      ),
+      retryDatabaseRead(async () => db
         .select({
           productId: orders.productId,
           averageRating: sql<number>`AVG(${orders.rating})`,
@@ -61,33 +60,37 @@ export default async function Home() {
         })
         .from(orders)
         .where(isNotNull(orders.rating))
-        .groupBy(orders.productId));
-
-      productRatings.forEach((item) => ratingsByProduct.set(item.productId, {
-        averageRating: Number(item.averageRating) || 0,
-        ratingCount: Number(item.ratingCount) || 0,
-      }));
-    } catch (error) {
-      console.error('Database error while fetching homepage ratings:', error);
-    }
-
-    const promotionsByProduct = new Map<string, { expiresAt: Date }>();
-    try {
-      const activePromotions = await retryDatabaseRead(async () => db.select({
-        productId: productPromotions.productId,
-        expiresAt: promotionOffers.expiresAt,
-      })
+        .groupBy(orders.productId)
+      ).catch((error) => {
+        console.error('Database error while fetching homepage ratings:', error);
+        return [];
+      }),
+      retryDatabaseRead(async () => db
+        .select({
+          productId: productPromotions.productId,
+          expiresAt: promotionOffers.expiresAt,
+        })
         .from(productPromotions)
         .innerJoin(promotionOffers, eq(productPromotions.promotionId, promotionOffers.id))
         .where(and(
           eq(productPromotions.status, 'approved'),
           eq(promotionOffers.isActive, true),
           gt(promotionOffers.expiresAt, new Date()),
-        )));
-      activePromotions.forEach((promotion) => promotionsByProduct.set(promotion.productId, promotion));
-    } catch (error) {
-      console.error('Database error while fetching homepage promotions:', error);
-    }
+        ))
+      ).catch((error) => {
+        console.error('Database error while fetching homepage promotions:', error);
+        return [];
+      })
+    ]);
+
+    const ratingsByProduct = new Map<string, { averageRating: number; ratingCount: number }>();
+    productRatings.forEach((item) => ratingsByProduct.set(item.productId, {
+      averageRating: Number(item.averageRating) || 0,
+      ratingCount: Number(item.ratingCount) || 0,
+    }));
+
+    const promotionsByProduct = new Map<string, { expiresAt: Date }>();
+    activePromotions.forEach((promotion) => promotionsByProduct.set(promotion.productId, promotion));
 
     // Provide a fallback avatar for sellers without a profile image.
     dbProducts = rawProducts.map(p => ({
