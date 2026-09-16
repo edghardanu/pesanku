@@ -297,7 +297,7 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
 
                     {activeDetailTab === 'rincian' ? (
                         <div className="p-0 overflow-x-auto w-full">
-                            <table className="w-full text-left text-[13px] min-w-[700px]">
+                            <table className="w-full text-left text-[12px] xl:text-[13px] min-w-[500px]">
                                 <thead>
                                     <tr className="border-b border-gray-300 text-gray-600 font-bold bg-[#f8f9fa]">
                                         <th className="px-4 py-2.5">Produk</th>
@@ -387,7 +387,7 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
                 </div>
 
                 {/* Right Side: Chatter */}
-                <div className="w-full lg:w-[320px] xl:w-[360px] 2xl:w-[420px] bg-white border border-gray-300 rounded shadow-sm flex flex-col shrink-0 mt-4 lg:mt-0 lg:h-[calc(100vh-180px)] static lg:sticky lg:top-4 overflow-hidden">
+                <div className="w-full lg:w-[280px] xl:w-[320px] 2xl:w-[380px] bg-white border border-gray-300 rounded shadow-sm flex flex-col shrink-0 mt-4 lg:mt-0 lg:h-[calc(100vh-180px)] static lg:sticky lg:top-4 overflow-hidden">
                     <ChatInterface
                         mode="buyer"
                         user={user || null}

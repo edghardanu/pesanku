@@ -1165,7 +1165,7 @@ export default function ClientBuyerOrders({
             ) : (
               <div className="flex w-full h-[calc(100vh-140px)] bg-white border border-border sm:rounded-xl shadow-sm overflow-hidden relative">
                 {/* SIDEBAR: Order List */}
-                <div className={`w-full md:w-[260px] lg:w-[280px] xl:w-[320px] shrink-0 border-r border-border flex flex-col h-full bg-surface-secondary/50 ${selectedOrderId ? 'hidden md:flex' : 'flex'}`}>
+                <div className={`w-full md:w-[240px] lg:w-[240px] xl:w-[280px] shrink-0 border-r border-border flex flex-col h-full bg-surface-secondary/50 ${selectedOrderId ? 'hidden md:flex' : 'flex'}`}>
                   <div className="p-4 border-b border-border bg-white flex flex-col gap-3 sticky top-0 z-10 shrink-0">
                     <h2 className="font-bold text-lg text-text-primary flex items-center gap-2">
                       <MessageCircle className="w-5 h-5 text-brand-primary" />

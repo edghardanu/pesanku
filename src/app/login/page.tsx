@@ -80,14 +80,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleForgotPassword = () => {
-    Swal.fire({
-      icon: 'info',
-      title: 'Reset password',
-      text: 'Untuk keamanan akun, reset password publik dinonaktifkan. Silakan hubungi admin Pesanku untuk bantuan pemulihan akun.',
-      confirmButtonColor: '#800000',
-    });
-  };
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row-reverse bg-white dark:bg-gray-950 relative overflow-x-hidden">
@@ -136,13 +128,12 @@ export default function LoginPage() {
                 <label className="block text-body-small font-medium text-text-primary">
                   Password
                 </label>
-                <button 
-                  type="button" 
-                  onClick={handleForgotPassword}
+                <Link 
+                  href="/forgot-password"
                   className="text-caption text-brand-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
                 >
                   Lupa password?
-                </button>
+                </Link>
               </div>
               <div className="relative">
                 <input 
