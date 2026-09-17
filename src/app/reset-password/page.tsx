@@ -27,6 +27,45 @@ function ResetPasswordForm() {
       }).then(() => {
         router.push('/forgot-password');
       });
+      return;
+    }
+
+    try {
+      const base64Url = token.split('.')[1];
+      if (!base64Url) throw new Error("Invalid token format");
+      
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        window.atob(base64)
+          .split('')
+          .map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          })
+          .join('')
+      );
+      
+      const payload = JSON.parse(jsonPayload);
+      const now = Math.floor(Date.now() / 1000);
+      
+      if (payload.exp && payload.exp < now) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Tautan Kedaluwarsa',
+          text: 'Tautan reset kata sandi ini sudah kedaluwarsa setelah 15 menit. Silakan minta tautan baru.',
+          confirmButtonColor: '#ff5c35',
+        }).then(() => {
+          router.push('/forgot-password');
+        });
+      }
+    } catch (e) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Tautan Tidak Valid',
+        text: 'Tautan reset password tidak valid atau rusak.',
+        confirmButtonColor: '#ff5c35',
+      }).then(() => {
+        router.push('/forgot-password');
+      });
     }
   }, [token, router]);
 
