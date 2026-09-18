@@ -918,15 +918,17 @@ export default function ChatInterface({
                           Setuju
                         </button>
                       </div>
-                      <p className="text-[10px] text-gray-500 text-center italic mt-1 font-medium select-none">
-                        (Tolak & Setuju bersifat opsional)
-                      </p>
-                      <input
-                        type="text"
-                        id={`offer-note-${msgId}`}
-                        placeholder="Catatan tambahan (opsional)"
-                        className="w-full text-[10px] p-2 border border-gray-300 rounded outline-none focus:border-brand-primary resize-none mt-1"
-                      />
+                      <div className="mt-1.5">
+                        <input
+                          type="text"
+                          id={`offer-note-${msgId}`}
+                          placeholder="Catatan tambahan"
+                          className="w-full text-[10px] p-2 border border-gray-300 rounded outline-none focus:border-brand-primary resize-none"
+                        />
+                        <p className="text-[9px] text-gray-400 mt-0.5 italic select-none text-right">
+                          *Catatan bersifat opsional
+                        </p>
+                      </div>
                     </>
                   )}
                 </div>

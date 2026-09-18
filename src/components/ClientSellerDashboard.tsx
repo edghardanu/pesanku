@@ -653,7 +653,7 @@ export default function ClientSellerDashboard({
       `;
       };
 
-      const renderSuratPenawaranMultiCard = (sJsonBase64: string, rawPrice: string, sDate: string, isMe: boolean) => {
+      const renderSuratPenawaranMultiCard = (sJsonBase64: string, rawPrice: string, sDate: string, isMe: boolean, msgId: string) => {
         let items: { name: string, qty: number, price: number }[] = [];
         try {
           const decoded = typeof window !== 'undefined' ? window.atob(sJsonBase64.trim()) : '';
@@ -703,24 +703,25 @@ export default function ClientSellerDashboard({
                 <span style="font-size:12px;font-weight:900;color:#1e293b;">${sDate}</span>
               </div>
               <div style="display:flex;gap:6px;margin-top:4px;">
-                <button class="surat-reject-btn" style="flex:1;background:#ffffff;color:#dc2626;border:1px solid #fca5a5;font-size:11px;font-weight:700;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" onclick="const ci = document.getElementById('chat-input'); if(ci){ ci.value = 'Mohon maaf kak, untuk penawaran pesanan ini belum dapat saya/kami setujui.'; ci.focus(); }">
+                <button class="surat-reject-btn" style="flex:1;background:#ffffff;color:#dc2626;border:1px solid #fca5a5;font-size:11px;font-weight:700;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" onclick="const note = document.getElementById('surat-multi-note-${msgId}')?.value.trim() || ''; const ci = document.getElementById('chat-input'); if(ci){ ci.value = 'Mohon maaf kak, untuk penawaran pesanan ini belum dapat saya/kami setujui.' + (note ? ' Catatan: ' + note : ''); ci.focus(); }">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   Tolak
                 </button>
-                <button class="surat-accept-btn" style="flex:1;background:#16a34a;color:#ffffff;border:none;font-size:11px;font-weight:700;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" onclick="const ci = document.getElementById('chat-input'); if(ci){ ci.value = 'Halo kak! Penawaran pesanan dengan total Rp ${sTotalPrice} ini kami SETUJUI (Bisa Diproses).'; ci.focus(); }">
+                <button class="surat-accept-btn" style="flex:1;background:#16a34a;color:#ffffff;border:none;font-size:11px;font-weight:700;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" onclick="const note = document.getElementById('surat-multi-note-${msgId}')?.value.trim() || ''; const ci = document.getElementById('chat-input'); if(ci){ ci.value = 'Halo kak! Penawaran pesanan dengan total Rp ${sTotalPrice} ini kami SETUJUI (Bisa Diproses).' + (note ? ' Catatan: ' + note : ''); ci.focus(); }">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   Setuju
                 </button>
               </div>
-              <div style="font-size:9.5px;color:#64748b;text-align:center;margin-top:2px;font-style:italic;">
-                (Tolak & Setuju bersifat opsional)
+              <div style="margin-top:6px;">
+                <input id="surat-multi-note-${msgId}" type="text" placeholder="Keterangan tambahan (opsional)" style="width:100%;box-sizing:border-box;font-size:10px;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;outline:none;color:#1e293b;background:#f8fafc;" />
+                <div style="font-size:9px;color:#94a3b8;text-align:right;margin-top:2px;font-style:italic;">*Keterangan bersifat opsional</div>
               </div>
             </div>
           </div>
         `;
       };
 
-      const renderSuratPenawaranCard = (qtyStr: string, priceStr: string, dateStr: string, pName: string, isMe: boolean) => {
+      const renderSuratPenawaranCard = (qtyStr: string, priceStr: string, dateStr: string, pName: string, isMe: boolean, msgId: string) => {
         const qty = Number(qtyStr) || 1;
         const price = Number(priceStr.replace(/[^\d]/g, '')) || 0;
         const formattedPrice = price.toLocaleString('id-ID');
@@ -746,17 +747,18 @@ export default function ClientSellerDashboard({
                 <span style="font-size:12px;font-weight:900;color:#1e293b;">${dateStr}</span>
               </div>
               <div style="display:flex;gap:6px;margin-top:4px;">
-                <button class="surat-reject-btn" style="flex:1;background:#ffffff;color:#dc2626;border:1px solid #fca5a5;font-size:11px;font-weight:700;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" onclick="const ci = document.getElementById('chat-input'); if(ci){ ci.value = 'Mohon maaf kak, untuk penawaran pesanan ini belum dapat saya/kami setujui.'; ci.focus(); }">
+                <button class="surat-reject-btn" style="flex:1;background:#ffffff;color:#dc2626;border:1px solid #fca5a5;font-size:11px;font-weight:700;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" onclick="const note = document.getElementById('surat-note-${msgId}')?.value.trim() || ''; const ci = document.getElementById('chat-input'); if(ci){ ci.value = 'Mohon maaf kak, untuk penawaran pesanan ini belum dapat saya/kami setujui.' + (note ? ' Catatan: ' + note : ''); ci.focus(); }">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   Tolak
                 </button>
-                <button class="surat-accept-btn" style="flex:1;background:#16a34a;color:#ffffff;border:none;font-size:11px;font-weight:700;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" onclick="const ci = document.getElementById('chat-input'); if(ci){ ci.value = 'Halo kak! Penawaran pesanan ini kami SETUJUI (Bisa Diproses).'; ci.focus(); }">
+                <button class="surat-accept-btn" style="flex:1;background:#16a34a;color:#ffffff;border:none;font-size:11px;font-weight:700;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" onclick="const note = document.getElementById('surat-note-${msgId}')?.value.trim() || ''; const ci = document.getElementById('chat-input'); if(ci){ ci.value = 'Halo kak! Penawaran pesanan ini kami SETUJUI (Bisa Diproses).' + (note ? ' Catatan: ' + note : ''); ci.focus(); }">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   Setuju
                 </button>
               </div>
-              <div style="font-size:9.5px;color:#64748b;text-align:center;margin-top:2px;font-style:italic;">
-                (Tolak & Setuju bersifat opsional)
+              <div style="margin-top:6px;">
+                <input id="surat-note-${msgId}" type="text" placeholder="Keterangan tambahan (opsional)" style="width:100%;box-sizing:border-box;font-size:10px;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;outline:none;color:#1e293b;background:#f8fafc;" />
+                <div style="font-size:9px;color:#94a3b8;text-align:right;margin-top:2px;font-style:italic;">*Keterangan bersifat opsional</div>
               </div>
             </div>
           </div>
@@ -779,7 +781,7 @@ export default function ClientSellerDashboard({
           const sJsonBase64 = suratMultiMatch[1].trim();
           const rawPrice = suratMultiMatch[2].trim();
           const sDate = suratMultiMatch[3].trim();
-          const cardHtml = renderSuratPenawaranMultiCard(sJsonBase64, rawPrice, sDate, isMe);
+          const cardHtml = renderSuratPenawaranMultiCard(sJsonBase64, rawPrice, sDate, isMe, String(c.id || ''));
 
           if (bubbleContent && bubbleContent !== '<br/>') {
             bubbleContent = `<div>${bubbleContent}</div><div class="mt-2.5">${cardHtml}</div>`;
@@ -793,7 +795,7 @@ export default function ClientSellerDashboard({
           const priceStr = suratMatch[2].trim();
           const dateStr = suratMatch[3].trim();
           const pName = suratMatch[5] ? suratMatch[5].trim() : 'Produk Preorder';
-          const cardHtml = renderSuratPenawaranCard(qtyStr, priceStr, dateStr, pName, isMe);
+          const cardHtml = renderSuratPenawaranCard(qtyStr, priceStr, dateStr, pName, isMe, String(c.id || ''));
 
           if (bubbleContent && bubbleContent !== '<br/>') {
             bubbleContent = `<div>${bubbleContent}</div><div class="mt-2.5">${cardHtml}</div>`;

@@ -520,6 +520,8 @@ export default function ClientBuyerOrders({
 
     if (result.isConfirmed) {
       setSelectedOrderId(null);
+      setLocalOrders(prev => prev.filter(o => o.orderId !== orderId));
+      
       try {
         const res = await fetch('/api/orders/cancel', {
           method: 'DELETE',
