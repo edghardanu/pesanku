@@ -11,6 +11,7 @@ import dynamic from "next/dynamic";
 const QRScannerModal = dynamic(() => import("@/components/QRScannerModal"), { ssr: false });
 import HelpWidget from "@/components/HelpWidget";
 import CartSidebar from "@/components/CartSidebar";
+import Logo from "@/components/ui/Logo";
 import { useCart } from "@/lib/cart";
 import { ProductItem, AuthUser } from "@/types";
 import ProductRating from "@/components/ProductRating";
@@ -67,6 +68,15 @@ export default function ClientHome({
   const router = useRouter();
   const { addItem: addCartItem } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -271,12 +281,12 @@ export default function ClientHome({
 
       const productName = product.name || '';
       const sellerName = product.sellerName || '';
-      const query = searchQuery || '';
+      const query = debouncedSearchQuery || '';
 
       return productName.toLowerCase().includes(query.toLowerCase()) ||
         sellerName.toLowerCase().includes(query.toLowerCase());
     });
-  }, [initialProducts, categoryFilter, searchQuery]);
+  }, [initialProducts, categoryFilter, debouncedSearchQuery]);
 
   const displayProducts = useMemo(() => {
     return [...filteredProducts].filter((product) => {
@@ -328,17 +338,7 @@ export default function ClientHome({
                 animate={{ y: [0, -3, 0] }}
                 transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
               >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm transition-colors duration-300 bg-brand-primary">
-                  <ShoppingBag className="w-5 h-5 transition-colors duration-300 text-white" />
-                </div>
-                <div className="flex items-baseline">
-                  <span className="text-h2 font-extrabold tracking-tight transition-colors duration-300 text-gray-900 dark:text-white">
-                    pesanku
-                  </span>
-                  <span className="text-h2 font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-rose-500 ml-1.5 drop-shadow-sm">
-                    nusantara
-                  </span>
-                </div>
+                <Logo className="w-32 md:w-36 lg:w-[150px] xl:w-[180px]" priority={true} />
               </motion.div>
             </Link>
 
@@ -1642,17 +1642,15 @@ export default function ClientHome({
               animate={{ y: [0, -4, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
             >
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                <ShoppingBag className="w-5 h-5 text-brand-primary" />
-              </div>
-              <div className="flex items-baseline relative inline-block">
-                <span className="text-h2 text-white font-extrabold tracking-tight">
-                  pesanku
-                </span>
-                <span className="text-h2 font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-[#FCDC2A] to-rose-200 ml-1.5 drop-shadow-sm">
-                  nusantara
-                </span>
-              </div>
+              <Image 
+                src="/pesanku-white.png" 
+                alt="Pesanku" 
+                width={220} 
+                height={52} 
+                quality={100}
+                priority={true}
+                className="object-contain drop-shadow-sm" 
+              />
             </motion.div>
           </div>
           <p className="text-body-base text-white/90 mb-8 max-w-md mx-auto">

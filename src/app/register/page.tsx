@@ -7,6 +7,7 @@ import Swal from "sweetalert2";
 import { ShoppingBag, Store, User, Eye, EyeOff, ArrowLeft, Home, ShoppingCart, FileText, X, CheckCircle, ShieldCheck, ExternalLink, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { useDarkMode } from '@/hooks';
+import Logo from "@/components/ui/Logo";
 import { formatCountdown } from '@/lib/format';
 
 export default function RegisterPage() {
@@ -305,8 +306,7 @@ export default function RegisterPage() {
           <div className="w-full flex-1 flex flex-col pb-24 md:pb-12">
 
             <Link href="/" className="flex justify-center items-center gap-3 mb-10 hover:opacity-80 transition-opacity">
-              <ShoppingBag className="w-10 h-10 text-brand-primary" />
-              <span className="text-display-1 text-brand-primary font-bold text-3xl">pesanku</span>
+              <Logo className="w-56 sm:w-64 md:w-80 lg:w-[320px] max-w-full" priority={true} />
             </Link>
 
             <div className="w-full">
@@ -645,12 +645,6 @@ export default function RegisterPage() {
             </Link>
           </div>
           <motion.div className="hidden lg:flex flex-col mt-auto pt-8 lg:pt-12" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8 }}>
-            <div className="flex items-center justify-center gap-4 mb-6 lg:mb-8">
-              <div className="bg-white rounded-xl shadow-lg p-2">
-                <ShoppingBag className="w-10 h-10 lg:w-14 lg:h-14 text-brand-primary" strokeWidth={2.5} />
-              </div>
-              <span className="text-4xl lg:text-7xl font-extrabold text-brand-primary tracking-wide drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">pesanku</span>
-            </div>
             <h2 className="text-2xl sm:text-3xl lg:text-5xl font-extrabold text-white mb-2 lg:mb-4 leading-tight">Mulai<br className="hidden sm:block" /><span className="text-white drop-shadow-md">Perjalananmu</span></h2>
             <p className="text-sm sm:text-base lg:text-lg text-white/90 leading-relaxed mb-4 lg:mb-6 hidden sm:block lg:block">Bergabung ribuan pelanggan dan mitra UMKM yang saling terhubung dalam platform Pesanku.</p>
             <div className="hidden sm:grid grid-cols-2 gap-4">
