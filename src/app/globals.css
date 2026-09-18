@@ -16,6 +16,7 @@
   --color-status-error: #EF4444;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
@@ -42,16 +43,16 @@ body {
 /* Typography styles based on design system */
 @layer components {
   .text-display-1 {
-    @apply text-4xl font-bold leading-tight;
+    @apply font-heading text-4xl font-bold leading-tight;
   }
   .text-h1 {
-    @apply text-3xl font-bold leading-tight;
+    @apply font-heading text-3xl font-bold leading-tight;
   }
   .text-h2 {
-    @apply text-2xl font-semibold leading-snug;
+    @apply font-heading text-2xl font-semibold leading-snug;
   }
   .text-h3 {
-    @apply text-xl font-semibold leading-relaxed;
+    @apply font-heading text-xl font-semibold leading-relaxed;
   }
   .text-body-large {
     @apply text-lg font-medium leading-relaxed;

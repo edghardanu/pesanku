@@ -775,17 +775,29 @@ export default function ChatInterface({
     }
 
     // 2. Surat Penawaran MULTI format: [SURAT_PENAWARAN_MULTI|jsonBase64|totalPrice|date]
-    const suratMultiMatch = trimmed.match(/\[SURAT_PENAWARAN_MULTI\|(.*?)\|(.*?)\|(.*?)\]/);
+    const suratMultiMatch = trimmed.match(/\[SURAT_PENAWARAN_MULTI\|([\s\S]*?)\|([\s\S]*?)\|([\s\S]*?)\]/);
     if (suratMultiMatch) {
       const remainder = trimmed.replace(suratMultiMatch[0], "").trim();
-      const sJsonBase64 = suratMultiMatch[1];
-      let sTotalPrice = isNaN(Number(suratMultiMatch[2])) ? suratMultiMatch[2] : Number(suratMultiMatch[2]).toLocaleString('id-ID');
-      const sDate = suratMultiMatch[3];
+      const sJsonBase64 = suratMultiMatch[1].trim();
+      const rawPrice = suratMultiMatch[2].trim();
+      let sTotalPrice = isNaN(Number(rawPrice)) ? rawPrice : Number(rawPrice).toLocaleString('id-ID');
+      const sDate = suratMultiMatch[3].trim();
 
       let items: { name: string, qty: number, price: number }[] = [];
       try {
-        items = JSON.parse(decodeURIComponent(window.atob(sJsonBase64)));
-      } catch (e) { }
+        const decoded = typeof window !== 'undefined' ? window.atob(sJsonBase64) : '';
+        try {
+          items = JSON.parse(decodeURIComponent(decoded));
+        } catch {
+          items = JSON.parse(decoded);
+        }
+      } catch (e) {
+        try {
+          items = JSON.parse(sJsonBase64);
+        } catch (err) {
+          console.error('Failed to parse multi offer items:', err);
+        }
+      }
 
       return (
         <div className="flex flex-col gap-2 w-full max-w-sm">
@@ -906,6 +918,9 @@ export default function ChatInterface({
                           Setuju
                         </button>
                       </div>
+                      <p className="text-[10px] text-gray-500 text-center italic mt-1 font-medium select-none">
+                        (Tolak & Setuju bersifat opsional)
+                      </p>
                       <input
                         type="text"
                         id={`offer-note-${msgId}`}

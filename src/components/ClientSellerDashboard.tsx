@@ -653,6 +653,116 @@ export default function ClientSellerDashboard({
       `;
       };
 
+      const renderSuratPenawaranMultiCard = (sJsonBase64: string, rawPrice: string, sDate: string, isMe: boolean) => {
+        let items: { name: string, qty: number, price: number }[] = [];
+        try {
+          const decoded = typeof window !== 'undefined' ? window.atob(sJsonBase64.trim()) : '';
+          try {
+            items = JSON.parse(decodeURIComponent(decoded));
+          } catch {
+            items = JSON.parse(decoded);
+          }
+        } catch (e) {
+          try {
+            items = JSON.parse(sJsonBase64.trim());
+          } catch (err) {}
+        }
+
+        let sTotalPrice = isNaN(Number(rawPrice)) ? rawPrice : Number(rawPrice).toLocaleString('id-ID');
+
+        const itemsHtml = items.length > 0 ? items.map(item => `
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-top:4px;padding-bottom:4px;border-bottom:1px dashed #e2e8f0;">
+            <span style="font-size:11px;font-weight:700;color:#800000;padding-right:8px;">${item.name}</span>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;">
+              <span style="font-size:10px;font-weight:900;color:#1e293b;">${item.qty} Porsi</span>
+              <span style="font-size:10px;font-weight:600;color:#64748b;">Rp ${(item.qty * item.price).toLocaleString('id-ID')}</span>
+            </div>
+          </div>
+        `).join('') : `<div style="font-size:11px;color:#64748b;font-style:italic;">Data produk tidak tersedia</div>`;
+
+        return `
+          <div style="width:100%;max-width:320px;border-radius:12px;overflow:hidden;border:1px solid #cbd5e1;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.1);text-align:left;color:#1e293b;margin-top:6px;">
+            <div style="background:#800000;color:#ffffff;padding:10px;display:flex;align-items:center;justify-content:center;gap:6px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <h4 style="font-weight:800;font-size:13px;letter-spacing:0.5px;text-transform:uppercase;margin:0;">SURAT PENAWARAN</h4>
+            </div>
+            <div style="padding:12px;background:#ffffff;display:flex;flex-direction:column;gap:8px;">
+              <div style="background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:8px;max-height:180px;overflow-y:auto;">
+                <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">Daftar Produk</div>
+                ${itemsHtml}
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(128,0,0,0.05);padding:8px;border-radius:8px;border:1px solid rgba(128,0,0,0.15);">
+                <span style="font-size:11px;font-weight:700;color:#800000;">Total Harga Keseluruhan</span>
+                <span style="font-size:12px;font-weight:900;color:#800000;white-space:nowrap;">Rp ${sTotalPrice}</span>
+              </div>
+              <div style="background:#fff8eb;padding:8px;border-radius:8px;border:1px solid #ffedd5;">
+                <span style="font-size:10px;font-weight:700;color:#ea580c;display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Tanggal Pesanan
+                </span>
+                <span style="font-size:12px;font-weight:900;color:#1e293b;">${sDate}</span>
+              </div>
+              <div style="display:flex;gap:6px;margin-top:4px;">
+                <button class="surat-reject-btn" style="flex:1;background:#ffffff;color:#dc2626;border:1px solid #fca5a5;font-size:11px;font-weight:700;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" onclick="const ci = document.getElementById('chat-input'); if(ci){ ci.value = 'Mohon maaf kak, untuk penawaran pesanan ini belum dapat saya/kami setujui.'; ci.focus(); }">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Tolak
+                </button>
+                <button class="surat-accept-btn" style="flex:1;background:#16a34a;color:#ffffff;border:none;font-size:11px;font-weight:700;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" onclick="const ci = document.getElementById('chat-input'); if(ci){ ci.value = 'Halo kak! Penawaran pesanan dengan total Rp ${sTotalPrice} ini kami SETUJUI (Bisa Diproses).'; ci.focus(); }">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Setuju
+                </button>
+              </div>
+              <div style="font-size:9.5px;color:#64748b;text-align:center;margin-top:2px;font-style:italic;">
+                (Tolak & Setuju bersifat opsional)
+              </div>
+            </div>
+          </div>
+        `;
+      };
+
+      const renderSuratPenawaranCard = (qtyStr: string, priceStr: string, dateStr: string, pName: string, isMe: boolean) => {
+        const qty = Number(qtyStr) || 1;
+        const price = Number(priceStr.replace(/[^\d]/g, '')) || 0;
+        const formattedPrice = price.toLocaleString('id-ID');
+
+        return `
+          <div style="width:100%;max-width:300px;border-radius:12px;overflow:hidden;border:1px solid #cbd5e1;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.1);text-align:left;color:#1e293b;margin-top:6px;">
+            <div style="background:#800000;color:#ffffff;padding:10px;display:flex;align-items:center;justify-content:center;gap:6px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <h4 style="font-weight:800;font-size:13px;letter-spacing:0.5px;text-transform:uppercase;margin:0;">SURAT PENAWARAN</h4>
+            </div>
+            <div style="padding:12px;background:#ffffff;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:12px;font-weight:700;color:#800000;">${pName || 'Produk Preorder'}</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;padding:6px 8px;border-radius:6px;border:1px solid #e2e8f0;">
+                <span style="font-size:11px;color:#64748b;">Jumlah Porsi</span>
+                <span style="font-size:11px;font-weight:800;color:#1e293b;">${qty} Porsi</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(128,0,0,0.05);padding:8px;border-radius:8px;border:1px solid rgba(128,0,0,0.15);">
+                <span style="font-size:11px;font-weight:700;color:#800000;">Total Harga</span>
+                <span style="font-size:12px;font-weight:900;color:#800000;">Rp ${formattedPrice}</span>
+              </div>
+              <div style="background:#fff8eb;padding:8px;border-radius:8px;border:1px solid #ffedd5;">
+                <span style="font-size:10px;font-weight:700;color:#ea580c;display:flex;align-items:center;gap:4px;margin-bottom:2px;">Tanggal Pesanan</span>
+                <span style="font-size:12px;font-weight:900;color:#1e293b;">${dateStr}</span>
+              </div>
+              <div style="display:flex;gap:6px;margin-top:4px;">
+                <button class="surat-reject-btn" style="flex:1;background:#ffffff;color:#dc2626;border:1px solid #fca5a5;font-size:11px;font-weight:700;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" onclick="const ci = document.getElementById('chat-input'); if(ci){ ci.value = 'Mohon maaf kak, untuk penawaran pesanan ini belum dapat saya/kami setujui.'; ci.focus(); }">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Tolak
+                </button>
+                <button class="surat-accept-btn" style="flex:1;background:#16a34a;color:#ffffff;border:none;font-size:11px;font-weight:700;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" onclick="const ci = document.getElementById('chat-input'); if(ci){ ci.value = 'Halo kak! Penawaran pesanan ini kami SETUJUI (Bisa Diproses).'; ci.focus(); }">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Setuju
+                </button>
+              </div>
+              <div style="font-size:9.5px;color:#64748b;text-align:center;margin-top:2px;font-style:italic;">
+                (Tolak & Setuju bersifat opsional)
+              </div>
+            </div>
+          </div>
+        `;
+      };
+
       const renderMsgs = () => chatHistory.map((c: ChatMessage) => {
         const isMe = (c.senderId && profile?.userId && c.senderId === profile.userId) || c.sender === 'seller';
 
@@ -660,7 +770,37 @@ export default function ClientSellerDashboard({
         let bubbleContent = escapeQuotes(c.text || "").replace(/\n/g, '<br/>');
 
         const offerMatch = bubbleContent.match(/\[PRODUK_OFFER\|(.*?)\|(.*?)\|(.*?)\|(.*?)\]/);
-        if (offerMatch) {
+        const suratMultiMatch = bubbleContent.match(/\[SURAT_PENAWARAN_MULTI\|([\s\S]*?)\|([\s\S]*?)\|([\s\S]*?)\]/);
+        const suratMatch = bubbleContent.match(/\[SURAT_PENAWARAN\|([\s\S]*?)\|([\s\S]*?)\|([\s\S]*?)(?:\|([\s\S]*?))?(?:\|([\s\S]*?))?(?:\|([\s\S]*?))?\]/);
+
+        if (suratMultiMatch) {
+          const fullMatch = suratMultiMatch[0];
+          bubbleContent = bubbleContent.replace(fullMatch, "").replace(/<br\/>/g, '\n').trim().replace(/\n/g, '<br/>');
+          const sJsonBase64 = suratMultiMatch[1].trim();
+          const rawPrice = suratMultiMatch[2].trim();
+          const sDate = suratMultiMatch[3].trim();
+          const cardHtml = renderSuratPenawaranMultiCard(sJsonBase64, rawPrice, sDate, isMe);
+
+          if (bubbleContent && bubbleContent !== '<br/>') {
+            bubbleContent = `<div>${bubbleContent}</div><div class="mt-2.5">${cardHtml}</div>`;
+          } else {
+            bubbleContent = cardHtml;
+          }
+        } else if (suratMatch) {
+          const fullMatch = suratMatch[0];
+          bubbleContent = bubbleContent.replace(fullMatch, "").replace(/<br\/>/g, '\n').trim().replace(/\n/g, '<br/>');
+          const qtyStr = suratMatch[1].trim();
+          const priceStr = suratMatch[2].trim();
+          const dateStr = suratMatch[3].trim();
+          const pName = suratMatch[5] ? suratMatch[5].trim() : 'Produk Preorder';
+          const cardHtml = renderSuratPenawaranCard(qtyStr, priceStr, dateStr, pName, isMe);
+
+          if (bubbleContent && bubbleContent !== '<br/>') {
+            bubbleContent = `<div>${bubbleContent}</div><div class="mt-2.5">${cardHtml}</div>`;
+          } else {
+            bubbleContent = cardHtml;
+          }
+        } else if (offerMatch) {
           const fullMatch = offerMatch[0];
           bubbleContent = bubbleContent.replace(fullMatch, "").replace(/<br\/>/g, '\n').trim().replace(/\n/g, '<br/>');
           const pId = offerMatch[1];
@@ -1455,7 +1595,7 @@ export default function ClientSellerDashboard({
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen md:h-screen overflow-y-auto min-w-0">
         {/* Topbar Mobile */}
-        <header className="md:hidden bg-surface/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between sticky top-0 z-50 transition-all">
+        <header className="md:hidden bg-surface/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between sticky top-0 z-[100] transition-all">
           <div className="flex items-center gap-2">
 
             <ShoppingBag className="w-6 h-6 text-brand-primary" />
@@ -1490,7 +1630,7 @@ export default function ClientSellerDashboard({
                 </div>
               </button>
               {isUserDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-52 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 overflow-hidden">
+                <div className="md:hidden absolute right-0 top-full mt-2 w-56 bg-surface border border-border rounded-xl shadow-2xl z-[110] py-1 overflow-hidden">
                   <div className="px-4 py-3 border-b border-border">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs text-text-secondary">Masuk sebagai</p>
@@ -1550,21 +1690,23 @@ export default function ClientSellerDashboard({
             {isNotifDesktopOpen && renderNotificationsDropdown(true)}
           </div>
 
-          {/* User Dropdown */}
+          {/* Profile Dropdown Trigger */}
           <div className="relative">
             <button
               onClick={() => { setIsUserDropdownOpen(!isUserDropdownOpen); setIsNotifDesktopOpen(false); }}
-              className="flex items-center gap-2 p-1.5 pr-3 rounded-xl border border-border bg-surface hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all cursor-pointer shadow-sm"
-              title="Akun Pengguna"
+              className="flex items-center gap-3 p-1.5 pl-3 rounded-xl border border-border bg-surface hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all cursor-pointer shadow-sm"
             >
-              <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center text-white font-bold text-sm shrink-0">
-                {(userName || 'U').charAt(0).toUpperCase()}
+              <div className="text-right min-w-0">
+                <p className="text-xs font-bold text-text-primary truncate max-w-[120px]">{userName}</p>
+                <p className="text-[10px] text-text-secondary truncate max-w-[120px]">{profile?.storeName || 'Toko'}</p>
               </div>
-              <span className="text-sm font-semibold text-text-primary max-w-[120px] truncate">{userName}</span>
-              <svg className={`w-3.5 h-3.5 text-text-secondary transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+              <div className="w-8 h-8 rounded-lg bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-xs shrink-0">
+                {(userName || 'P').charAt(0).toUpperCase()}
+              </div>
+              <svg className={`w-4 h-4 text-text-secondary transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
             </button>
             {isUserDropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-52 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 overflow-hidden">
+              <div className="hidden md:block absolute right-0 top-full mt-2 w-56 bg-surface border border-border rounded-xl shadow-xl z-[110] py-1 overflow-hidden">
                 <div className="px-4 py-3 border-b border-border">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-text-secondary">Masuk sebagai</p>
@@ -1649,21 +1791,37 @@ export default function ClientSellerDashboard({
                           Belum ada pesanan masuk.
                         </div>
                       ) : (() => {
-                        const groups: Record<string, any[]> = {};
-                        filteredSellerOrders.forEach(o => {
-                          let key = o.id;
-                          if (o.status !== 'cancelled' && o.status !== 'failed' && o.status !== 'completed' && !(o as any).paymentId) {
-                              const timeString = o.createdAt ? new Date(o.createdAt as string).toISOString().substring(0, 16) : '0';
-                              key = 'active_' + (o.buyerId || 'none') + '_' + timeString;
-                          } else if ((o as any).paymentId) {
-                              key = 'paid_' + (o as any).paymentId;
-                          }
-                          if (!groups[key]) groups[key] = [];
-                          groups[key].push(o);
-                        });
-                        const groupedArrays = Object.values(groups);
+                        const getOrderTimestamp = (dateVal: any) => {
+                          if (!dateVal) return 0;
+                          if (typeof dateVal === 'number') return dateVal > 1e11 ? dateVal : dateVal * 1000;
+                          const t = new Date(dateVal).getTime();
+                          return isNaN(t) ? 0 : t;
+                        };
 
-                        return groupedArrays.map((group) => {
+                        const groups: any[][] = [];
+                        filteredSellerOrders.forEach(o => {
+                          const oTime = getOrderTimestamp(o.createdAt);
+                          const existingGroup = groups.find(g => {
+                            const head = g[0];
+                            if (head.buyerId !== o.buyerId) return false;
+                            if ((head as any).paymentId && (o as any).paymentId) {
+                              return (head as any).paymentId === (o as any).paymentId;
+                            }
+                            const isActiveStatus = (s: string) => s !== 'cancelled' && s !== 'failed' && s !== 'completed';
+                            if (isActiveStatus(head.status || '') && isActiveStatus(o.status || '')) {
+                              return Math.abs(getOrderTimestamp(head.createdAt) - oTime) < 10 * 60 * 1000;
+                            }
+                            return head.id === o.id;
+                          });
+
+                          if (existingGroup) {
+                            existingGroup.push(o);
+                          } else {
+                            groups.push([o]);
+                          }
+                        });
+
+                        return groups.map((group) => {
                           const order = group[0];
                           const isSelected = group.some(o => o.id === selectedOrderId);
                           const isResponded = group.some(o => o.isResponded === true);
@@ -2692,21 +2850,21 @@ export default function ClientSellerDashboard({
 
         <button
           onClick={() => handleTabChange('pesanan_masuk')}
-          className="flex-1 flex flex-col justify-end items-center relative pb-2 h-full"
+          className="flex-1 flex flex-col items-center justify-end gap-1 pb-2 -mt-6"
         >
-          <div className="absolute bottom-6 flex justify-center w-full">
+          <div className="relative">
             <div
               className={`w-14 h-14 rounded-full ${activeTab === 'pesanan_masuk' ? 'bg-brand-primary-hover shadow-[0_4px_20px_rgba(128,0,0,0.4)] scale-110' : 'bg-brand-primary shadow-lg hover:bg-brand-primary-hover hover:scale-105'} text-white flex items-center justify-center transition-all duration-300`}
             >
               <Bell className="w-7 h-7 stroke-[1.5]" />
             </div>
             {totalNotifs > 0 && activeTab !== 'pesanan_masuk' && (
-              <span className="absolute top-0 right-1/2 translate-x-5 -mt-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-status-error px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+              <span className="absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-status-error px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
                 {totalNotifs > 99 ? '99+' : totalNotifs}
               </span>
             )}
           </div>
-          <span className={`mt-1 transition-colors ${activeTab === 'pesanan_masuk' ? 'text-brand-primary font-bold' : 'text-text-secondary group-hover:text-brand-primary'}`}>Pesanan Masuk</span>
+          <span className={`text-[10px] font-medium transition-colors ${activeTab === 'pesanan_masuk' ? 'text-brand-primary font-bold' : 'text-text-secondary'}`}>Pesanan Masuk</span>
         </button>
 
         <button

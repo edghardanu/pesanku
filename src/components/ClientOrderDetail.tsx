@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Clock, CheckCircle2, MoreVertical, FileText, Download, MessageCircle, Truck, ShoppingBag, Calendar, PackageCheck } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Clock, CheckCircle2, MoreVertical, FileText, Download, MessageCircle, Truck, ShoppingBag, Calendar, PackageCheck, ChevronDown } from "lucide-react";
 import { BuyerOrderViewItem, AuthUser } from "@/types";
 import { formatOrderDateTimeWIB } from "@/lib/promotionFormatting";
 import ChatInterface from "@/components/ChatInterface";
@@ -34,6 +35,7 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
     const isDirectCheckout = typeof order.orderId === 'string' && order.orderId.startsWith('ORD-');
 
     const [inputText, setInputText] = useState("");
+    const [isInvoiceOpen, setIsInvoiceOpen] = useState(true);
     const [activeDetailTab, setActiveDetailTab] = useState<'rincian' | 'info'>('rincian');
 
     const effectiveTotalPrice = orders.reduce((sum, o) => {
@@ -114,25 +116,25 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
                 {/* Status Stepper */}
                 <div className="px-5 py-3 flex flex-col md:flex-row md:justify-between items-start md:items-center gap-3 bg-white shadow-[0_4px_10px_-10px_rgba(0,0,0,0.1)] min-w-0 max-w-full">
                     <div className="flex-1 min-w-0 mr-4">
-                        <h1 className="text-xl md:text-2xl font-black text-gray-800 tracking-tight truncate">
+                        <h1 className="text-xl md:text-2xl font-black text-gray-800 tracking-tight break-all">
                             {order.orderId} {orders.length > 1 ? `(+${orders.length - 1} lainnya)` : ''}
                         </h1>
                     </div>
-                    <div className="flex items-center w-full md:w-auto overflow-x-auto pb-2 md:pb-0 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                        <div className="flex bg-gray-100 rounded overflow-hidden text-[10px] md:text-[11px] font-bold uppercase tracking-wider border border-gray-200 shrink-0">
-                            <div className={`px-4 py-1.5 border-r border-gray-200 ${isChatOnly ? 'bg-brand-primary text-white' : (isWaitingPayment || isVerified || isPreorderRunning || isProcessing || isCompleted) ? 'bg-white text-brand-primary' : 'text-gray-400'}`}>
+                    <div className="flex items-center w-full md:w-auto pb-2 md:pb-0 min-w-0">
+                        <div className="flex flex-wrap w-full bg-gray-100 rounded overflow-hidden text-[10px] md:text-[11px] font-bold uppercase tracking-wider border border-gray-200">
+                            <div className={`flex-grow md:flex-grow-0 text-center px-4 py-1.5 border-r border-gray-200 ${isChatOnly ? 'bg-brand-primary text-white' : (isWaitingPayment || isVerified || isPreorderRunning || isProcessing || isCompleted) ? 'bg-white text-brand-primary' : 'text-gray-400'}`}>
                                 Penawaran
                             </div>
-                            <div className={`px-4 py-1.5 border-r border-gray-200 ${(isWaitingPayment || isVerified) ? 'bg-brand-primary text-white' : (isPreorderRunning || isProcessing || isCompleted) ? 'bg-white text-brand-primary' : 'text-gray-400'}`}>
+                            <div className={`flex-grow md:flex-grow-0 text-center px-4 py-1.5 border-r border-gray-200 ${(isWaitingPayment || isVerified) ? 'bg-brand-primary text-white' : (isPreorderRunning || isProcessing || isCompleted) ? 'bg-white text-brand-primary' : 'text-gray-400'}`}>
                                 {isPaymentApproved ? 'Lunas' : 'Menunggu Pembayaran'}
                             </div>
-                            <div className={`px-4 py-1.5 border-r border-gray-200 ${isPreorderRunning ? 'bg-brand-primary text-white' : (isProcessing || isCompleted) ? 'bg-white text-brand-primary' : 'text-gray-400'}`}>
+                            <div className={`flex-grow md:flex-grow-0 text-center px-4 py-1.5 border-r border-gray-200 ${isPreorderRunning ? 'bg-brand-primary text-white' : (isProcessing || isCompleted) ? 'bg-white text-brand-primary' : 'text-gray-400'}`}>
                                 Diproses
                             </div>
-                            <div className={`px-4 py-1.5 border-r border-gray-200 ${isProcessing ? 'bg-indigo-500 text-white' : isCompleted ? 'bg-white text-indigo-500' : 'text-gray-400'}`}>
+                            <div className={`flex-grow md:flex-grow-0 text-center px-4 py-1.5 border-r border-gray-200 ${isProcessing ? 'bg-indigo-500 text-white' : isCompleted ? 'bg-white text-indigo-500' : 'text-gray-400'}`}>
                                 Dikirim
                             </div>
-                            <div className={`px-4 py-1.5 border-r border-gray-200 ${isCompleted ? 'bg-emerald-600 text-white' : 'text-gray-400'}`}>
+                            <div className={`flex-grow md:flex-grow-0 text-center px-4 py-1.5 ${isCompleted ? 'bg-emerald-600 text-white' : 'text-gray-400'}`}>
                                 Selesai
                             </div>
                         </div>
@@ -141,10 +143,36 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
             </div>
 
             {/* Main Content Area */}
-            <div className="flex flex-col lg:flex-row flex-1 overflow-hidden lg:overflow-visible p-3 sm:p-4 md:p-6 gap-4 md:gap-6 w-full max-w-[1600px] mx-auto items-start">
+            <div className="flex flex-col xl:flex-row flex-1 overflow-hidden p-3 sm:p-4 md:p-6 gap-4 md:gap-6 w-full max-w-[1600px] mx-auto">
                 {/* Left Side: Order Form */}
-                <div className="flex-1 min-w-0 w-full bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col">
-                    {/* Form Header Info Grid */}
+                <div className="flex-1 min-w-0 w-full bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col xl:overflow-y-auto xl:h-[calc(100vh-140px)]">
+                    {/* Accordion Toggle Header */}
+                    <button 
+                        onClick={() => setIsInvoiceOpen(!isInvoiceOpen)}
+                        className="w-full flex items-center justify-between px-4 sm:px-6 py-4 bg-gray-50 hover:bg-gray-100 border-b border-gray-200 transition-colors focus:outline-none shrink-0 sticky top-0 z-10"
+                    >
+                        <div className="flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-brand-primary" />
+                            <span className="font-bold text-gray-800 text-[15px]">Informasi Invoice & Rincian Pesanan</span>
+                        </div>
+                        <motion.div
+                            animate={{ rotate: isInvoiceOpen ? 180 : 0 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <ChevronDown className="w-5 h-5 text-gray-500" />
+                        </motion.div>
+                    </button>
+
+                    <AnimatePresence>
+                        {isInvoiceOpen && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                className="overflow-hidden flex flex-col shrink-0"
+                            >
+                                {/* Form Header Info Grid */}
                     <div className="p-4 sm:p-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                         {/* Slot 1 (Left Col): Nama */}
                         <div>
@@ -297,7 +325,9 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
 
                     {activeDetailTab === 'rincian' ? (
                         <div className="p-0 overflow-x-auto w-full">
-                            <table className="w-full text-left text-[12px] xl:text-[13px] min-w-[500px]">
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block w-full">
+                                <table className="w-full text-left text-[12px] xl:text-[13px] min-w-[500px]">
                                 <thead>
                                     <tr className="border-b border-gray-300 text-gray-600 font-bold bg-[#f8f9fa]">
                                         <th className="px-4 py-2.5">Produk</th>
@@ -339,6 +369,52 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
                                     })}
                                 </tbody>
                             </table>
+                            </div>
+
+                            {/* Mobile Card View */}
+                            <div className="md:hidden flex flex-col w-full divide-y divide-gray-100">
+                                {orders.map((o) => {
+                                    const effectiveQty = Math.max(o.qty, o.minQty || 1);
+                                    const orderUnitPrice = o.qty > 0 ? o.totalPrice / o.qty : 0;
+                                    const lineTotal = orderUnitPrice * effectiveQty;
+                                    return (
+                                        <div key={o.orderId} className="p-4 flex flex-col gap-3">
+                                            <div className="flex justify-between items-start gap-4">
+                                                <div className="font-bold text-[14px] text-brand-primary">{o.productName}</div>
+                                                <div className="font-bold text-[14px] text-gray-800 text-right">Rp {lineTotal.toLocaleString('id-ID')}</div>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-y-2 text-[12px]">
+                                                <div>
+                                                    <span className="text-gray-500 block mb-0.5">Jumlah:</span>
+                                                    <span className="font-semibold text-gray-800">{effectiveQty} porsi</span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-gray-500 block mb-0.5">Harga Satuan:</span>
+                                                    <span className="font-semibold text-gray-800">Rp {orderUnitPrice.toLocaleString('id-ID')}</span>
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <span className="text-gray-500 block mb-0.5">Catatan:</span>
+                                                    <span className="text-gray-700 italic">{o.notes || "Tidak ada catatan."}</span>
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <span className="text-gray-500 block mb-0.5">Varian:</span>
+                                                    {o.selectedVariant ? (
+                                                        <span className="text-gray-700 font-medium tracking-wide">
+                                                            {o.selectedVariant}
+                                                            {o.selectedVariantPrice ? (
+                                                                <span className="ml-1 text-gray-500">(+Rp {o.selectedVariantPrice.toLocaleString('id-ID')})</span>
+                                                            ) : null}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-gray-600 italic">Tidak ada tambahan varian.</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                             <div className="flex justify-end p-6 bg-gray-50">
                                 <div className="w-full max-w-[350px]">
                                     <div className="flex items-center justify-between py-1.5 text-sm gap-2">
@@ -384,10 +460,13 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
                             </div>
                         </div>
                     )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* Right Side: Chatter */}
-                <div className="w-full lg:w-[280px] xl:w-[320px] 2xl:w-[380px] bg-white border border-gray-300 rounded shadow-sm flex flex-col shrink-0 mt-4 lg:mt-0 lg:h-[calc(100vh-180px)] static lg:sticky lg:top-4 overflow-hidden">
+                <div className="w-full xl:w-[360px] 2xl:w-[420px] bg-white border border-gray-300 rounded shadow-sm flex flex-col shrink-0 mt-4 xl:mt-0 xl:h-[calc(100vh-140px)] static overflow-hidden">
                     <ChatInterface
                         mode="buyer"
                         user={user || null}

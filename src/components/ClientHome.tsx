@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, Sun, Moon, LogOut, User, FileText, Home, Store, LayoutDashboard, Sparkles, MessageCircle, ScanLine, MapPin, Star, MessageSquare, Calendar } from "lucide-react";
+import { Clock, Search, ShoppingBag, Menu, X, Heart, ChevronUp, ChevronDown, Sun, Moon, LogOut, User, FileText, Home, Store, LayoutDashboard, Sparkles, MessageCircle, ScanLine, MapPin, Star, MessageSquare, Calendar, ChefHat, Check } from "lucide-react";
 import { motion, Variants, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
 import dynamic from "next/dynamic";
@@ -101,6 +101,7 @@ export default function ClientHome({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const [isAlurOpen, setIsAlurOpen] = useState(false);
   const [activeStep, setActiveStep] = useState<number>(-1);
   const [flowInView, setFlowInView] = useState(false);
 
@@ -315,7 +316,7 @@ export default function ClientHome({
 
   return (
     <>
-      <div className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'pt-4 px-4 sm:px-6' : 'pt-0 px-0'}`}>
+      <div className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 pt-4 px-4 sm:px-6`}>
         <header className={`mx-auto w-full transition-all duration-300 ${isScrolled
           ? 'bg-white/85 dark:bg-surface/85 backdrop-blur-md border border-border/50 shadow-lg rounded-2xl max-w-7xl'
           : 'bg-transparent'
@@ -327,10 +328,17 @@ export default function ClientHome({
                 animate={{ y: [0, -3, 0] }}
                 transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm transition-colors duration-300 ${isScrolled ? 'bg-brand-primary' : 'bg-white'}`}>
-                  <ShoppingBag className={`w-5 h-5 transition-colors duration-300 ${isScrolled ? 'text-white' : 'text-brand-primary'}`} />
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm transition-colors duration-300 bg-brand-primary">
+                  <ShoppingBag className="w-5 h-5 transition-colors duration-300 text-white" />
                 </div>
-                <span className={`text-h2 font-bold tracking-tight transition-colors duration-300 ${isScrolled ? 'text-brand-primary' : 'text-white'}`}>pesanku</span>
+                <div className="flex items-baseline">
+                  <span className="text-h2 font-extrabold tracking-tight transition-colors duration-300 text-gray-900 dark:text-white">
+                    pesanku
+                  </span>
+                  <span className="text-h2 font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-rose-500 ml-1.5 drop-shadow-sm">
+                    nusantara
+                  </span>
+                </div>
               </motion.div>
             </Link>
 
@@ -343,8 +351,7 @@ export default function ClientHome({
                   e.preventDefault();
                   scrollToTop();
                 }}
-                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
-                  }`}
+                className="text-body-small font-medium transition-all relative group text-text-secondary hover:text-brand-primary"
               >
                 Beranda
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
@@ -354,8 +361,7 @@ export default function ClientHome({
                   e.preventDefault();
                   scrollToCategories();
                 }}
-                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group cursor-pointer ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
-                  }`}
+                className="text-body-small font-medium transition-all relative group cursor-pointer text-text-secondary hover:text-brand-primary"
               >
                 Katalog Makanan / Minuman
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
@@ -365,16 +371,14 @@ export default function ClientHome({
                   e.preventDefault();
                   scrollToAbout();
                 }}
-                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group cursor-pointer ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
-                  }`}
+                className="text-body-small font-medium transition-all relative group cursor-pointer text-text-secondary hover:text-brand-primary"
               >
                 Tentang Kami
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
               </button>
               <Link
                 href="/seller"
-                className={`text-body-small font-medium transition-all hover:text-brand-primary relative group ${isScrolled ? 'text-text-secondary hover:text-brand-primary' : 'text-white/85 hover:text-white'
-                  }`}
+                className="text-body-small font-medium transition-all relative group text-text-secondary hover:text-brand-primary"
               >
                 Mulai Berjualan
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full" />
@@ -405,7 +409,7 @@ export default function ClientHome({
                           onFocus={() => setIsSearchFocused(true)}
                           onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                           placeholder="Cari menu..."
-                          className={`input-field w-full pl-4 pr-10 rounded-full focus:bg-surface transition-all duration-300 border-transparent focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/10 ${isScrolled ? 'bg-base' : 'bg-surface/95 text-text-primary'}`}
+                          className={`input-field w-full pl-4 pr-10 rounded-full focus:bg-surface transition-all duration-300 border-transparent focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/10 bg-base`}
                         />
                         <button
                           onClick={() => {
@@ -423,7 +427,7 @@ export default function ClientHome({
 
                         {/* Desktop Search Dropdown */}
                         {searchQuery && isSearchFocused && (
-                          <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-[100] w-[240px]">
+                          <div className="absolute top-full left-0 right-0 mt-2 bg-brand-primary border border-brand-primary text-white rounded-xl shadow-lg shadow-brand-primary/20 overflow-hidden z-[100] w-[240px]">
                             <div className="max-h-60 overflow-y-auto">
                               {filteredProducts.length > 0 ? (
                                 filteredProducts.slice(0, 5).map(product => (
@@ -436,25 +440,25 @@ export default function ClientHome({
                                       setIsMobileSearchOpen(false);
                                       router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
                                     }}
-                                    className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
+                                    className="w-full text-left px-4 py-3 hover:bg-white/10 border-b border-white/20 last:border-b-0 flex items-center gap-3 transition-colors"
                                   >
                                     {product.imageUrl ? (
-                                      <div className="w-10 h-10 rounded-lg bg-base overflow-hidden shrink-0">
+                                      <div className="w-10 h-10 rounded-lg bg-white/10 overflow-hidden shrink-0">
                                         <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                                       </div>
                                     ) : (
-                                      <div className="w-10 h-10 rounded-lg bg-base flex items-center justify-center shrink-0">
-                                        <ShoppingBag className="w-5 h-5 text-text-secondary" />
+                                      <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                                        <ShoppingBag className="w-5 h-5 text-white/80" />
                                       </div>
                                     )}
                                     <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
-                                      <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
+                                      <p className="text-sm font-semibold text-white truncate">{product.name}</p>
+                                      <p className="text-xs text-white/80 truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
                                     </div>
                                   </button>
                                 ))
                               ) : (
-                                <div className="px-4 py-4 text-center text-sm text-text-secondary">
+                                <div className="px-4 py-4 text-center text-sm text-white/90">
                                   Pencarian tidak ditemukan
                                 </div>
                               )}
@@ -473,7 +477,7 @@ export default function ClientHome({
                       setTimeout(() => document.querySelector<HTMLInputElement>('#desktop-search')?.focus(), 100);
                     }
                   }}
-                  className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 border ${isScrolled ? 'border-border hover:bg-gray-100 dark:hover:bg-border text-text-primary' : 'border-white/40 bg-white/10 hover:bg-white/20 text-white'}`}
+                  className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 border border-border hover:bg-gray-100 dark:hover:bg-border text-text-primary`}
                   aria-label="Toggle Search"
                 >
                   <Search className="w-5 h-5" />
@@ -482,7 +486,7 @@ export default function ClientHome({
 
               <button
                 onClick={toggleDarkMode}
-                className={`p-2 rounded-full transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border ${isScrolled ? 'border-border hover:bg-gray-100 dark:hover:bg-border' : 'border-white/40 bg-white/10 hover:bg-white/20'}`}
+                className={`p-2 rounded-full transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 border border-border hover:bg-gray-100 dark:hover:bg-border`}
                 aria-label="Toggle Dark Mode"
               >
                 <AnimatePresence mode="wait" initial={false}>
@@ -495,7 +499,7 @@ export default function ClientHome({
                       transition={{ duration: 0.3 }}
                       className="absolute"
                     >
-                      <Moon className={`w-5 h-5 ${isScrolled ? 'text-brand-primary' : 'text-white'}`} />
+                      <Moon className={`w-5 h-5 text-brand-primary`} />
                     </motion.div>
                   ) : (
                     <motion.div
@@ -506,7 +510,7 @@ export default function ClientHome({
                       transition={{ duration: 0.3 }}
                       className="absolute"
                     >
-                      <Sun className={`w-5 h-5 ${isScrolled ? 'text-brand-primary' : 'text-white'}`} />
+                      <Sun className={`w-5 h-5 text-brand-primary`} />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -518,7 +522,7 @@ export default function ClientHome({
                 <div className="flex items-center gap-2">
                   <Link
                     href={user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders'}
-                    className={`flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-all duration-200 shadow-lg active:scale-95 hover:-translate-y-0.5 relative ${isScrolled ? 'bg-brand-primary text-white shadow-brand-primary/20 hover:bg-brand-primary-hover hover:shadow-brand-primary/40' : 'bg-white text-brand-primary shadow-black/10 hover:bg-white/90 hover:shadow-black/20'}`}
+                    className={`flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-all duration-200 shadow-lg active:scale-95 hover:-translate-y-0.5 relative bg-brand-primary text-white shadow-brand-primary/20 hover:bg-brand-primary-hover hover:shadow-brand-primary/40`}
                   >
                     {user.role === 'admin' || user.role === 'penjual' ? 'Dashboard' : 'Lihat Pesanan Saya'}
                     {user.role === 'pembeli' && orderCount > 0 && (
@@ -531,13 +535,13 @@ export default function ClientHome({
                   <div className="relative">
                     <button
                       onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                      className={`flex items-center justify-center p-2 rounded-xl transition-all border ${isScrolled ? 'border-transparent text-text-secondary hover:text-brand-primary hover:bg-brand-primary/5' : 'border-white/30 text-white hover:bg-white/15'}`}
+                      className={`flex items-center justify-center p-2 rounded-xl transition-all border border-transparent text-text-secondary hover:text-brand-primary hover:bg-brand-primary/5`}
                       title="Profil Akun"
                     >
                       <User className="w-5 h-5" />
                     </button>
                     {isUserDropdownOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-surface border border-border rounded-xl shadow-xl z-[100] py-1 overflow-hidden">
+                      <div className="hidden md:block absolute right-0 top-full mt-2 w-52 bg-white dark:bg-surface border border-border rounded-xl shadow-xl z-[100] py-1 overflow-hidden">
                         <div className="px-4 py-3 border-b border-border">
                           <div className="flex items-center justify-between mb-1">
                             <p className="text-xs text-text-secondary">Masuk sebagai</p>
@@ -568,10 +572,10 @@ export default function ClientHome({
                 </div>
               ) : (
                 <>
-                  <Link href="/login" className={`px-4 py-2 rounded-lg font-medium transition-all border ${isScrolled ? 'border-border bg-surface text-text-primary hover:bg-brand-primary/5' : 'border-white/50 text-white hover:bg-white/15'}`}>
+                  <Link href="/login" className="px-4 py-2 rounded-lg font-medium transition-all shadow-md bg-brand-primary text-white shadow-brand-primary/20 hover:bg-brand-primary-hover hover:shadow-brand-primary/40">
                     Masuk
                   </Link>
-                  <Link href="/register" className={`px-4 py-2 rounded-lg font-medium transition-all shadow-lg ${isScrolled ? 'bg-brand-primary text-white shadow-brand-primary/20 hover:bg-brand-primary-hover hover:shadow-brand-primary/40' : 'bg-white text-brand-primary shadow-black/10 hover:bg-white/90'}`}>
+                  <Link href="/register" className="px-4 py-2 rounded-lg font-medium transition-all border border-brand-primary text-brand-primary bg-transparent hover:bg-brand-primary/5">
                     Daftar
                   </Link>
                 </>
@@ -582,11 +586,11 @@ export default function ClientHome({
               {user && (user.role === 'admin' || user.role === 'penjual') && (
                 <Link
                   href={user.role === 'admin' ? '/admin' : '/seller'}
-                  className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 group ${isScrolled ? 'hover:bg-brand-primary/10' : 'hover:bg-white/15'}`}
+                  className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 group hover:bg-brand-primary/10`}
                   aria-label="Dashboard"
                   title="Buka Dashboard"
                 >
-                  <LayoutDashboard className={`w-5 h-5 transition-colors ${isScrolled ? 'text-text-primary group-hover:text-brand-primary' : 'text-white'}`} />
+                  <LayoutDashboard className={`w-5 h-5 transition-colors text-text-primary group-hover:text-brand-primary`} />
                 </Link>
               )}
 
@@ -596,16 +600,16 @@ export default function ClientHome({
                   setIsMobileSearchOpen(!isMobileSearchOpen);
                   if (!isMobileSearchOpen) setTimeout(() => document.querySelector<HTMLInputElement>('#mobile-search')?.focus(), 100);
                 }}
-                className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 ${isScrolled ? 'hover:bg-brand-primary/10' : 'hover:bg-white/15'}`}
+                className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 hover:bg-brand-primary/10`}
                 aria-label="Toggle Search"
               >
-                <Search className={`w-5 h-5 ${isScrolled ? (isMobileSearchOpen ? 'text-brand-primary' : 'text-text-primary') : 'text-white'}`} />
+                <Search className={`w-5 h-5 ${isMobileSearchOpen ? 'text-brand-primary' : 'text-text-primary'}`} />
               </button>
 
               {/* Mobile Theme Toggle */}
               <button
                 onClick={toggleDarkMode}
-                className={`p-2 rounded-full transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 ${isScrolled ? 'hover:bg-brand-primary/10' : 'hover:bg-white/15'}`}
+                className={`p-2 rounded-full transition-colors relative overflow-hidden flex items-center justify-center w-10 h-10 hover:bg-brand-primary/10`}
                 aria-label="Toggle Dark Mode"
               >
                 <AnimatePresence mode="wait" initial={false}>
@@ -618,7 +622,7 @@ export default function ClientHome({
                       transition={{ duration: 0.3 }}
                       className="absolute"
                     >
-                      <Moon className={`w-5 h-5 ${isScrolled ? 'text-brand-primary' : 'text-white'}`} />
+                      <Moon className={`w-5 h-5 text-brand-primary`} />
                     </motion.div>
                   ) : (
                     <motion.div
@@ -629,7 +633,7 @@ export default function ClientHome({
                       transition={{ duration: 0.3 }}
                       className="absolute"
                     >
-                      <Sun className={`w-5 h-5 ${isScrolled ? 'text-brand-primary' : 'text-white'}`} />
+                      <Sun className={`w-5 h-5 text-brand-primary`} />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -639,14 +643,14 @@ export default function ClientHome({
               <div className="relative">
                 <button
                   onClick={() => user ? setIsUserDropdownOpen(!isUserDropdownOpen) : router.push('/login')}
-                  className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 ${isScrolled ? 'hover:bg-brand-primary/10' : 'hover:bg-white/15'}`}
+                  className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 hover:bg-brand-primary/10`}
                   aria-label="Profil Akun"
                   title="Profil Akun"
                 >
-                  <User className={`w-5 h-5 ${isScrolled ? 'text-text-primary' : 'text-white'}`} />
+                  <User className={`w-5 h-5 text-text-primary`} />
                 </button>
                 {isUserDropdownOpen && user && (
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-surface border border-border rounded-xl shadow-xl z-[100] py-1 overflow-hidden">
+                  <div className="md:hidden absolute right-0 top-full mt-2 w-56 bg-white dark:bg-surface border border-border rounded-xl shadow-xl z-[100] py-1 overflow-hidden">
                     <div className="px-4 py-3 border-b border-border">
                       <div className="flex items-center justify-between mb-1">
                         <p className="text-xs text-text-secondary">Masuk sebagai</p>
@@ -794,7 +798,7 @@ export default function ClientHome({
 
                   {/* Mobile Menu Search Dropdown */}
                   {searchQuery && isSearchFocused && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-brand-primary border border-brand-primary text-white rounded-xl shadow-lg shadow-brand-primary/20 overflow-hidden z-50">
                       <div className="max-h-60 overflow-y-auto">
                         {filteredProducts.length > 0 ? (
                           filteredProducts.slice(0, 5).map(product => (
@@ -807,25 +811,25 @@ export default function ClientHome({
                                 setIsMobileMenuOpen(false);
                                 router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
                               }}
-                              className="w-full text-left px-4 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-3 transition-colors"
+                              className="w-full text-left px-4 py-3 hover:bg-white/10 border-b border-white/20 last:border-b-0 flex items-center gap-3 transition-colors"
                             >
                               {product.imageUrl ? (
-                                <div className="w-10 h-10 rounded-lg bg-base overflow-hidden shrink-0">
+                                <div className="w-10 h-10 rounded-lg bg-white/10 overflow-hidden shrink-0">
                                   <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                                 </div>
                               ) : (
-                                <div className="w-10 h-10 rounded-lg bg-base flex items-center justify-center shrink-0">
-                                  <ShoppingBag className="w-5 h-5 text-text-secondary" />
+                                <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                                  <ShoppingBag className="w-5 h-5 text-white/80" />
                                 </div>
                               )}
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-text-primary truncate">{product.name}</p>
-                                <p className="text-xs text-text-secondary truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
+                                <p className="text-sm font-semibold text-white truncate">{product.name}</p>
+                                <p className="text-xs text-white/80 truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
                               </div>
                             </button>
                           ))
                         ) : (
-                          <div className="px-4 py-4 text-center text-sm text-text-secondary">
+                          <div className="px-4 py-4 text-center text-sm text-white/90">
                             Pencarian tidak ditemukan
                           </div>
                         )}
@@ -897,10 +901,10 @@ export default function ClientHome({
                   </div>
                 ) : (
                   <>
-                    <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="btn-outline w-full text-center">
+                    <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="btn-primary w-full text-center">
                       Masuk
                     </Link>
-                    <Link href="/register" onClick={() => setIsMobileMenuOpen(false)} className="btn-primary w-full text-center">
+                    <Link href="/register" onClick={() => setIsMobileMenuOpen(false)} className="btn-outline w-full text-center">
                       Daftar
                     </Link>
                   </>
@@ -914,86 +918,70 @@ export default function ClientHome({
       <main className="flex-1 bg-white dark:bg-base">
         {/* Hero Section */}
         {!categoryFilter && (
-          <section className="relative flex min-h-[560px] items-end overflow-hidden px-6 pt-28 pb-16 sm:min-h-[580px] sm:px-8 sm:pt-32 sm:pb-20 md:min-h-[600px] md:pt-40 md:pb-20 lg:min-h-[640px] lg:px-12 lg:pt-40 lg:pb-24 xl:min-h-[680px] xl:pb-28 xl:pt-0">
-            {/* Image Background */}
-            <img
-              src="/bg-pesanku.jpeg"
-              alt="Pesanku Hero Background"
-              className="absolute inset-0 w-full h-full object-cover z-0"
-              style={{ objectPosition: 'center', filter: 'contrast(1.1) brightness(0.95)' }}
-            />
-            {/* Background Gradient */}
-            <div className="absolute inset-0 z-[1]" style={{ background: 'linear-gradient(120deg, rgba(8,4,2,0.75) 0%, rgba(25,10,5,0.65) 55%, rgba(8,4,2,0.50) 100%)' }} />
+          <section className="relative flex min-h-[440px] md:min-h-[500px] items-center justify-center overflow-hidden px-6 pt-24 pb-16 sm:px-8 sm:pt-32 sm:pb-20 bg-white dark:bg-base">
 
-            <div className="container mx-auto relative z-[2]">
-              <div className="grid grid-cols-1 lg:grid-cols-[45%_55%] items-center gap-4 lg:gap-0">
+            <div className="container mx-auto relative z-10 mt-8">
+              <div className="flex flex-col-reverse lg:flex-row items-center justify-between text-left gap-8 lg:gap-8 w-full">
 
                 {/* Text Content */}
                 <motion.div
-                  initial={false}
-                  animate={{
-                    opacity: 1,
-                    x: 0,
-                  }}
-                  transition={{
-                    opacity: { duration: 0.6, ease: "easeOut" },
-                    x: { duration: 0.6, ease: "easeOut" },
-                  }}
-                  className="max-w-2xl text-left z-10"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ opacity: { duration: 0.6, ease: "easeOut" }, y: { duration: 0.6, ease: "easeOut" } }}
+                  className="max-w-2xl lg:w-1/2 flex flex-col items-center sm:items-start text-center sm:text-left"
                 >
                   <h1
-                    className="mb-5 leading-[1.1] tracking-tight text-white font-extrabold"
-                    style={{ fontSize: 'clamp(1.85rem, 4.5vw, 3.4rem)', textShadow: '0 2px 24px rgba(0,0,0,0.5)' }}
+                    className="mb-5 leading-[1.1] tracking-tight text-gray-900 dark:text-white font-extrabold"
+                    style={{ fontSize: 'clamp(2rem, 5vw, 3.8rem)' }}
                   >
                     Pesan Makanan UMKM Favoritmu,{' '}
                     <span className="relative inline-block text-brand-primary">
                       Kapan Saja
-                      <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 12" preserveAspectRatio="none">
-                        <path d="M0 8 Q 100 0 200 8" fill="transparent" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.7" />
+                      <svg className="absolute -bottom-2 left-0 w-full text-brand-primary/30" viewBox="0 0 200 12" preserveAspectRatio="none">
+                        <path d="M0 8 Q 100 0 200 8" fill="transparent" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
                       </svg>
                     </span>
                   </h1>
                   <p
-                    className="mb-10 max-w-xl leading-relaxed font-medium"
-                    style={{ fontSize: 'clamp(1rem, 2vw, 1.125rem)', color: 'rgba(255,255,255,0.88)', textShadow: '0 1px 8px rgba(0,0,0,0.35)' }}
+                    className="mb-10 max-w-xl leading-relaxed font-medium text-gray-600 dark:text-gray-300"
+                    style={{ fontSize: 'clamp(1rem, 2vw, 1.15rem)' }}
                   >
                     Sistem preorder makanan dan minuman dari UMKM lokal dengan minimum order yang jelas. Rasakan hidangan segar langsung dari tangan ahlinya.
                   </p>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-start gap-4">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-center justify-start gap-4 w-full sm:w-auto">
                     <Link
-                      href="#katalog"
-                      className="w-full rounded-xl bg-brand-primary px-8 py-3.5 text-center text-lg font-bold text-white shadow-xl shadow-brand-primary/40 transition-all hover:scale-105 hover:bg-brand-primary-hover active:scale-95 sm:w-auto"
+                      href="#alur-pemesanan"
+                      className="w-full rounded-xl bg-brand-primary px-8 py-3.5 text-center text-lg font-bold text-white shadow-lg shadow-brand-primary/20 transition-all hover:scale-105 hover:bg-brand-primary-hover active:scale-95 sm:w-auto flex items-center justify-center gap-2"
                       style={{ letterSpacing: '0.01em' }}
                     >
-                      🛒 Mulai Belanja
+                      📖 Tata Cara Pemesanan
                     </Link>
                     <Link
-                      href="/seller"
-                      className="w-full cursor-pointer rounded-xl border-2 border-white/50 px-8 py-3.5 text-center text-lg font-semibold text-white backdrop-blur-sm bg-white/10 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-white hover:bg-white/20 hover:shadow-md active:scale-95 sm:w-auto"
+                      href="#rekomendasi"
+                      className="w-full cursor-pointer rounded-xl bg-brand-primary border border-brand-primary px-8 py-3.5 text-center text-lg font-bold text-white transition-all shadow-md hover:bg-brand-primary-hover hover:scale-105 active:scale-95 sm:w-auto"
                     >
-                      Daftar Jadi Penjual
+                      Pesan Order
                     </Link>
                   </div>
                 </motion.div>
 
-                {/* Image Content */}
+                {/* Hero Image Block */}
                 <motion.div
-                  initial={{ opacity: 0, x: 40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-                  className="flex justify-center lg:justify-end items-center relative mt-10 md:mt-12 lg:mt-0 lg:-mr-12 xl:-mr-20"
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
+                  className="w-full lg:w-1/2 flex justify-center lg:justify-end relative mb-4 lg:mb-0"
                 >
-                  <Image
-                    src="/animasi-nobg.png"
-                    alt="Animasi Pesanku"
-                    width={1600}
-                    height={1600}
-                    quality={100}
-                    unoptimized={true}
-                    priority
-                    className="w-full sm:w-[85%] md:w-[75%] lg:w-full xl:w-[115%] max-w-[500px] lg:max-w-none object-contain transition-transform duration-700 ease-out hover:scale-[1.03] lg:origin-right"
-                    style={{ filter: 'drop-shadow(0 25px 35px rgba(0,0,0,0.6))' }}
-                  />
+                  <div className="relative w-full max-w-sm sm:max-w-md lg:max-w-lg">
+                    {/* Decorative Blob Context */}
+                    <div className="absolute inset-0 bg-brand-primary/20 blur-[64px] rounded-full scale-125 -z-10 translate-x-4 translate-y-4"></div>
+                    
+                    <img 
+                      src="/background-header.jpeg" 
+                      alt="Pesan Makanan UMKM Favoritmu" 
+                      className="w-full h-auto object-cover rounded-3xl shadow-[0_20px_60px_-15px_rgba(128,0,0,0.3)] ring-1 ring-gray-900/5 rotate-2 hover:rotate-0 transition-transform duration-700 ease-out relative z-10"
+                    />
+                  </div>
                 </motion.div>
 
               </div>
@@ -1102,66 +1090,198 @@ export default function ClientHome({
             );
           })()}
 
-          {/* Categories Section */}
-          {!categoryFilter && (
-            <div id="kategori-pilihan" className="scroll-mt-24 mb-16">
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                className="mb-8 flex flex-col md:flex-row justify-center items-center relative gap-4"
+
+
+          {/* Alur Pemesanan Section */}
+          <section id="alur-pemesanan" className="px-4 container mx-auto mb-16 pt-8">
+            <div className="bg-brand-primary rounded-3xl shadow-xl shadow-brand-primary/20 overflow-hidden">
+              {/* Header / Toggle */}
+              <button
+                onClick={() => setIsAlurOpen(!isAlurOpen)}
+                className="w-full text-left px-6 py-6 sm:px-10 sm:py-8 flex items-center justify-between group focus:outline-none"
               >
-                <div className="text-center w-full">
-                  <div className="flex items-center justify-center gap-4 mb-2">
-                    <div className="h-1 w-12 sm:w-16 bg-brand-primary/80 rounded-full"></div>
-                    <h2 className="text-h2 tracking-tight mb-0">Kategori Pilihan</h2>
-                    <div className="h-1 w-12 sm:w-16 bg-brand-primary/80 rounded-full"></div>
-                  </div>
-                  <p className="text-body-base text-text-secondary">Eksplorasi ragam menu sesuai selera Anda.</p>
+                <div>
+                  <h2 className="text-h2 text-white mb-2 tracking-tight group-hover:text-white/90 transition-colors">Bagaimana Cara Pesan?</h2>
+                  <p className="text-body-base text-white/80 max-w-2xl">4 langkah mudah untuk menikmati hidangan segar langsung dari UMKM pilihan Anda.</p>
                 </div>
+                <motion.div
+                  animate={{ rotate: isAlurOpen ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center shrink-0 ml-4"
+                >
+                  <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </motion.div>
+              </button>
 
-              </motion.div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-                {[
-                  { name: 'Makanan Berat', image: makananBeratImage, keyword: 'nasi' },
-                  { name: 'Minuman Segar', image: minumanImage, keyword: 'minum' },
-                  { name: 'Jajanan & Cemilan', image: cemilanImage, keyword: 'cemilan' },
-                  { name: 'Kue & Roti', image: kueImage, keyword: 'kue' },
-                ].map((category, idx) => (
+              {/* Dropdown Content */}
+              <AnimatePresence>
+                {isAlurOpen && (
                   <motion.div
-                    key={category.name}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: idx * 0.1 }}
-                    onClick={() => {
-                      router.push('/kategori/' + encodeURIComponent(category.name));
-                    }}
-                    className="group cursor-pointer flex flex-col items-center gap-3"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                    className="px-6 sm:px-10 pb-8 sm:pb-12"
                   >
-                    <div className="w-full aspect-square rounded-2xl overflow-hidden shadow-sm border border-border bg-surface relative transition-transform duration-300 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-brand-primary/20">
-                      <Image
-                        src={category.image}
-                        alt={category.name}
-                        fill
-                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                        unoptimized
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                    </div>
-                    <span className="font-bold text-sm sm:text-base text-center" style={{ color: 'var(--color-text-primary)' }}>{category.name}</span>
+                    <motion.div
+                      onViewportEnter={() => setFlowInView(true)}
+                      className="grid grid-cols-1 md:grid-cols-4 gap-8 relative max-w-5xl mx-auto pt-8 border-t border-white/20"
+                    >
+                      {/* Connecting Line for Tablet and Desktop */}
+                      <div data-flow-connector="desktop" className="hidden md:block absolute top-[3.5rem] left-0 w-full h-1 bg-white/20 -translate-y-1/2 z-0 rounded-full overflow-hidden">
+                        <motion.div
+                          animate={{ width: activeStep >= 0 ? `${(activeStep * 25) + 12.5}%` : "0%" }}
+                          transition={{ duration: 0.8, ease: "easeInOut" }}
+                          className="h-full bg-white rounded-full opacity-80"
+                        />
+                      </div>
+
+                      {/* Steps */}
+                      {[
+                        { icon: Search, title: "1. Pilih Produk", desc: "Temukan hidangan favorit dari katalog UMKM.", delay: 0.2 },
+                        { icon: MessageCircle, title: "2. Diskusi & Pesan", desc: "Chat penjual untuk kustomisasi preorder.", delay: 0.4 },
+                        { icon: Store, activeIcon: ChefHat, title: "3. Proses Produksi", desc: "Penjual menyiapkan pesanan segar.", delay: 0.6 },
+                        { icon: ShoppingBag, activeIcon: Check, activeBg: "bg-green-500", title: "4. Pesanan Tiba", desc: "Terima hidangan tepat waktu.", delay: 0.8 }
+                      ].map((step, idx) => {
+                        const isActive = activeStep === idx;
+                        const CurrentIcon = isActive && step.activeIcon ? step.activeIcon : step.icon;
+
+                        return (
+                          <motion.div
+                            key={idx}
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.6, delay: step.delay }}
+                            className="relative z-10 flex flex-col items-center text-center group"
+                          >
+                            <motion.div
+                              whileHover={{ scale: 1.15, rotate: 6 }}
+                              animate={{
+                                y: isActive ? [0, -12, 0] : [0, -4, 0],
+                                scale: isActive ? 1.15 : 1
+                              }}
+                              transition={{
+                                y: { repeat: Infinity, duration: isActive ? 2 : 4, delay: idx * 0.2, ease: "easeInOut" },
+                                scale: { type: "spring", stiffness: 300, damping: 15 }
+                              }}
+                              className={`w-20 h-20 border-2 flex items-center justify-center mb-6 shadow-lg transition-all duration-500 relative overflow-hidden cursor-pointer ${isActive
+                                ? (step.activeBg ? `${step.activeBg} border-transparent text-white shadow-green-500/40 rotate-3 rounded-2xl ring-4 ring-green-500/20` : 'bg-white border-white text-brand-primary shadow-white/40 rotate-3 rounded-2xl ring-4 ring-white/20')
+                                : 'bg-brand-primary border-white/30 shadow-black/10 rounded-[1.75rem] group-hover:bg-white group-hover:border-white group-hover:rotate-6 group-hover:shadow-white/20 group-hover:rounded-2xl group-hover:text-brand-primary'
+                                }`}
+                            >
+                              <div className={`absolute inset-0 transition-opacity ${isActive ? 'bg-transparent' : 'bg-black/10 group-hover:opacity-0'}`} />
+
+                              <AnimatePresence mode="wait">
+                                <motion.div
+                                  key={isActive ? 'active' : 'inactive'}
+                                  initial={{ scale: 0, rotate: -45 }}
+                                  animate={{ scale: 1, rotate: 0 }}
+                                  exit={{ scale: 0, rotate: 45 }}
+                                  transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                                  className="relative z-10"
+                                >
+                                  <motion.div
+                                    animate={isActive ? (step.activeIcon === ChefHat ? { rotate: [0, -15, 15, -15, 15, 0], y: [0, -3, 3, -3, 3, 0] } : (step.activeIcon === Check ? { scale: [1, 1.3, 1] } : { rotate: [0, -15, 15, -15, 15, 0] })) : {}}
+                                    transition={{
+                                      duration: step.activeIcon === ChefHat ? 1.5 : 0.6,
+                                      repeat: step.activeIcon === ChefHat ? Infinity : 0,
+                                      ease: "easeInOut"
+                                    }}
+                                  >
+                                    <CurrentIcon className={`w-8 h-8 transition-colors duration-300 relative z-10 ${isActive ? (step.activeBg ? 'text-white' : 'text-brand-primary') : 'text-white group-hover:text-brand-primary'}`} />
+                                  </motion.div>
+                                </motion.div>
+                              </AnimatePresence>
+                            </motion.div>
+                            <h3 className="text-lg font-bold mb-3 transition-colors cursor-default text-white">{step.title}</h3>
+                            <p className="text-sm text-white/80 leading-relaxed max-w-[200px] cursor-default">{step.desc}</p>
+                            {idx < 3 && (
+                              <div
+                                aria-hidden="true"
+                                data-flow-connector="mobile"
+                                className="md:hidden absolute left-1/2 top-full h-8 w-1 -translate-x-1/2 overflow-hidden rounded-full bg-white/20"
+                              >
+                                <motion.div
+                                  animate={{ height: activeStep > idx ? '100%' : '0%' }}
+                                  transition={{ duration: 0.8, ease: 'easeInOut' }}
+                                  className="absolute left-0 top-0 w-full rounded-full bg-white"
+                                />
+                              </div>
+                            )}
+                          </motion.div>
+                        );
+                      })}
+                    </motion.div>
                   </motion.div>
-                ))}
-              </div>
+                )}
+              </AnimatePresence>
             </div>
-          )}
+          </section>
+
+          {/* Categories Section */}
+          <section id="kategori-pilihan" className="scroll-mt-24 px-4 container mx-auto mb-16 pt-8">
+            {!categoryFilter && (
+              <div>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  className="mb-8 flex flex-col md:flex-row justify-center items-center relative gap-4"
+                >
+                  <div className="text-center w-full">
+                    <div className="flex items-center justify-center gap-4 mb-2">
+                      <div className="h-1 w-12 sm:w-16 bg-brand-primary/80 rounded-full"></div>
+                      <h2 className="text-h2 tracking-tight mb-0 text-text-primary">Kategori Pilihan</h2>
+                      <div className="h-1 w-12 sm:w-16 bg-brand-primary/80 rounded-full"></div>
+                    </div>
+                    <p className="text-body-base text-text-secondary">Eksplorasi ragam menu sesuai selera Anda.</p>
+                  </div>
+
+                </motion.div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                  {[
+                    { name: 'Makanan Berat', image: makananBeratImage, keyword: 'nasi' },
+                    { name: 'Minuman Segar', image: minumanImage, keyword: 'minum' },
+                    { name: 'Jajanan & Cemilan', image: cemilanImage, keyword: 'cemilan' },
+                    { name: 'Kue & Roti', image: kueImage, keyword: 'kue' },
+                  ].map((category, idx) => (
+                    <motion.div
+                      key={category.name}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: idx * 0.1 }}
+                      onClick={() => {
+                        router.push('/kategori/' + encodeURIComponent(category.name));
+                      }}
+                      className="group cursor-pointer flex flex-col items-center gap-3"
+                    >
+                      <div className="w-full aspect-square rounded-2xl overflow-hidden shadow-sm border border-border bg-surface relative transition-transform duration-300 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-brand-primary/20">
+                        <Image
+                          src={category.image}
+                          alt={category.name}
+                          fill
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                          unoptimized
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                      </div>
+                      <span className="font-bold text-sm sm:text-base text-center text-text-primary">{category.name}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
 
           <motion.div
+            id="rekomendasi"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 pt-4 lg:pt-0 mt-4"
+            className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 pt-4 lg:pt-0 mt-4 scroll-mt-24"
           >
             <div>
               <h2 className="text-h2 mb-2 tracking-tight">{categoryFilter ? `Kategori: ${categoryFilter}` : 'Rekomendasi Untuk Kamu'}</h2>
@@ -1183,7 +1303,7 @@ export default function ClientHome({
                     Kategori Makanan
                   </span>
                   <span className="text-[13px] sm:text-sm font-semibold text-text-primary truncate text-left w-full">
-                    {localCategoryFilter || 'Terpopuler'}
+                    {localCategoryFilter || 'Semua'}
                   </span>
                   <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 shrink-0 transition-transform duration-300 ml-1 ${isCategoryDropdownOpen ? 'rotate-180 text-brand-primary' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
@@ -1228,7 +1348,7 @@ export default function ClientHome({
                     Urutkan Harga
                   </span>
                   <span className="text-[13px] sm:text-sm font-semibold text-text-primary truncate text-left w-full">
-                    {priceSortOrder === 'asc' ? 'Termurah' : (priceSortOrder === 'desc' ? 'Termahal' : 'Relevansi')}
+                    {priceSortOrder === 'asc' ? 'Termurah' : (priceSortOrder === 'desc' ? 'Termahal' : 'Semua')}
                   </span>
                   <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 shrink-0 transition-transform duration-300 ml-1 ${isPriceFilterOpen ? 'rotate-180 text-brand-primary' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
@@ -1489,153 +1609,9 @@ export default function ClientHome({
           )}
         </section>
 
-        {/* About Platform Section */}
-        <section id="about-platform" className="scroll-mt-24 px-4 container mx-auto pb-16">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="bg-brand-primary rounded-[2.5rem] border border-brand-primary/10 overflow-hidden flex flex-col md:flex-row items-center gap-10 p-8 sm:p-12 lg:p-16 relative shadow-lg"
-          >
-            <div className="flex-1 flex flex-col justify-center">
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-8 text-white leading-snug tracking-tight">
-                Kenapa harus pilih <span className="relative inline-block">
-                  <strong className="text-white">Pesanku?</strong>
-                  <svg className="absolute -bottom-1 lg:-bottom-2 left-0 w-full text-white" viewBox="0 0 100 20" preserveAspectRatio="none">
-                    <path d="M0 10 Q 50 20 100 10" fill="transparent" stroke="currentColor" strokeWidth="4" />
-                  </svg>
-                </span>
-              </h2>
-              <ul className="space-y-6 text-white/95 text-lg sm:text-xl lg:text-2xl max-w-2xl leading-relaxed">
-                <li className="flex items-start gap-4">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 mt-2.5 sm:mt-3.5 rounded-full bg-white shrink-0 shadow-sm" />
-                  <span><strong className="text-white font-bold">Kualitas Terkurasi:</strong> Hidangan langsung dari tangan ahlinya untuk setiap acara Anda.</span>
-                </li>
-                <li className="flex items-start gap-4">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 mt-2.5 sm:mt-3.5 rounded-full bg-white shrink-0 shadow-sm" />
-                  <span><strong className="text-white font-bold">Preorder Mudah & Transparan:</strong> Jadwal produksi dan batas minimum pemesanan yang jelas tanpa bingung.</span>
-                </li>
-                <li className="flex items-start gap-4">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 mt-2.5 sm:mt-3.5 rounded-full bg-white shrink-0 shadow-sm" />
-                  <span><strong className="text-white font-bold">Komunikasi Langsung:</strong> Fitur chat langsung dengan pembuat makanan untuk kustomisasi pesanan.</span>
-                </li>
-              </ul>
-            </div>
 
-            {/* Chef Image */}
-            <div className="flex-1 w-full flex justify-center md:justify-end">
-              <div className="w-full max-w-[240px] aspect-[4/5] relative group flex items-center justify-center">
-                <img
-                  src="/chef-transparent.png"
-                  alt="Chef Pesanku"
-                  className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-            </div>
-          </motion.div>
-        </section>
 
-        {/* Alur Pemesanan Section */}
-        <section id="alur-pemesanan" className="px-4 container mx-auto pb-24">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-h2 mb-4 text-text-primary">Bagaimana Cara <span className="text-brand-primary">Pesan?</span></h2>
-            <p className="text-body-base text-text-secondary max-w-2xl mx-auto">4 langkah mudah untuk menikmati hidangan segar langsung dari UMKM pilihan Anda.</p>
-          </motion.div>
 
-          <motion.div
-            onViewportEnter={() => setFlowInView(true)}
-            className="grid grid-cols-1 md:grid-cols-4 gap-8 relative max-w-5xl mx-auto"
-          >
-            {/* Connecting Line for Tablet and Desktop */}
-            <div data-flow-connector="desktop" className="hidden md:block absolute top-[2.5rem] left-0 w-full h-1 bg-border -translate-y-1/2 z-0 rounded-full overflow-hidden">
-              <motion.div
-                animate={{ width: activeStep >= 0 ? `${(activeStep * 25) + 12.5}%` : "0%" }}
-                transition={{ duration: 0.8, ease: "easeInOut" }}
-                className="h-full bg-brand-primary rounded-full opacity-60"
-              />
-            </div>
-
-            {/* Steps */}
-            {[
-              {
-                icon: Search,
-                title: "1. Pilih Produk",
-                desc: "Temukan hidangan favorit dari katalog UMKM.",
-                delay: 0.2
-              },
-              {
-                icon: MessageCircle,
-                title: "2. Diskusi & Pesan",
-                desc: "Chat penjual untuk kustomisasi preorder.",
-                delay: 0.4
-              },
-              {
-                icon: Store,
-                title: "3. Proses Produksi",
-                desc: "Penjual menyiapkan pesanan segar.",
-                delay: 0.6
-              },
-              {
-                icon: ShoppingBag,
-                title: "4. Pesanan Tiba",
-                desc: "Terima hidangan tepat waktu.",
-                delay: 0.8
-              }
-            ].map((step, idx) => {
-              const isActive = activeStep === idx;
-              return (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: step.delay }}
-                  className="relative z-10 flex flex-col items-center text-center group"
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    animate={{
-                      y: [0, -10, 0],
-                      scale: isActive ? 1.1 : 1
-                    }}
-                    transition={{
-                      y: { repeat: Infinity, duration: 3, delay: idx * 0.2, ease: "easeInOut" },
-                      scale: { duration: 0.3 }
-                    }}
-                    className={`w-20 h-20 border-2 rounded-2xl flex items-center justify-center mb-6 shadow-lg transition-all duration-300 relative overflow-hidden cursor-pointer ${isActive
-                      ? 'bg-brand-primary border-brand-primary text-white shadow-brand-primary/40 rotate-3'
-                      : 'bg-surface border-brand-primary/20 shadow-brand-primary/10 group-hover:bg-brand-primary group-hover:text-white group-hover:border-brand-primary group-hover:rotate-3'
-                      }`}
-                  >
-                    <div className={`absolute inset-0 transition-opacity ${isActive ? 'bg-black/10' : 'bg-brand-primary/5 group-hover:opacity-0'}`} />
-                    <step.icon className={`w-8 h-8 transition-colors duration-300 relative z-10 ${isActive ? 'text-white' : 'text-brand-primary group-hover:text-white'}`} />
-                  </motion.div>
-                  <h3 className={`text-lg font-bold mb-3 transition-colors cursor-default ${isActive ? 'text-brand-primary' : 'text-text-primary group-hover:text-brand-primary'}`}>{step.title}</h3>
-                  <p className="text-sm text-text-secondary leading-relaxed max-w-[200px] cursor-default">{step.desc}</p>
-                  {idx < 3 && (
-                    <div
-                      aria-hidden="true"
-                      data-flow-connector="mobile"
-                      className="md:hidden absolute left-1/2 top-full h-8 w-1 -translate-x-1/2 overflow-hidden rounded-full bg-border"
-                    >
-                      <motion.div
-                        animate={{ height: activeStep > idx ? '100%' : '0%' }}
-                        transition={{ duration: 0.8, ease: 'easeInOut' }}
-                        className="absolute left-0 top-0 w-full rounded-full bg-brand-primary"
-                      />
-                    </div>
-                  )}
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        </section>
       </main>
       <QRScannerModal isOpen={isQRScannerOpen} onClose={() => setIsQRScannerOpen(false)} />
 
@@ -1669,12 +1645,14 @@ export default function ClientHome({
               <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
                 <ShoppingBag className="w-5 h-5 text-brand-primary" />
               </div>
-              <span className="text-h2 text-white font-bold tracking-tight relative inline-block">
-                pesanku
-                <svg className="absolute -bottom-1.5 left-0 w-full text-black/70" viewBox="0 0 100 20" preserveAspectRatio="none">
-                  <path d="M0 10 Q 50 20 100 10" fill="transparent" stroke="currentColor" strokeWidth="4" />
-                </svg>
-              </span>
+              <div className="flex items-baseline relative inline-block">
+                <span className="text-h2 text-white font-extrabold tracking-tight">
+                  pesanku
+                </span>
+                <span className="text-h2 font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-[#FCDC2A] to-rose-200 ml-1.5 drop-shadow-sm">
+                  nusantara
+                </span>
+              </div>
             </motion.div>
           </div>
           <p className="text-body-base text-white/90 mb-8 max-w-md mx-auto">
@@ -1684,16 +1662,22 @@ export default function ClientHome({
           {/* Payment Methods */}
           <div className="flex flex-col items-center mb-8">
             <p className="text-white/70 text-xs uppercase tracking-widest mb-3 font-bold">Metode Pembayaran</p>
-            <div className="flex flex-wrap justify-center gap-2.5 max-w-lg">
-              <div className="px-3 py-1 bg-white text-blue-900 font-black italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">BCA</div>
-              <div className="px-3 py-1 bg-white text-orange-500 font-black italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">BNI</div>
-              <div className="px-3 py-1 bg-white text-yellow-500 font-black italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">Mandiri</div>
-              <div className="px-3 py-1 bg-white text-blue-600 font-black italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">BRI</div>
-              <div className="px-3 py-1 bg-white text-purple-600 font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">OVO</div>
-              <div className="px-3 py-1 bg-white text-blue-500 font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">DANA</div>
-              <div className="px-3 py-1 bg-white text-green-600 font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">GoPay</div>
-              <div className="px-3 py-1 bg-white text-orange-600 font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">ShopeePay</div>
-              <div className="px-3 py-1 bg-[#ED2C39] text-white font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px] border border-white/20">QRIS</div>
+            <div className="flex flex-col gap-2.5 items-center max-w-lg">
+              {/* Row 1: Banks */}
+              <div className="flex flex-wrap justify-center gap-2.5">
+                <div className="px-3 py-1 bg-white text-blue-900 font-black italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">BCA</div>
+                <div className="px-3 py-1 bg-white text-orange-500 font-black italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">BNI</div>
+                <div className="px-3 py-1 bg-white text-yellow-500 font-black italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">Mandiri</div>
+                <div className="px-3 py-1 bg-white text-blue-600 font-black italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">BRI</div>
+                <div className="px-3 py-1 bg-white text-teal-600 font-black italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">BSI</div>
+              </div>
+              {/* Row 2: E-Wallets & QRIS */}
+              <div className="flex flex-wrap justify-center gap-2.5">
+                <div className="px-3 py-1 bg-white text-purple-600 font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">OVO</div>
+                <div className="px-3 py-1 bg-white text-blue-500 font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">DANA</div>
+                <div className="px-3 py-1 bg-white text-orange-600 font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px]">ShopeePay</div>
+                <div className="px-3 py-1 bg-[#ED2C39] text-white font-bold italic rounded-md text-xs shadow-sm flex items-center justify-center min-w-[50px] border border-white/20">QRIS</div>
+              </div>
             </div>
           </div>
 
@@ -1727,7 +1711,7 @@ export default function ClientHome({
 
       {/* Mobile Bottom Navigation Bar (Landing Page) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-2 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
-        <div className="flex w-[40%] justify-around">
+        <div className="flex flex-1 justify-around">
           <button
             onClick={scrollToTop}
             className="flex flex-col items-center gap-1.5 text-brand-primary font-semibold pb-2 w-1/2"
@@ -1745,19 +1729,9 @@ export default function ClientHome({
           </button>
         </div>
 
-        <div className="w-[20%] flex flex-col justify-end items-center relative pb-2 h-full">
-          <div className="absolute bottom-6 flex justify-center w-full">
-            <button
-              onClick={() => setIsQRScannerOpen(true)}
-              className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105"
-            >
-              <ScanLine className="w-7 h-7 stroke-[1.5]" />
-            </button>
-          </div>
-          <span className="text-text-secondary mt-1">QRIS</span>
-        </div>
+        
 
-        <div className="flex w-[40%] justify-around">
+        <div className="flex flex-1 justify-around">
           <Link
             href={user ? (user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders') : '/buyer/orders'}
             className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 relative w-1/2"

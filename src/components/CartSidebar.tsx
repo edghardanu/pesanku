@@ -159,7 +159,7 @@ export default function CartSidebar() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         productId: item.productId,
-                        text: offerText, // Send text on all items so their chat threads are updated and sort to the top of the history list
+                        text: i === 0 ? offerText : null, // Only send text on the first item to avoid duplicate multi-product bubbles
                         productOffer: null,
                         qty: qty,
                         totalPrice: item.price * qty,
@@ -173,7 +173,10 @@ export default function CartSidebar() {
 
                 const data = await res.json();
                 if (!res.ok) {
-                    throw new Error(data.error || `Gagal mengirim penawaran untuk ${item.name}`);
+                    if (res.status === 401 || res.status === 403) {
+                        throw new Error('UNAUTHORIZED_USER');
+                    }
+                    throw new Error(data.message || data.error || `Gagal mengirim penawaran untuk ${item.name}`);
                 }
                 if (!firstOrderId) firstOrderId = data.orderId;
             }
@@ -197,12 +200,30 @@ export default function CartSidebar() {
             }
 
         } catch (error: any) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: error.message || 'Terjadi kesalahan saat mengirim penawaran',
-                confirmButtonColor: '#ff5c35'
-            });
+            if (error.message === 'UNAUTHORIZED_USER') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Harus Login Terlebih Dahulu',
+                    text: 'Anda harus login / daftar terlebih dahulu sebagai pembeli untuk mengajukan penawaran.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Login / Daftar',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#800000',
+                    cancelButtonColor: '#94a3b8',
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        setIsOpen(false);
+                        router.push('/login');
+                    }
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: error.message || 'Terjadi kesalahan saat mengirim penawaran',
+                    confirmButtonColor: '#ff5c35'
+                });
+            }
         } finally {
             setIsCheckingOut(false);
         }
@@ -219,7 +240,7 @@ export default function CartSidebar() {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.8, y: 50 }}
                         transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                        className="fixed bottom-6 right-6 z-50"
+                        className="fixed bottom-28 md:bottom-6 right-6 z-50"
                     >
                         <button
                             onClick={() => setIsOpen(true)}

@@ -544,7 +544,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                 </div>
               </button>
               {isUserDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-52 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 overflow-hidden">
+                <div className="md:hidden absolute right-0 top-full mt-2 w-52 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 overflow-hidden">
                   <div className="px-4 py-3 border-b border-border">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs text-text-secondary">Masuk sebagai</p>
@@ -585,7 +585,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           </div>
         </header>
 
-
         <div className="p-4 md:p-8 pb-28 md:pb-8 flex-1 relative">
           {/* Loading Overlay */}
           {isTransitioning && (
@@ -597,12 +596,12 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           )}
 
           <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-40' : 'opacity-100'}`}>
-            <header className="mb-8 flex justify-between items-end">
+            <header className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
               <div>
                 <h1 className="text-display-2 text-text-primary mb-1">Dashboard Admin</h1>
                 <p className="text-body-base text-text-secondary">Pantau aktivitas platform, verifikasi pembayaran, dan kelola UMKM.</p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="hidden md:flex items-center gap-4">
                 <div className="relative">
                   <button
                     onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
@@ -616,7 +615,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                     <svg className={`w-3.5 h-3.5 text-text-secondary transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                   </button>
                   {isUserDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-52 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 overflow-hidden">
+                    <div className="hidden md:block absolute right-0 top-full mt-2 w-52 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 overflow-hidden">
                       <div className="px-4 py-3 border-b border-border">
                         <div className="flex items-center justify-between mb-1">
                           <p className="text-xs text-text-secondary">Masuk sebagai</p>

@@ -369,13 +369,19 @@ export default function ClientBuyerOrders({
       if (!result.isConfirmed) return;
     }
 
+    // Immediately return to order list view so user is not stuck on a blank screen
+    setSelectedOrderId(null);
+
     // Optimistic update: ubah status jadi cancelled
     setLocalOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, status: 'cancelled' } : o));
 
     Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'info',
       title: isPaid ? 'Memproses Refund...' : 'Membatalkan...',
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading()
+      showConfirmButton: false,
+      timer: 1500
     });
 
     try {
@@ -392,10 +398,12 @@ export default function ClientBuyerOrders({
       }
 
       Swal.fire({
-        title: 'Berhasil',
-        text: isPaid ? 'Pesanan dibatalkan & eksekusi refund berhasil diproses.' : 'Pesanan Anda telah berhasil dibatalkan.',
+        toast: true,
+        position: 'top-end',
+        title: 'Pesanan Dibatalkan',
+        text: isPaid ? 'Pembatalan & refund berhasil diproses.' : 'Pesanan Anda telah berhasil dibatalkan.',
         icon: 'success',
-        timer: 2000,
+        timer: 2500,
         showConfirmButton: false
       });
 
@@ -421,6 +429,7 @@ export default function ClientBuyerOrders({
     });
 
     if (result.isConfirmed) {
+      setSelectedOrderId(null);
       setLocalOrders(prev => prev.filter(o => o.orderId !== orderId));
 
       try {
@@ -465,6 +474,7 @@ export default function ClientBuyerOrders({
     });
 
     if (result.isConfirmed) {
+      setSelectedOrderId(null);
       setLocalOrders(prev => prev.filter(o => o.status !== 'chat_only'));
 
       try {
@@ -509,6 +519,7 @@ export default function ClientBuyerOrders({
     });
 
     if (result.isConfirmed) {
+      setSelectedOrderId(null);
       try {
         const res = await fetch('/api/orders/cancel', {
           method: 'DELETE',
@@ -1323,7 +1334,7 @@ export default function ClientBuyerOrders({
 
       {/* Mobile Bottom Navigation Bar (Orders Page) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-2 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
-        <div className="flex w-[40%] justify-around">
+        <div className="flex flex-1 justify-around">
           <Link
             href="/"
             prefetch={true}
@@ -1355,19 +1366,9 @@ export default function ClientBuyerOrders({
           </Link>
         </div>
 
-        <div className="w-[20%] flex flex-col justify-end items-center relative pb-2 h-full">
-          <div className="absolute bottom-6 flex justify-center w-full">
-            <button
-              onClick={() => setIsQRScannerOpen(true)}
-              className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105"
-            >
-              <ScanLine className="w-7 h-7 stroke-[1.5]" />
-            </button>
-          </div>
-          <span className="text-text-secondary mt-1">QRIS</span>
-        </div>
+        
 
-        <div className="flex w-[40%] justify-around">
+        <div className="flex flex-1 justify-around">
           <button
             className="flex flex-col items-center gap-1.5 w-1/2 text-brand-primary font-semibold pb-2"
           >

@@ -244,10 +244,9 @@ export async function PUT(req: Request) {
     // dipotong biaya platform dari pengaturan admin.
     // ═══════════════════════════════════════════════════════════════════════
     if (status === 'completed' && orderObj.status !== 'completed') {
-      const platformFees = await fetchPlatformFees();
-
-      // Pencairan akhir: Admin mencairkan harga produk DIKURANGI biaya platform
-      payoutAmount = Math.max(0, (orderObj.totalPrice || 0) - platformFees);
+      // Pencairan akhir: Admin mencairkan 100% harga produk ke Penjual
+      // (Biaya tambahan jasa/admin sudah dibayarkan oleh pembeli saat checkout langsung ke saldo akumulatif Flip Admin)
+      payoutAmount = Math.max(0, (orderObj.totalPrice || 0));
       
       const sellerProfile = await db.select().from(sellerProfiles).where(eq(sellerProfiles.userId, sellerId)).get();
       const rawBankAccount = sellerProfile?.bankAccount || 'Unknown Bank';
