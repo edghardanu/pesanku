@@ -30,15 +30,17 @@ const SIZE_CLASS = {
  * <Avatar name="Budi" size="sm" />
  */
 export function Avatar({ src, name = '?', size = 'md', className = '' }: AvatarProps) {
+  const [imgError, setImgError] = React.useState(false);
   const initial = name.charAt(0).toUpperCase();
   const sizeClass = SIZE_CLASS[size];
 
-  if (src) {
+  if (src && !imgError) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={name}
+        onError={() => setImgError(true)}
         className={`rounded-full object-cover flex-shrink-0 ${sizeClass} ${className}`}
       />
     );
@@ -53,3 +55,4 @@ export function Avatar({ src, name = '?', size = 'md', className = '' }: AvatarP
     </div>
   );
 }
+

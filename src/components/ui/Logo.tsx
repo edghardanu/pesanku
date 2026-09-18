@@ -9,11 +9,9 @@ interface LogoProps {
 }
 
 export default function Logo({ className = '', width, height, priority = false }: LogoProps) {
-  // If width/height are provided, we use them as explicit dimensions.
-  // Otherwise, we allow the parent className to dictate the size (e.g. w-32 h-auto)
-  const imageProps = width && height 
-    ? { width, height }
-    : { width: 0, height: 0, sizes: "100vw", style: { width: '100%', height: 'auto' } };
+  // Provide valid default intrinsic dimensions for Next.js Image component so w > 0
+  const imgWidth = width || 500;
+  const imgHeight = height || 500;
 
   return (
     <div className={`relative flex items-center justify-center shrink-0 ${className}`}>
@@ -21,7 +19,10 @@ export default function Logo({ className = '', width, height, priority = false }
       <Image
         src="/pesanku-logo-light.png"
         alt="Pesanku Nusantara Logo"
-        {...imageProps}
+        width={imgWidth}
+        height={imgHeight}
+        sizes="(max-width: 768px) 200px, 400px"
+        style={{ width: '100%', height: 'auto' }}
         quality={100}
         priority={priority}
         className="block dark:hidden object-contain"
@@ -30,7 +31,10 @@ export default function Logo({ className = '', width, height, priority = false }
       <Image
         src="/pesanku-logo-dark.png"
         alt="Pesanku Nusantara Logo"
-        {...imageProps}
+        width={imgWidth}
+        height={imgHeight}
+        sizes="(max-width: 768px) 200px, 400px"
+        style={{ width: '100%', height: 'auto' }}
         quality={100}
         priority={priority}
         className="hidden dark:block object-contain"
@@ -38,3 +42,4 @@ export default function Logo({ className = '', width, height, priority = false }
     </div>
   );
 }
+
