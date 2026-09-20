@@ -909,12 +909,12 @@ export default function ClientHome({
                   transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
                   className="w-full lg:w-1/2 flex justify-center lg:justify-end relative mb-4 lg:mb-0"
                 >
-                  <div className="relative w-full max-w-[280px] sm:max-w-md md:max-w-lg lg:max-w-2xl">
+                  <div className="relative w-full max-w-[350px] sm:max-w-[480px] md:max-w-lg lg:max-w-2xl">
                     <DotLottieReact
                       src="/food%20delivery%20driver.lottie"
                       loop
                       autoplay
-                      className="w-full h-auto scale-[1.15] sm:scale-125 md:scale-[1.35] object-contain drop-shadow-[0_15px_35px_rgba(128,0,0,0.2)] hover:scale-[1.40] transition-transform duration-700 ease-out relative z-10"
+                      className="w-full h-auto scale-[1.25] sm:scale-[1.35] md:scale-[1.35] object-contain drop-shadow-[0_15px_35px_rgba(128,0,0,0.2)] hover:scale-[1.40] transition-transform duration-700 ease-out relative z-10"
                     />
                   </div>
                 </motion.div>
