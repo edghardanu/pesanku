@@ -8,6 +8,12 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    // Hanya admin yang boleh melihat konfigurasi internal
+    const user = await getUserFromSession();
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const feeSettings = await db.select().from(settings).where(inArray(settings.key, ["fee_aplikasi", "fee_jasa", "fee_admin", "penalty_percentage", "penalty_percentage_admin", "penalty_percentage_seller", "penalty_seller_to_admin", "penalty_seller_to_buyer", "penalty_days", "ipaymu_sandbox", "checkout_fees_config", "flip_sandbox"])).all();
 
     let penaltyPercentage = 0;

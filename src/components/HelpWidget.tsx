@@ -140,7 +140,7 @@ export default function HelpWidget() {
   };
 
   return (
-    <div id="help-widget-container" className="fixed md:bottom-6 bottom-44 md:left-6 left-4 z-[60] flex flex-col items-start gap-3">
+    <div id="help-widget-container" className="fixed md:bottom-6 bottom-44 md:right-6 right-4 z-[60] flex flex-col items-end gap-3">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -148,7 +148,7 @@ export default function HelpWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
             transition={{ duration: 0.2 }}
-            className="flex flex-col gap-3 items-start"
+            className="flex flex-col gap-3 items-end"
           >
             {!showTicketForm ? (
               <div className="flex flex-col gap-2 bg-surface border border-border p-3 rounded-2xl shadow-xl w-48">

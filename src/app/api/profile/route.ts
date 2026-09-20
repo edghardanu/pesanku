@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { sellerProfiles, users } from '@/lib/schema';
-import { getUserFromSession } from '@/lib/auth';
+import { getUserFromSession, getJwtSecret } from '@/lib/auth';
 import cloudinary from '@/lib/cloudinary';
 
 async function resolveImageUrl(
@@ -37,9 +37,7 @@ async function resolveImageUrl(
 }
 
 async function refreshAuthCookie(user: { id: string; role: string; email: string; name: string }) {
-  const secret = new TextEncoder().encode(
-    process.env.JWT_SECRET || 'fallback-secret-for-development'
-  );
+  const secret = getJwtSecret();
 
   const jwt = await new SignJWT({
     id: user.id,

@@ -43,8 +43,7 @@ function QuantityInput({ item, updateQty }: { item: CartItem, updateQty: (id: st
 }
 
 export default function CartSidebar() {
-    const { items, totalItems, totalPrice, updateQty, removeItem, clear, setItems } = useCart();
-    const [isOpen, setIsOpen] = useState(false);
+    const { items, totalItems, totalPrice, updateQty, removeItem, clear, setItems, isOpen, setIsOpen } = useCart();
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -53,7 +52,7 @@ export default function CartSidebar() {
 
     React.useEffect(() => {
         if (isOpen) {
-            fetch('/api/settings')
+            fetch('/api/public-fees')
                 .then(res => res.json())
                 .then(data => {
                     setCheckoutFees(data.checkout_fees || []);
@@ -232,28 +231,7 @@ export default function CartSidebar() {
 
     return (
         <>
-            {/* Floating Action Button */}
-            <AnimatePresence>
-                {!isOpen && totalItems > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.8, y: 50 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.8, y: 50 }}
-                        transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                        className="fixed bottom-28 md:bottom-6 right-6 z-50"
-                    >
-                        <button
-                            onClick={() => setIsOpen(true)}
-                            className="bg-brand-primary hover:bg-brand-primary-hover text-white p-4 rounded-full shadow-2xl shadow-brand-primary/30 flex items-center justify-center relative focus:outline-none focus:ring-4 focus:ring-brand-primary/50 transition-all active:scale-95 group"
-                        >
-                            <ShoppingBag className="w-6 h-6 stroke-[2.5px]" />
-                            <div className="absolute -top-2 -right-2 bg-black text-white text-[11px] font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-white">
-                                {totalItems}
-                            </div>
-                        </button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Floating Action Button Removed (Moved to Navbar) */}
 
             {/* Cart Drawer Canvas Overlay */}
             <AnimatePresence>

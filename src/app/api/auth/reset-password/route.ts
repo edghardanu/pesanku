@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { getUserFromSession } from '@/lib/auth';
+import { getUserFromSession, getJwtSecret } from '@/lib/auth';
 import { jwtVerify } from 'jose';
 
 export async function PUT(request: Request) {
@@ -91,8 +91,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Kata sandi harus mengandung kombinasi huruf besar, huruf kecil, angka, dan lambang/simbol khusus' }, { status: 400 });
     }
 
-    const tokenSecret = process.env.JWT_SECRET || 'fallback-secret-for-dev-pesanku-app';
-    const secretKey = new TextEncoder().encode(tokenSecret);
+    const secretKey = getJwtSecret();
 
     let payload;
     try {

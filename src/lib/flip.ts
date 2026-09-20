@@ -16,7 +16,7 @@ export interface FlipConfig {
   isSandbox: boolean;
 }
 
-async function getFlipConfig(): Promise<FlipConfig> {
+export async function getFlipConfig(): Promise<FlipConfig> {
   let isSandbox = process.env.FLIP_ENV === 'sandbox';
 
   // Cek DB settings (sama seperti mekanisme iPaymu sandbox)

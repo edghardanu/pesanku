@@ -4,6 +4,7 @@ import { users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
+import { getJwtSecret } from '@/lib/auth';
 import { cookies } from 'next/headers';
 
 // Simple in-memory rate limiting (Anti Brute-Force mechanism)
@@ -93,9 +94,7 @@ export async function POST(req: Request) {
     }
 
     // 6. Buat JWT Token
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || 'fallback-secret-for-development'
-    );
+    const secret = getJwtSecret();
     
     const alg = 'HS256';
     const jwt = await new SignJWT({ 

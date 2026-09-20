@@ -184,6 +184,8 @@ export interface ProductItem {
   storeAddress?: string | null;
   sellerLogoUrl?: string | null;
   sellerAvatar?: string | null;
+  sellerDescription?: string | null;
+  storeDescription?: string | null;
   sellerApprovalStatus?: string | null;
   sellerPhone?: string | null;
   totalSold?: number;

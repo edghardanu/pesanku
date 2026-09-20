@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
+import { getJwtSecret } from '@/lib/auth';
 
 const publicPaths = [
   '/',
@@ -56,9 +57,7 @@ export async function proxy(request: NextRequest) {
   let payloadData: SessionPayload | null = null;
   if (token) {
     try {
-      const secret = new TextEncoder().encode(
-        process.env.JWT_SECRET || 'fallback-secret-for-development'
-      );
+      const secret = getJwtSecret();
       const { payload } = await jwtVerify(token, secret);
       payloadData = payload as SessionPayload;
     } catch {

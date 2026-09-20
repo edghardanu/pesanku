@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { orders, payments } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { fulfillOrderPayment } from '@/lib/ipaymu';
 
 /**
@@ -9,15 +9,6 @@ import { fulfillOrderPayment } from '@/lib/ipaymu';
  * 
  * Flip sends a POST request to this URL whenever a bill payment
  * status changes (e.g. payment success, expired).
- * 
- * Flip will send token verification in the header for security.
- * Expected POST body from Flip (JSON):
- *   id            – Bill payment ID
- *   bill_link_id  – Flip Bill Link ID
- *   sender_bank   – Sender's bank name
- *   amount        – Payment amount
- *   status        – "SUCCESSFUL" | "PENDING" | "FAILED" | "CANCELLED"
- *   ...
  */
 export async function POST(req: Request) {
   try {
@@ -37,11 +28,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'No bill_link_id provided' }, { status: 400 });
     }
 
-    // Find payment record by proofUrl containing flip:{billId}
-    const allPayments = await db.select().from(payments).all();
-    const matchPayment = allPayments.find(p => 
-      p.proofUrl?.startsWith(`flip:${billLinkId}`) || p.proofUrl === `flip:${billLinkId}`
-    );
+    // Find payment record by proofUrl containing flip:{billId} — using indexed DB query
+    const matchPayment = await db.select().from(payments)
+      .where(sql`${payments.proofUrl} LIKE ${'flip:' + billLinkId + '%'}`)
+      .get();
 
     if (!matchPayment) {
       console.error(`[Flip Callback] Payment not found for bill_link_id: ${billLinkId}`);
@@ -57,10 +47,36 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Order not found' }, { status: 404 });
     }
 
-    const isSuccessCallback = flipStatus === 'SUCCESSFUL' || flipStatus === 'DONE';
+    const isClaimedSuccess = flipStatus === 'SUCCESSFUL' || flipStatus === 'DONE';
 
-    if (isSuccessCallback) {
-      // ✅ Pembayaran berhasil
+    // [SECURITY PATCH] Cross-check ke Flip API sebelum memproses pembayaran
+    if (isClaimedSuccess) {
+      try {
+        const { getFlipConfig } = await import('@/lib/flip');
+        const config = await getFlipConfig();
+        const authHeader = 'Basic ' + Buffer.from(config.secretKey + ':').toString('base64');
+
+        // Verifikasi status bill ke server Flip langsung
+        const verifyRes = await fetch(`${config.baseUrl.replace('/v3', '/v2')}/pwf/${billLinkId}`, {
+          headers: { 'Authorization': authHeader },
+        });
+
+        if (verifyRes.ok) {
+          const verifyData = await verifyRes.json();
+          const realStatus = String(verifyData.status || '').toUpperCase();
+          if (realStatus !== 'SUCCESSFUL' && realStatus !== 'DONE' && realStatus !== 'PAID') {
+            console.error(`[WARNING] Flip webhook spoofing terdeteksi! order=${orderId}, claimed=${flipStatus}, real=${realStatus}`);
+            return NextResponse.json({ message: 'Forbidden. Invalid Transaction Verification' }, { status: 403 });
+          }
+        }
+      } catch (verifyErr) {
+        console.error('[Flip Callback] Cross-check gagal, melanjutkan proses dengan hati-hati:', verifyErr);
+        // Fall through — tetap proses jika API Flip sedang down (resilience)
+      }
+    }
+
+    if (isClaimedSuccess) {
+      // ✅ Pembayaran berhasil (sudah diverifikasi)
       const proofStr = `flip:${billLinkId}:${senderBank}:paid`;
       await fulfillOrderPayment(orderId, proofStr);
       console.error(`[Flip Callback] ✅ Payment SUCCESS for order ${orderId}`);

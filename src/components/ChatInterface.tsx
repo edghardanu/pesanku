@@ -1332,8 +1332,9 @@ export default function ChatInterface({
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
 
-    // Restore bold placeholders as <strong> tags
-    result = result.replace(/%%BOLD(\d+)%%/g, (_, idx) => `<strong>${boldPlaceholders[parseInt(idx)]}</strong>`);
+    // Restore bold placeholders as <strong> tags — ESCAPE inner content to prevent XSS
+    const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    result = result.replace(/%%BOLD(\d+)%%/g, (_, idx) => `<strong>${escapeHtml(boldPlaceholders[parseInt(idx)])}</strong>`);
 
     // Replace markdown bold: **text**
     result = result.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");

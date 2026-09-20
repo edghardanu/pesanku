@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { SignJWT } from 'jose';
+import { getJwtSecret } from '@/lib/auth';
 import nodemailer from 'nodemailer';
 
 export async function POST(request: Request) {
@@ -24,8 +25,7 @@ export async function POST(request: Request) {
     const user = existingUsers[0];
 
     // Generate strict JWT token that expires in 15 minutes
-    const tokenSecret = process.env.JWT_SECRET || 'fallback-secret-for-dev-pesanku-app';
-    const secretKey = new TextEncoder().encode(tokenSecret);
+    const secretKey = getJwtSecret();
 
     const token = await new SignJWT({ email: user.email, intent: 'reset-password' })
       .setProtectedHeader({ alg: 'HS256' })

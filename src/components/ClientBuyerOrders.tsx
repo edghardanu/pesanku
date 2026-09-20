@@ -115,9 +115,9 @@ export default function ClientBuyerOrders({
     filteredLocalOrders.forEach(o => {
       let key = o.orderId; // default fallback
       if (o.status !== 'cancelled' && o.status !== 'failed' && o.status !== 'completed' && !o.paymentId) {
-        // Group active orders from the same seller IF they were created at the exact same minute (multi-product checkout from cart)
+        // Group active orders IF they were created at the exact same minute (multi-product checkout from cart) across any sellers
         const timeString = o.createdAt ? new Date(o.createdAt as string).toISOString().substring(0, 16) : '0';
-        key = 'active_' + o.sellerId + '_' + timeString;
+        key = 'active_' + timeString;
       } else if (o.paymentId) {
         key = 'paid_' + o.paymentId;
       }
@@ -1201,6 +1201,10 @@ export default function ClientBuyerOrders({
                       const isSelected = group.some(o => o.orderId === selectedOrderId);
                       const totalUnread = group.reduce((sum, o) => sum + (o.unreadCount || 0), 0);
 
+                      // Hitung jumlah toko berbeda dalam satu grup pesanan
+                      const distinctStores = Array.from(new Set(group.map(o => o.storeName || 'Toko UMKM')));
+                      const displayStoreName = distinctStores[0] + (distinctStores.length > 1 ? ` (+${distinctStores.length - 1} Toko)` : '');
+
                       return (
                         <div
                           key={order.orderId}
@@ -1213,11 +1217,11 @@ export default function ClientBuyerOrders({
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start mb-0.5">
-                              <span className="font-bold text-[13px] text-gray-900 truncate pr-2">{order.storeName || 'Toko UMKM'}</span>
+                              <span className="font-bold text-[13px] text-gray-900 truncate pr-2">{displayStoreName}</span>
                               <span className="text-[10px] text-gray-500 whitespace-nowrap">{formatOrderDate(order.createdAt).split(',')[0]}</span>
                             </div>
                             <div className="text-[12px] font-medium text-gray-700 truncate mb-1 pr-2">
-                              {order.productName} {group.length > 1 ? `(+${group.length - 1} lainnya)` : ''}
+                              {order.productName} {group.length > 1 ? `(+${group.length - 1} produk)` : ''}
                             </div>
 
                             {/* Status Badge */}

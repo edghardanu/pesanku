@@ -84,8 +84,8 @@ async function getIpaymuConfig(): Promise<IpaymuConfig> {
   if (isSandbox) {
     return {
       baseUrl: IPAYMU_BASE_URL_SANDBOX,
-      va: process.env.IPAYMU_VA_SANDBOX || '0000005286128625',
-      apiKey: process.env.IPAYMU_API_KEY_SANDBOX || 'SANDBOX8C172926-A650-498F-81B3-BFA762967A6B'
+      va: process.env.IPAYMU_VA_SANDBOX || (() => { throw new Error('IPAYMU_VA_SANDBOX not set'); })(),
+      apiKey: process.env.IPAYMU_API_KEY_SANDBOX || (() => { throw new Error('IPAYMU_API_KEY_SANDBOX not set'); })()
     };
   }
 

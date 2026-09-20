@@ -10,6 +10,7 @@ import Swal from "sweetalert2";
 import dynamic from "next/dynamic";
 const QRScannerModal = dynamic(() => import("@/components/QRScannerModal"), { ssr: false });
 import HelpWidget from "@/components/HelpWidget";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import CartSidebar from "@/components/CartSidebar";
 import Logo from "@/components/ui/Logo";
 import { useCart } from "@/lib/cart";
@@ -46,30 +47,22 @@ const itemVariants: Variants = {
   }
 };
 
-type PopularSellerItem = {
-  sellerId: string;
-  storeName: string;
-  sellerAvatar?: string | null;
-  averageRating?: number;
-  totalCount?: number;
-};
-
 export default function ClientHome({
   initialProducts,
-  initialPopularSellers,
   user,
   categoryFilter,
+  isFavoritesPage = false,
 }: {
   initialProducts: ProductItem[];
-  initialPopularSellers?: PopularSellerItem[];
   user?: AuthUser | null;
   categoryFilter?: string;
+  isFavoritesPage?: boolean;
 }) {
   const router = useRouter();
-  const { addItem: addCartItem } = useCart();
+  const { addItem: addCartItem, totalItems, setIsOpen: setIsCartOpen } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
@@ -92,16 +85,35 @@ export default function ClientHome({
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [localCategoryFilter, setLocalCategoryFilter] = useState<string | null>(null);
 
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('pesanku_favorites');
+      if (stored) {
+        setFavorites(new Set(JSON.parse(stored)));
+      }
+    } catch (e) { }
+  }, []);
+
+  const toggleFavorite = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      localStorage.setItem('pesanku_favorites', JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
   const [visibleMobileItems, setVisibleMobileItems] = useState(12);
   const [isDesktop, setIsDesktop] = useState(false);
 
-  // UMKM Terpopuler pagination
-  const sellersPerPage = 2;
-  const [sellerPage, setSellerPage] = useState(0);
-  const [sellerPageDir, setSellerPageDir] = useState<1 | -1>(1);
-  const [sellerAutoPlay, setSellerAutoPlay] = useState(true);
+
 
 
   useEffect(() => {
@@ -235,46 +247,16 @@ export default function ClientHome({
     setIsPreChatModalOpen(true);
   };
 
-  const popularSellers = useMemo(() => {
-    const popularSellersMap = new Map();
-    initialProducts.forEach(product => {
-      if (product.sellerId && product.storeName) {
-        if (!popularSellersMap.has(product.sellerId)) {
-          popularSellersMap.set(product.sellerId, {
-            sellerId: product.sellerId,
-            storeName: product.storeName,
-            sellerAvatar: product.sellerAvatar || product.sellerLogoUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop',
-            totalRating: 0,
-            totalCount: 0
-          });
-        }
-        const seller = popularSellersMap.get(product.sellerId);
-        if (product.averageRating && product.ratingCount) {
-          seller.totalRating += product.averageRating * product.ratingCount;
-          seller.totalCount += product.ratingCount;
-        }
-      }
-    });
 
-    const sellersFromProducts = Array.from(popularSellersMap.values()).map(seller => ({
-      ...seller,
-      averageRating: seller.totalCount > 0 ? seller.totalRating / seller.totalCount : 0
-    })).sort((a, b) => b.averageRating - a.averageRating).slice(0, 10);
-
-    if (sellersFromProducts.length > 0) return sellersFromProducts;
-
-    return (initialPopularSellers || []).map((seller) => ({
-      ...seller,
-      sellerAvatar: seller.sellerAvatar || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop',
-      averageRating: seller.averageRating || 0,
-      totalCount: seller.totalCount || 0,
-    })).slice(0, 10);
-  }, [initialProducts, initialPopularSellers]);
 
 
 
   const filteredProducts = useMemo(() => {
     return initialProducts.filter(product => {
+      if (isFavoritesPage) {
+        if (!favorites.has(product.id.toString())) return false;
+      }
+
       if (categoryFilter) {
         if (product.batchCategory !== categoryFilter) return false;
       }
@@ -286,7 +268,7 @@ export default function ClientHome({
       return productName.toLowerCase().includes(query.toLowerCase()) ||
         sellerName.toLowerCase().includes(query.toLowerCase());
     });
-  }, [initialProducts, categoryFilter, debouncedSearchQuery]);
+  }, [initialProducts, categoryFilter, debouncedSearchQuery, isFavoritesPage, favorites]);
 
   const displayProducts = useMemo(() => {
     return [...filteredProducts].filter((product) => {
@@ -389,100 +371,31 @@ export default function ClientHome({
 
 
             <div className="hidden md:flex items-center gap-3 ml-auto">
-              {/* Search Toggle and Expanding Input */}
-              <div className="relative flex items-center">
-                <AnimatePresence>
-                  {isMobileSearchOpen && (
-                    <motion.div
-                      initial={{ width: 0, opacity: 0 }}
-                      animate={{ width: 240, opacity: 1 }}
-                      exit={{ width: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-full top-1/2 -translate-y-1/2 mr-4 overflow-visible z-50 flex"
-                    >
-                      <div className="relative w-full group">
-                        <input
-                          id="desktop-search"
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          onFocus={() => setIsSearchFocused(true)}
-                          onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                          placeholder="Cari menu..."
-                          className={`input-field w-full pl-4 pr-10 rounded-full focus:bg-surface transition-all duration-300 border-transparent focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/10 bg-base`}
-                        />
-                        <button
-                          onClick={() => {
-                            if (searchQuery) {
-                              setSearchQuery("");
-                            } else {
-                              setIsMobileSearchOpen(false);
-                            }
-                          }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary p-1 rounded-full hover:bg-gray-100 transition-colors"
-                          aria-label="Close search"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-
-                        {/* Desktop Search Dropdown */}
-                        {searchQuery && isSearchFocused && (
-                          <div className="absolute top-full left-0 right-0 mt-2 bg-brand-primary border border-brand-primary text-white rounded-xl shadow-lg shadow-brand-primary/20 overflow-hidden z-[100] w-[240px]">
-                            <div className="max-h-60 overflow-y-auto">
-                              {filteredProducts.length > 0 ? (
-                                filteredProducts.slice(0, 5).map(product => (
-                                  <button
-                                    key={product.id}
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    onClick={() => {
-                                      setSearchQuery(product.name);
-                                      setIsSearchFocused(false);
-                                      setIsMobileSearchOpen(false);
-                                      router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
-                                    }}
-                                    className="w-full text-left px-4 py-3 hover:bg-white/10 border-b border-white/20 last:border-b-0 flex items-center gap-3 transition-colors"
-                                  >
-                                    {product.imageUrl ? (
-                                      <div className="w-10 h-10 rounded-lg bg-white/10 overflow-hidden shrink-0">
-                                        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                                      </div>
-                                    ) : (
-                                      <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                                        <ShoppingBag className="w-5 h-5 text-white/80" />
-                                      </div>
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-semibold text-white truncate">{product.name}</p>
-                                      <p className="text-xs text-white/80 truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
-                                    </div>
-                                  </button>
-                                ))
-                              ) : (
-                                <div className="px-4 py-4 text-center text-sm text-white/90">
-                                  Pencarian tidak ditemukan
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <button
-                  onClick={() => {
-                    if (!isMobileSearchOpen) {
-                      setIsMobileSearchOpen(true);
-                      setTimeout(() => document.querySelector<HTMLInputElement>('#desktop-search')?.focus(), 100);
-                    }
-                  }}
-                  className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 border border-border hover:bg-gray-100 dark:hover:bg-border text-text-primary`}
-                  aria-label="Toggle Search"
-                >
-                  <Search className="w-5 h-5" />
-                </button>
-              </div>
+              <Link
+                href="/favorites"
+                className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 border border-border hover:bg-gray-100 dark:hover:bg-border text-text-primary group`}
+                title="Favorit"
+                aria-label="Wishlist Favorit"
+              >
+                <Heart className={`w-5 h-5 transition-colors ${favorites.size > 0 ? 'text-[#ff4b4b] fill-[#ff4b4b]' : 'group-hover:text-[#ff4b4b] group-hover:fill-[#ff4b4b]/20'}`} />
+                {favorites.size > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#ff4b4b] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
+                    {favorites.size}
+                  </span>
+                )}
+              </Link>
+              <button
+                onClick={() => setIsCartOpen(true)}
+                className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 border border-border hover:bg-gray-100 dark:hover:bg-border text-text-primary group`}
+                aria-label="Keranjang Belanja"
+              >
+                <ShoppingBag className="w-5 h-5 group-hover:text-brand-primary" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
+                    {totalItems}
+                  </span>
+                )}
+              </button>
 
               <button
                 onClick={toggleDarkMode}
@@ -594,17 +507,35 @@ export default function ClientHome({
                 </Link>
               )}
 
-              {/* Mobile Search Toggle */}
+              {/* Mobile Cart Button */}
               <button
-                onClick={() => {
-                  setIsMobileSearchOpen(!isMobileSearchOpen);
-                  if (!isMobileSearchOpen) setTimeout(() => document.querySelector<HTMLInputElement>('#mobile-search')?.focus(), 100);
-                }}
+                onClick={() => setIsCartOpen(true)}
                 className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 hover:bg-brand-primary/10`}
-                aria-label="Toggle Search"
+                aria-label="Keranjang Belanja"
+                title="Keranjang Belanja"
               >
-                <Search className={`w-5 h-5 ${isMobileSearchOpen ? 'text-brand-primary' : 'text-text-primary'}`} />
+                <ShoppingBag className="w-5 h-5 text-text-primary group-hover:text-brand-primary" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
+                    {totalItems}
+                  </span>
+                )}
               </button>
+
+              {/* Mobile Favorites Link */}
+              <Link
+                href="/favorites"
+                className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 hover:bg-brand-primary/10`}
+                aria-label="Favorit"
+                title="Katalog Favorit"
+              >
+                <Heart className={`w-5 h-5 transition-colors ${favorites.size > 0 ? 'text-[#ff4b4b] fill-[#ff4b4b]' : 'text-text-primary'}`} />
+                {favorites.size > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#ff4b4b] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
+                    {favorites.size}
+                  </span>
+                )}
+              </Link>
 
               {/* Mobile Theme Toggle */}
               <button
@@ -776,67 +707,7 @@ export default function ClientHome({
               className="absolute top-16 left-0 right-0 bg-surface border-b border-border shadow-lg md:hidden z-40 p-4"
             >
               <div className="flex flex-col gap-4">
-                <div className="relative w-full mb-4">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => setIsSearchFocused(true)}
-                    onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                    placeholder="Cari menu..."
-                    className="input-field pl-10 pr-10 rounded-full w-full"
-                  />
-                  <Search className="w-5 h-5 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary p-1"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
 
-                  {/* Mobile Menu Search Dropdown */}
-                  {searchQuery && isSearchFocused && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-brand-primary border border-brand-primary text-white rounded-xl shadow-lg shadow-brand-primary/20 overflow-hidden z-50">
-                      <div className="max-h-60 overflow-y-auto">
-                        {filteredProducts.length > 0 ? (
-                          filteredProducts.slice(0, 5).map(product => (
-                            <button
-                              key={product.id}
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                setSearchQuery(product.name);
-                                setIsSearchFocused(false);
-                                setIsMobileMenuOpen(false);
-                                router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
-                              }}
-                              className="w-full text-left px-4 py-3 hover:bg-white/10 border-b border-white/20 last:border-b-0 flex items-center gap-3 transition-colors"
-                            >
-                              {product.imageUrl ? (
-                                <div className="w-10 h-10 rounded-lg bg-white/10 overflow-hidden shrink-0">
-                                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                                </div>
-                              ) : (
-                                <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                                  <ShoppingBag className="w-5 h-5 text-white/80" />
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-white truncate">{product.name}</p>
-                                <p className="text-xs text-white/80 truncate">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
-                              </div>
-                            </button>
-                          ))
-                        ) : (
-                          <div className="px-4 py-4 text-center text-sm text-white/90">
-                            Pencarian tidak ditemukan
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
                 <div className="flex justify-center mb-2">
                   <button
                     onClick={toggleDarkMode}
@@ -915,10 +786,76 @@ export default function ClientHome({
         </header>
       </div>
 
-      <main className="flex-1 bg-white dark:bg-base">
+      <main className="flex-1 bg-white dark:bg-base overflow-x-hidden pt-[110px] sm:pt-[130px] lg:pt-[140px]">
+        {/* Full-width Unified Search Bar */}
+        <div className="w-full mb-0 px-4 sm:px-6 lg:px-8">
+          <div className="relative w-full max-w-4xl mx-auto">
+            <input
+              id="global-search"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+              placeholder="Cari menu..."
+              className="w-full pl-12 pr-12 py-3.5 bg-white dark:bg-surface text-text-primary rounded-2xl shadow-sm border border-border focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 text-base outline-none transition-all duration-300"
+            />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary" />
+
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-border/50 transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+
+            {searchQuery && isSearchFocused && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-[100] max-h-72 overflow-y-auto">
+                {filteredProducts.length > 0 ? (
+                  filteredProducts.slice(0, 8).map(product => (
+                    <button
+                      key={product.id}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setSearchQuery(product.name);
+                        setIsSearchFocused(false);
+                        router.push(product.sellerId ? `/store/${encodeURIComponent((product.sellerName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.sellerId}?view=katalog` : `/product/${encodeURIComponent((product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${product.id}`);
+                      }}
+                      className="w-full text-left px-5 py-3 hover:bg-brand-primary/5 border-b border-border last:border-b-0 flex items-center gap-4 transition-colors text-text-primary group"
+                    >
+                      {product.imageUrl ? (
+                        <div className="w-12 h-12 rounded-lg bg-base overflow-hidden shrink-0 shadow-sm">
+                          <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-base flex items-center justify-center shrink-0 shadow-sm">
+                          <ShoppingBag className="w-6 h-6 text-text-secondary" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-text-primary truncate">{product.name}</p>
+                        <p className="text-sm text-text-secondary truncate mt-0.5">Rp {product.price?.toLocaleString('id-ID')} • {(product.sellerName || 'Toko').toUpperCase()}</p>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-5 py-6 text-center text-text-secondary">
+                    Pencarian tidak ditemukan
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Hero Section */}
-        {!categoryFilter && (
-          <section className="relative flex min-h-[440px] md:min-h-[500px] items-center justify-center overflow-hidden px-6 pt-24 pb-16 sm:px-8 sm:pt-32 sm:pb-20 bg-white dark:bg-base">
+        {!categoryFilter && !isFavoritesPage && (
+          <section className="relative flex min-h-[440px] md:min-h-[500px] items-center justify-center px-6 pt-6 pb-16 sm:px-8 sm:pt-8 sm:pb-20 bg-transparent">
 
             <div className="container mx-auto relative z-10 mt-8">
               <div className="flex flex-col-reverse lg:flex-row items-center justify-between text-left gap-8 lg:gap-8 w-full">
@@ -960,7 +897,7 @@ export default function ClientHome({
                       href="#rekomendasi"
                       className="w-full cursor-pointer rounded-xl bg-brand-primary border border-brand-primary px-8 py-3.5 text-center text-lg font-bold text-white transition-all shadow-md hover:bg-brand-primary-hover hover:scale-105 active:scale-95 sm:w-auto"
                     >
-                      Pesan Order
+                      Pre Order
                     </Link>
                   </div>
                 </motion.div>
@@ -972,14 +909,12 @@ export default function ClientHome({
                   transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
                   className="w-full lg:w-1/2 flex justify-center lg:justify-end relative mb-4 lg:mb-0"
                 >
-                  <div className="relative w-full max-w-sm sm:max-w-md lg:max-w-lg">
-                    {/* Decorative Blob Context */}
-                    <div className="absolute inset-0 bg-brand-primary/20 blur-[64px] rounded-full scale-125 -z-10 translate-x-4 translate-y-4"></div>
-                    
-                    <img 
-                      src="/background-header.jpeg" 
-                      alt="Pesan Makanan UMKM Favoritmu" 
-                      className="w-full h-auto object-cover rounded-3xl shadow-[0_20px_60px_-15px_rgba(128,0,0,0.3)] ring-1 ring-gray-900/5 rotate-2 hover:rotate-0 transition-transform duration-700 ease-out relative z-10"
+                  <div className="relative w-full max-w-[280px] sm:max-w-md md:max-w-lg lg:max-w-2xl">
+                    <DotLottieReact
+                      src="/food%20delivery%20driver.lottie"
+                      loop
+                      autoplay
+                      className="w-full h-auto scale-[1.15] sm:scale-125 md:scale-[1.35] object-contain drop-shadow-[0_15px_35px_rgba(128,0,0,0.2)] hover:scale-[1.40] transition-transform duration-700 ease-out relative z-10"
                     />
                   </div>
                 </motion.div>
@@ -992,236 +927,142 @@ export default function ClientHome({
         {/* Katalog Section */}
         <section id="katalog" className={`scroll-mt-24 px-4 container mx-auto ${categoryFilter ? 'py-16' : 'pb-16 pt-8'}`}>
 
-          {/* UMKM Terpopuler Section — Infinite Marquee Slider */}
-          {!categoryFilter && popularSellers.length > 0 && (() => {
-            // Triple the list for seamless infinite loop
-            const loopSellers = [...popularSellers, ...popularSellers, ...popularSellers];
 
-            // Card width + gap in pixels (used for speed calc)
-            const cardW = 192; // ~w-48
-            const gap = 24;
-            const totalWidth = popularSellers.length * (cardW + gap);
-            const durationSec = totalWidth / 60; // 60px per second
-
-            return (
-              <div className="mb-16">
-                {/* Header */}
-                <div className="mb-6 flex flex-col md:flex-row justify-center items-center relative gap-4">
-                  <div className="text-center w-full">
-                    <div className="flex items-center justify-center gap-4 mb-2">
-                      <div className="h-1 w-12 sm:w-16 bg-brand-primary/80 rounded-full"></div>
-                      <h2 className="text-h2 tracking-tight mb-0">UMKM Terpopuler</h2>
-                      <div className="h-1 w-12 sm:w-16 bg-brand-primary/80 rounded-full"></div>
-                    </div>
-                    <p className="text-body-base text-text-secondary">Pilihan toko favorit dengan kualitas terbaik.</p>
-                  </div>
-
-                  {/* Prev / Next manual controls */}
-                  <div className="flex items-center gap-2 md:absolute md:right-0">
-                    <button
-                      onClick={() => { setSellerAutoPlay(false); setTimeout(() => setSellerAutoPlay(true), 8000); setSellerPage(prev => Math.max(prev - 1, 0)); }}
-                      disabled={sellerPage === 0}
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${sellerPage === 0 ? 'border-gray-200 text-gray-300 bg-gray-50 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800' : 'border-gray-300 text-gray-700 bg-white hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 dark:bg-surface dark:border-border dark:text-gray-300'}`}
-                      aria-label="UMKM Sebelumnya"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-                    </button>
-                    <button
-                      onClick={() => { setSellerAutoPlay(false); setTimeout(() => setSellerAutoPlay(true), 8000); setSellerPage(prev => prev + 1); }}
-                      className="w-10 h-10 rounded-xl flex items-center justify-center border transition-all border-gray-300 text-gray-700 bg-white hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 dark:bg-surface dark:border-border dark:text-gray-300"
-                      aria-label="UMKM Selanjutnya"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Infinite Marquee Strip */}
-                <div
-                  className="overflow-hidden relative"
-                  style={{ maskImage: 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)' }}
-                >
-                  <motion.div
-                    className="flex gap-6"
-                    animate={sellerAutoPlay ? { x: [`0px`, `-${totalWidth}px`] } : {}}
-                    transition={sellerAutoPlay ? { repeat: Infinity, duration: durationSec, ease: 'linear' } : {}}
-                  >
-                    {loopSellers.map((seller, idx) => (
-                      <div
-                        key={`${seller.sellerId}-${idx}`}
-                        onClick={() => router.push(`/store/${encodeURIComponent((seller.storeName || 'toko').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}-${seller.sellerId}?view=katalog`)}
-                        className="flex-none w-40 sm:w-48 bg-white dark:bg-surface rounded-2xl border border-border p-4 shadow-sm group cursor-pointer flex flex-col items-center gap-3 hover:-translate-y-1 hover:shadow-lg hover:border-brand-primary/30 transition-all duration-300 relative overflow-hidden"
-                        onMouseEnter={() => setSellerAutoPlay(false)}
-                        onMouseLeave={() => setSellerAutoPlay(true)}
-                      >
-                        {/* Shimmer */}
-                        <motion.div
-                          className="absolute inset-0 pointer-events-none z-10"
-                          animate={{ x: ['-120%', '120%'] }}
-                          transition={{ repeat: Infinity, repeatDelay: 2.5, duration: 0.7, ease: 'easeIn', delay: (idx % popularSellers.length) * 0.6 }}
-                        >
-                          <div className="h-full w-2/5 bg-gradient-to-r from-transparent via-white/50 to-transparent skew-x-[-18deg]" />
-                        </motion.div>
-
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-sm border-2 border-brand-primary/20 ring-4 ring-brand-primary/10 group-hover:shadow-md transition-all duration-300 relative bg-white">
-                          <img
-                            src={seller.sellerAvatar}
-                            alt={seller.storeName}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-                        </div>
-                        <div className="w-full text-center flex flex-col items-center justify-center gap-1">
-                          <h3 className="font-bold text-sm sm:text-base line-clamp-2 w-full" style={{ color: '#0f172a' }}>
-                            {seller.storeName}
-                          </h3>
-                          {seller.averageRating > 0 ? (
-                            <div className="flex items-center justify-center scale-90">
-                              <ProductRating averageRating={seller.averageRating} ratingCount={seller.totalCount} className="[&>span]:text-text-secondary" />
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-text-secondary">Belum ada rating</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </motion.div>
-                </div>
-              </div>
-            );
-          })()}
 
 
 
           {/* Alur Pemesanan Section */}
-          <section id="alur-pemesanan" className="px-4 container mx-auto mb-16 pt-8">
-            <div className="bg-brand-primary rounded-3xl shadow-xl shadow-brand-primary/20 overflow-hidden">
-              {/* Header / Toggle */}
-              <button
-                onClick={() => setIsAlurOpen(!isAlurOpen)}
-                className="w-full text-left px-6 py-6 sm:px-10 sm:py-8 flex items-center justify-between group focus:outline-none"
-              >
-                <div>
-                  <h2 className="text-h2 text-white mb-2 tracking-tight group-hover:text-white/90 transition-colors">Bagaimana Cara Pesan?</h2>
-                  <p className="text-body-base text-white/80 max-w-2xl">4 langkah mudah untuk menikmati hidangan segar langsung dari UMKM pilihan Anda.</p>
-                </div>
-                <motion.div
-                  animate={{ rotate: isAlurOpen ? 180 : 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center shrink-0 ml-4"
+          {!categoryFilter && !isFavoritesPage && (
+            <section id="alur-pemesanan" className="px-4 container mx-auto mb-16 pt-8">
+              <div className="bg-brand-primary rounded-3xl shadow-xl shadow-brand-primary/20 overflow-hidden">
+                {/* Header / Toggle */}
+                <button
+                  onClick={() => setIsAlurOpen(!isAlurOpen)}
+                  className="w-full text-left px-6 py-6 sm:px-10 sm:py-8 flex items-center justify-between group focus:outline-none"
                 >
-                  <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </motion.div>
-              </button>
-
-              {/* Dropdown Content */}
-              <AnimatePresence>
-                {isAlurOpen && (
+                  <div>
+                    <h2 className="text-h2 text-white mb-2 tracking-tight group-hover:text-white/90 transition-colors">Bagaimana Cara Pesan?</h2>
+                    <p className="text-body-base text-white/80 max-w-2xl">4 langkah mudah untuk menikmati hidangan segar langsung dari UMKM pilihan Anda.</p>
+                  </div>
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.4, ease: "easeInOut" }}
-                    className="px-6 sm:px-10 pb-8 sm:pb-12"
+                    animate={{ rotate: isAlurOpen ? 180 : 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center shrink-0 ml-4"
                   >
+                    <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  </motion.div>
+                </button>
+
+                {/* Dropdown Content */}
+                <AnimatePresence>
+                  {isAlurOpen && (
                     <motion.div
-                      onViewportEnter={() => setFlowInView(true)}
-                      className="grid grid-cols-1 md:grid-cols-4 gap-8 relative max-w-5xl mx-auto pt-8 border-t border-white/20"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.4, ease: "easeInOut" }}
+                      className="px-6 sm:px-10 pb-8 sm:pb-12"
                     >
-                      {/* Connecting Line for Tablet and Desktop */}
-                      <div data-flow-connector="desktop" className="hidden md:block absolute top-[3.5rem] left-0 w-full h-1 bg-white/20 -translate-y-1/2 z-0 rounded-full overflow-hidden">
-                        <motion.div
-                          animate={{ width: activeStep >= 0 ? `${(activeStep * 25) + 12.5}%` : "0%" }}
-                          transition={{ duration: 0.8, ease: "easeInOut" }}
-                          className="h-full bg-white rounded-full opacity-80"
-                        />
-                      </div>
-
-                      {/* Steps */}
-                      {[
-                        { icon: Search, title: "1. Pilih Produk", desc: "Temukan hidangan favorit dari katalog UMKM.", delay: 0.2 },
-                        { icon: MessageCircle, title: "2. Diskusi & Pesan", desc: "Chat penjual untuk kustomisasi preorder.", delay: 0.4 },
-                        { icon: Store, activeIcon: ChefHat, title: "3. Proses Produksi", desc: "Penjual menyiapkan pesanan segar.", delay: 0.6 },
-                        { icon: ShoppingBag, activeIcon: Check, activeBg: "bg-green-500", title: "4. Pesanan Tiba", desc: "Terima hidangan tepat waktu.", delay: 0.8 }
-                      ].map((step, idx) => {
-                        const isActive = activeStep === idx;
-                        const CurrentIcon = isActive && step.activeIcon ? step.activeIcon : step.icon;
-
-                        return (
+                      <motion.div
+                        onViewportEnter={() => setFlowInView(true)}
+                        className="grid grid-cols-1 md:grid-cols-4 gap-8 relative max-w-5xl mx-auto pt-8 border-t border-white/20"
+                      >
+                        {/* Connecting Line for Tablet and Desktop */}
+                        <div data-flow-connector="desktop" className="hidden md:block absolute top-[3.5rem] left-0 w-full h-1 bg-white/20 -translate-y-1/2 z-0 rounded-full overflow-hidden">
                           <motion.div
-                            key={idx}
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6, delay: step.delay }}
-                            className="relative z-10 flex flex-col items-center text-center group"
-                          >
-                            <motion.div
-                              whileHover={{ scale: 1.15, rotate: 6 }}
-                              animate={{
-                                y: isActive ? [0, -12, 0] : [0, -4, 0],
-                                scale: isActive ? 1.15 : 1
-                              }}
-                              transition={{
-                                y: { repeat: Infinity, duration: isActive ? 2 : 4, delay: idx * 0.2, ease: "easeInOut" },
-                                scale: { type: "spring", stiffness: 300, damping: 15 }
-                              }}
-                              className={`w-20 h-20 border-2 flex items-center justify-center mb-6 shadow-lg transition-all duration-500 relative overflow-hidden cursor-pointer ${isActive
-                                ? (step.activeBg ? `${step.activeBg} border-transparent text-white shadow-green-500/40 rotate-3 rounded-2xl ring-4 ring-green-500/20` : 'bg-white border-white text-brand-primary shadow-white/40 rotate-3 rounded-2xl ring-4 ring-white/20')
-                                : 'bg-brand-primary border-white/30 shadow-black/10 rounded-[1.75rem] group-hover:bg-white group-hover:border-white group-hover:rotate-6 group-hover:shadow-white/20 group-hover:rounded-2xl group-hover:text-brand-primary'
-                                }`}
-                            >
-                              <div className={`absolute inset-0 transition-opacity ${isActive ? 'bg-transparent' : 'bg-black/10 group-hover:opacity-0'}`} />
+                            animate={{ width: activeStep >= 0 ? `${(activeStep * 25) + 12.5}%` : "0%" }}
+                            transition={{ duration: 0.8, ease: "easeInOut" }}
+                            className="h-full bg-white rounded-full opacity-80"
+                          />
+                        </div>
 
-                              <AnimatePresence mode="wait">
-                                <motion.div
-                                  key={isActive ? 'active' : 'inactive'}
-                                  initial={{ scale: 0, rotate: -45 }}
-                                  animate={{ scale: 1, rotate: 0 }}
-                                  exit={{ scale: 0, rotate: 45 }}
-                                  transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-                                  className="relative z-10"
+                        {/* Steps */}
+                        {[
+                          { icon: Search, title: "1. Pilih Produk", desc: "Temukan hidangan favorit dari katalog UMKM.", delay: 0.2 },
+                          { icon: MessageCircle, title: "2. Diskusi & Pesan", desc: "Chat penjual untuk kustomisasi preorder.", delay: 0.4 },
+                          { icon: Store, activeIcon: ChefHat, title: "3. Proses Produksi", desc: "Penjual menyiapkan pesanan segar.", delay: 0.6 },
+                          { icon: ShoppingBag, activeIcon: Check, activeBg: "bg-green-500", title: "4. Pesanan Tiba", desc: "Terima hidangan tepat waktu.", delay: 0.8 }
+                        ].map((step, idx) => {
+                          const isActive = activeStep === idx;
+                          const CurrentIcon = isActive && step.activeIcon ? step.activeIcon : step.icon;
+
+                          return (
+                            <motion.div
+                              key={idx}
+                              initial={{ opacity: 0, y: 30 }}
+                              whileInView={{ opacity: 1, y: 0 }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 0.6, delay: step.delay }}
+                              className="relative z-10 flex flex-col items-center text-center group"
+                            >
+                              <motion.div
+                                whileHover={{ scale: 1.15, rotate: 6 }}
+                                animate={{
+                                  y: isActive ? [0, -12, 0] : [0, -4, 0],
+                                  scale: isActive ? 1.15 : 1
+                                }}
+                                transition={{
+                                  y: { repeat: Infinity, duration: isActive ? 2 : 4, delay: idx * 0.2, ease: "easeInOut" },
+                                  scale: { type: "spring", stiffness: 300, damping: 15 }
+                                }}
+                                className={`w-20 h-20 border-2 flex items-center justify-center mb-6 shadow-lg transition-all duration-500 relative overflow-hidden cursor-pointer ${isActive
+                                  ? (step.activeBg ? `${step.activeBg} border-transparent text-white shadow-green-500/40 rotate-3 rounded-2xl ring-4 ring-green-500/20` : 'bg-white border-white text-brand-primary shadow-white/40 rotate-3 rounded-2xl ring-4 ring-white/20')
+                                  : 'bg-brand-primary border-white/30 shadow-black/10 rounded-[1.75rem] group-hover:bg-white group-hover:border-white group-hover:rotate-6 group-hover:shadow-white/20 group-hover:rounded-2xl group-hover:text-brand-primary'
+                                  }`}
+                              >
+                                <div className={`absolute inset-0 transition-opacity ${isActive ? 'bg-transparent' : 'bg-black/10 group-hover:opacity-0'}`} />
+
+                                <AnimatePresence mode="wait">
+                                  <motion.div
+                                    key={isActive ? 'active' : 'inactive'}
+                                    initial={{ scale: 0, rotate: -45 }}
+                                    animate={{ scale: 1, rotate: 0 }}
+                                    exit={{ scale: 0, rotate: 45 }}
+                                    transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                                    className="relative z-10"
+                                  >
+                                    <motion.div
+                                      animate={isActive ? (step.activeIcon === ChefHat ? { rotate: [0, -15, 15, -15, 15, 0], y: [0, -3, 3, -3, 3, 0] } : (step.activeIcon === Check ? { scale: [1, 1.3, 1] } : { rotate: [0, -15, 15, -15, 15, 0] })) : {}}
+                                      transition={{
+                                        duration: step.activeIcon === ChefHat ? 1.5 : 0.6,
+                                        repeat: step.activeIcon === ChefHat ? Infinity : 0,
+                                        ease: "easeInOut"
+                                      }}
+                                    >
+                                      <CurrentIcon className={`w-8 h-8 transition-colors duration-300 relative z-10 ${isActive ? (step.activeBg ? 'text-white' : 'text-brand-primary') : 'text-white group-hover:text-brand-primary'}`} />
+                                    </motion.div>
+                                  </motion.div>
+                                </AnimatePresence>
+                              </motion.div>
+                              <h3 className="text-lg font-bold mb-3 transition-colors cursor-default text-white">{step.title}</h3>
+                              <p className="text-sm text-white/80 leading-relaxed max-w-[200px] cursor-default">{step.desc}</p>
+                              {idx < 3 && (
+                                <div
+                                  aria-hidden="true"
+                                  data-flow-connector="mobile"
+                                  className="md:hidden absolute left-1/2 top-full h-8 w-1 -translate-x-1/2 overflow-hidden rounded-full bg-white/20"
                                 >
                                   <motion.div
-                                    animate={isActive ? (step.activeIcon === ChefHat ? { rotate: [0, -15, 15, -15, 15, 0], y: [0, -3, 3, -3, 3, 0] } : (step.activeIcon === Check ? { scale: [1, 1.3, 1] } : { rotate: [0, -15, 15, -15, 15, 0] })) : {}}
-                                    transition={{
-                                      duration: step.activeIcon === ChefHat ? 1.5 : 0.6,
-                                      repeat: step.activeIcon === ChefHat ? Infinity : 0,
-                                      ease: "easeInOut"
-                                    }}
-                                  >
-                                    <CurrentIcon className={`w-8 h-8 transition-colors duration-300 relative z-10 ${isActive ? (step.activeBg ? 'text-white' : 'text-brand-primary') : 'text-white group-hover:text-brand-primary'}`} />
-                                  </motion.div>
-                                </motion.div>
-                              </AnimatePresence>
+                                    animate={{ height: activeStep > idx ? '100%' : '0%' }}
+                                    transition={{ duration: 0.8, ease: 'easeInOut' }}
+                                    className="absolute left-0 top-0 w-full rounded-full bg-white"
+                                  />
+                                </div>
+                              )}
                             </motion.div>
-                            <h3 className="text-lg font-bold mb-3 transition-colors cursor-default text-white">{step.title}</h3>
-                            <p className="text-sm text-white/80 leading-relaxed max-w-[200px] cursor-default">{step.desc}</p>
-                            {idx < 3 && (
-                              <div
-                                aria-hidden="true"
-                                data-flow-connector="mobile"
-                                className="md:hidden absolute left-1/2 top-full h-8 w-1 -translate-x-1/2 overflow-hidden rounded-full bg-white/20"
-                              >
-                                <motion.div
-                                  animate={{ height: activeStep > idx ? '100%' : '0%' }}
-                                  transition={{ duration: 0.8, ease: 'easeInOut' }}
-                                  className="absolute left-0 top-0 w-full rounded-full bg-white"
-                                />
-                              </div>
-                            )}
-                          </motion.div>
-                        );
-                      })}
+                          );
+                        })}
+                      </motion.div>
                     </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </section>
+                  )}
+                </AnimatePresence>
+              </div>
+            </section>
+          )}
 
           {/* Categories Section */}
           <section id="kategori-pilihan" className="scroll-mt-24 px-4 container mx-auto mb-16 pt-8">
-            {!categoryFilter && (
+            {!categoryFilter && !isFavoritesPage && (
               <div>
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -1230,12 +1071,13 @@ export default function ClientHome({
                   className="mb-8 flex flex-col md:flex-row justify-center items-center relative gap-4"
                 >
                   <div className="text-center w-full">
-                    <div className="flex items-center justify-center gap-4 mb-2">
-                      <div className="h-1 w-12 sm:w-16 bg-brand-primary/80 rounded-full"></div>
-                      <h2 className="text-h2 tracking-tight mb-0 text-text-primary">Kategori Pilihan</h2>
-                      <div className="h-1 w-12 sm:w-16 bg-brand-primary/80 rounded-full"></div>
+                    <div className="flex items-center justify-center mb-1 sm:mb-2">
+                      <h2 className="text-h2 tracking-tight mb-0 pb-4 text-text-primary relative inline-block">
+                        Kategori Pilihan
+                        <div className="absolute bottom-0 left-[20%] right-[20%] h-1.5 sm:h-2 bg-brand-primary/80 rounded-full"></div>
+                      </h2>
                     </div>
-                    <p className="text-body-base text-text-secondary">Eksplorasi ragam menu sesuai selera Anda.</p>
+                    <p className="text-body-base text-text-secondary mt-3">Eksplorasi ragam menu sesuai selera Anda.</p>
                   </div>
 
                 </motion.div>
@@ -1283,12 +1125,22 @@ export default function ClientHome({
             viewport={{ once: true }}
             className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 pt-4 lg:pt-0 mt-4 scroll-mt-24"
           >
-            <div>
-              <h2 className="text-h2 mb-2 tracking-tight">{categoryFilter ? `Kategori: ${categoryFilter}` : 'Rekomendasi Untuk Kamu'}</h2>
-              <p className="text-body-base text-text-secondary">
-                {searchQuery ? `Hasil pencarian untuk "${searchQuery}"` : (categoryFilter ? `Produk pilihan di kategori ${categoryFilter}.` : "Temukan pilihan produk UMKM yang mungkin kamu sukai.")}
-              </p>
-            </div>
+            {isFavoritesPage ? (
+              <div className="text-center sm:text-left w-full sm:w-auto mt-4 sm:mt-0 mb-4 sm:mb-0">
+                <div className="inline-block relative">
+                  <h2 className="text-h2 tracking-tight mb-0 pb-3 text-text-primary relative z-10">Menu Favorit</h2>
+                  <div className="absolute bottom-1 left-0 right-0 h-1.5 sm:h-2 bg-[#ff4b4b] rounded-full z-0"></div>
+                </div>
+                <p className="text-body-base text-text-secondary mt-1">Daftar hidangan terpilih yang Anda sukai.</p>
+              </div>
+            ) : (
+              <div>
+                <h2 className="text-h2 mb-2 tracking-tight">{categoryFilter ? `Kategori: ${categoryFilter}` : 'Rekomendasi Untuk Kamu'}</h2>
+                <p className="text-body-base text-text-secondary">
+                  {searchQuery ? `Hasil pencarian untuk "${searchQuery}"` : (categoryFilter ? `Produk pilihan di kategori ${categoryFilter}.` : "Temukan pilihan produk UMKM yang mungkin kamu sukai.")}
+                </p>
+              </div>
+            )}
 
             {/* Action Buttons Container */}
             <div className="flex items-center gap-3 relative z-40">
@@ -1449,6 +1301,8 @@ export default function ClientHome({
                               className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                               sizes="120px"
                             />
+
+
                             {/* Promo Badge Optional */}
                             {product.price > 50000 && (
                               <div className="absolute top-0 left-0 bg-[#ff4b4b] text-white text-[10px] font-bold px-2 py-0.5 rounded-br-xl shadow-sm z-10">
@@ -1464,10 +1318,20 @@ export default function ClientHome({
 
                           {/* Right Content Area */}
                           <div className="flex flex-col flex-1 min-w-0 pt-0.5">
-                            {/* Title */}
-                            <h3 className="text-[13px] sm:text-sm font-bold text-text-primary leading-snug line-clamp-2 mb-1 group-hover:text-brand-primary transition-colors">
-                              {product.name}
-                            </h3>
+                            <div className="flex justify-between items-start gap-1">
+                              {/* Title */}
+                              <h3 className="text-[13px] sm:text-sm font-bold text-text-primary leading-snug line-clamp-2 mb-1 group-hover:text-brand-primary transition-colors flex-1">
+                                {product.name}
+                              </h3>
+                              {/* Favorite Heart Button (Top Right Card) */}
+                              <button
+                                onClick={(e) => toggleFavorite(product.id.toString(), e)}
+                                className="p-1 sm:p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-border transition-colors shrink-0 group/fav mt-[-4px] sm:mt-[-2px] -mr-1 sm:-mr-2 flex items-center justify-center"
+                                aria-label="Tandai Favorit"
+                              >
+                                <Heart className={`w-4 h-4 sm:w-4 sm:h-4 transition-colors ${favorites.has(product.id.toString()) ? 'text-[#ff4b4b] fill-[#ff4b4b]' : 'text-gray-300 group-hover/fav:text-[#ff4b4b] group-hover/fav:fill-[#ff4b4b]/10'}`} />
+                              </button>
+                            </div>
 
                             {/* Subtitle / Tags */}
                             <p className="text-[11px] text-text-secondary truncate mb-1.5 line-clamp-1">
@@ -1490,36 +1354,57 @@ export default function ClientHome({
 
                             {/* Action Buttons */}
                             <div className="flex items-center gap-1.5 sm:gap-2 mt-auto w-full">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  addCartItem({
-                                    productId: product.id,
-                                    name: product.name,
-                                    price: product.price,
-                                    sellerId: product.sellerId || '',
-                                    sellerName: product.sellerName || product.storeName || 'Toko UMKM',
-                                    imageUrl: product.imageUrl || '',
-                                    minQty: product.minOrderQty || product.minQty || 1
-                                  });
+                              {!isFavoritesPage ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    addCartItem({
+                                      productId: product.id,
+                                      name: product.name,
+                                      price: product.price,
+                                      sellerId: product.sellerId || '',
+                                      sellerName: product.sellerName || product.storeName || 'Toko UMKM',
+                                      imageUrl: product.imageUrl || '',
+                                      minQty: product.minOrderQty || product.minQty || 1
+                                    });
 
-                                  // Optional sweet alert feedback
-                                  Swal.fire({
-                                    icon: 'success',
-                                    title: 'Berhasil dimasukkan',
-                                    text: `${product.name} dimasukkan ke pesanan`,
-                                    timer: 1200,
-                                    showConfirmButton: false,
-                                    toast: true,
-                                    position: 'top-end'
-                                  });
-                                }}
-                                className="w-full flex items-center justify-center gap-1 bg-brand-primary text-white py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-brand-primary-hover transition-colors relative z-20 group/btn shadow-md"
-                              >
-                                <ShoppingBag className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
-                                <span className="truncate">Tambah Pesanan</span>
-                              </button>
+                                    Swal.fire({
+                                      icon: 'success',
+                                      title: 'Berhasil dimasukkan',
+                                      text: `${product.name} dimasukkan ke pesanan`,
+                                      timer: 1200,
+                                      showConfirmButton: false,
+                                      toast: true,
+                                      position: 'top-end'
+                                    });
+                                  }}
+                                  className="w-full flex items-center justify-center gap-1 bg-brand-primary text-white py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-brand-primary-hover transition-colors relative z-20 group/btn shadow-md"
+                                >
+                                  <ShoppingBag className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
+                                  <span className="truncate">Tambah Pesanan</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleInternalPresalesChat(
+                                      product.storeName || 'Toko UMKM',
+                                      product.id,
+                                      product.name || 'Produk',
+                                      product.sellerId || '',
+                                      product.sellerAvatar || null,
+                                      product.price,
+                                      product.imageUrl || ''
+                                    );
+                                  }}
+                                  className="w-full flex items-center justify-center gap-1 border border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-colors relative z-20 group/btn"
+                                >
+                                  <MessageCircle className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
+                                  <span className="truncate">Berikan Penawaran</span>
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1642,14 +1527,14 @@ export default function ClientHome({
               animate={{ y: [0, -4, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
             >
-              <Image 
-                src="/pesanku-white.png" 
-                alt="Pesanku" 
-                width={220} 
-                height={52} 
+              <Image
+                src="/pesanku-white.png"
+                alt="Pesanku"
+                width={220}
+                height={52}
                 quality={100}
                 priority={true}
-                className="object-contain drop-shadow-sm" 
+                className="object-contain drop-shadow-sm"
               />
             </motion.div>
           </div>
@@ -1727,7 +1612,7 @@ export default function ClientHome({
           </button>
         </div>
 
-        
+
 
         <div className="flex flex-1 justify-around">
           <Link

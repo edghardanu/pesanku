@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 import { ProductItem } from "@/types";
 
-export default async function Home() {
+export default async function FavoritesPage() {
   const user = await getUserFromSession();
   let dbProducts: ProductItem[] = [];
 
@@ -100,9 +100,9 @@ export default async function Home() {
       promotionExpiresAt: promotionsByProduct.get(p.id)?.expiresAt ?? null,
     })).sort((first, second) => Number(Boolean(second.isPromoted)) - Number(Boolean(first.isPromoted)));
   } catch (error) {
-    console.error("Database error while fetching products on homepage:", error);
+    console.error("Database error while fetching products on favorites:", error);
     // Fallback gracefully without breaking the UI
   }
 
-  return <ClientHome initialProducts={dbProducts} user={user} />;
+  return <ClientHome initialProducts={dbProducts} user={user} isFavoritesPage={true} />;
 }

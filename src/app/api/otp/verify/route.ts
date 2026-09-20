@@ -3,7 +3,27 @@ import { db } from '@/lib/db';
 import { otpCodes, users } from '@/lib/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { SignJWT } from 'jose';
+import { getJwtSecret } from '@/lib/auth';
 import { cookies } from 'next/headers';
+
+// ============================================================
+// Rate Limiting: Proteksi brute-force OTP (maks 5 percobaan / 15 menit per email)
+// ============================================================
+const otpRateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function checkOtpRateLimit(email: string): boolean {
+  const now = Date.now();
+  const window = 15 * 60 * 1000;
+  const maxAttempts = 5;
+  const record = otpRateLimitMap.get(email);
+  if (!record || now > record.resetTime) {
+    otpRateLimitMap.set(email, { count: 1, resetTime: now + window });
+    return true;
+  }
+  if (record.count >= maxAttempts) return false;
+  record.count += 1;
+  return true;
+}
 
 // ============================================================
 // POST: Verifikasi OTP dari database
@@ -31,6 +51,14 @@ export async function POST(request: Request) {
 
     const sanitizedEmail = inputEmail.trim().toLowerCase();
     const sanitizedOtpCode = inputOtpCode.trim();
+
+    // Rate limiting: proteksi brute-force
+    if (!checkOtpRateLimit(sanitizedEmail)) {
+      return NextResponse.json(
+        { success: false, message: 'Terlalu banyak percobaan verifikasi. Silakan coba lagi dalam 15 menit.' },
+        { status: 429 }
+      );
+    }
 
     // Validasi format: harus tepat 6 digit angka
     if (!/^\d{6}$/.test(sanitizedOtpCode)) {
@@ -109,9 +137,7 @@ export async function POST(request: Request) {
     const user = await db.select().from(users).where(eq(users.email, sanitizedEmail)).get();
     
     if (user) {
-      const secret = new TextEncoder().encode(
-        process.env.JWT_SECRET || 'fallback-secret-for-development'
-      );
+      const secret = getJwtSecret();
       
       const alg = 'HS256';
       const jwt = await new SignJWT({ 

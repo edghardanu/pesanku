@@ -16,6 +16,7 @@ export type CartItem = {
 class CartStore {
     private items: CartItem[] = [];
     private listeners: Set<() => void> = new Set();
+    private isOpen: boolean = false;
 
     constructor() {
         this.loadFromStorage();
@@ -55,7 +56,7 @@ class CartStore {
     }
 
     getSnapshot() {
-        return this.items;
+        return { items: this.items, isOpen: this.isOpen };
     }
 
     addItem(item: Omit<CartItem, 'qty'> & { qty?: number }) {
@@ -106,6 +107,11 @@ class CartStore {
         this.items = [];
         this.emitChange();
     }
+
+    setIsOpen(val: boolean) {
+        this.isOpen = val;
+        this.emitChange();
+    }
 }
 
 export const cartStore = new CartStore();
@@ -114,15 +120,20 @@ export const cartStore = new CartStore();
 export function useCart() {
     const [isMounted, setIsMounted] = useState(false);
     const [items, setItems] = useState<CartItem[]>([]);
+    const [isOpen, setIsOpenState] = useState(false);
 
     useEffect(() => {
         // Hydrate after mount to avoid server mismatch
-        setItems(cartStore.getSnapshot());
+        const snap = cartStore.getSnapshot();
+        setItems(snap.items);
+        setIsOpenState(snap.isOpen);
         setIsMounted(true);
 
         const unsubscribe = cartStore.subscribe(() => {
             // Need a new array reference to trigger React re-render
-            setItems([...cartStore.getSnapshot()]);
+            const newSnap = cartStore.getSnapshot();
+            setItems([...newSnap.items]);
+            setIsOpenState(newSnap.isOpen);
         });
         return () => {
             unsubscribe();
@@ -135,6 +146,7 @@ export function useCart() {
     return {
         isMounted,
         items,
+        isOpen,
         totalItems,
         totalPrice,
         addItem: useCallback((item: Omit<CartItem, 'qty'> & { qty?: number }) => cartStore.addItem(item), []),
@@ -142,5 +154,6 @@ export function useCart() {
         removeItem: useCallback((productId: string, selectedVariant: string | undefined) => cartStore.removeItem(productId, selectedVariant), []),
         setItems: useCallback((items: CartItem[]) => cartStore.setItems(items), []),
         clear: useCallback(() => cartStore.clear(), []),
+        setIsOpen: useCallback((val: boolean) => cartStore.setIsOpen(val), []),
     };
 }
