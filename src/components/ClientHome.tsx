@@ -1149,7 +1149,7 @@ export default function ClientHome({
               <div className="relative">
                 <button
                   onClick={() => { setIsCategoryDropdownOpen(!isCategoryDropdownOpen); setIsPriceFilterOpen(false); }}
-                  className={`relative flex items-center justify-between w-36 sm:w-44 bg-white border px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all duration-300 group hover:border-brand-primary/60 outline-none focus:border-brand-primary ${isCategoryDropdownOpen ? 'border-brand-primary shadow-sm' : 'border-gray-300'}`}
+                  className={`relative flex items-center justify-between w-36 sm:w-44 bg-surface border px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all duration-300 group hover:border-brand-primary/60 outline-none focus:border-brand-primary ${isCategoryDropdownOpen ? 'border-brand-primary shadow-sm' : 'border-border'}`}
                 >
                   <span className={`absolute -top-2 left-3 px-1.5 text-[10px] sm:text-[11px] font-medium bg-surface transition-colors duration-300 z-10 ${isCategoryDropdownOpen ? 'text-brand-primary' : 'text-text-secondary group-hover:text-brand-primary/80'}`}>
                     Kategori Makanan
@@ -1157,7 +1157,7 @@ export default function ClientHome({
                   <span className="text-[13px] sm:text-sm font-semibold text-text-primary truncate text-left w-full">
                     {localCategoryFilter || 'Semua'}
                   </span>
-                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 shrink-0 transition-transform duration-300 ml-1 ${isCategoryDropdownOpen ? 'rotate-180 text-brand-primary' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 shrink-0 transition-transform duration-300 ml-1 ${isCategoryDropdownOpen ? 'rotate-180 text-brand-primary' : 'text-text-secondary'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
@@ -1194,7 +1194,7 @@ export default function ClientHome({
               <div className="relative">
                 <button
                   onClick={() => { setIsPriceFilterOpen(!isPriceFilterOpen); setIsCategoryDropdownOpen(false); }}
-                  className={`relative flex items-center justify-between w-36 sm:w-44 bg-white border px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all duration-300 group hover:border-brand-primary/60 outline-none focus:border-brand-primary ${isPriceFilterOpen ? 'border-brand-primary shadow-sm' : 'border-gray-300'}`}
+                  className={`relative flex items-center justify-between w-36 sm:w-44 bg-surface border px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all duration-300 group hover:border-brand-primary/60 outline-none focus:border-brand-primary ${isPriceFilterOpen ? 'border-brand-primary shadow-sm' : 'border-border'}`}
                 >
                   <span className={`absolute -top-2 left-3 px-1.5 text-[10px] sm:text-[11px] font-medium bg-surface transition-colors duration-300 z-10 ${isPriceFilterOpen ? 'text-brand-primary' : 'text-text-secondary group-hover:text-brand-primary/80'}`}>
                     Urutkan Harga
@@ -1202,7 +1202,7 @@ export default function ClientHome({
                   <span className="text-[13px] sm:text-sm font-semibold text-text-primary truncate text-left w-full">
                     {priceSortOrder === 'asc' ? 'Termurah' : (priceSortOrder === 'desc' ? 'Termahal' : 'Semua')}
                   </span>
-                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 shrink-0 transition-transform duration-300 ml-1 ${isPriceFilterOpen ? 'rotate-180 text-brand-primary' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 shrink-0 transition-transform duration-300 ml-1 ${isPriceFilterOpen ? 'rotate-180 text-brand-primary' : 'text-text-secondary'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
@@ -1596,20 +1596,40 @@ export default function ClientHome({
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-2 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
         <div className="flex flex-1 justify-around">
           <button
-            onClick={scrollToTop}
-            className="flex flex-col items-center gap-1.5 text-brand-primary font-semibold pb-2 w-1/2"
+            onClick={() => {
+              if (isFavoritesPage) {
+                window.location.href = '/';
+              } else {
+                scrollToTop();
+              }
+            }}
+            className={`flex flex-col items-center gap-1.5 pb-2 w-1/2 ${!isFavoritesPage ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary transition-colors'}`}
           >
-            <Home className="w-6 h-6 stroke-[1.5] fill-brand-primary/10 stroke-brand-primary" />
+            <Home className={`w-6 h-6 stroke-[1.5] ${!isFavoritesPage ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
             <span>Beranda</span>
           </button>
 
-          <button
-            onClick={scrollToCatalog}
-            className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 w-1/2"
+          <Link
+            href="/favorites"
+            className={`flex flex-col items-center gap-1.5 pb-2 w-1/2 relative ${isFavoritesPage ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary transition-colors'}`}
           >
-            <ShoppingBag className="w-6 h-6 stroke-[1.5]" />
-            <span>Belanja</span>
-          </button>
+            <div className="relative flex items-center justify-center">
+              <Heart className={`w-6 h-6 stroke-[1.5] transition-colors ${isFavoritesPage ? 'fill-brand-primary/10 stroke-brand-primary' : (favorites.size > 0 ? 'text-[#ff4b4b] fill-[#ff4b4b]' : '')}`} />
+              <AnimatePresence>
+                {favorites.size > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    className="absolute -top-1.5 -right-2 bg-[#ff4b4b] text-white text-[9px] font-bold px-1 py-0.5 rounded-full min-w-[16px] text-center shadow-sm"
+                  >
+                    {favorites.size}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
+            <span className={favorites.size > 0 && !isFavoritesPage ? 'text-[#ff4b4b] font-medium' : ''}>Favorite</span>
+          </Link>
         </div>
 
 

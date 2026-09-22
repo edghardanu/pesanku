@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { ShoppingBag, Store, User, Eye, EyeOff, ArrowLeft, Home, ShoppingCart, FileText, X, CheckCircle, ShieldCheck, ExternalLink, Info } from "lucide-react";
+import { ShoppingBag, Heart, Store, User, Eye, EyeOff, ArrowLeft, Home, ShoppingCart, FileText, X, CheckCircle, ShieldCheck, ExternalLink, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { useDarkMode } from '@/hooks';
 import Logo from "@/components/ui/Logo";
@@ -15,6 +15,16 @@ export default function RegisterPage() {
   const router = useRouter();
   const [role, setRole] = useState<'buyer' | 'seller'>('buyer');
   const [publicStats, setPublicStats] = useState({ totalUmkm: "...", avgRating: "..." });
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const stored = localStorage.getItem('pesanku_favorites');
+    if (stored) {
+      try {
+        setFavorites(new Set(JSON.parse(stored)));
+      } catch (e) {}
+    }
+  }, []);
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
 
@@ -673,15 +683,20 @@ export default function RegisterPage() {
 
         <div className="w-1/4 flex flex-col justify-end items-center relative pb-2 h-full">
           <Link
-            href="/#katalog"
+            href="/favorites"
             className="absolute bottom-6 flex justify-center w-full"
-            aria-label="Buka katalog produk"
+            aria-label="Buka daftar favorit"
           >
-            <span className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105">
-              <ShoppingBag className="w-7 h-7 stroke-[1.5]" />
+            <span className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105 relative">
+              <Heart className={`w-7 h-7 stroke-[1.5] ${favorites.size > 0 ? 'fill-white' : ''}`} />
+              {favorites.size > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#ff4b4b] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm border-2 border-white">
+                  {favorites.size > 99 ? '99+' : favorites.size}
+                </span>
+              )}
             </span>
           </Link>
-          <span className="text-text-secondary mt-1">Belanja</span>
+          <span className="text-text-secondary mt-1">Favorite</span>
         </div>
 
         <Link

@@ -3,7 +3,7 @@ import ClientOrderDetail from './ClientOrderDetail';
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star, Trash2, Truck, ScanLine, Search, RotateCcw, Upload, DollarSign } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileImage, CreditCard, LogOut, MessageCircle, UserX, Sun, Moon, Home, ShoppingCart, ShoppingBag, Heart, FileText, User, Printer, Receipt, Pencil, Save, X, Loader2, Star, Trash2, Truck, ScanLine, Search, RotateCcw, Upload, DollarSign } from "lucide-react";
 import Swal from "sweetalert2";
 import dynamic from "next/dynamic";
 const QRScannerModal = dynamic(() => import("@/components/QRScannerModal"), { ssr: false });
@@ -39,6 +39,16 @@ export default function ClientBuyerOrders({
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const [checkoutNoticeCount, setCheckoutNoticeCount] = useState(checkoutCount);
   const [ratingLoadingOrderId, setRatingLoadingOrderId] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const stored = localStorage.getItem('pesanku_favorites');
+    if (stored) {
+      try {
+        setFavorites(new Set(JSON.parse(stored)));
+      } catch (e) {}
+    }
+  }, []);
   const hasShownCheckoutNotice = useRef(false);
   const [activeTab, setActiveTab] = useState<'orders' | 'tracking'>('orders');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -1357,18 +1367,25 @@ export default function ClientBuyerOrders({
           </Link>
 
           <Link
-            href="/#katalog"
+            href="/favorites"
             prefetch={true}
             onNavigate={() => setBottomNavLoading('catalog')}
             aria-busy={bottomNavLoading === 'catalog'}
-            className={`flex flex-col items-center gap-1.5 w-1/2 transition-colors pb-2 ${bottomNavLoading === 'catalog' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
+            className={`flex flex-col items-center gap-1.5 w-1/2 transition-colors pb-2 relative ${bottomNavLoading === 'catalog' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
           >
-            {bottomNavLoading === 'catalog' ? (
-              <Loader2 className="w-6 h-6 stroke-[1.8] animate-spin" />
-            ) : (
-              <ShoppingBag className="w-6 h-6 stroke-[1.5]" />
-            )}
-            <span>{bottomNavLoading === 'catalog' ? 'Membuka' : 'Belanja'}</span>
+            <div className="relative flex items-center justify-center">
+              {bottomNavLoading === 'catalog' ? (
+                <Loader2 className="w-6 h-6 stroke-[1.8] animate-spin" />
+              ) : (
+                <Heart className={`w-6 h-6 stroke-[1.5] transition-colors ${favorites.size > 0 ? 'text-[#ff4b4b] fill-[#ff4b4b]' : ''}`} />
+              )}
+              {favorites.size > 0 && bottomNavLoading !== 'catalog' && (
+                <span className="absolute -top-1.5 -right-2 bg-[#ff4b4b] text-white text-[9px] font-bold px-1 py-0.5 rounded-full min-w-[16px] text-center shadow-sm">
+                  {favorites.size}
+                </span>
+              )}
+            </div>
+            <span className={favorites.size > 0 ? 'text-[#ff4b4b] font-medium' : ''}>{bottomNavLoading === 'catalog' ? 'Membuka' : 'Favorite'}</span>
           </Link>
         </div>
 

@@ -21,14 +21,14 @@ export default function Logo({ src, className = '', width, height }: LogoProps) 
       <img
         src={lightSrc}
         alt="Pesanku Nusantara Logo"
-        className="block dark:hidden w-full h-auto object-contain"
+        className="block dark:!hidden w-full h-auto object-contain"
       />
       {/* Dark Mode Logo */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={darkSrc}
         alt="Pesanku Nusantara Logo"
-        className="hidden dark:block w-full h-auto object-contain"
+        className="hidden dark:!block w-full h-auto object-contain"
       />
     </div>
   );
