@@ -1499,20 +1499,7 @@ export default function ChatInterface({
                 </div>
               </div>
 
-              {/* Showcase trigger buttons */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowProductsPanel(!showProductsPanel)}
-                  className={`p-2 rounded-xl flex items-center justify-center gap-1 text-xs font-semibold border transition-all ${showProductsPanel
-                    ? "bg-brand-primary/10 border-brand-primary/20 text-brand-primary"
-                    : "bg-surface border-border text-text-secondary hover:text-brand-primary hover:border-brand-primary/20"
-                    }`}
-                  title="Tampilkan produk-produk"
-                >
-                  <ShoppingBag className="w-4 h-4 shrink-0" />
-                  <span className="hidden sm:inline">Menu Toko</span>
-                </button>
-              </div>
+              {/* Tombol Menu Toko / Preorder Toko dihapus sesuai permintaan */}
             </div>
 
             {/* Conversation Core Body (Split with Products Showcase Panel) */}
@@ -1624,108 +1611,6 @@ export default function ChatInterface({
                 {/* Scroll Anchor */}
                 <div ref={chatEndRef} />
               </div>
-
-              {/* Showcase right items panel drawer */}
-              {showProductsPanel && (
-                <div className="w-[280px] border-l border-border bg-surface h-full flex flex-col z-20 absolute right-0 top-0 bottom-0 2xl:relative shadow-2xl 2xl:shadow-none transform transition-transform duration-200">
-                  <div className="p-3 border-b border-border bg-base/50 flex align-center justify-between shrink-0">
-                    <span className="text-xs font-bold text-text-primary uppercase tracking-tight flex items-center gap-1.5 mt-0.5">
-                      <ShoppingBag className="w-4 h-4 text-brand-primary" />
-                      {mode === "buyer" ? "Preorder Toko" : "Tawarkan Produk"}
-                    </span>
-                    <button
-                      onClick={() => setShowProductsPanel(false)}
-                      className="p-1 hover:bg-neutral-100 dark:hover:bg-slate-700/80 rounded-full text-text-secondary"
-                    >
-                      <X className="w-4 h-4 hover:text-text-primary" />
-                    </button>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto p-3.5 space-y-4 bg-base/15">
-                    {mode === "buyer" ? (
-                      isLoadingProducts ? (
-                        <div className="flex items-center justify-center p-8 text-text-secondary">
-                          <Loader2 className="w-6 h-6 animate-spin text-brand-primary" />
-                        </div>
-                      ) : storeProducts.length === 0 ? (
-                        <div className="text-center py-6 text-xs text-text-secondary border border-dashed border-border rounded-xl bg-surface">
-                          Tidak ada produk aktif.
-                        </div>
-                      ) : (
-                        storeProducts.map(p => {
-                          const pImage = p.imageUrl || "/street-food-festival.jpg";
-                          const minQty = p.preorderMinQty || p.minOrderQty || p.minQty || 1;
-                          const totalPrice = p.price * minQty;
-                          const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalPrice);
-
-                          return (
-                            <div key={p.id} className="flex flex-col gap-3 p-3.5 bg-surface border border-border rounded-xl shadow-xs transition-colors hover:border-brand-primary/30">
-                              <div className="flex gap-2.5 items-center">
-                                <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-base border border-border relative">
-                                  <img src={pImage} alt={p.name} className="w-full h-full object-cover" />
-                                </div>
-                                <div className="flex-1 min-w-0 text-left">
-                                  <p className="text-xs font-bold text-text-primary line-clamp-2 leading-tight" title={p.name}>{p.name}</p>
-                                  <p className="text-[10px] font-bold text-brand-primary mt-1">{formattedPrice} <span className="text-[9px] font-normal text-text-secondary">(Min. {minQty})</span></p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  setInputText(`Permisi kak, apakah produk *${p.name}* ini masih tersedia untuk dipesan?\n\n[PRODUK_OFFER|${p.id}|${p.name}|${totalPrice}|${pImage}|${minQty}]`);
-                                  if (window.innerWidth < 1024) {
-                                    setShowProductsPanel(false);
-                                  }
-                                }}
-                                className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white text-[10px] font-black py-1.5 rounded-lg active:scale-95 transition-all text-center border-none cursor-pointer"
-                              >
-                                Tanyakan Produk
-                              </button>
-                            </div>
-                          );
-                        })
-                      )
-                    ) : (
-                      storeProducts.length === 0 ? (
-                        <div className="text-center py-6 text-xs text-text-secondary border border-dashed border-border rounded-xl bg-surface">
-                          Tidak ada produk yang siap ditawarkan.
-                        </div>
-                      ) : (
-                        storeProducts.map(p => {
-                          const pImage = p.imageUrl || "/street-food-festival.jpg";
-                          const minQty = p.preorderMinQty || p.minOrderQty || p.minQty || 1;
-                          const totalPrice = p.price * minQty;
-                          const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalPrice);
-
-                          return (
-                            <div key={p.id} className="flex flex-col gap-3 p-3.5 bg-surface border border-border rounded-xl shadow-xs transition-all hover:border-brand-primary/30">
-                              <div className="flex gap-2.5 items-center">
-                                <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-base border border-border relative">
-                                  <img src={pImage} alt={p.name} className="w-full h-full object-cover" />
-                                </div>
-                                <div className="flex-1 min-w-0 text-left">
-                                  <p className="text-xs font-bold text-text-primary line-clamp-2 leading-tight text-slate-800" title={p.name}>{p.name}</p>
-                                  <p className="text-[10px] font-bold text-brand-primary mt-1">{formattedPrice} <span className="text-[9px] font-normal text-text-secondary">(Min. {minQty})</span></p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  setInputText(`Halo kak! Kami menawarkan produk pre-order *${p.name}* spesial untuk kakak:\n\n[PRODUK_OFFER|${p.id}|${p.name}|${totalPrice}|${pImage}|${minQty}]`);
-                                  if (window.innerWidth < 1024) {
-                                    setShowProductsPanel(false);
-                                  }
-                                }}
-                                className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white text-[10px] font-black py-1.5 rounded-lg active:scale-95 transition-all text-center border-none cursor-pointer"
-                              >
-                                Tawarkan ke Pembeli
-                              </button>
-                            </div>
-                          );
-                        })
-                      )
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Input message bar area */}
