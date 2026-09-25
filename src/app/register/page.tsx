@@ -8,7 +8,10 @@ import { ShoppingBag, Heart, Store, User, Eye, EyeOff, ArrowLeft, Home, Shopping
 import { motion } from "framer-motion";
 import { useDarkMode } from '@/hooks';
 import Logo from "@/components/ui/Logo";
-import { formatCountdown } from '@/lib/format';
+import { formatCountdown } from "@/lib/format";
+import { useCart } from "@/lib/cart";
+import CartSidebar from "@/components/CartSidebar";
+import MobileBottomNav from "@/components/MobileBottomNav";
 
 export default function RegisterPage() {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
@@ -40,6 +43,7 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('');
+  const { setIsOpen: setIsCartOpen, totalItems } = useCart();
 
   // === OTP States ===
   const [otpStep, setOtpStep] = useState(false);
@@ -671,50 +675,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation Bar (Register Page) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-surface border-t border-border px-4 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
-        <Link
-          href="/"
-          className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
-        >
-          <Home className="w-6 h-6 stroke-[1.5]" />
-          <span>Beranda</span>
-        </Link>
-
-        <div className="w-1/4 flex flex-col justify-end items-center relative pb-2 h-full">
-          <Link
-            href="/favorites"
-            className="absolute bottom-6 flex justify-center w-full"
-            aria-label="Buka daftar favorit"
-          >
-            <span className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-lg hover:bg-brand-primary-hover transition-all transform hover:scale-105 relative">
-              <Heart className={`w-7 h-7 stroke-[1.5] ${favorites.size > 0 ? 'fill-white' : ''}`} />
-              {favorites.size > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#ff4b4b] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm border-2 border-white">
-                  {favorites.size > 99 ? '99+' : favorites.size}
-                </span>
-              )}
-            </span>
-          </Link>
-          <span className="text-text-secondary mt-1">Favorite</span>
-        </div>
-
-        <Link
-          href="/buyer/orders"
-          className="flex flex-col items-center gap-1.5 w-1/4 text-text-secondary hover:text-brand-primary transition-colors pb-2"
-        >
-          <FileText className="w-6 h-6 stroke-[1.5]" />
-          <span>Pesanan</span>
-        </Link>
-
-        <Link
-          href="/login"
-          className="flex flex-col items-center gap-1.5 w-1/4 text-brand-primary font-semibold pb-2"
-        >
-          <User className="w-6 h-6 stroke-[1.5] fill-brand-primary/10 stroke-brand-primary" />
-          <span>Masuk</span>
-        </Link>
-      </nav>
+      <MobileBottomNav user={null} />
 
       {/* Modal Syarat & Ketentuan */}
       {showTermsModal && (
@@ -823,6 +784,7 @@ export default function RegisterPage() {
           </div>
         </div>
       )}
+      <CartSidebar />
     </div>
   );
 }

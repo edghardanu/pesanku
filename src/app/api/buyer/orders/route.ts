@@ -48,6 +48,8 @@ export async function GET() {
         returnReason: orders.returnReason,
         returnProofUrl: orders.returnProofUrl,
         returnDate: orders.returnDate,
+        driverName: orders.driverName,
+        driverPhone: orders.driverPhone,
       })
       .from(orders)
       .innerJoin(products, eq(orders.productId, products.id))

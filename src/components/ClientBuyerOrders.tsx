@@ -14,6 +14,9 @@ import { formatOrderDateTimeWIB, formatChatTimeWIB, WIB_TIMEZONE } from "@/lib/p
 import { AuthUser, BuyerOrderViewItem, ChatMessage } from "@/types";
 import ChatInterface from "@/components/ChatInterface";
 import { useDarkMode } from "@/hooks";
+import MobileBottomNav from "@/components/MobileBottomNav";
+import { useCart } from "@/lib/cart";
+import CartSidebar from "@/components/CartSidebar";
 
 export default function ClientBuyerOrders({
   orders,
@@ -33,6 +36,7 @@ export default function ClientBuyerOrders({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { setIsOpen: setIsCartOpen, totalItems } = useCart();
 
   const [localOrders, setLocalOrders] = useState<BuyerOrderViewItem[]>(orders);
   const [bottomNavLoading, setBottomNavLoading] = useState<'home' | 'catalog' | null>(null);
@@ -1348,76 +1352,8 @@ export default function ClientBuyerOrders({
       </main>
       <QRScannerModal isOpen={isQRScannerOpen} onClose={() => setIsQRScannerOpen(false)} />
 
-      {/* Mobile Bottom Navigation Bar (Orders Page) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-2 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
-        <div className="flex flex-1 justify-around">
-          <Link
-            href="/"
-            prefetch={true}
-            onNavigate={() => setBottomNavLoading('home')}
-            aria-busy={bottomNavLoading === 'home'}
-            className={`flex flex-col items-center gap-1.5 w-1/2 transition-colors pb-2 ${bottomNavLoading === 'home' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
-          >
-            {bottomNavLoading === 'home' ? (
-              <Loader2 className="w-6 h-6 stroke-[1.8] animate-spin" />
-            ) : (
-              <Home className="w-6 h-6 stroke-[1.5]" />
-            )}
-            <span>{bottomNavLoading === 'home' ? 'Membuka' : 'Beranda'}</span>
-          </Link>
-
-          <Link
-            href="/favorites"
-            prefetch={true}
-            onNavigate={() => setBottomNavLoading('catalog')}
-            aria-busy={bottomNavLoading === 'catalog'}
-            className={`flex flex-col items-center gap-1.5 w-1/2 transition-colors pb-2 relative ${bottomNavLoading === 'catalog' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
-          >
-            <div className="relative flex items-center justify-center">
-              {bottomNavLoading === 'catalog' ? (
-                <Loader2 className="w-6 h-6 stroke-[1.8] animate-spin" />
-              ) : (
-                <Heart className={`w-6 h-6 stroke-[1.5] transition-colors ${favorites.size > 0 ? 'text-[#ff4b4b] fill-[#ff4b4b]' : ''}`} />
-              )}
-              {favorites.size > 0 && bottomNavLoading !== 'catalog' && (
-                <span className="absolute -top-1.5 -right-2 bg-[#ff4b4b] text-white text-[9px] font-bold px-1 py-0.5 rounded-full min-w-[16px] text-center shadow-sm">
-                  {favorites.size}
-                </span>
-              )}
-            </div>
-            <span className={favorites.size > 0 ? 'text-[#ff4b4b] font-medium' : ''}>{bottomNavLoading === 'catalog' ? 'Membuka' : 'Favorite'}</span>
-          </Link>
-        </div>
-
-        
-
-        <div className="flex flex-1 justify-around">
-          <button
-            className="flex flex-col items-center gap-1.5 w-1/2 text-brand-primary font-semibold pb-2"
-          >
-            <FileText className="w-6 h-6 stroke-[1.5] fill-brand-primary/10 stroke-brand-primary" />
-            <span>Pesanan</span>
-          </button>
-
-          {user ? (
-            <Link
-              href="/profile"
-              className="flex flex-col items-center gap-1.5 w-1/2 text-text-secondary hover:text-brand-primary transition-colors pb-2"
-            >
-              <User className="w-6 h-6 stroke-[1.5]" />
-              <span>Akun</span>
-            </Link>
-          ) : (
-            <Link
-              href="/login"
-              className="flex flex-col items-center gap-1.5 w-1/2 text-text-secondary hover:text-brand-primary transition-colors pb-2"
-            >
-              <User className="w-6 h-6 stroke-[1.5]" />
-              <span>Masuk</span>
-            </Link>
-          )}
-        </div>
-      </nav>
+      <MobileBottomNav user={user || null} orderCount={checkoutNoticeCount} />
+      <CartSidebar />
     </div >
   );
 }

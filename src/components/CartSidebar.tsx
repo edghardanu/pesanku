@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart, CartItem } from '@/lib/cart';
-import { ShoppingBag, X, Minus, Plus, Edit2, ArrowRight, Save, Store, Trash2 } from 'lucide-react';
+import { X, Minus, Plus, Edit2, ArrowRight, Save, Store, Trash2 } from 'lucide-react';
+import { CustomBagIcon } from '@/components/ui/CustomBagIcon';
 import Image from 'next/image';
 import Swal from 'sweetalert2';
 import { useRouter } from 'next/navigation';
@@ -49,6 +50,7 @@ export default function CartSidebar() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [checkoutFees, setCheckoutFees] = useState<any[]>([]);
     const [deliveryAddress, setDeliveryAddress] = useState<string>('');
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     React.useEffect(() => {
         if (isOpen) {
@@ -60,7 +62,10 @@ export default function CartSidebar() {
                 .catch(err => console.error("Failed to load fees:", err));
 
             fetch('/api/buyer/profile')
-                .then(res => res.json())
+                .then(res => {
+                    if (res.ok) setIsLoggedIn(true);
+                    return res.json();
+                })
                 .then(data => {
                     if (data.address) {
                         setDeliveryAddress(data.address);
@@ -97,6 +102,25 @@ export default function CartSidebar() {
 
     const handleCheckout = async () => {
         if (items.length === 0) return;
+
+        if (!isLoggedIn) {
+             Swal.fire({
+                 icon: 'info',
+                 title: 'Harus Login Terlebih Dahulu',
+                 text: 'Anda harus login / daftar terlebih dahulu sebagai pembeli untuk mengajukan penawaran.',
+                 showCancelButton: true,
+                 confirmButtonText: 'Login / Daftar',
+                 cancelButtonText: 'Batal',
+                 confirmButtonColor: '#800000',
+                 cancelButtonColor: '#94a3b8',
+             }).then((result) => {
+                 if (result.isConfirmed) {
+                     setIsOpen(false);
+                     router.push('/login');
+                 }
+             });
+             return;
+        }
 
         // Konfirmasi dulu ke pembeli
         const confirm = await Swal.fire({
@@ -273,7 +297,7 @@ export default function CartSidebar() {
                                 {items.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-full text-center px-6">
                                         <div className="w-24 h-24 bg-brand-primary/10 rounded-full flex items-center justify-center mb-4">
-                                            <ShoppingBag className="w-10 h-10 text-brand-primary/60" />
+                                            <CustomBagIcon className="w-10 h-10 text-brand-primary/60" />
                                         </div>
                                         <p className="text-gray-900 font-semibold text-lg mb-1">Keranjang masih kosong</p>
                                         <p className="text-gray-500 text-sm">Ayo, masukkan menu favoritmu sekarang!</p>
@@ -292,7 +316,7 @@ export default function CartSidebar() {
                                                         {item.imageUrl ? (
                                                             <Image src={item.imageUrl} alt={item.name} fill sizes="100px" className="object-cover rounded-xl" />
                                                         ) : (
-                                                            <ShoppingBag className="w-8 h-8 text-brand-primary/40" />
+                                                            <CustomBagIcon className="w-8 h-8 text-brand-primary/40" />
                                                         )}
                                                     </div>
 

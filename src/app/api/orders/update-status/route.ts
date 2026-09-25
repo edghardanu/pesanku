@@ -14,7 +14,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const { orderId, status, deliveryProofUrl, dispatchReceiptUrl, cancelReason, returnReason, returnProofUrl, returnBankCode, returnBankAccount, requestedDeliveryDate } = await req.json() as {
+    const { orderId, status, deliveryProofUrl, dispatchReceiptUrl, cancelReason, returnReason, returnProofUrl, returnBankCode, returnBankAccount, requestedDeliveryDate, driverName, driverPhone, trackingNumber } = await req.json() as {
       orderId?: string;
       status?: unknown;
       deliveryProofUrl?: unknown;
@@ -25,6 +25,9 @@ export async function PUT(req: Request) {
       returnBankCode?: string;
       returnBankAccount?: string;
       requestedDeliveryDate?: string;
+      driverName?: string;
+      driverPhone?: string;
+      trackingNumber?: string;
     };
 
     if (!orderId || !status) {
@@ -328,8 +331,12 @@ export async function PUT(req: Request) {
       }
     }
 
-    // ── UPDATE STATUS PESANAN ───────────────────────────────────────────────
     const updateFields: any = { status };
+    
+    if (driverName) updateFields.driverName = driverName;
+    if (driverPhone) updateFields.driverPhone = driverPhone;
+    if (trackingNumber) updateFields.trackingNumber = trackingNumber;
+
     if (typeof deliveryProofUrl === 'string' && deliveryProofUrl) {
       updateFields.deliveryProofUrl = deliveryProofUrl;
     }

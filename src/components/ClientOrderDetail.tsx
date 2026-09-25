@@ -204,11 +204,11 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
                             <div className="text-[13px] text-gray-900">{order.createdAt ? formatOrderDateTimeWIB(order.createdAt) : "-"}</div>
                         </div>
 
-                        {/* Slot 5 (Left Col): Delivery ETA */}
+                        {/* Slot 5 (Left Col): Delivery ETA & Info */}
                         <div>
-                            <label className="text-[12px] font-bold text-gray-800 block mb-2">Estimasi Pengiriman</label>
+                            <label className="text-[12px] font-bold text-gray-800 block mb-2">Informasi Pengiriman</label>
                             <div className="text-[13px] text-gray-600 leading-relaxed font-medium">
-                                {(order.deliveryDate || order.trackingNumber || order.dispatchReceiptUrl) ? (
+                                {(order.deliveryDate || order.trackingNumber || order.dispatchReceiptUrl || order.driverName || order.driverPhone) ? (
                                     <div className="flex flex-col gap-1.5">
                                         {order.deliveryDate && (
                                             <span className="font-semibold text-brand-primary">
@@ -219,6 +219,16 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
                                                 })}
                                             </span>
                                         )}
+                                        {order.driverName && (
+                                            <span className="font-bold text-gray-800">
+                                                Driver: <span className="text-brand-primary">{order.driverName}</span>
+                                            </span>
+                                        )}
+                                        {order.driverPhone && (
+                                            <span className="font-bold text-gray-800">
+                                                No. WA Driver: <span className="text-brand-primary"><a href={`https://wa.me/${order.driverPhone.replace(/^0/, '62')}`} target="_blank" className="hover:underline">{order.driverPhone}</a></span>
+                                            </span>
+                                        )}
                                         {order.trackingNumber && (
                                             <span className="font-bold text-gray-800">
                                                 No Resi: <span className="text-brand-primary">{order.trackingNumber}</span>
@@ -226,12 +236,12 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
                                         )}
                                         {order.dispatchReceiptUrl && (
                                             <a href={order.dispatchReceiptUrl} target="_blank" className="text-[11px] w-max px-2 py-1 rounded bg-amber-100 text-amber-700 font-semibold border-amber-200 border transition-colors hover:bg-amber-500 hover:text-white">
-                                                Lihat Bukti Foto Resi
+                                                Lihat Bukti Foto Resi / Pengiriman
                                             </a>
                                         )}
                                     </div>
                                 ) : (
-                                    'Informasi resi akan diupdate oleh penjual'
+                                    'Informasi resi & pengiriman akan diupdate oleh penjual'
                                 )}
                             </div>
                         </div>

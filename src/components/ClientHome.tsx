@@ -14,6 +14,8 @@ import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import CartSidebar from "@/components/CartSidebar";
 import Logo from "@/components/ui/Logo";
 import { useCart } from "@/lib/cart";
+import MobileBottomNav from "@/components/MobileBottomNav";
+import { CustomBagIcon } from "@/components/ui/CustomBagIcon";
 import { ProductItem, AuthUser } from "@/types";
 import ProductRating from "@/components/ProductRating";
 import PreChatModal from '@/components/PreChatModal';
@@ -507,35 +509,7 @@ export default function ClientHome({
                 </Link>
               )}
 
-              {/* Mobile Cart Button */}
-              <button
-                onClick={() => setIsCartOpen(true)}
-                className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 hover:bg-brand-primary/10`}
-                aria-label="Keranjang Belanja"
-                title="Keranjang Belanja"
-              >
-                <ShoppingBag className="w-5 h-5 text-text-primary group-hover:text-brand-primary" />
-                {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
-                    {totalItems}
-                  </span>
-                )}
-              </button>
 
-              {/* Mobile Favorites Link */}
-              <Link
-                href="/favorites"
-                className={`p-2 rounded-full transition-colors relative flex items-center justify-center w-10 h-10 hover:bg-brand-primary/10`}
-                aria-label="Favorit"
-                title="Katalog Favorit"
-              >
-                <Heart className={`w-5 h-5 transition-colors ${favorites.size > 0 ? 'text-[#ff4b4b] fill-[#ff4b4b]' : 'text-text-primary'}`} />
-                {favorites.size > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#ff4b4b] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
-                    {favorites.size}
-                  </span>
-                )}
-              </Link>
 
               {/* Mobile Theme Toggle */}
               <button
@@ -1381,7 +1355,7 @@ export default function ClientHome({
                                   }}
                                   className="w-full flex items-center justify-center gap-1 bg-brand-primary text-white py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-brand-primary-hover transition-colors relative z-20 group/btn shadow-md"
                                 >
-                                  <ShoppingBag className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
+                                  <CustomBagIcon className="w-3 h-3 group-hover/btn:scale-110 transition-transform shrink-0" />
                                   <span className="truncate">Tambah Pesanan</span>
                                 </button>
                               ) : (
@@ -1592,83 +1566,7 @@ export default function ClientHome({
         user={user || null}
       />
 
-      {/* Mobile Bottom Navigation Bar (Landing Page) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-2 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
-        <div className="flex flex-1 justify-around">
-          <button
-            onClick={() => {
-              if (isFavoritesPage) {
-                window.location.href = '/';
-              } else {
-                scrollToTop();
-              }
-            }}
-            className={`flex flex-col items-center gap-1.5 pb-2 w-1/2 ${!isFavoritesPage ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary transition-colors'}`}
-          >
-            <Home className={`w-6 h-6 stroke-[1.5] ${!isFavoritesPage ? 'fill-brand-primary/10 stroke-brand-primary' : ''}`} />
-            <span>Beranda</span>
-          </button>
-
-          <Link
-            href="/favorites"
-            className={`flex flex-col items-center gap-1.5 pb-2 w-1/2 relative ${isFavoritesPage ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary transition-colors'}`}
-          >
-            <div className="relative flex items-center justify-center">
-              <Heart className={`w-6 h-6 stroke-[1.5] transition-colors ${isFavoritesPage ? 'fill-brand-primary/10 stroke-brand-primary' : (favorites.size > 0 ? 'text-[#ff4b4b] fill-[#ff4b4b]' : '')}`} />
-              <AnimatePresence>
-                {favorites.size > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                    className="absolute -top-1.5 -right-2 bg-[#ff4b4b] text-white text-[9px] font-bold px-1 py-0.5 rounded-full min-w-[16px] text-center shadow-sm"
-                  >
-                    {favorites.size}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </div>
-            <span className={favorites.size > 0 && !isFavoritesPage ? 'text-[#ff4b4b] font-medium' : ''}>Favorite</span>
-          </Link>
-        </div>
-
-
-
-        <div className="flex flex-1 justify-around">
-          <Link
-            href={user ? (user.role === 'admin' ? '/admin' : user.role === 'penjual' ? '/seller' : '/buyer/orders') : '/buyer/orders'}
-            className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 relative w-1/2"
-          >
-            <div className="relative">
-              <FileText className="w-6 h-6 stroke-[1.5]" />
-              {user && user.role === 'pembeli' && orderCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-brand-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">
-                  {orderCount}
-                </span>
-              )}
-            </div>
-            <span>Pesanan</span>
-          </Link>
-
-          {user ? (
-            <Link
-              href="/profile"
-              className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 w-1/2"
-            >
-              <User className="w-6 h-6 stroke-[1.5]" />
-              <span>Akun</span>
-            </Link>
-          ) : (
-            <Link
-              href="/login"
-              className="flex flex-col items-center gap-1.5 text-text-secondary hover:text-brand-primary transition-colors pb-2 w-1/2"
-            >
-              <User className="w-6 h-6 stroke-[1.5]" />
-              <span>Masuk</span>
-            </Link>
-          )}
-        </div>
-      </nav>
+      <MobileBottomNav user={user || null} orderCount={orderCount} />
       <HelpWidget />
       <CartSidebar />
     </>

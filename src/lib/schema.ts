@@ -95,6 +95,8 @@ export const orders = sqliteTable('orders', {
   isRead: integer('is_read', { mode: 'boolean' }).default(false),
   deliveryProofUrl: text('delivery_proof_url'),
   dispatchReceiptUrl: text('dispatch_receipt_url'),
+  driverName: text('driver_name'),
+  driverPhone: text('driver_phone'),
   trackingNumber: text('tracking_number'),
   deliveryDate: text('delivery_date'),
   deliveryAddress: text('delivery_address'),

@@ -518,28 +518,79 @@ export default function ClientSellerDashboard({
   };
 
   const handleUploadDispatchReceipt = async (orderId: string, currentStatus: string) => {
-    const { value: file } = await Swal.fire({
-      title: 'Upload Bukti Delivery',
-      text: 'Pilih foto/gambar resi atau bukti penyerahan barang ke kurir.',
-      input: 'file',
-      inputAttributes: {
-        'accept': 'image/*',
-        'aria-label': 'Upload Foto Bukti Delivery'
-      },
+    const { value: formValues } = await Swal.fire({
+      title: 'Upload Bukti Delivery & Info Driver',
+      html: `
+        <div style="text-align: left; font-size: 13px; margin-bottom: 12px; color: #555;">
+          <p>Lampirkan bukti foto (dari galeri atau kamera langsung), serta lengkapi data driver.</p>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+           <div style="flex: 1; border: 1px solid #ddd; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; background: #f9f9f9; transition: all 0.2s;" onclick="document.getElementById('dispatch-file').click()" onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#f9f9f9'">
+              <div style="font-size: 24px; margin-bottom: 5px;">🖼️</div>
+              <div style="font-size: 12px; font-weight: bold; color: #333;">Pilih dari Galeri</div>
+           </div>
+           <div style="flex: 1; border: 1px solid #ddd; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; background: #f9f9f9; transition: all 0.2s;" onclick="document.getElementById('dispatch-camera').click()" onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#f9f9f9'">
+              <div style="font-size: 24px; margin-bottom: 5px;">📷</div>
+              <div style="font-size: 12px; font-weight: bold; color: #333;">Ambil Foto</div>
+           </div>
+        </div>
+        <div id="file-selected-name" style="font-size: 12px; color: #10b981; font-weight: bold; margin-bottom: 10px; text-align: center; min-height: 18px;">Belum ada foto yang dipilih.</div>
+        
+        <input type="file" id="dispatch-file" accept="image/*" style="display: none;" onchange="if(this.files[0]) { document.getElementById('file-selected-name').innerText = '✓ Foto Terpilih: ' + this.files[0].name; document.getElementById('dispatch-camera').value = ''; }">
+        <input type="file" id="dispatch-camera" accept="image/*" capture="environment" style="display: none;" onchange="if(this.files[0]) { document.getElementById('file-selected-name').innerText = '✓ Foto Terpilih: ' + this.files[0].name; document.getElementById('dispatch-file').value = ''; }">
+        
+        <div style="text-align: left; margin-top: 15px;">
+          <label style="font-weight: bold; font-size: 13px;">Nama Driver <span style="color: red;">*</span></label>
+          <input type="text" id="dispatch-driver" class="swal2-input" style="margin-top: 5px; width: 100%; max-width: 100%; box-sizing: border-box;" placeholder="Masukkan Nama Driver">
+        </div>
+        
+        <div style="text-align: left; margin-top: 15px;">
+          <label style="font-weight: bold; font-size: 13px;">Nomor Whatsapp Aktif <span style="color: red;">*</span></label>
+          <input type="text" id="dispatch-phone" class="swal2-input" style="margin-top: 5px; width: 100%; max-width: 100%; box-sizing: border-box;" placeholder="Masukkan Nomor Whatsapp">
+        </div>
+        
+        <div style="text-align: left; margin-top: 15px;">
+          <label style="font-weight: bold; font-size: 13px;">Nomor Resi (Opsional)</label>
+          <input type="text" id="dispatch-resi" class="swal2-input" style="margin-top: 5px; width: 100%; max-width: 100%; box-sizing: border-box;" placeholder="Masukkan Nomor Resi">
+        </div>
+      `,
       showCancelButton: true,
       confirmButtonText: 'Upload',
       cancelButtonText: 'Batal',
       confirmButtonColor: '#ff5c35',
-      preConfirm: (file) => {
+      preConfirm: () => {
+        const fileInput = document.getElementById('dispatch-file') as HTMLInputElement;
+        const cameraInput = document.getElementById('dispatch-camera') as HTMLInputElement;
+        const driverInput = document.getElementById('dispatch-driver') as HTMLInputElement;
+        const phoneInput = document.getElementById('dispatch-phone') as HTMLInputElement;
+        const resiInput = document.getElementById('dispatch-resi') as HTMLInputElement;
+
+        const file = fileInput?.files?.[0] || cameraInput?.files?.[0];
+        const driverName = driverInput?.value?.trim();
+        const driverPhone = phoneInput?.value?.trim();
+        const trackingNumber = resiInput?.value?.trim();
+
         if (!file) {
           Swal.showValidationMessage('Foto bukti wajib dilampirkan!');
           return false;
         }
-        return file;
+        if (!driverName) {
+          Swal.showValidationMessage('Nama driver wajib diisi!');
+          return false;
+        }
+        if (!driverPhone) {
+          Swal.showValidationMessage('Nomor Whatsapp wajib diisi!');
+          return false;
+        }
+
+        return { file, driverName, driverPhone, trackingNumber };
       }
     });
 
-    if (file) {
+    if (formValues) {
+      const { file, driverName, driverPhone, trackingNumber } = formValues;
+
       Swal.fire({
         title: 'Mengunggah...',
         allowOutsideClick: false,
@@ -552,14 +603,21 @@ export default function ClientSellerDashboard({
       reader.onload = async (e) => {
         const dispatchReceiptUrl = e.target?.result as string;
         try {
+          const bodyPayload: any = {
+            orderId,
+            status: 'processing',
+            dispatchReceiptUrl,
+            driverName,
+            driverPhone
+          };
+          if (trackingNumber) {
+            bodyPayload.trackingNumber = trackingNumber;
+          }
+
           const res = await fetch('/api/orders/update-status', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              orderId,
-              status: 'processing',
-              dispatchReceiptUrl
-            })
+            body: JSON.stringify(bodyPayload)
           });
 
           const data = await res.json();
@@ -571,7 +629,7 @@ export default function ClientSellerDashboard({
           Swal.fire({
             icon: 'success',
             title: 'Berhasil!',
-            text: 'Bukti delivery (resi) telah berhasil diunggah.',
+            text: 'Bukti delivery & info driver telah berhasil diunggah.',
             confirmButtonColor: '#10b981',
           }).then(() => {
             window.location.reload();

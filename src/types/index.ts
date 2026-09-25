@@ -56,6 +56,8 @@ export interface OrderItem {
   returnDate?: string | Date | null;
   isRead?: boolean | null;
   lastMessageAt?: string | Date | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
 }
 
 export interface UmkmItem {
@@ -232,6 +234,8 @@ export interface BuyerOrderViewItem {
   unreadCount?: number;
   lastMessageAt?: string | Date | null;
   negotiationStatus?: 'approved' | 'rejected' | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
 }
 
 export interface InvoiceOrder {
