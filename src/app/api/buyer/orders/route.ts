@@ -71,7 +71,6 @@ export async function GET() {
       ))
       .groupBy(chatMessages.orderId);
 
-    // Last message time per order
     const lastMessages = await db
       .select({
         orderId: chatMessages.orderId,
@@ -90,7 +89,6 @@ export async function GET() {
       return acc;
     }, {} as Record<string, number>);
 
-    // Find if the seller has sent an approval or rejection for the orders
     const negotiationMessages = await db.select({
       orderId: chatMessages.orderId,
       text: chatMessages.text,
@@ -114,34 +112,7 @@ export async function GET() {
       }
     }
 
-    // Auto-verify waiting_verification orders via iPaymu check
-    const waitingOrders = userOrders.filter(o => o.status === 'waiting_verification');
-    if (waitingOrders.length > 0) {
-      try {
-        const {
-          checkTransactionStatus,
-          fulfillOrderPayment,
-          getIpaymuPaidProof,
-          getIpaymuTransactionLookupId,
-          isIpaymuTransactionPaid,
-        } = await import('@/lib/ipaymu');
-        for (const wo of waitingOrders) {
-          try {
-            const lookupId = getIpaymuTransactionLookupId(wo.paymentProofUrl, wo.orderId);
-            const verifyData = await checkTransactionStatus(lookupId);
-            if (isIpaymuTransactionPaid(verifyData)) {
-              await fulfillOrderPayment(wo.orderId, getIpaymuPaidProof(verifyData, lookupId));
-              wo.status = 'verified';
-              wo.paymentStatus = 'approved';
-            }
-          } catch (chkErr) {
-            // ignore individual order check error
-          }
-        }
-      } catch (importErr) {
-        // ignore
-      }
-    }
+    // Flip callback akan mengubah status waiting_verification -> verified secara async
 
     const uniqueOrders = new Map<string, typeof userOrders[0]>();
 

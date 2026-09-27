@@ -306,7 +306,6 @@ export default function ClientSellerDashboard({
     address: profile?.address || '',
     category: profile?.category || '',
     bankAccount: profile?.bankAccount || '',
-    ipaymuVa: profile?.ipaymuVa || '',
     description: profile?.description || '',
     logoUrl: profile?.logoUrl || '',
     email: userEmail || '',

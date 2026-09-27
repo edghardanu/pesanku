@@ -42,7 +42,8 @@ export default async function AdminDashboard() {
   .from(users)
   .leftJoin(sellerProfiles, eq(users.id, sellerProfiles.userId))
   .where(eq(users.role, 'penjual'))
-  .orderBy(desc(users.createdAt));
+  .orderBy(desc(users.createdAt))
+  .limit(100);
 
   // Fetch Real Orders for Chart, Realtime analytics, and Admin Order Menu
   const ordersList = await db.select({
@@ -68,7 +69,8 @@ export default async function AdminDashboard() {
   .leftJoin(sellerProfiles, eq(products.sellerId, sellerProfiles.userId))
   .leftJoin(users, eq(orders.buyerId, users.id))
   .where(ne(orders.status, 'chat_only'))
-  .orderBy(desc(orders.createdAt));
+  .orderBy(desc(orders.createdAt))
+  .limit(100);
 
   const adminPromotionOffers = await db.select({
     id: promotionOffers.id,
@@ -112,7 +114,8 @@ export default async function AdminDashboard() {
     createdAt: users.createdAt,
   })
   .from(users)
-  .orderBy(desc(users.createdAt));
+  .orderBy(desc(users.createdAt))
+  .limit(100);
 
   return (
     <ClientAdminDashboard 

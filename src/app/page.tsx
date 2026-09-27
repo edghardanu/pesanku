@@ -5,7 +5,7 @@ import ClientHome from "@/components/ClientHome";
 import { getUserFromSession } from "@/lib/auth";
 import { retryDatabaseRead } from "@/lib/retry-database-read";
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 import { ProductItem } from "@/types";
 
@@ -48,6 +48,7 @@ export default async function Home() {
         .innerJoin(sellerProfiles, eq(products.sellerId, sellerProfiles.userId))
         .innerJoin(users, eq(products.sellerId, users.id))
         .orderBy(desc(products.createdAt))
+        .limit(100)
       ),
       retryDatabaseRead(async () => db
         .select({

@@ -48,33 +48,7 @@ export async function GET() {
       .where(eq(products.sellerId, user.id))
       .orderBy(desc(orders.createdAt));
 
-    // Auto-verify waiting_verification orders via iPaymu check
-    const waitingOrders = sellerOrders.filter(o => o.status === 'waiting_verification');
-    if (waitingOrders.length > 0) {
-      try {
-        const {
-          checkTransactionStatus,
-          fulfillOrderPayment,
-          getIpaymuPaidProof,
-          getIpaymuTransactionLookupId,
-          isIpaymuTransactionPaid,
-        } = await import('@/lib/ipaymu');
-        for (const wo of waitingOrders) {
-          try {
-            const lookupId = getIpaymuTransactionLookupId(wo.proofUrl, wo.id);
-            const verifyData = await checkTransactionStatus(lookupId);
-            if (isIpaymuTransactionPaid(verifyData)) {
-              await fulfillOrderPayment(wo.id, getIpaymuPaidProof(verifyData, lookupId));
-              wo.status = 'verified';
-            }
-          } catch (chkErr) {
-            // ignore individual order check error
-          }
-        }
-      } catch (importErr) {
-        // ignore
-      }
-    }
+    // Flip callback akan mengubah status waiting_verification -> verified secara async
 
     const lastMessages = await db
       .select({

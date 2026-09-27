@@ -14,7 +14,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const feeSettings = await db.select().from(settings).where(inArray(settings.key, ["fee_aplikasi", "fee_jasa", "fee_admin", "penalty_percentage", "penalty_percentage_admin", "penalty_percentage_seller", "penalty_seller_to_admin", "penalty_seller_to_buyer", "penalty_days", "ipaymu_sandbox", "checkout_fees_config", "flip_sandbox"])).all();
+    const feeSettings = await db.select().from(settings).where(inArray(settings.key, ["fee_aplikasi", "fee_jasa", "fee_admin", "penalty_percentage", "penalty_percentage_admin", "penalty_percentage_seller", "penalty_seller_to_admin", "penalty_seller_to_buyer", "penalty_days", "checkout_fees_config", "flip_sandbox"])).all();
 
     let penaltyPercentage = 0;
     let penaltyPercentageAdmin = 0;
@@ -22,7 +22,6 @@ export async function GET() {
     let penaltySellerToAdmin = 0;
     let penaltySellerToBuyer = 0;
     let penaltyDays = 1;
-    let ipaymuSandbox = 0;
     let checkoutFees: any[] = [];
     let hasCustomFees = false;
 
@@ -33,7 +32,6 @@ export async function GET() {
       if (f.key === 'penalty_seller_to_admin') penaltySellerToAdmin = parseInt(f.value);
       if (f.key === 'penalty_seller_to_buyer') penaltySellerToBuyer = parseInt(f.value);
       if (f.key === 'penalty_days') penaltyDays = parseInt(f.value);
-      if (f.key === 'ipaymu_sandbox') ipaymuSandbox = parseInt(f.value);
       if (f.key === 'flip_sandbox') { /* handled separately below */ }
       if (f.key === 'checkout_fees_config') {
           try {
@@ -73,11 +71,10 @@ export async function GET() {
         penalty_seller_to_admin: penaltySellerToAdmin,
         penalty_seller_to_buyer: penaltySellerToBuyer,
         penalty_days: penaltyDays,
-        ipaymu_sandbox: ipaymuSandbox,
         flip_sandbox: flipSandbox
     });
   } catch (error) {
-    return NextResponse.json({ checkout_fees: [], penalty_percentage: 0, ipaymu_sandbox: 0 });
+    return NextResponse.json({ checkout_fees: [], penalty_percentage: 0 });
   }
 }
 
@@ -99,7 +96,7 @@ export async function POST(request: Request) {
     if (body.penalty_seller_to_admin !== undefined) updates.push({ key: "penalty_seller_to_admin", value: body.penalty_seller_to_admin.toString() });
     if (body.penalty_seller_to_buyer !== undefined) updates.push({ key: "penalty_seller_to_buyer", value: body.penalty_seller_to_buyer.toString() });
     if (body.penalty_days !== undefined) updates.push({ key: "penalty_days", value: body.penalty_days.toString() });
-    if (body.ipaymu_sandbox !== undefined) updates.push({ key: "ipaymu_sandbox", value: body.ipaymu_sandbox.toString() });
+
     if (body.flip_sandbox !== undefined) updates.push({ key: "flip_sandbox", value: body.flip_sandbox.toString() });
 
     for (const update of updates) {

@@ -263,7 +263,7 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
 
                                 let sid = '';
                                 let viaCode = 'VA';
-                                if (proofUrl && proofUrl.startsWith('ipaymu:')) {
+                                if (proofUrl && (proofUrl.startsWith('ipaymu:') || proofUrl.startsWith('flip:'))) {
                                     const parts = proofUrl.split(':');
                                     sid = parts[1] || '';
                                     viaCode = (parts[2] || 'VA').toUpperCase();

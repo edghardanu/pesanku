@@ -10,7 +10,8 @@ export async function retryDatabaseRead<T>(
     } catch (error) {
       lastError = error;
       if (attempt < attempts - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1)));
+        const jitter = Math.random() * 100;
+        await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1) + jitter));
       }
     }
   }

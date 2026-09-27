@@ -69,7 +69,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
   const [penaltySellerToAdmin, setPenaltySellerToAdmin] = useState<number>(0);
   const [penaltySellerToBuyer, setPenaltySellerToBuyer] = useState<number>(0);
   const [penaltyDays, setPenaltyDays] = useState<number>(1);
-  const [ipaymuSandbox, setIpaymuSandbox] = useState<number>(0);
   const [flipSandbox, setFlipSandbox] = useState<number>(0);
   const [feeLoading, setFeeLoading] = useState(false);
 
@@ -81,7 +80,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
       setPenaltySellerToAdmin(d.penalty_seller_to_admin || 0);
       setPenaltySellerToBuyer(d.penalty_seller_to_buyer || 0);
       setPenaltyDays(d.penalty_days || 1);
-      setIpaymuSandbox(d.ipaymu_sandbox || 0);
       setFlipSandbox(d.flip_sandbox || 0);
     }).catch((_e) => { });
   }, []);
@@ -1805,17 +1803,6 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                 <div className="card md:p-6 border border-border">
                   <div className="flex justify-between items-center mb-6">
                     <div>
-                      <h2 className="text-h3">iPaymu Mode Sandbox</h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">Gunakan mode Sandbox (1) atau Production (0) untuk iPaymu.</p>
-                    </div>
-                    <button onClick={async () => { const { value: v } = await Swal.fire({ title: 'Sandbox Mode (1/0)', input: 'number', inputValue: ipaymuSandbox }); if (v !== undefined && v !== null) { setFeeLoading(true); await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ ipaymu_sandbox: parseInt(v) }) }); setIpaymuSandbox(parseInt(v)); setFeeLoading(false); Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); } }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
-                  </div>
-                  <p className="text-4xl font-black text-brand-primary">{ipaymuSandbox === 1 ? 'Aktif (1)' : 'Nonaktif (0)'}</p>
-                </div>
-
-                <div className="card md:p-6 border border-border">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
                       <h2 className="text-h3">Flip Business Mode Sandbox</h2>
                       <p className="text-sm text-text-secondary pr-4 mt-1">Gunakan mode Sandbox (1) atau Production (0) untuk Flip Business (Pay-out penjual). Saat Production, pastikan <code className="text-xs bg-surface px-1 rounded">FLIP_SECRET_KEY</code> sudah diisi di .env.</p>
                     </div>
@@ -1855,10 +1842,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
             )}
           </div>
         </div>
-      </main >
+      </main>
 
       {/* Mobile Bottom Navigation Bar */}
-      < nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-2 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl" >
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border px-2 py-2 flex justify-between items-end pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] text-[10px] font-medium rounded-t-2xl">
         <button
           onClick={() => handleTabChange('overview')}
           className={`flex flex-col items-center gap-1.5 w-1/3 transition-colors pb-2 ${activeTab === 'overview' ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-brand-primary'}`}
@@ -1891,7 +1878,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
           </div>
           <span>Lainnya</span>
         </button>
-      </nav >
-    </div >
+      </nav>
+    </div>
   );
 }

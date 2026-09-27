@@ -10,7 +10,6 @@ export interface SellerProfile {
   address?: string | null;
   category?: string | null;
   bankAccount?: string | null;
-  ipaymuVa?: string | null;
   logoUrl?: string | null;
   description?: string | null;
   phone?: string | null;

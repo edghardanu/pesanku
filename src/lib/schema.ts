@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 // Global System Settings
@@ -19,7 +19,11 @@ export const users = sqliteTable('users', {
   address: text('address'),
   profileImageUrl: text('profile_image_url'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
-});
+}, (t) => [
+  index('idx_users_email').on(t.email),
+  index('idx_users_role').on(t.role),
+  index('idx_users_created_at').on(t.createdAt),
+]);
 
 // Seller Profile table
 export const sellerProfiles = sqliteTable('seller_profiles', {
@@ -29,11 +33,13 @@ export const sellerProfiles = sqliteTable('seller_profiles', {
   address: text('address'),
   category: text('category'),
   bankAccount: text('bank_account'),
-  ipaymuVa: text('ipaymu_va'), // VA khusus iPaymu untuk keperluan routing / otomatisasi transfer
   logoUrl: text('logo_url'),
   description: text('description'),
   approvalStatus: text('approval_status', { enum: ['pending', 'approved', 'rejected'] }).default('pending'),
-});
+}, (t) => [
+  index('idx_seller_profiles_user_id').on(t.userId),
+  index('idx_seller_profiles_approval').on(t.approvalStatus),
+]);
 
 // Product table
 export const products = sqliteTable('products', {
@@ -54,7 +60,12 @@ export const products = sqliteTable('products', {
   deadlineDate: integer('deadline_date', { mode: 'timestamp' }),
   status: text('status', { enum: ['draft', 'active', 'quota_reached', 'closed', 'processing', 'completed'] }).default('draft'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
-});
+}, (t) => [
+  index('idx_products_seller_id').on(t.sellerId),
+  index('idx_products_status').on(t.status),
+  index('idx_products_created_at').on(t.createdAt),
+  index('idx_products_batch_category').on(t.batchCategory),
+]);
 
 // Promotion packages created by admins and offered to sellers.
 export const promotionOffers = sqliteTable('promotion_offers', {
@@ -65,7 +76,9 @@ export const promotionOffers = sqliteTable('promotion_offers', {
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
   createdBy: text('created_by').notNull().references(() => users.id),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
-});
+}, (t) => [
+  index('idx_promotion_offers_active_expires').on(t.isActive, t.expiresAt),
+]);
 
 // A seller chooses one product and requests placement in the promoted catalogue.
 export const productPromotions = sqliteTable('product_promotions', {
@@ -77,7 +90,11 @@ export const productPromotions = sqliteTable('product_promotions', {
   requestedAt: integer('requested_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
   reviewedAt: integer('reviewed_at', { mode: 'timestamp' }),
   reviewedBy: text('reviewed_by').references(() => users.id),
-});
+}, (t) => [
+  index('idx_product_promotions_product').on(t.productId),
+  index('idx_product_promotions_status').on(t.status),
+  index('idx_product_promotions_seller').on(t.sellerId),
+]);
 
 // Orders table
 export const orders = sqliteTable('orders', {
@@ -109,7 +126,13 @@ export const orders = sqliteTable('orders', {
   returnBankCode: text('return_bank_code'),
   returnBankAccount: text('return_bank_account'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
-});
+}, (t) => [
+  index('idx_orders_buyer_id').on(t.buyerId),
+  index('idx_orders_product_id').on(t.productId),
+  index('idx_orders_status').on(t.status),
+  index('idx_orders_created_at').on(t.createdAt),
+  index('idx_orders_buyer_status').on(t.buyerId, t.status),
+]);
 
 // Payments table
 export const payments = sqliteTable('payments', {
@@ -119,7 +142,10 @@ export const payments = sqliteTable('payments', {
   verificationStatus: text('verification_status', { enum: ['pending', 'approved', 'rejected'] }).default('pending'),
   verifiedBy: text('verified_by').references(() => users.id),
   verifiedAt: integer('verified_at', { mode: 'timestamp' }),
-});
+}, (t) => [
+  index('idx_payments_order_id').on(t.orderId),
+  index('idx_payments_status').on(t.verificationStatus),
+]);
 
 // Admin QRIS table
 export const adminQris = sqliteTable('admin_qris', {
@@ -133,9 +159,11 @@ export const adminQris = sqliteTable('admin_qris', {
 export const sellerBalances = sqliteTable('seller_balances', {
   id: text('id').primaryKey(),
   sellerId: text('seller_id').notNull().references(() => users.id),
-  retainedBalance: integer('retained_balance').default(0), // Saldo tertahan
-  availableBalance: integer('available_balance').default(0), // Saldo yang bisa ditarik
-});
+  retainedBalance: integer('retained_balance').default(0),
+  availableBalance: integer('available_balance').default(0),
+}, (t) => [
+  index('idx_seller_balances_seller').on(t.sellerId),
+]);
 
 // Payouts
 export const payouts = sqliteTable('payouts', {
@@ -150,7 +178,10 @@ export const payouts = sqliteTable('payouts', {
   status: text('status', { enum: ['pending', 'processed', 'failed'] }).default('pending'),
   processedBy: text('processed_by').references(() => users.id),
   processedAt: integer('processed_at', { mode: 'timestamp' }),
-});
+}, (t) => [
+  index('idx_payouts_seller').on(t.sellerId),
+  index('idx_payouts_status').on(t.status),
+]);
 
 // Chat Messages
 export const chatMessages = sqliteTable('chat_messages', {
@@ -160,7 +191,11 @@ export const chatMessages = sqliteTable('chat_messages', {
   text: text('text').notNull(),
   isRead: integer('is_read', { mode: 'boolean' }).default(false),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
-});
+}, (t) => [
+  index('idx_chat_order_id').on(t.orderId),
+  index('idx_chat_sender').on(t.senderId),
+  index('idx_chat_created_at').on(t.createdAt),
+]);
 
 // Tickets / Reports
 export const tickets = sqliteTable('tickets', {
@@ -171,7 +206,10 @@ export const tickets = sqliteTable('tickets', {
   notes: text('notes').notNull(),
   status: text('status', { enum: ['open', 'in_progress', 'resolved', 'closed'] }).default('open'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
-});
+}, (t) => [
+  index('idx_tickets_user').on(t.userId),
+  index('idx_tickets_status').on(t.status),
+]);
 
 // OTP Verification Codes
 export const otpCodes = sqliteTable('otp_codes', {
@@ -181,5 +219,7 @@ export const otpCodes = sqliteTable('otp_codes', {
   expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
   isUsed: integer('is_used', { mode: 'boolean' }).default(false),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
-});
-
+}, (t) => [
+  index('idx_otp_email').on(t.email),
+  index('idx_otp_expires').on(t.expiresAt),
+]);

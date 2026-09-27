@@ -21,23 +21,26 @@ function PaymentReturnContent() {
   useEffect(() => {
     if (isCancelled) return;
 
-    // Poll the server to verify whether iPaymu callback has arrived
+    // Poll via buyer orders (Flip callback updates status async)
     let attempts = 0;
     const maxAttempts = 12; // 12 × 5s = 60s max waiting
 
     const checkPaymentStatus = async () => {
       try {
-        const res = await fetch(`/api/ipaymu/status?orderId=${orderId}`);
+        const res = await fetch(`/api/buyer/orders`);
         if (res.ok) {
           const data = await res.json();
-          if (data.paymentStatus === "approved") {
-            setPaymentStatus("success");
-            setChecking(false);
-            return;
-          } else if (data.paymentStatus === "rejected") {
-            setPaymentStatus("failed");
-            setChecking(false);
-            return;
+          const order = (data.orders || []).find((o: any) => o.orderId === orderId);
+          if (order) {
+            if (order.paymentStatus === "approved" || order.status === "verified") {
+              setPaymentStatus("success");
+              setChecking(false);
+              return;
+            } else if (order.paymentStatus === "rejected") {
+              setPaymentStatus("failed");
+              setChecking(false);
+              return;
+            }
           }
         }
       } catch {
