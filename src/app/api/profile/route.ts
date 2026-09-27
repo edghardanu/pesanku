@@ -92,11 +92,14 @@ export async function PUT(request: Request) {
       'pesanku_profiles'
     );
 
+    const bankAccountRaw = typeof body.bankAccount === 'string' ? body.bankAccount.trim() : '';
+
     const userUpdateData: {
       name: string;
       phone: string | null;
       address: string | null;
       profileImageUrl?: string | null;
+      bankAccount?: string | null;
     } = {
       name,
       phone: phone || null,
@@ -105,6 +108,10 @@ export async function PUT(request: Request) {
 
     if (profileImageUrl !== undefined) {
       userUpdateData.profileImageUrl = profileImageUrl;
+    }
+    // Simpan rekening refund pembeli (dan juga untuk semua role) ke users.bankAccount
+    if (bankAccountRaw !== '' || currentUser.bankAccount) {
+      userUpdateData.bankAccount = bankAccountRaw || null;
     }
 
     await db.update(users)

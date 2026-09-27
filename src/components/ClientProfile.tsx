@@ -49,7 +49,7 @@ export default function ClientProfile({ user, sellerData }: { user: AuthUser, se
     storeName: sellerData?.storeName || user.name || "",
     storeAddress: sellerData?.address || user.address || "",
     category: sellerData?.category || "",
-    bankAccount: sellerData?.bankAccount || "",
+    bankAccount: sellerData?.bankAccount || (user as any).bankAccount || "",
     logoUrl: sellerData?.logoUrl || user.profileImageUrl || "",
   });
 
@@ -357,6 +357,28 @@ export default function ClientProfile({ user, sellerData }: { user: AuthUser, se
                 onChange={(event) => updateField('bankAccount', event.target.value)}
                 className="input-field w-full"
                 placeholder="Contoh: BCA - 1234567890 a.n Budi"
+              />
+              <span className="text-xs text-text-secondary mt-1 block">Dana pesanan yang diselesaikan pembeli akan dicairkan ke rekening ini via Flip.</span>
+            </label>
+          </section>
+        )}
+
+        {user.role === 'pembeli' && (
+          <section className="bg-surface rounded-2xl p-5 shadow-sm border border-border space-y-5">
+            <h3 className="font-bold text-text-primary border-b border-border pb-3 flex items-center gap-2">
+              <Landmark className="w-5 h-5 text-brand-primary" /> Rekening Refund
+            </h3>
+            <p className="text-sm text-text-secondary -mt-2">Rekening ini akan digunakan untuk menerima dana refund jika pesanan dikembalikan. Format: <code className="bg-base px-1.5 py-0.5 rounded text-xs">NAMA_BANK NOMOR_REKENING</code> contoh: <b>BCA 1234567890</b></p>
+            <label className="block">
+              <span className="text-body-small font-medium text-text-secondary mb-1 flex items-center gap-2">
+                <Landmark className="w-4 h-4" /> Rekening Bank
+              </span>
+              <input
+                type="text"
+                value={formData.bankAccount}
+                onChange={(event) => updateField('bankAccount', event.target.value)}
+                className="input-field w-full"
+                placeholder="Contoh: BCA 1234567890 a.n Siti"
               />
             </label>
           </section>

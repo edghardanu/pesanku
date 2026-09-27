@@ -18,6 +18,7 @@ export const users = sqliteTable('users', {
   status: text('status', { enum: ['active', 'inactive', 'pending'] }).default('active'),
   address: text('address'),
   profileImageUrl: text('profile_image_url'),
+  bankAccount: text('bank_account'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 }, (t) => [
   index('idx_users_email').on(t.email),

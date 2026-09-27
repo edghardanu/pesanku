@@ -144,6 +144,7 @@ export interface AuthUser {
   phone?: string | null;
   address?: string | null;
   profileImageUrl?: string | null;
+  bankAccount?: string | null;
 }
 
 export interface UserItem {

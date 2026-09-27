@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders, products, sellerBalances, sellerProfiles, settings, payouts } from '@/lib/schema';
+import { orders, products, sellerBalances, sellerProfiles, settings, payouts, users } from '@/lib/schema';
 import { getUserFromSession } from '@/lib/auth';
 import { eq, sql } from 'drizzle-orm';
 import cloudinary from '@/lib/cloudinary';
@@ -316,7 +316,15 @@ export async function PUT(req: Request) {
     } else if (status === 'returned' && orderObj.status !== 'returned') {
       // Penjual menyetujui return -> Pengembalian dana 100% secara otomatis ke Pembeli
       payoutAmount = orderObj.totalPrice || 0;
-      const buyerBank = `${orderObj.returnBankCode || ''} ${orderObj.returnBankAccount || ''}`.trim();
+      let buyerBank = `${orderObj.returnBankCode || ''} ${orderObj.returnBankAccount || ''}`.trim();
+      // Fallback: ambil dari profil pembeli (users.bankAccount) jika tidak diisi per-order
+      if (!buyerBank) {
+        const buyerUser = await db.select().from(users).where(eq(users.id, orderObj.buyerId)).get();
+        buyerBank = (buyerUser as any)?.bankAccount || '';
+      }
+      if (!buyerBank) {
+        return NextResponse.json({ error: 'Rekening refund pembeli belum diisi. Minta pembeli melengkapi Rekening Refund di halaman Profil.' }, { status: 400 });
+      }
 
       // Gunakan Flip Business API
       const disbursementRes = await executeFlipDisbursement({
