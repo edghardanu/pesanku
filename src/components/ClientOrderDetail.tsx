@@ -7,6 +7,7 @@ import { BuyerOrderViewItem, AuthUser } from "@/types";
 import { formatOrderDateTimeWIB } from "@/lib/promotionFormatting";
 import ChatInterface from "@/components/ChatInterface";
 import Swal from "sweetalert2";
+import { calcFeeAmount, calcTotalFees } from "@/lib/fees";
 
 
 interface ClientOrderDetailProps {
@@ -43,7 +44,7 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
         const up = o.qty > 0 ? o.totalPrice / o.qty : 0;
         return sum + (up * eq);
     }, 0);
-    const totalFees = checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0);
+    const totalFees = calcTotalFees(checkoutFees, effectiveTotalPrice);
     const displayedTotalPrice = effectiveTotalPrice + totalFees;
 
     return (
@@ -440,7 +441,7 @@ export default function ClientOrderDetail({ orders, user, onBack, onNavigateTab,
                                         <span className="font-semibold text-gray-800">Rp {effectiveTotalPrice.toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex flex-col gap-1 pb-1.5 text-[11px] text-gray-500 pl-4 border-l-2 border-brand-primary/20 ml-2 mb-2">
-                                        {checkoutFees.map((fee, idx) => ( <div key={idx} className="flex justify-between"><span>{fee.name}:</span><span>Rp {(parseInt(fee.value) || 0).toLocaleString('id-ID')}</span></div>))}
+                                        {checkoutFees.map((fee, idx) => { const amt = calcFeeAmount(fee, effectiveTotalPrice); return (<div key={idx} className="flex justify-between"><span>{fee.name}{fee.type==='percentage'?` (${fee.value}%)`:''}:</span><span>Rp {amt.toLocaleString('id-ID')}</span></div>); })}
                                     </div>
                                     <div className="flex justify-between py-3 border-t border-gray-300 mt-2 text-xl">
                                         <span className="font-black text-gray-800">Total Keseluruhan:</span>

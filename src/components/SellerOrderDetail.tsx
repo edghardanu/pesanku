@@ -7,6 +7,7 @@ import { OrderItem, AuthUser } from "@/types";
 import { formatOrderDateTimeWIB } from "@/lib/promotionFormatting";
 import ChatInterface from "@/components/ChatInterface";
 import Swal from "sweetalert2";
+import { calcFeeAmount, calcTotalFees } from "@/lib/fees";
 
 interface SellerOrderDetailProps {
     order: OrderItem;
@@ -68,8 +69,8 @@ export default function SellerOrderDetail({ order, allBuyerOrders, user, onBack,
         return sum + (up * eq);
     }, 0);
 
-    const totalFees = checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0);
-    const displayedTotalPrice = effectiveTotalPrice - totalFees;
+    const totalFees = calcTotalFees(checkoutFees, effectiveTotalPrice);
+    const displayedTotalPrice = Math.max(0, effectiveTotalPrice - totalFees);
 
     return (
         <div className="flex flex-col min-h-screen bg-[#F0F4F8] w-full overflow-x-hidden">
@@ -322,7 +323,7 @@ export default function SellerOrderDetail({ order, allBuyerOrders, user, onBack,
                                                     <span className="font-semibold text-gray-800">Rp {effectiveTotalPrice.toLocaleString('id-ID')}</span>
                                                 </div>
                                                 <div className="flex flex-col gap-1 pb-1.5 text-[11px] text-gray-500 pl-4 border-l-2 border-brand-primary/20 ml-2 mb-2">
-                                                    {checkoutFees.map((fee, idx) => (<div key={idx} className="flex justify-between"><span>{fee.name}:</span><span className="text-red-500 font-medium">- Rp {(parseInt(fee.value) || 0).toLocaleString('id-ID')}</span></div>))}
+                                                    {checkoutFees.map((fee, idx) => { const amt = calcFeeAmount(fee, effectiveTotalPrice); return (<div key={idx} className="flex justify-between"><span>{fee.name}{fee.type==='percentage'?` (${fee.value}%)`:''}:</span><span className="text-red-500 font-medium">- Rp {amt.toLocaleString('id-ID')}</span></div>); })}
                                                 </div>
                                                 <div className="flex justify-between py-3 border-t border-gray-300 mt-2 text-xl">
                                                     <span className="font-black text-gray-800">Total Pendapatan:</span>

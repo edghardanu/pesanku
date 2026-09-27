@@ -8,6 +8,7 @@ import { CustomBagIcon } from '@/components/ui/CustomBagIcon';
 import Image from 'next/image';
 import Swal from 'sweetalert2';
 import { useRouter } from 'next/navigation';
+import { calcFeeAmount, calcTotalFees } from '@/lib/fees';
 
 function QuantityInput({ item, updateQty }: { item: CartItem, updateQty: (id: string, variant: string | undefined, qty: number) => void }) {
     const minQty = item.minQty || 1;
@@ -437,18 +438,21 @@ export default function CartSidebar() {
                                         <span>Subtotal ({totalItems} produk)</span>
                                         <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalPrice)}</span>
                                     </div>
-                                    {checkoutFees.map(fee => (
+                                    {checkoutFees.map(fee => {
+                                        const amt = calcFeeAmount(fee, totalPrice);
+                                        return (
                                         <div key={fee.id} className="flex justify-between items-center text-xs mb-1 text-gray-400">
-                                            <span>{fee.name}</span>
-                                            <span>{fee.value < 0 ? '-' : ''}{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Math.abs(fee.value))}</span>
+                                            <span>{fee.name}{fee.type==='percentage' ? ` (${fee.value}%)` : ''}</span>
+                                            <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amt)}</span>
                                         </div>
-                                    ))}
+                                        );
+                                    })}
 
                                     <div className="w-full border-b border-dashed border-gray-200 mt-2 pt-2"></div>
 
                                     <div className="flex justify-between items-center pt-2">
                                         <span className="text-base font-bold text-gray-900">Total Pembayaran</span>
-                                        <span className="text-xl font-bold text-brand-primary">Rp {(totalPrice + checkoutFees.reduce((sum, f) => sum + (f.value || 0), 0)).toLocaleString('id-ID')}</span>
+                                        <span className="text-xl font-bold text-brand-primary">Rp {(totalPrice + calcTotalFees(checkoutFees, totalPrice)).toLocaleString('id-ID')}</span>
                                     </div>
                                 </div>
 

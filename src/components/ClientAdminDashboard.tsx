@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { formatOrderDateTimeWIB } from "@/lib/promotionFormatting";
+import { calcTotalFees } from "@/lib/fees";
 import Link from "next/link";
 import {
   ShoppingBag,
@@ -1008,7 +1009,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                             <td className="p-4 text-xs">
                               {(() => {
                                 const isCompleted = order.status === 'completed';
-                                const fees = checkoutFees.reduce((sum, f) => sum + (f.value || 0), 0);
+                                const fees = calcTotalFees(checkoutFees, order.totalPrice || 0);
                                 const moneyFromBuyer = (order.totalPrice || 0) + fees;
                                 const sellerNet = Math.max(0, (order.totalPrice || 0) - fees);
                                 const adminNet = Math.max(0, moneyFromBuyer - sellerNet);
@@ -1044,7 +1045,7 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                 onClick={() => {
                                   // Updated default split logic
                                   const isCompleted = order.status === 'completed';
-                                  const fees = checkoutFees.reduce((sum, f) => sum + (f.value || 0), 0);
+                                  const fees = calcTotalFees(checkoutFees, order.totalPrice || 0);
                                   const moneyFromBuyer = (order.totalPrice || 0) + fees;
                                   const sellerNet = Math.max(0, (order.totalPrice || 0) - fees);
                                   const adminNet = Math.max(0, moneyFromBuyer - sellerNet);
@@ -1522,22 +1523,38 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                       const { value: formValues } = await Swal.fire({
                         title: 'Tambah Biaya Baru',
                         html: `
-                          <input id="swal-fee-name" class="swal2-input" placeholder="Nama Biaya (Cth: Biaya Aplikasi)">
-                          <input id="swal-fee-desc" class="swal2-input" placeholder="Deskripsi Singkat">
-                          <input id="swal-fee-val" type="number" class="swal2-input" placeholder="Nominal (Angka)">
+                          <div class="flex flex-col gap-3 text-left">
+                            <input id="swal-fee-name" class="swal2-input" placeholder="Nama Biaya (Cth: Biaya Aplikasi)">
+                            <input id="swal-fee-desc" class="swal2-input" placeholder="Deskripsi Singkat">
+                            <div class="flex gap-2">
+                              <select id="swal-fee-type" class="swal2-input" style="flex:0 0 170px">
+                                <option value="nominal">Nominal (Rp)</option>
+                                <option value="percentage">Persentase (%)</option>
+                              </select>
+                              <input id="swal-fee-val" type="number" class="swal2-input" placeholder="Nilai" style="flex:1">
+                            </div>
+                            <p class="text-xs text-gray-500 px-1">Nominal = Rp tetap &nbsp;|&nbsp; Persentase = % dari subtotal produk. Keduanya ditambahkan ke tagihan pembeli & dikurangi dari pendapatan penjual.</p>
+                          </div>
                         `,
                         focusConfirm: false,
                         showCancelButton: true,
                         preConfirm: () => {
+                          const nameEl = document.getElementById('swal-fee-name') as HTMLInputElement;
+                          const descEl = document.getElementById('swal-fee-desc') as HTMLInputElement;
+                          const typeEl = document.getElementById('swal-fee-type') as HTMLSelectElement;
+                          const valEl = document.getElementById('swal-fee-val') as HTMLInputElement;
+                          if (!nameEl.value.trim()) { Swal.showValidationMessage('Nama biaya wajib diisi'); return false; }
+                          if (valEl.value === '' || isNaN(parseFloat(valEl.value))) { Swal.showValidationMessage('Nilai biaya wajib diisi'); return false; }
                           return {
-                            name: (document.getElementById('swal-fee-name') as HTMLInputElement).value,
-                            desc: (document.getElementById('swal-fee-desc') as HTMLInputElement).value,
-                            val: parseInt((document.getElementById('swal-fee-val') as HTMLInputElement).value) || 0
+                            name: nameEl.value.trim(),
+                            desc: descEl.value.trim(),
+                            type: typeEl.value as 'nominal' | 'percentage',
+                            val: parseFloat(valEl.value) || 0
                           }
                         }
                       });
                       if (formValues && formValues.name) {
-                        const newFee = { id: Date.now().toString(), name: formValues.name, description: formValues.desc, value: formValues.val };
+                        const newFee = { id: Date.now().toString(), name: formValues.name, description: formValues.desc, value: formValues.val, type: formValues.type };
                         const newFees = [...checkoutFees, newFee];
                         setCheckoutFees(newFees);
                         await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ checkout_fees: newFees }) });
@@ -1581,20 +1598,42 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                          Edit Judul
                        </button>
                        <button 
-                         onClick={async () => { 
-                           const { value: v } = await Swal.fire({ title: 'Ubah Nominal', input: 'number', inputValue: fee.value, showCancelButton: true }); 
-                           if (v !== undefined) { 
-                             const newFees = [...checkoutFees];
-                             newFees[i].value = parseInt(v) || 0;
-                             setCheckoutFees(newFees);
-                             await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ checkout_fees: newFees }) });
-                             Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); 
-                           } 
-                         }} 
-                         className="btn-outline py-1.5 px-3 text-xs shadow-sm"
-                       >
-                         Ubah Harga
-                       </button>
+                          onClick={async () => { 
+                            const { value: formValues } = await Swal.fire({
+                              title: 'Ubah Biaya',
+                              html: `
+                                <div class="flex flex-col gap-3 text-left">
+                                  <label class="text-xs font-semibold">Kategori Biaya</label>
+                                  <select id="swal-edit-type" class="swal2-input">
+                                    <option value="nominal" ${(!fee.type || fee.type==='nominal')?'selected':''}>Nominal (Rp)</option>
+                                    <option value="percentage" ${fee.type==='percentage'?'selected':''}>Persentase (%)</option>
+                                  </select>
+                                  <label class="text-xs font-semibold">Nilai</label>
+                                  <input id="swal-edit-val" type="number" class="swal2-input" value="${fee.value}">
+                                </div>
+                              `,
+                              showCancelButton: true,
+                              focusConfirm: false,
+                              preConfirm: () => {
+                                const t = (document.getElementById('swal-edit-type') as HTMLSelectElement).value;
+                                const v = parseFloat((document.getElementById('swal-edit-val') as HTMLInputElement).value);
+                                if (isNaN(v)) { Swal.showValidationMessage('Nilai wajib diisi'); return false; }
+                                return { type: t, val: v };
+                              }
+                            });
+                            if (formValues) { 
+                              const newFees = [...checkoutFees];
+                              newFees[i].value = formValues.val;
+                              newFees[i].type = formValues.type;
+                              setCheckoutFees(newFees);
+                              await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ checkout_fees: newFees }) });
+                              Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); 
+                            } 
+                          }} 
+                          className="btn-outline py-1.5 px-3 text-xs shadow-sm"
+                        >
+                          Ubah Harga
+                        </button>
                        <button 
                          onClick={async () => {
                            const res = await Swal.fire({ title: 'Hapus Biaya?', text: 'Biaya ini akan dihapus permanen.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
@@ -1613,13 +1652,13 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
 
                     <div className="mb-6 w-2/3">
                       <h2 className="text-h3 flex items-center gap-2">
-                        {fee.name} 
+                        {fee.name} <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${fee.type==='percentage'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}`}>{fee.type==='percentage'?'Persentase':'Nominal'}</span>
                       </h2>
                       <p className="text-sm text-text-secondary pr-4 mt-1">{fee.description || 'Biaya tambahan diproses saat checkout.'}</p>
                     </div>
                     
                     <p className={`text-4xl font-black ${fee.value < 0 ? 'text-status-error' : 'text-brand-primary'}`}>
-                      {fee.value < 0 ? '-' : ''}Rp {Math.abs(fee.value).toLocaleString('id-ID')}
+                      {fee.type==='percentage' ? `${fee.value}%` : `${fee.value < 0 ? '-' : ''}Rp ${Math.abs(fee.value).toLocaleString('id-ID')}`}
                     </p>
                   </div>
                 ))}
