@@ -73,6 +73,11 @@ export default function LoginPage() {
         throw new Error(json.message || "Terjadi kesalahan");
       }
 
+      if (json.requires2FA) {
+        router.push(`/verify?email=${encodeURIComponent(json.email)}&mode=2fa`);
+        return;
+      }
+
       // Tandai sukses agar loading tidak di-set false (menunggu perpindahan halaman selesai)
       isSuccess = true;
 

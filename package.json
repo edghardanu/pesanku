@@ -10,6 +10,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "clear-cache": "node scripts/clear-cache.mjs",
+    "clear-cache:full": "node scripts/clear-cache.mjs --full",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",

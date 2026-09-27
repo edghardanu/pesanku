@@ -5,6 +5,22 @@ import { eq, and } from 'drizzle-orm';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 
+// Rate limit OTP send: max 3 per 10 menit per email
+const sendRateMap = new Map<string, { count: number; resetTime: number }>();
+function checkSendRateLimit(email: string): boolean {
+  const now = Date.now();
+  const window = 10 * 60 * 1000;
+  const max = 3;
+  const rec = sendRateMap.get(email);
+  if (!rec || now > rec.resetTime) {
+    sendRateMap.set(email, { count: 1, resetTime: now + window });
+    return true;
+  }
+  if (rec.count >= max) return false;
+  rec.count += 1;
+  return true;
+}
+
 // ============================================================
 // HELPER: Generate 6-digit OTP
 // ============================================================
@@ -124,6 +140,13 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { success: false, message: 'Format email tidak valid.' },
         { status: 400 }
+      );
+    }
+
+    if (!checkSendRateLimit(sanitizedEmail)) {
+      return NextResponse.json(
+        { success: false, message: 'Terlalu banyak permintaan OTP. Coba lagi dalam 10 menit.' },
+        { status: 429 }
       );
     }
 
