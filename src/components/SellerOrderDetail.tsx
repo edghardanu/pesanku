@@ -73,9 +73,9 @@ export default function SellerOrderDetail({ order, allBuyerOrders, user, onBack,
     const displayedTotalPrice = Math.max(0, effectiveTotalPrice - totalFees);
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#F0F4F8] w-full overflow-x-hidden">
+        <div className="flex flex-col w-full max-w-full min-w-0 bg-[#F0F4F8] overflow-hidden">
             {/* Header Control Panel */}
-            <div className="bg-white border-b border-gray-300 shadow-sm sticky top-0 z-20">
+            <div className="bg-white border-b border-gray-300 shadow-sm shrink-0 w-full max-w-full min-w-0">
                 {/* Action Bar */}
                 <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-gray-200 gap-2">
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -124,9 +124,9 @@ export default function SellerOrderDetail({ order, allBuyerOrders, user, onBack,
             </div>
 
             {/* Main Content Area */}
-            <div className="flex flex-col min-[1500px]:flex-row flex-1 overflow-visible min-[1500px]:overflow-hidden p-3 sm:p-4 md:p-6 gap-4 md:gap-6 w-full max-w-[1600px] mx-auto">
+            <div className="flex flex-col min-[1500px]:flex-row flex-1 w-full max-w-full min-w-0 p-3 sm:p-4 gap-4 md:gap-6">
                 {/* Left Side: Invoice Form */}
-                <div className="flex-1 min-w-0 w-full bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col min-[1500px]:overflow-y-auto min-[1500px]:h-[calc(100vh-140px)]">
+                <div className="flex-1 min-w-0 w-full max-w-full bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col">
                     {/* Accordion Toggle Header */}
                     <button
                         onClick={() => setIsInvoiceOpen(!isInvoiceOpen)}

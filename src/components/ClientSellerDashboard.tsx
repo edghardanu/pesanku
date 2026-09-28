@@ -1816,17 +1816,17 @@ export default function ClientSellerDashboard({
             </div>
           )}
 
-          <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-40' : 'opacity-100'}`}>
+          <div className={`transition-opacity duration-300 w-full min-w-0 ${isTransitioning ? 'opacity-40' : 'opacity-100'}`}>
             {activeTab === 'pesanan_masuk' && (
-              <div className="flex flex-col gap-5 w-full min-w-0">
-                <div className="flex justify-between items-center mt-2">
-                  <div>
+              <div className="flex flex-col gap-5 w-full min-w-0 max-w-full">
+                <div className="flex justify-between items-center mt-2 w-full min-w-0">
+                  <div className="min-w-0">
                     <h1 className="text-h1 mb-1 flex items-center gap-2"><Bell className="w-8 h-8 text-brand-primary" /> Pesanan Masuk</h1>
                     <p className="text-body-base text-text-secondary">Daftar semua pesanan dari pelanggan Anda.</p>
                   </div>
                 </div>
 
-                <div className="flex w-full min-w-0 h-[calc(100vh-170px)] bg-surface border border-border sm:rounded-xl shadow-sm overflow-hidden relative">
+                <div className="flex w-full max-w-full min-w-0 min-h-[500px] h-[calc(100vh-200px)] lg:h-[calc(100vh-180px)] bg-surface border border-border sm:rounded-xl shadow-sm overflow-hidden relative">
                   {/* SIDEBAR: Order List - always visible on desktop, hidden on mobile when order selected */}
                   <div className={`w-full md:w-[240px] lg:w-[260px] xl:w-[280px] 2xl:w-[320px] shrink-0 border-r border-border flex flex-col h-full bg-surface-secondary/50 ${selectedOrderId ? 'hidden md:flex' : 'flex'}`}>
                     <div className="p-4 border-b border-border bg-surface flex flex-col gap-3 sticky top-0 z-10 shrink-0">
@@ -1945,9 +1945,9 @@ export default function ClientSellerDashboard({
                   </div>
 
                   {/* MAIN CONTENT: Order Detail + Chat - always visible on desktop */}
-                  <div className={`flex-1 h-full bg-base overflow-y-auto w-full min-w-0 relative ${!selectedOrderId ? 'hidden md:flex md:items-center md:justify-center' : 'block'}`}>
+                  <div className={`flex-1 h-full bg-base overflow-y-auto overflow-x-hidden w-full min-w-0 relative ${!selectedOrderId ? 'hidden md:flex md:items-center md:justify-center' : 'block'}`}>
                     {selectedOrderId ? (
-                      <div className="w-full h-full min-w-0">
+                      <div className="w-full max-w-full min-w-0 h-full overflow-y-auto overflow-x-hidden">
                         {/* Mobile Back Button only */}
                         <div className="md:hidden sticky top-0 z-50 bg-surface border-b border-border p-3 shadow-sm shrink-0">
                           <button
