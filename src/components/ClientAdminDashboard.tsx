@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { formatOrderDateTimeWIB } from "@/lib/promotionFormatting";
-import { calcTotalFees } from "@/lib/fees";
+import { calcBuyerFees, calcSellerFees } from "@/lib/fees";
 import Link from "next/link";
 import {
   ShoppingBag,
@@ -1009,9 +1009,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                             <td className="p-4 text-xs">
                               {(() => {
                                 const isCompleted = order.status === 'completed';
-                                const fees = calcTotalFees(checkoutFees, order.totalPrice || 0);
-                                const moneyFromBuyer = (order.totalPrice || 0) + fees;
-                                const sellerNet = Math.max(0, (order.totalPrice || 0) - fees);
+                                const buyerFees = calcBuyerFees(checkoutFees, order.totalPrice || 0);
+                                const sellerFees = calcSellerFees(checkoutFees, order.totalPrice || 0);
+                                const moneyFromBuyer = (order.totalPrice || 0) + buyerFees;
+                                const sellerNet = Math.max(0, (order.totalPrice || 0) - sellerFees);
                                 const adminNet = Math.max(0, moneyFromBuyer - sellerNet);
                                 const defaultAdmin = isCompleted ? adminNet : moneyFromBuyer;
                                 const defaultSeller = isCompleted ? sellerNet : 0;
@@ -1045,9 +1046,10 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                 onClick={() => {
                                   // Updated default split logic
                                   const isCompleted = order.status === 'completed';
-                                  const fees = calcTotalFees(checkoutFees, order.totalPrice || 0);
-                                  const moneyFromBuyer = (order.totalPrice || 0) + fees;
-                                  const sellerNet = Math.max(0, (order.totalPrice || 0) - fees);
+                                  const buyerFees = calcBuyerFees(checkoutFees, order.totalPrice || 0);
+                                  const sellerFees = calcSellerFees(checkoutFees, order.totalPrice || 0);
+                                  const moneyFromBuyer = (order.totalPrice || 0) + buyerFees;
+                                  const sellerNet = Math.max(0, (order.totalPrice || 0) - sellerFees);
                                   const adminNet = Math.max(0, moneyFromBuyer - sellerNet);
                                   const currentAdmin = order.adminSplitAmount ?? (isCompleted ? adminNet : moneyFromBuyer);
                                   const currentSeller = order.sellerSplitAmount ?? (isCompleted ? sellerNet : 0);
@@ -1527,13 +1529,17 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                             <input id="swal-fee-name" class="swal2-input" placeholder="Nama Biaya (Cth: Biaya Aplikasi)">
                             <input id="swal-fee-desc" class="swal2-input" placeholder="Deskripsi Singkat">
                             <div class="flex gap-2">
-                              <select id="swal-fee-type" class="swal2-input" style="flex:0 0 170px">
+                              <select id="swal-fee-type" class="swal2-input" style="flex:0 0 140px">
                                 <option value="nominal">Nominal (Rp)</option>
                                 <option value="percentage">Persentase (%)</option>
                               </select>
                               <input id="swal-fee-val" type="number" class="swal2-input" placeholder="Nilai" style="flex:1">
                             </div>
-                            <p class="text-xs text-gray-500 px-1">Nominal = Rp tetap &nbsp;|&nbsp; Persentase = % dari subtotal produk. Keduanya ditambahkan ke tagihan pembeli & dikurangi dari pendapatan penjual.</p>
+                            <select id="swal-fee-target" class="swal2-input">
+                              <option value="buyer">🛒 Dibebankan ke Pembeli — menambah tagihan pembeli</option>
+                              <option value="seller">🏪 Dipotong dari Penjual — mengurangi pendapatan penjual</option>
+                            </select>
+                            <p class="text-xs text-gray-500 px-1">Pembeli = ditambahkan ke total bayar pembeli. Penjual = dikurangi dari pendapatan penjual.</p>
                           </div>
                         `,
                         focusConfirm: false,
@@ -1543,18 +1549,20 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                           const descEl = document.getElementById('swal-fee-desc') as HTMLInputElement;
                           const typeEl = document.getElementById('swal-fee-type') as HTMLSelectElement;
                           const valEl = document.getElementById('swal-fee-val') as HTMLInputElement;
+                          const targetEl = document.getElementById('swal-fee-target') as HTMLSelectElement;
                           if (!nameEl.value.trim()) { Swal.showValidationMessage('Nama biaya wajib diisi'); return false; }
                           if (valEl.value === '' || isNaN(parseFloat(valEl.value))) { Swal.showValidationMessage('Nilai biaya wajib diisi'); return false; }
                           return {
                             name: nameEl.value.trim(),
                             desc: descEl.value.trim(),
                             type: typeEl.value as 'nominal' | 'percentage',
-                            val: parseFloat(valEl.value) || 0
+                            val: parseFloat(valEl.value) || 0,
+                            chargedTo: targetEl.value as 'buyer' | 'seller'
                           }
                         }
                       });
                       if (formValues && formValues.name) {
-                        const newFee = { id: Date.now().toString(), name: formValues.name, description: formValues.desc, value: formValues.val, type: formValues.type };
+                        const newFee = { id: Date.now().toString(), name: formValues.name, description: formValues.desc, value: formValues.val, type: formValues.type, chargedTo: formValues.chargedTo };
                         const newFees = [...checkoutFees, newFee];
                         setCheckoutFees(newFees);
                         await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ checkout_fees: newFees }) });
@@ -1597,9 +1605,9 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                        >
                          Edit Judul
                        </button>
-                       <button 
-                          onClick={async () => { 
-                            const { value: formValues } = await Swal.fire({
+                        <button 
+                           onClick={async () => { 
+                             const { value: formValues } = await Swal.fire({
                               title: 'Ubah Biaya',
                               html: `
                                 <div class="flex flex-col gap-3 text-left">
@@ -1607,6 +1615,11 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                                   <select id="swal-edit-type" class="swal2-input">
                                     <option value="nominal" ${(!fee.type || fee.type==='nominal')?'selected':''}>Nominal (Rp)</option>
                                     <option value="percentage" ${fee.type==='percentage'?'selected':''}>Persentase (%)</option>
+                                  </select>
+                                  <label class="text-xs font-semibold">Dibebankan ke</label>
+                                  <select id="swal-edit-target" class="swal2-input">
+                                    <option value="buyer" ${(!fee.chargedTo || fee.chargedTo==='buyer')?'selected':''}>🛒 Pembeli — menambah tagihan</option>
+                                    <option value="seller" ${fee.chargedTo==='seller'?'selected':''}>🏪 Penjual — potong pendapatan</option>
                                   </select>
                                   <label class="text-xs font-semibold">Nilai</label>
                                   <input id="swal-edit-val" type="number" class="swal2-input" value="${fee.value}">
@@ -1616,15 +1629,17 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                               focusConfirm: false,
                               preConfirm: () => {
                                 const t = (document.getElementById('swal-edit-type') as HTMLSelectElement).value;
+                                const tgt = (document.getElementById('swal-edit-target') as HTMLSelectElement).value;
                                 const v = parseFloat((document.getElementById('swal-edit-val') as HTMLInputElement).value);
                                 if (isNaN(v)) { Swal.showValidationMessage('Nilai wajib diisi'); return false; }
-                                return { type: t, val: v };
+                                return { type: t, chargedTo: tgt, val: v };
                               }
                             });
                             if (formValues) { 
                               const newFees = [...checkoutFees];
                               newFees[i].value = formValues.val;
                               newFees[i].type = formValues.type;
+                              newFees[i].chargedTo = formValues.chargedTo;
                               setCheckoutFees(newFees);
                               await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ checkout_fees: newFees }) });
                               Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); 
@@ -1651,10 +1666,11 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                     </div>
 
                     <div className="mb-6 w-2/3">
-                      <h2 className="text-h3 flex items-center gap-2">
+                      <h2 className="text-h3 flex items-center gap-2 flex-wrap">
                         {fee.name} <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${fee.type==='percentage'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}`}>{fee.type==='percentage'?'Persentase':'Nominal'}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold border ${(!fee.chargedTo || fee.chargedTo==='buyer')?'bg-amber-100 text-amber-700 border-amber-200':'bg-emerald-100 text-emerald-700 border-emerald-200'}`}>{(!fee.chargedTo || fee.chargedTo==='buyer')?'🛒 Pembeli':'🏪 Penjual'}</span>
                       </h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">{fee.description || 'Biaya tambahan diproses saat checkout.'}</p>
+                      <p className="text-sm text-text-secondary pr-4 mt-1">{fee.description || 'Biaya tambahan diproses saat checkout.'} <span className="text-xs italic">{(!fee.chargedTo || fee.chargedTo==='buyer') ? '→ menambah tagihan pembeli' : '→ mengurangi pendapatan penjual'}</span></p>
                     </div>
                     
                     <p className={`text-4xl font-black ${fee.value < 0 ? 'text-status-error' : 'text-brand-primary'}`}>

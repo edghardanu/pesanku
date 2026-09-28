@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import SellerPreorderCalendar from "@/components/SellerPreorderCalendar";
 import SellerPromotionCenter from "@/components/SellerPromotionCenter";
 import { validateProductVariants } from "@/lib/productVariants";
+import { calcFeeAmount, calcSellerFees } from "@/lib/fees";
 import { formatChatTimeWIB, formatShortDateTimeWIB, WIB_TIMEZONE } from "@/lib/promotionFormatting";
 import { useDarkMode } from "@/hooks";
 import { escapeQuotes as escapeQuotesUtil } from "@/lib/format";
@@ -2357,14 +2358,18 @@ export default function ClientSellerDashboard({
                     <p className="text-2xl sm:text-3xl font-bold text-status-success">
                       Rp {collapsedSellerOrders.filter(o => o.status !== 'waiting_verification' && o.status !== 'cancelled' && o.status !== 'failed' && o.status !== 'chat_only').reduce((acc, curr) => {
                         const heldByAdmin = curr.status === 'completed' ? 0 : (curr.adminSplitAmount ?? Math.floor((curr.totalPrice || 0) * 0.5));
-                        return acc + Math.max(0, (curr.totalPrice || 0) - heldByAdmin - (checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0)));
+                        const sellerFee = calcSellerFees(checkoutFees, curr.totalPrice || 0);
+                        return acc + Math.max(0, (curr.totalPrice || 0) - heldByAdmin - sellerFee);
                       }, 0).toLocaleString('id-ID')}
                     </p>
                   </div>
                   <div className="card p-6 border-border border rounded-xl bg-surface/30">
                     <h3 className="text-[11px] sm:text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wider">Ditahan Admin (Dalam Proses)</h3>
                     <p className="text-2xl sm:text-3xl font-bold text-brand-primary">
-                      Rp {collapsedSellerOrders.filter(o => ['verified', 'preorder_running', 'processing'].includes(o.status || '')).reduce((acc, curr) => acc + Math.max(0, (curr.adminSplitAmount ?? Math.floor((curr.totalPrice || 0) * 0.5)) - (checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0))), 0).toLocaleString('id-ID')}
+                      Rp {collapsedSellerOrders.filter(o => ['verified', 'preorder_running', 'processing'].includes(o.status || '')).reduce((acc, curr) => {
+                        const sellerFee = calcSellerFees(checkoutFees, curr.totalPrice || 0);
+                        return acc + Math.max(0, (curr.adminSplitAmount ?? Math.floor((curr.totalPrice || 0) * 0.5)) - sellerFee);
+                      }, 0).toLocaleString('id-ID')}
                     </p>
                   </div>
                   <div className="card p-6 border-border border rounded-xl">
@@ -2395,8 +2400,8 @@ export default function ClientSellerDashboard({
                             <th className="p-3 font-medium">Nama Pesanan</th>
                             <th className="p-3 font-medium text-center">Qty</th>
                             <th className="p-3 font-medium text-right text-status-warning">Ditahan</th>
-                            {checkoutFees.map((fee, idx) => (
-                              <th key={`fee-h-${idx}`} className="p-3 font-medium text-right text-status-error">{fee.name}</th>
+                            {checkoutFees.filter((f:any)=> !f.chargedTo || f.chargedTo==='seller').map((fee, idx) => (
+                              <th key={`fee-h-${idx}`} className="p-3 font-medium text-right text-status-error">{fee.name} <span className="text-[9px] px-1 rounded bg-emerald-50 border">Penjual</span></th>
                             ))}
                             <th className="p-3 font-medium text-right">Total Transaksi</th>
                             <th className="p-3 font-medium text-right">Net Masuk Saldo</th>
@@ -2422,11 +2427,11 @@ export default function ClientSellerDashboard({
                               </td>
                               <td className="p-4 text-right">
                                 <span className="text-sm font-semibold text-status-warning/90 whitespace-nowrap">
-                                  {order.status !== 'completed' && order.status !== 'waiting_verification' && order.status !== 'cancelled' ? `-Rp ${Math.max(0, (order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5)) - (checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0))).toLocaleString('id-ID')}` : '-'}
+                                  {order.status !== 'completed' && order.status !== 'waiting_verification' && order.status !== 'cancelled' ? `-Rp ${Math.max(0, (order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5)) - calcSellerFees(checkoutFees, order.totalPrice || 0)).toLocaleString('id-ID')}` : '-'}
                                 </span>
                               </td>
-                              {checkoutFees.map((fee, idx) => {
-                                const v = parseInt(fee.value) || 0;
+                              {checkoutFees.filter((f:any)=> !f.chargedTo || f.chargedTo==='seller').map((fee:any, idx:number) => {
+                                const v = calcFeeAmount(fee, order.totalPrice || 0);
                                 return (
                                   <td key={`fee-d-${idx}`} className="p-4 text-right">
                                     <span className="text-sm font-semibold text-status-error/90 whitespace-nowrap">
@@ -2440,7 +2445,7 @@ export default function ClientSellerDashboard({
                               </td>
                               <td className="p-4 text-right">
                                 <div className="flex flex-col items-end">
-                                  <span className="font-bold text-status-success">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' || order.status === 'waiting_verification' || order.status === 'cancelled' ? 0 : (order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5))) - (checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0))).toLocaleString('id-ID')}</span>
+                                  <span className="font-bold text-status-success">Rp {Math.max(0, order.totalPrice - (order.status === 'completed' || order.status === 'waiting_verification' || order.status === 'cancelled' ? 0 : (order.adminSplitAmount ?? Math.floor((order.totalPrice || 0) * 0.5))) - calcSellerFees(checkoutFees, order.totalPrice || 0)).toLocaleString('id-ID')}</span>
                                 </div>
                               </td>
                             </tr>

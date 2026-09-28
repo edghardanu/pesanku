@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import { formatOrderDateTimeWIB } from "@/lib/promotionFormatting";
-import { calcFeeAmount, calcTotalFees } from "@/lib/fees";
+import { calcFeeAmount, calcBuyerFees, calcSellerFees } from "@/lib/fees";
 
 interface OrderItem {
   id: string;
@@ -53,8 +53,9 @@ export default function ClientInvoice({ order, allOrders, checkoutFees, viewerRo
     const lineTotal = orderUnitPrice * effectiveQty;
     return sum + lineTotal;
   }, 0);
-  const totalFees = calcTotalFees(checkoutFees, effectiveTotalPrice);
-  const total = viewerRole === 'seller' ? Math.max(0, effectiveTotalPrice - totalFees) : effectiveTotalPrice + totalFees;
+  const buyerFees = calcBuyerFees(checkoutFees, effectiveTotalPrice);
+  const sellerFees = calcSellerFees(checkoutFees, effectiveTotalPrice);
+  const total = viewerRole === 'seller' ? Math.max(0, effectiveTotalPrice - sellerFees) : effectiveTotalPrice + buyerFees;
 
   // Label status dinamis: waiting_payment (1 order) atau waiting_payments (lebih dari 1 order dalam grup)
   const getStatusLabel = (status: string | null): string => {
@@ -153,13 +154,13 @@ export default function ClientInvoice({ order, allOrders, checkoutFees, viewerRo
                 <span className="text-gray-600 text-sm font-bold">Subtotal Produk</span>
                 <span className="text-gray-800 font-bold">Rp {effectiveTotalPrice.toLocaleString('id-ID')}</span>
               </div>
-              {checkoutFees.map((fee, idx) => {
+              {(viewerRole === 'seller' ? checkoutFees.filter((f:any)=> !f.chargedTo || f.chargedTo==='seller') : checkoutFees.filter((f:any)=> !f.chargedTo || f.chargedTo==='buyer')).map((fee:any, idx:number) => {
                 const amt = calcFeeAmount(fee, effectiveTotalPrice);
                 return (
                 <div key={idx} className="flex justify-between items-center mb-2">
-                  <span className="text-gray-500 text-[13px] font-medium">{fee.name}{fee.type==='percentage'?` (${fee.value}%)`:''}</span>
+                  <span className="text-gray-500 text-[13px] font-medium">{fee.name}{fee.type==='percentage'?` (${fee.value}%)`:''} <span className="text-[10px] px-1 py-0.5 rounded bg-gray-100 border">{!fee.chargedTo||fee.chargedTo==='buyer'?'Pembeli':'Penjual'}</span></span>
                   <span className={`text-[13px] font-semibold ${viewerRole === 'seller' ? 'text-red-600' : 'text-gray-700'}`}>
-                    {viewerRole === 'seller' ? '- Rp ' : 'Rp '}{amt.toLocaleString('id-ID')}
+                    {viewerRole === 'seller' ? '- Rp ' : '+ Rp '}{amt.toLocaleString('id-ID')}
                   </span>
                 </div>
                 );

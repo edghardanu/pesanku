@@ -8,7 +8,7 @@ import { CustomBagIcon } from '@/components/ui/CustomBagIcon';
 import Image from 'next/image';
 import Swal from 'sweetalert2';
 import { useRouter } from 'next/navigation';
-import { calcFeeAmount, calcTotalFees } from '@/lib/fees';
+import { calcFeeAmount, calcBuyerFees } from '@/lib/fees';
 
 function QuantityInput({ item, updateQty }: { item: CartItem, updateQty: (id: string, variant: string | undefined, qty: number) => void }) {
     const minQty = item.minQty || 1;
@@ -438,12 +438,12 @@ export default function CartSidebar() {
                                         <span>Subtotal ({totalItems} produk)</span>
                                         <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalPrice)}</span>
                                     </div>
-                                    {checkoutFees.map(fee => {
+                                    {checkoutFees.filter((f:any)=> !f.chargedTo || f.chargedTo==='buyer').map((fee:any) => {
                                         const amt = calcFeeAmount(fee, totalPrice);
                                         return (
                                         <div key={fee.id} className="flex justify-between items-center text-xs mb-1 text-gray-400">
-                                            <span>{fee.name}{fee.type==='percentage' ? ` (${fee.value}%)` : ''}</span>
-                                            <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amt)}</span>
+                                            <span>{fee.name}{fee.type==='percentage' ? ` (${fee.value}%)` : ''} <span className="text-[9px] px-1 rounded bg-amber-50 border border-amber-200 text-amber-600">Pembeli</span></span>
+                                            <span>+ {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amt)}</span>
                                         </div>
                                         );
                                     })}
@@ -452,7 +452,7 @@ export default function CartSidebar() {
 
                                     <div className="flex justify-between items-center pt-2">
                                         <span className="text-base font-bold text-gray-900">Total Pembayaran</span>
-                                        <span className="text-xl font-bold text-brand-primary">Rp {(totalPrice + calcTotalFees(checkoutFees, totalPrice)).toLocaleString('id-ID')}</span>
+                                        <span className="text-xl font-bold text-brand-primary">Rp {(totalPrice + calcBuyerFees(checkoutFees, totalPrice)).toLocaleString('id-ID')}</span>
                                     </div>
                                 </div>
 

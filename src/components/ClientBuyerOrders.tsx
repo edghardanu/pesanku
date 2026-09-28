@@ -13,6 +13,7 @@ import { DotLottieReact } from "@/lib/dotlottie";
 import { formatOrderDateTimeWIB, formatChatTimeWIB, WIB_TIMEZONE } from "@/lib/promotionFormatting";
 import { AuthUser, BuyerOrderViewItem, ChatMessage } from "@/types";
 import ChatInterface from "@/components/ChatInterface";
+import { calcBuyerFees } from "@/lib/fees";
 import { useDarkMode } from "@/hooks";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { useCart } from "@/lib/cart";
@@ -735,7 +736,7 @@ export default function ClientBuyerOrders({
       autoPayProcessed.current = true;
       const targetOrder = localOrders.find(o => o.orderId === autoPayId);
       if (targetOrder && targetOrder.status === 'waiting_verification') {
-        const totalFees = checkoutFees.reduce((sum, fee) => sum + (parseInt(fee.value) || 0), 0); const total = targetOrder.totalPrice + totalFees;
+        const totalFees = calcBuyerFees(checkoutFees as any, targetOrder.totalPrice); const total = targetOrder.totalPrice + totalFees;
         handlePayment(targetOrder.orderId, total, targetOrder.createdAt);
 
         // Remove the autoPay param from url so it doesn't refire on reload
