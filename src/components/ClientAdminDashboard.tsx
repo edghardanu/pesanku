@@ -1515,8 +1515,8 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
 
             {activeTab === 'settings' && (
               <div className="grid gap-6">
-                <div className="flex justify-between items-center bg-surface p-4 rounded-xl border border-border">
-                  <div>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-surface p-4 rounded-xl border border-border">
+                  <div className="min-w-0">
                     <h2 className="text-h3">Potongan & Biaya Tambahan</h2>
                     <p className="text-sm text-text-secondary">Atur daftar biaya yang akan dibebankan/dipotong pada checkout.</p>
                   </div>
@@ -1569,42 +1569,56 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                         Swal.fire({ toast: true, position: 'top-end', title: 'Berhasil ditambahkan', icon: 'success', timer: 2000, showConfirmButton: false });
                       }
                     }} 
-                    className="btn-primary py-2 px-4 shadow-sm shrink-0 flex items-center gap-2"
+                    className="btn-primary py-2.5 px-4 shadow-sm shrink-0 flex items-center justify-center gap-2 w-full sm:w-auto text-sm font-bold"
                   >
                     + Tambah Biaya
                   </button>
                 </div>
 
                 {checkoutFees.map((fee, i) => (
-                  <div key={fee.id} className="card md:p-6 border border-border relative group overflow-hidden">
-                    <div className="absolute top-4 right-4 flex gap-2">
+                  <div key={fee.id} className="card p-4 sm:p-6 border border-border relative group overflow-hidden flex flex-col gap-3">
+                    {/* Top row: title + badges */}
+                    <div className="flex flex-col gap-2 pr-0">
+                      <h2 className="text-sm sm:text-h3 flex items-center gap-1.5 flex-wrap leading-tight">
+                        <span className="break-words">{fee.name}</span>
+                        <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-bold shrink-0 ${fee.type==='percentage'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}`}>{fee.type==='percentage'?'Persentase':'Nominal'}</span>
+                        <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-bold border shrink-0 ${(!fee.chargedTo || fee.chargedTo==='buyer')?'bg-amber-100 text-amber-700 border-amber-200':'bg-emerald-100 text-emerald-700 border-emerald-200'}`}>{(!fee.chargedTo || fee.chargedTo==='buyer')?'🛒 Pembeli':'🏪 Penjual'}</span>
+                      </h2>
+                      <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">{fee.description || 'Biaya tambahan diproses saat checkout.'} <span className="text-[11px] italic whitespace-nowrap">{(!fee.chargedTo || fee.chargedTo==='buyer') ? '→ menambah tagihan pembeli' : '→ mengurangi pendapatan penjual'}</span></p>
+                    </div>
+                    {/* Price */}
+                    <p className={`text-2xl sm:text-4xl font-black break-all ${fee.value < 0 ? 'text-status-error' : 'text-brand-primary'}`}>
+                      {fee.type==='percentage' ? `${fee.value}%` : `${fee.value < 0 ? '-' : ''}Rp ${Math.abs(fee.value).toLocaleString('id-ID')}`}
+                    </p>
+                    {/* Actions: wrap on mobile */}
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50 -mx-1">
                        <button 
-                         onClick={async () => {
-                           const { value: formValues } = await Swal.fire({
-                             title: 'Edit Biaya',
-                             html: `
-                               <input id="swal-fee-name" class="swal2-input" placeholder="Nama Biaya" value="${fee.name}">
-                               <input id="swal-fee-desc" class="swal2-input" placeholder="Deskripsi Singkat" value="${fee.description || ''}">
-                             `,
-                             showCancelButton: true,
-                             preConfirm: () => {
-                               return {
-                                 name: (document.getElementById('swal-fee-name') as HTMLInputElement).value,
-                                 desc: (document.getElementById('swal-fee-desc') as HTMLInputElement).value
-                               }
-                             }
-                           });
-                           if (formValues && formValues.name) {
-                             const newFees = [...checkoutFees];
-                             newFees[i] = { ...newFees[i], name: formValues.name, description: formValues.desc };
-                             setCheckoutFees(newFees);
-                             await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ checkout_fees: newFees }) });
-                           }
-                         }}
-                         className="btn-outline border-transparent hover:bg-brand-primary/10 text-brand-primary py-1.5 px-3 text-xs"
-                       >
-                         Edit Judul
-                       </button>
+                          onClick={async () => {
+                            const { value: formValues } = await Swal.fire({
+                              title: 'Edit Biaya',
+                              html: `
+                                <input id="swal-fee-name" class="swal2-input" placeholder="Nama Biaya" value="${fee.name}">
+                                <input id="swal-fee-desc" class="swal2-input" placeholder="Deskripsi Singkat" value="${fee.description || ''}">
+                              `,
+                              showCancelButton: true,
+                              preConfirm: () => {
+                                return {
+                                  name: (document.getElementById('swal-fee-name') as HTMLInputElement).value,
+                                  desc: (document.getElementById('swal-fee-desc') as HTMLInputElement).value
+                                }
+                              }
+                            });
+                            if (formValues && formValues.name) {
+                              const newFees = [...checkoutFees];
+                              newFees[i] = { ...newFees[i], name: formValues.name, description: formValues.desc };
+                              setCheckoutFees(newFees);
+                              await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ checkout_fees: newFees }) });
+                            }
+                          }}
+                          className="btn-outline border-transparent hover:bg-brand-primary/10 text-brand-primary py-1.5 px-3 text-xs flex-1 sm:flex-none justify-center"
+                        >
+                          Edit Judul
+                        </button>
                         <button 
                            onClick={async () => { 
                              const { value: formValues } = await Swal.fire({
@@ -1645,46 +1659,34 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                               Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false }); 
                             } 
                           }} 
-                          className="btn-outline py-1.5 px-3 text-xs shadow-sm"
+                          className="btn-outline py-1.5 px-3 text-xs shadow-sm flex-1 sm:flex-none justify-center"
                         >
                           Ubah Harga
                         </button>
                        <button 
-                         onClick={async () => {
-                           const res = await Swal.fire({ title: 'Hapus Biaya?', text: 'Biaya ini akan dihapus permanen.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
-                           if (res.isConfirmed) {
-                             const newFees = checkoutFees.filter((_, idx) => idx !== i);
-                             setCheckoutFees(newFees);
-                             await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ checkout_fees: newFees }) });
-                             Swal.fire({ toast: true, position: 'top-end', title: 'Terhapus', icon: 'success', timer: 2000, showConfirmButton: false });
-                           }
-                         }}
-                         className="btn-outline border-status-error text-status-error hover:bg-status-error/10 py-1.5 px-3 text-xs shadow-sm"
-                       >
-                         Hapus
-                       </button>
+                          onClick={async () => {
+                            const res = await Swal.fire({ title: 'Hapus Biaya?', text: 'Biaya ini akan dihapus permanen.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
+                            if (res.isConfirmed) {
+                              const newFees = checkoutFees.filter((_, idx) => idx !== i);
+                              setCheckoutFees(newFees);
+                              await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ checkout_fees: newFees }) });
+                              Swal.fire({ toast: true, position: 'top-end', title: 'Terhapus', icon: 'success', timer: 2000, showConfirmButton: false });
+                            }
+                          }}
+                          className="btn-outline border-status-error text-status-error hover:bg-status-error/10 py-1.5 px-3 text-xs shadow-sm flex-1 sm:flex-none justify-center"
+                        >
+                          Hapus
+                        </button>
                     </div>
-
-                    <div className="mb-6 w-2/3">
-                      <h2 className="text-h3 flex items-center gap-2 flex-wrap">
-                        {fee.name} <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${fee.type==='percentage'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}`}>{fee.type==='percentage'?'Persentase':'Nominal'}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold border ${(!fee.chargedTo || fee.chargedTo==='buyer')?'bg-amber-100 text-amber-700 border-amber-200':'bg-emerald-100 text-emerald-700 border-emerald-200'}`}>{(!fee.chargedTo || fee.chargedTo==='buyer')?'🛒 Pembeli':'🏪 Penjual'}</span>
-                      </h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">{fee.description || 'Biaya tambahan diproses saat checkout.'} <span className="text-xs italic">{(!fee.chargedTo || fee.chargedTo==='buyer') ? '→ menambah tagihan pembeli' : '→ mengurangi pendapatan penjual'}</span></p>
-                    </div>
-                    
-                    <p className={`text-4xl font-black ${fee.value < 0 ? 'text-status-error' : 'text-brand-primary'}`}>
-                      {fee.type==='percentage' ? `${fee.value}%` : `${fee.value < 0 ? '-' : ''}Rp ${Math.abs(fee.value).toLocaleString('id-ID')}`}
-                    </p>
                   </div>
                 ))}
 
                 <hr className="my-2 border-border" />
-                <div className="card md:p-6 border border-border">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-h3">Denda Pinalti Pembatalan (%)</h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">Dikenakan kepada pembeli (potongan persen dari total pembayaran) jika membatalkan pesanan secara sepihak pada masa H-{penaltyDays} sebelum deadline pengiriman.</p>
+                <div className="card p-4 sm:p-6 border border-border">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+                    <div className="min-w-0">
+                      <h2 className="text-h3 text-sm sm:text-lg">Denda Pinalti Pembatalan (%)</h2>
+                      <p className="text-xs sm:text-sm text-text-secondary mt-1 leading-relaxed">Dikenakan kepada pembeli (potongan persen dari total pembayaran) jika membatalkan pesanan secara sepihak pada masa H-{penaltyDays} sebelum deadline pengiriman.</p>
                     </div>
                     <button onClick={async () => {
                       const { value: formValues } = await Swal.fire({
@@ -1728,31 +1730,31 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                         setFeeLoading(false);
                         Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false });
                       }
-                    }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                    }} className="btn-primary py-2.5 px-4 shadow-sm shrink-0 w-full sm:w-auto justify-center">Ubah</button>
                   </div>
-                  <div className="flex items-center gap-6">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-6">
                     <div>
-                      <p className="text-4xl font-black text-status-warning">{penaltyPercentageAdmin}%</p>
+                      <p className="text-2xl sm:text-4xl font-black text-status-warning">{penaltyPercentageAdmin}%</p>
                       <span className="text-xs font-bold text-text-secondary">Admin</span>
                     </div>
-                    <span className="text-3xl font-black text-border">+</span>
+                    <span className="text-xl sm:text-3xl font-black text-border">+</span>
                     <div>
-                      <p className="text-4xl font-black text-brand-primary">{penaltyPercentageSeller}%</p>
+                      <p className="text-2xl sm:text-4xl font-black text-brand-primary">{penaltyPercentageSeller}%</p>
                       <span className="text-xs font-bold text-text-secondary">Penjual</span>
                     </div>
-                    <span className="text-3xl font-black text-border">=</span>
+                    <span className="text-xl sm:text-3xl font-black text-border">=</span>
                     <div>
-                      <p className="text-4xl font-black text-text-primary">{penaltyPercentageAdmin + penaltyPercentageSeller}%</p>
+                      <p className="text-2xl sm:text-4xl font-black text-text-primary">{penaltyPercentageAdmin + penaltyPercentageSeller}%</p>
                       <span className="text-xs font-bold text-text-secondary">Total Denda</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="card md:p-6 border border-border">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-h3">Denda Pinalti Penjual (%)</h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">Dikenakan kepada penjual jika membatalkan pesanan sepihak pada masa H-{penaltyDays} (akan dikurangi dari hasil penjualan saat pencairan).</p>
+                <div className="card p-4 sm:p-6 border border-border">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+                    <div className="min-w-0">
+                      <h2 className="text-h3 text-sm sm:text-lg">Denda Pinalti Penjual (%)</h2>
+                      <p className="text-xs sm:text-sm text-text-secondary mt-1 leading-relaxed">Dikenakan kepada penjual jika membatalkan pesanan sepihak pada masa H-{penaltyDays} (akan dikurangi dari hasil penjualan saat pencairan).</p>
                     </div>
                     <button onClick={async () => {
                       const { value: formValues } = await Swal.fire({
@@ -1795,31 +1797,31 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                         setFeeLoading(false);
                         Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false });
                       }
-                    }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                    }} className="btn-primary py-2.5 px-4 shadow-sm shrink-0 w-full sm:w-auto justify-center">Ubah</button>
                   </div>
-                  <div className="flex items-center gap-6">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-6">
                     <div>
-                      <p className="text-4xl font-black text-status-warning">{penaltySellerToAdmin}%</p>
+                      <p className="text-2xl sm:text-4xl font-black text-status-warning">{penaltySellerToAdmin}%</p>
                       <span className="text-xs font-bold text-text-secondary">Ke Admin</span>
                     </div>
-                    <span className="text-3xl font-black text-border">+</span>
+                    <span className="text-xl sm:text-3xl font-black text-border">+</span>
                     <div>
-                      <p className="text-4xl font-black text-brand-primary">{penaltySellerToBuyer}%</p>
+                      <p className="text-2xl sm:text-4xl font-black text-brand-primary">{penaltySellerToBuyer}%</p>
                       <span className="text-xs font-bold text-text-secondary">Kompensasi Pembeli</span>
                     </div>
-                    <span className="text-3xl font-black text-border">=</span>
+                    <span className="text-xl sm:text-3xl font-black text-border">=</span>
                     <div>
-                      <p className="text-4xl font-black text-text-primary">{penaltySellerToAdmin + penaltySellerToBuyer}%</p>
+                      <p className="text-2xl sm:text-4xl font-black text-text-primary">{penaltySellerToAdmin + penaltySellerToBuyer}%</p>
                       <span className="text-xs font-bold text-text-secondary">Total Denda Penjual</span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="card md:p-6 border border-border">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-h3">Batas Waktu Pembatalan (H-Hari)</h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">Atur berapa hari (sebelum tanggal pengiriman/acara) pembatalan akan dikenakan denda pinalti.</p>
+                <div className="card p-4 sm:p-6 border border-border">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+                    <div className="min-w-0">
+                      <h2 className="text-h3 text-sm sm:text-lg">Batas Waktu Pembatalan (H-Hari)</h2>
+                      <p className="text-xs sm:text-sm text-text-secondary mt-1 leading-relaxed">Atur berapa hari (sebelum tanggal pengiriman/acara) pembatalan akan dikenakan denda pinalti.</p>
                     </div>
                     <button onClick={async () => {
                       const { value: daysStr } = await Swal.fire({
@@ -1845,21 +1847,21 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                         setFeeLoading(false);
                         Swal.fire({ toast: true, position: 'top-end', title: 'Tersimpan', icon: 'success', timer: 2000, showConfirmButton: false });
                       }
-                    }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                    }} className="btn-primary py-2.5 px-4 shadow-sm shrink-0 w-full sm:w-auto justify-center">Ubah</button>
                   </div>
-                  <div className="flex items-center gap-6">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-6">
                     <div>
-                      <p className="text-4xl font-black text-brand-primary">H-{penaltyDays}</p>
+                      <p className="text-2xl sm:text-4xl font-black text-brand-primary">H-{penaltyDays}</p>
                       <span className="text-xs font-bold text-text-secondary">Sebelum Pengiriman</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="card md:p-6 border border-border">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-h3">Flip Business Mode Sandbox</h2>
-                      <p className="text-sm text-text-secondary pr-4 mt-1">Gunakan mode Sandbox (1) atau Production (0) untuk Flip Business (Pay-out penjual). Saat Production, pastikan <code className="text-xs bg-surface px-1 rounded">FLIP_SECRET_KEY</code> sudah diisi di .env.</p>
+                <div className="card p-4 sm:p-6 border border-border">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+                    <div className="min-w-0">
+                      <h2 className="text-h3 text-sm sm:text-lg">Flip Business Mode Sandbox</h2>
+                      <p className="text-xs sm:text-sm text-text-secondary mt-1 leading-relaxed">Gunakan mode Sandbox (1) atau Production (0) untuk Flip Business (Pay-out penjual). Saat Production, pastikan <code className="text-xs bg-surface px-1 rounded">FLIP_SECRET_KEY</code> sudah diisi di .env.</p>
                     </div>
                     <button onClick={async () => {
                       const { value: v } = await Swal.fire({
@@ -1885,9 +1887,9 @@ export default function ClientAdminDashboard({ stats, userName, umkmList, orders
                         setFlipSandbox(newVal);
                         Swal.fire({ toast: true, position: 'top-end', title: `Flip ${newVal === 1 ? 'Sandbox' : 'Production'} aktif`, icon: 'success', timer: 2000, showConfirmButton: false });
                       }
-                    }} className="btn-primary py-2 px-4 shadow-sm shrink-0">Ubah</button>
+                    }} className="btn-primary py-2.5 px-4 shadow-sm shrink-0 w-full sm:w-auto justify-center">Ubah</button>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <span className={`inline-flex items-center gap-2 text-4xl font-black ${flipSandbox === 1 ? 'text-status-warning' : 'text-status-success'}`}>
                       {flipSandbox === 1 ? '🏖️ Sandbox (1)' : '🚀 Production (0)'}
                     </span>
